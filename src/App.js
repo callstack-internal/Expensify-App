@@ -13,6 +13,7 @@ import HTMLEngineProvider from './components/HTMLEngineProvider';
 import {LocaleContextProvider} from './components/LocaleContextProvider';
 import OnyxProvider from './components/OnyxProvider';
 import PopoverContextProvider from './components/PopoverProvider';
+import QueryClientProvider from './components/QueryClientProvider';
 import SafeArea from './components/SafeArea';
 import {CurrentReportIDContextProvider} from './components/withCurrentReportID';
 import {EnvironmentProvider} from './components/withEnvironment';
@@ -49,6 +50,7 @@ function App() {
         <GestureHandlerRootView style={fill}>
             <ComposeProviders
                 components={[
+                    QueryClientProvider,
                     OnyxProvider,
                     SafeAreaProvider,
                     PortalProvider,

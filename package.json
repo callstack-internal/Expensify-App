@@ -88,6 +88,7 @@
     "@react-ng/bounds-observer": "^0.2.1",
     "@rnmapbox/maps": "^10.0.11",
     "@shopify/flash-list": "^1.6.1",
+    "@tanstack/react-query": "^5.8.4",
     "@types/node": "^18.14.0",
     "@ua/react-native-airship": "^15.2.6",
     "awesome-phonenumber": "^5.4.0",

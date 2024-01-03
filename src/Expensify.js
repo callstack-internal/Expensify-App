@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import {AppState, Linking} from 'react-native';
 import Onyx, {withOnyx} from 'react-native-onyx';
 import _ from 'underscore';
+import Devtools from './components/Devtools';
 import ConfirmModal from './components/ConfirmModal';
 import DeeplinkWrapper from './components/DeeplinkWrapper';
 import EmojiPicker from './components/EmojiPicker/EmojiPicker';
@@ -232,6 +233,7 @@ function Expensify(props) {
             )}
 
             <AppleAuthWrapper />
+            <Devtools />
             {hasAttemptedToOpenPublicRoom && (
                 <SplashScreenHiddenContext.Provider value={contextValue}>
                     <NavigationRoot

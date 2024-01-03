@@ -10,6 +10,7 @@ import usePrevious from '@hooks/usePrevious';
 import useThemeStyles from '@hooks/useThemeStyles';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
+import Performance from '@libs/Performance';
 import {defaultProps as optionsListDefaultProps, propTypes as optionsListPropTypes} from './optionsListPropTypes';
 
 const propTypes = {
@@ -251,6 +252,14 @@ function BaseOptionsList({
 
         return <View />;
     };
+
+    useEffect(() => {
+        if(isLoading) {
+            return;
+        }
+        
+        Performance.markEnd("openSearchPage");
+    }, [isLoading])
 
     return (
         <View style={listContainerStyles}>

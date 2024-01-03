@@ -29,6 +29,7 @@ import * as Session from '@userActions/Session';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+import Performance from '@libs/Performance';
 import SignInOrAvatarWithOptionalStatus from './SignInOrAvatarWithOptionalStatus';
 
 const basePropTypes = {
@@ -123,6 +124,9 @@ function SidebarLinks({onLinkClick, insets, optionListItems, isLoading, priority
             return;
         }
 
+        // capture metric for opening search
+        Performance.markStart("openSearchPage");
+        
         Navigation.navigate(ROUTES.SEARCH);
     }, [isCreateMenuOpen]);
 

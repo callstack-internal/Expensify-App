@@ -22,6 +22,7 @@ import * as ReportUtils from './ReportUtils';
 import * as TaskUtils from './TaskUtils';
 import * as TransactionUtils from './TransactionUtils';
 import * as UserUtils from './UserUtils';
+import Performance from './Performance';
 
 /**
  * OptionsListUtils is used to build a list options passed to the OptionsList component. Several different UI views can
@@ -1094,6 +1095,7 @@ function getOptions(
         includeSelectedOptions = false,
     },
 ) {
+    Performance.markStart('GetOptions');
     if (includeCategories) {
         const categoryOptions = getCategoryListSections(categories, recentlyUsedCategories, selectedOptions, searchInputValue, maxRecentReportsToShow);
 
@@ -1391,7 +1393,7 @@ function getOptions(
             ['asc'],
         );
     }
-
+    Performance.markEnd('GetOptions');
     return {
         personalDetails: personalDetailsOptions,
         recentReports: recentReportOptions,

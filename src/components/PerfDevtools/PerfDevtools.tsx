@@ -1,9 +1,9 @@
+import React from 'react';
 import {Text} from 'react-native';
 import Performance from 'react-native-performance';
 
 const onPress = () => {
     const metrics = Performance.getEntries();
-    console.log('Devtools collecting performance metrics...', metrics);
     fetch('http://192.168.1.10:8000', {
         method: 'POST',
         body: JSON.stringify(metrics),
@@ -11,7 +11,7 @@ const onPress = () => {
 };
 
 // eslint-disable-next-line rulesdir/no-inline-named-export, import/prefer-default-export
-export function PerfDevtools() {
+function PerfDevtools() {
     return (
         <Text
             onPress={onPress}
@@ -21,3 +21,17 @@ export function PerfDevtools() {
         </Text>
     );
 }
+
+const perf = {
+    marks: {
+        messageSent: '[SendMessage]Sent',
+    },
+    measurments: {
+        messageProcessing: '[SendMessage]ProcessingTime',
+    },
+    data: {
+        message: null,
+    },
+};
+
+export {perf, PerfDevtools};

@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
+import performance from 'react-native-performance';
 import {runOnJS, useAnimatedRef} from 'react-native-reanimated';
 import _ from 'underscore';
 import AttachmentModal from '@components/AttachmentModal';
@@ -12,6 +13,7 @@ import ExceededCommentLength from '@components/ExceededCommentLength';
 import OfflineIndicator from '@components/OfflineIndicator';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import {usePersonalDetails, withNetwork} from '@components/OnyxProvider';
+import {perf} from '@components/PerfDevtools/PerfDevtools';
 import withCurrentUserPersonalDetails, {withCurrentUserPersonalDetailsDefaultProps, withCurrentUserPersonalDetailsPropTypes} from '@components/withCurrentUserPersonalDetails';
 import useHandleExceedMaxCommentLength from '@hooks/useHandleExceedMaxCommentLength';
 import useLocalize from '@hooks/useLocalize';
@@ -256,8 +258,12 @@ function ReportActionCompose({
             if (e) {
                 e.preventDefault();
             }
+            performance.mark(perf.marks.messageSent);
 
             const newComment = composerRef.current.prepareCommentAndResetComposer();
+
+            perf.data.message = newComment;
+
             if (!newComment) {
                 return;
             }

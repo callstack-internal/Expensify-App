@@ -67,8 +67,6 @@ function TextCommentFragment(props) {
         perf.data.message = null;
     }, [text]);
 
-    const textId = perf.data.message === text ? perf.marks.messageSent : undefined;
-
     // Only render HTML if we have html in the fragment
     if (!differByLineBreaksOnly) {
         const editedTag = fragment.isEdited ? `<edited ${styleAsDeleted ? 'deleted' : ''}></edited>` : '';
@@ -93,7 +91,7 @@ function TextCommentFragment(props) {
                 displayAsGroup={props.displayAsGroup}
             />
             <Text
-                id={textId}
+                testID={text}
                 style={[
                     containsOnlyEmojis ? styles.onlyEmojisText : undefined,
                     styles.ltr,

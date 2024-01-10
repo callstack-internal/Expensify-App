@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
+import performance from 'react-native-performance';
 import {runOnJS, setNativeProps, useAnimatedRef} from 'react-native-reanimated';
 import _ from 'underscore';
 import AttachmentModal from '@components/AttachmentModal';
@@ -35,6 +36,7 @@ import * as Report from '@userActions/Report';
 import * as User from '@userActions/User';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+import {perf} from '@src/PERF';
 import AttachmentPickerWithMenuItems from './AttachmentPickerWithMenuItems';
 import ComposerWithSuggestions from './ComposerWithSuggestions';
 import SendButton from './SendButton';
@@ -282,7 +284,10 @@ function ReportActionCompose({
                 e.preventDefault();
             }
 
+            performance.mark(perf.marks.messageSent);
+
             const newComment = composerRef.current.prepareCommentAndResetComposer();
+            perf.data.message = newComment;
             if (!newComment) {
                 return;
             }

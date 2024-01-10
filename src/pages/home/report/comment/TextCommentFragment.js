@@ -1,6 +1,7 @@
 import Str from 'expensify-common/lib/str';
 import PropTypes from 'prop-types';
-import React, {memo} from 'react';
+import React, {memo, useEffect} from 'react';
+import performance from 'react-native-performance';
 import Text from '@components/Text';
 import withLocalize, {withLocalizePropTypes} from '@components/withLocalize';
 import withWindowDimensions, {windowDimensionsPropTypes} from '@components/withWindowDimensions';
@@ -15,6 +16,7 @@ import reportActionFragmentPropTypes from '@pages/home/report/reportActionFragme
 import reportActionSourcePropType from '@pages/home/report/reportActionSourcePropType';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
+import {perf} from '@src/PERF';
 import RenderCommentHTML from './RenderCommentHTML';
 
 const propTypes = {
@@ -57,6 +59,16 @@ function TextCommentFragment(props) {
     // This is done to render emojis with line breaks between them as text.
     const differByLineBreaksOnly = Str.replaceAll(html, '<br />', '\n') === text;
 
+    useEffect(() => {
+        if (!perf.data.message) {
+            return;
+        }
+        performance.measure(perf.measurments.messageProcessing, {start: perf.marks.messageSent, detail: {message: perf.data.message}});
+        perf.data.message = null;
+    }, [text]);
+
+    const textId = perf.data.message === text ? perf.marks.messageSent : undefined;
+
     // Only render HTML if we have html in the fragment
     if (!differByLineBreaksOnly) {
         const editedTag = fragment.isEdited ? `<edited ${styleAsDeleted ? 'deleted' : ''}></edited>` : '';
@@ -81,6 +93,7 @@ function TextCommentFragment(props) {
                 displayAsGroup={props.displayAsGroup}
             />
             <Text
+                id={textId}
                 style={[
                     containsOnlyEmojis ? styles.onlyEmojisText : undefined,
                     styles.ltr,

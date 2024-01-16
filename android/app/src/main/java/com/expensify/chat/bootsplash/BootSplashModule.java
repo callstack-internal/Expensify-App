@@ -23,6 +23,8 @@ import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.common.ReactConstants;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.PixelUtil;
+import com.oblador.performance.RNPerformance;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -171,6 +173,7 @@ public class BootSplashModule extends ReactContextBaseJavaModule {
             public void onDismiss(DialogInterface dialog) {
               mDialog = null;
               clearPromiseQueue();
+              RNPerformance.getInstance().mark("sidebar_loaded_end", false);
             }
           });
 

@@ -16,7 +16,7 @@ function PerfDevtools() {
             onPress={onPress}
             style={{position: 'absolute', bottom: 0, zIndex: 1000}}
         >
-            __reassure__
+            devtools
         </Text>
     );
 }

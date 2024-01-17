@@ -2,7 +2,6 @@ import Str from 'expensify-common/lib/str';
 import PropTypes from 'prop-types';
 import React, {memo, useEffect} from 'react';
 import performance from 'react-native-performance';
-import {stopProfiling} from 'react-native-release-profiler';
 import Text from '@components/Text';
 import withLocalize, {withLocalizePropTypes} from '@components/withLocalize';
 import withWindowDimensions, {windowDimensionsPropTypes} from '@components/withWindowDimensions';
@@ -66,7 +65,6 @@ function TextCommentFragment(props) {
         }
         performance.measure(perf.measurments.messageProcessing, {start: perf.marks.messageSent, detail: {message: perf.data.message}});
         perf.data.message = null;
-        stopProfiling(true).then((path) => console.log('profiling saved at: ', path));
     }, [text]);
 
     // Only render HTML if we have html in the fragment

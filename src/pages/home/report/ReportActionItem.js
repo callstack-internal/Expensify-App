@@ -2,7 +2,6 @@ import lodashGet from 'lodash/get';
 import PropTypes from 'prop-types';
 import React, {memo, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {InteractionManager, View} from 'react-native';
-import {withOnyx} from 'react-native-onyx';
 import _ from 'underscore';
 import Button from '@components/Button';
 import DisplayNames from '@components/DisplayNames';
@@ -12,9 +11,8 @@ import * as Expensicons from '@components/Icon/Expensicons';
 import InlineSystemMessage from '@components/InlineSystemMessage';
 import KYCWall from '@components/KYCWall';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
-import {usePersonalDetails, withBlockedFromConcierge, withNetwork, withReportActionsDrafts} from '@components/OnyxProvider';
+import {useEmojiReactions, useNetwork, usePersonalDetails, useReports, useUserWallet, withBlockedFromConcierge, withNetwork, withReportActionsDrafts} from '@components/OnyxProvider';
 import PressableWithSecondaryInteraction from '@components/PressableWithSecondaryInteraction';
-import EmojiReactionsPropTypes from '@components/Reactions/EmojiReactionsPropTypes';
 import ReportActionItemEmojiReactions from '@components/Reactions/ReportActionItemEmojiReactions';
 import RenderHTML from '@components/RenderHTML';
 import ChronosOOOListActions from '@components/ReportActionItem/ChronosOOOListActions';
@@ -29,8 +27,6 @@ import TaskView from '@components/ReportActionItem/TaskView';
 import {ShowContextMenuContext} from '@components/ShowContextMenuContext';
 import Text from '@components/Text';
 import UnreadActionIndicator from '@components/UnreadActionIndicator';
-import withLocalize from '@components/withLocalize';
-import withWindowDimensions, {windowDimensionsPropTypes} from '@components/withWindowDimensions';
 import usePrevious from '@hooks/usePrevious';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
@@ -47,7 +43,6 @@ import * as PersonalDetailsUtils from '@libs/PersonalDetailsUtils';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
 import * as ReportUtils from '@libs/ReportUtils';
 import SelectionScraper from '@libs/SelectionScraper';
-import userWalletPropTypes from '@pages/EnablePayments/userWalletPropTypes';
 import {ReactionListContext} from '@pages/home/ReportScreenContext';
 import reportPropTypes from '@pages/reportPropTypes';
 import * as BankAccounts from '@userActions/BankAccounts';
@@ -60,6 +55,9 @@ import * as User from '@userActions/User';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+import useWindowDimensions from '@hooks/useWindowDimensions';
+import useLocalize from '@hooks/useLocalize';
+import usePreferredEmojiSkinTone from '@hooks/usePreferredEmojiSkinTone';
 import AnimatedEmptyStateBackground from './AnimatedEmptyStateBackground';
 import MiniReportActionContextMenu from './ContextMenu/MiniReportActionContextMenu';
 import * as ReportActionContextMenu from './ContextMenu/ReportActionContextMenu';
@@ -77,8 +75,6 @@ import reportActionPropTypes from './reportActionPropTypes';
 import ReportAttachmentsContext from './ReportAttachmentsContext';
 
 const propTypes = {
-    ...windowDimensionsPropTypes,
-
     /** Report for this action */
     report: reportPropTypes.isRequired,
 
@@ -103,37 +99,25 @@ const propTypes = {
     /** Draft message - if this is set the comment is in 'edit' mode */
     draftMessage: PropTypes.string,
 
-    /** Stores user's preferred skin tone */
-    preferredSkinTone: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-
-    ...windowDimensionsPropTypes,
-    emojiReactions: EmojiReactionsPropTypes,
-
-    /** IOU report for this action, if any */
-    iouReport: reportPropTypes,
-
     /** Flag to show, hide the thread divider line */
     shouldHideThreadDividerLine: PropTypes.bool,
-
-    /** The user's wallet account */
-    userWallet: userWalletPropTypes,
 };
 
 const defaultProps = {
     draftMessage: undefined,
-    preferredSkinTone: CONST.EMOJI_DEFAULT_SKIN_TONE,
-    emojiReactions: {},
     shouldShowSubscriptAvatar: false,
-    iouReport: undefined,
     shouldHideThreadDividerLine: false,
-    userWallet: {},
 };
 
 function ReportActionItem(props) {
+    useNetwork();
     const theme = useTheme();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
     const personalDetails = usePersonalDetails() || CONST.EMPTY_OBJECT;
+    const {isSmallScreenWidth} = useWindowDimensions();
+    const {translate} = useLocalize();
+    const preferredSkinTone = usePreferredEmojiSkinTone();
     const [isContextMenuActive, setIsContextMenuActive] = useState(() => ReportActionContextMenu.isActiveReportAction(props.action.reportActionID));
     const [isHidden, setIsHidden] = useState(false);
     const [moderationDecision, setModerationDecision] = useState(CONST.MODERATION.MODERATOR_DECISION_APPROVED);
@@ -146,6 +130,12 @@ function ReportActionItem(props) {
     const originalReportID = ReportUtils.getOriginalReportID(props.report.reportID, props.action);
     const originalReport = props.report.reportID === originalReportID ? props.report : ReportUtils.getReport(originalReportID);
     const isReportActionLinked = props.linkedReportActionID === props.action.reportActionID;
+    const userWallet = useUserWallet();
+    const allEmojiReactions = useEmojiReactions();
+    const emojiReactions = allEmojiReactions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_REACTIONS}${props.action.reportActionID}`];
+    const reports = useReports();
+    const iouReportID = ReportActionsUtils.getIOUReportIDFromReportActionPreview(props.action)
+    const iouReport = reports[iouReportID];
 
     const highlightedBackgroundColorIfNeeded = useMemo(
         () => (isReportActionLinked ? StyleUtils.getBackgroundColorStyle(theme.hoverComponentBG) : {}),
@@ -286,9 +276,9 @@ function ReportActionItem(props) {
 
     const toggleReaction = useCallback(
         (emoji) => {
-            Report.toggleEmojiReaction(props.report.reportID, props.action, emoji, props.emojiReactions);
+            Report.toggleEmojiReaction(props.report.reportID, props.action, emoji, emojiReactions);
         },
-        [props.report, props.action, props.emojiReactions],
+        [props.report.reportID, props.action, emojiReactions],
     );
 
     const contextValue = useMemo(
@@ -375,19 +365,19 @@ function ReportActionItem(props) {
             const shouldShowAddCreditBankAccountButton = isSubmitterOfUnsettledReport && !store.hasCreditBankAccount() && paymentType !== CONST.IOU.PAYMENT_TYPE.EXPENSIFY;
             const shouldShowEnableWalletButton =
                 isSubmitterOfUnsettledReport &&
-                (_.isEmpty(props.userWallet) || props.userWallet.tierName === CONST.WALLET.TIER_NAME.SILVER) &&
+                (_.isEmpty(userWallet) || userWallet.tierName === CONST.WALLET.TIER_NAME.SILVER) &&
                 paymentType === CONST.IOU.PAYMENT_TYPE.EXPENSIFY;
 
             children = (
                 <ReportActionItemBasicMessage
-                    message={props.translate(paymentType === CONST.IOU.PAYMENT_TYPE.EXPENSIFY ? 'iou.waitingOnEnabledWallet' : 'iou.waitingOnBankAccount', {submitterDisplayName})}
+                    message={translate(paymentType === CONST.IOU.PAYMENT_TYPE.EXPENSIFY ? 'iou.waitingOnEnabledWallet' : 'iou.waitingOnBankAccount', {submitterDisplayName})}
                 >
                     <>
                         {shouldShowAddCreditBankAccountButton && (
                             <Button
                                 success
                                 style={[styles.w100, styles.requestPreviewBox]}
-                                text={props.translate('bankAccount.addBankAccount')}
+                                text={translate('bankAccount.addBankAccount')}
                                 onPress={() => BankAccounts.openPersonalBankAccountSetupView(props.report.reportID)}
                                 pressOnEnter
                             />
@@ -399,14 +389,14 @@ function ReportActionItem(props) {
                                 addBankAccountRoute={ROUTES.BANK_ACCOUNT_PERSONAL}
                                 addDebitCardRoute={ROUTES.SETTINGS_ADD_DEBIT_CARD}
                                 chatReportID={props.report.reportID}
-                                iouReport={props.iouReport}
+                                iouReport={iouReport}
                             >
                                 {(triggerKYCFlow, buttonRef) => (
                                     <Button
                                         ref={buttonRef}
                                         success
                                         style={[styles.w100, styles.requestPreviewBox]}
-                                        text={props.translate('iou.enableWallet')}
+                                        text={translate('iou.enableWallet')}
                                         onPress={triggerKYCFlow}
                                     />
                                 )}
@@ -419,7 +409,7 @@ function ReportActionItem(props) {
             const submitterDisplayName = PersonalDetailsUtils.getDisplayNameOrDefault(lodashGet(personalDetails, props.report.ownerAccountID));
             const amount = CurrencyUtils.convertToDisplayString(props.report.total, props.report.currency);
 
-            children = <ReportActionItemBasicMessage message={props.translate('iou.canceledRequest', {submitterDisplayName, amount})} />;
+            children = <ReportActionItemBasicMessage message={translate('iou.canceledRequest', {submitterDisplayName, amount})} />;
         } else if (props.action.actionName === CONST.REPORT.ACTIONS.TYPE.MODIFIEDEXPENSE) {
             children = <ReportActionItemBasicMessage message={ModifiedExpenseMessage.getForReportAction(props.action)} />;
         } else if (props.action.actionName === CONST.REPORT.ACTIONS.TYPE.MARKEDREIMBURSED) {
@@ -459,7 +449,7 @@ function ReportActionItem(props) {
                                         style={[styles.buttonSmallText, styles.userSelectNone]}
                                         dataSet={{[CONST.SELECTION_SCRAPER_HIDDEN_ELEMENT]: true}}
                                     >
-                                        {isHidden ? props.translate('moderation.revealMessage') : props.translate('moderation.hideMessage')}
+                                        {isHidden ? translate('moderation.revealMessage') : translate('moderation.hideMessage')}
                                     </Text>
                                 </Button>
                             )}
@@ -473,7 +463,7 @@ function ReportActionItem(props) {
                             ref={textInputRef}
                             report={props.report}
                             // Avoid defining within component due to an existing Onyx bug
-                            preferredSkinTone={props.preferredSkinTone}
+                            preferredSkinTone={preferredSkinTone}
                             shouldDisableEmojiPicker={
                                 (ReportUtils.chatIncludesConcierge(props.report) && User.isBlockedFromConcierge(props.blockedFromConcierge)) || ReportUtils.isArchivedRoom(props.report)
                             }
@@ -500,7 +490,7 @@ function ReportActionItem(props) {
                     <View style={draftMessageRightAlign}>
                         <ReportActionItemEmojiReactions
                             reportAction={props.action}
-                            emojiReactions={props.emojiReactions}
+                            emojiReactions={emojiReactions}
                             shouldBlockReactions={hasErrors}
                             toggleReaction={(emoji) => {
                                 if (Session.isAnonymousUser()) {
@@ -555,7 +545,7 @@ function ReportActionItem(props) {
                     wrapperStyle={isWhisper ? styles.pt1 : {}}
                     shouldShowSubscriptAvatar={props.shouldShowSubscriptAvatar}
                     report={props.report}
-                    iouReport={props.iouReport}
+                    iouReport={iouReport}
                     isHovered={hovered}
                     hasBeenFlagged={!_.contains([CONST.MODERATION.MODERATOR_DECISION_APPROVED, CONST.MODERATION.MODERATOR_DECISION_PENDING], moderationDecision)}
                 >
@@ -584,13 +574,13 @@ function ReportActionItem(props) {
                 return (
                     <>
                         <AnimatedEmptyStateBackground />
-                        <View style={[StyleUtils.getReportWelcomeTopMarginStyle(props.isSmallScreenWidth)]}>
+                        <View style={[StyleUtils.getReportWelcomeTopMarginStyle(isSmallScreenWidth)]}>
                             <ReportActionItemSingle
                                 action={parentReportAction}
                                 showHeader={_.isUndefined(props.draftMessage)}
                                 report={props.report}
                             >
-                                <RenderHTML html={`<comment>${props.translate('parentReportAction.deletedTask')}</comment>`} />
+                                <RenderHTML html={`<comment>${translate('parentReportAction.deletedTask')}</comment>`} />
                             </ReportActionItemSingle>
                             <View style={styles.reportHorizontalRule} />
                         </View>
@@ -600,7 +590,7 @@ function ReportActionItem(props) {
             return (
                 <>
                     <AnimatedEmptyStateBackground />
-                    <View style={[StyleUtils.getReportWelcomeTopMarginStyle(props.isSmallScreenWidth)]}>
+                    <View style={[StyleUtils.getReportWelcomeTopMarginStyle(isSmallScreenWidth)]}>
                         <TaskView
                             report={props.report}
                             shouldShowHorizontalRule={!props.shouldHideThreadDividerLine}
@@ -662,12 +652,12 @@ function ReportActionItem(props) {
         <PressableWithSecondaryInteraction
             ref={popoverAnchorRef}
             style={[props.action.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE ? styles.pointerEventsNone : styles.pointerEventsAuto]}
-            onPressIn={() => props.isSmallScreenWidth && DeviceCapabilities.canUseTouchScreen() && ControlSelection.block()}
+            onPressIn={() => isSmallScreenWidth && DeviceCapabilities.canUseTouchScreen() && ControlSelection.block()}
             onPressOut={() => ControlSelection.unblock()}
             onSecondaryInteraction={showPopover}
             preventDefaultContextMenu={_.isUndefined(props.draftMessage) && !hasErrors}
             withoutFocusOnSecondaryInteraction
-            accessibilityLabel={props.translate('accessibilityHints.chatMessage')}
+            accessibilityLabel={translate('accessibilityHints.chatMessage')}
         >
             <Hoverable
                 shouldHandleScroll
@@ -708,7 +698,7 @@ function ReportActionItem(props) {
                                             />
                                         </View>
                                         <Text style={[styles.chatItemMessageHeaderTimestamp]}>
-                                            {props.translate('reportActionContextMenu.onlyVisible')}
+                                            {translate('reportActionContextMenu.onlyVisible')}
                                             &nbsp;
                                         </Text>
                                         <DisplayNames
@@ -738,8 +728,6 @@ ReportActionItem.propTypes = propTypes;
 ReportActionItem.defaultProps = defaultProps;
 
 export default compose(
-    withWindowDimensions,
-    withLocalize,
     withNetwork(),
     withBlockedFromConcierge({propName: 'blockedFromConcierge'}),
     withReportActionsDrafts({
@@ -750,26 +738,6 @@ export default compose(
             return lodashGet(drafts, [draftKey, props.action.reportActionID, 'message']);
         },
     }),
-    withOnyx({
-        preferredSkinTone: {
-            key: ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE,
-            initialValue: CONST.EMOJI_DEFAULT_SKIN_TONE,
-        },
-        iouReport: {
-            key: ({action}) => {
-                const iouReportID = ReportActionsUtils.getIOUReportIDFromReportActionPreview(action);
-                return iouReportID ? `${ONYXKEYS.COLLECTION.REPORT}${iouReportID}` : undefined;
-            },
-            initialValue: {},
-        },
-        emojiReactions: {
-            key: ({action}) => `${ONYXKEYS.COLLECTION.REPORT_ACTIONS_REACTIONS}${action.reportActionID}`,
-            initialValue: {},
-        },
-        userWallet: {
-            key: ONYXKEYS.USER_WALLET,
-        },
-    }),
 )(
     memo(
         ReportActionItem,
@@ -778,15 +746,12 @@ export default compose(
             prevProps.draftMessage === nextProps.draftMessage &&
             prevProps.isMostRecentIOUReportAction === nextProps.isMostRecentIOUReportAction &&
             prevProps.shouldDisplayNewMarker === nextProps.shouldDisplayNewMarker &&
-            _.isEqual(prevProps.emojiReactions, nextProps.emojiReactions) &&
             _.isEqual(prevProps.action, nextProps.action) &&
-            _.isEqual(prevProps.iouReport, nextProps.iouReport) &&
             _.isEqual(prevProps.report.pendingFields, nextProps.report.pendingFields) &&
             _.isEqual(prevProps.report.isDeletedParentAction, nextProps.report.isDeletedParentAction) &&
             _.isEqual(prevProps.report.errorFields, nextProps.report.errorFields) &&
             lodashGet(prevProps.report, 'statusNum') === lodashGet(nextProps.report, 'statusNum') &&
             lodashGet(prevProps.report, 'stateNum') === lodashGet(nextProps.report, 'stateNum') &&
-            prevProps.translate === nextProps.translate &&
             // TaskReport's created actions render the TaskView, which updates depending on certain fields in the TaskReport
             ReportUtils.isTaskReport(prevProps.report) === ReportUtils.isTaskReport(nextProps.report) &&
             prevProps.action.actionName === nextProps.action.actionName &&

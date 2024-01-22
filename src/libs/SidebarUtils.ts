@@ -110,6 +110,36 @@ function setWithLimit<TKey, TValue>(map: Map<TKey, TValue>, key: TKey, value: TV
 // Variable to verify if ONYX actions are loaded
 let hasInitialReportActions = false;
 
+let markers: Array<[string, number]> = [];
+
+const marker = (name: string) => {
+    markers.push([name, Date.now()]);
+};
+
+const calculateMarkersTime = () => {
+    const calculations = [];
+
+    for (let i = 1; i < markers.length; i++) {
+        calculations.push([markers[i][0], markers[i][1] - markers[i - 1][1]]);
+    }
+
+    calculations.push(['Total', markers[markers.length - 1][1] - markers[0][1]]);
+
+    return calculations;
+};
+
+const clearMarkers = () => {
+    markers = [];
+};
+
+const displayMarkers = () => {
+    const calculations = calculateMarkersTime();
+
+    console.table(calculations);
+
+    clearMarkers();
+};
+
 /**
  * @returns An array of reportIDs sorted in the proper order
  */
@@ -121,6 +151,7 @@ function getOrderedReportIDs(
     priorityMode: ValueOf<typeof CONST.PRIORITY_MODE>,
     allReportActions: OnyxCollection<ReportAction[]>,
 ): string[] {
+    marker('start');
     // Generate a unique cache key based on the function arguments
     const cachedReportsKey = JSON.stringify(
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -137,6 +168,7 @@ function getOrderedReportIDs(
             return value;
         },
     );
+    marker('cachedReportsKey');
 
     // Check if the result is already in the cache
     const cachedIDs = reportIDsCache.get(cachedReportsKey);
@@ -147,11 +179,18 @@ function getOrderedReportIDs(
     // This is needed to prevent caching when Onyx is empty for a second render
     hasInitialReportActions = Object.values(lastReportActions).length > 0;
 
+    marker('hasInitialReportActions');
+
     const isInGSDMode = priorityMode === CONST.PRIORITY_MODE.GSD;
     const isInDefaultMode = !isInGSDMode;
     const allReportsDictValues = Object.values(allReports);
+
+    marker('allReportsDictValues');
+
     // Filter out all the reports that shouldn't be displayed
     const reportsToDisplay = allReportsDictValues.filter((report) => ReportUtils.shouldReportBeInOptionList(report, currentReportId ?? '', isInGSDMode, betas, policies, true));
+
+    marker('reportsToDisplay');
 
     if (reportsToDisplay.length === 0) {
         // Display Concierge chat report when there is no report to be displayed
@@ -160,6 +199,8 @@ function getOrderedReportIDs(
             reportsToDisplay.push(conciergeChatReport);
         }
     }
+
+    marker('conciergeChatReport');
 
     // The LHN is split into four distinct groups, and each group is sorted a little differently. The groups will ALWAYS be in this order:
     // 1. Pinned/GBR - Always sorted by reportDisplayName
@@ -199,9 +240,14 @@ function getOrderedReportIDs(
         }
     });
 
+    marker('reportsToDisplay.forEach');
+
     // Sort each group of reports accordingly
     pinnedAndGBRReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+    marker('pinnedAndGBRReports.sort');
     draftReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+
+    marker('draftReports.sort');
 
     if (isInDefaultMode) {
         nonArchivedReports.sort((a, b) => {
@@ -209,17 +255,23 @@ function getOrderedReportIDs(
             const compareDisplayNames = a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0;
             return compareDates || compareDisplayNames;
         });
+        marker('nonArchivedReports.sort');
         // For archived reports ensure that most recent reports are at the top by reversing the order
         archivedReports.sort((a, b) => (a?.lastVisibleActionCreated && b?.lastVisibleActionCreated ? compareStringDates(b.lastVisibleActionCreated, a.lastVisibleActionCreated) : 0));
+        marker('archivedReports.sort');
     } else {
         nonArchivedReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+        marker('nonArchivedReports.sort');
         archivedReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+        marker('archivedReports.sort');
     }
 
     // Now that we have all the reports grouped and sorted, they must be flattened into an array and only return the reportID.
     // The order the arrays are concatenated in matters and will determine the order that the groups are displayed in the sidebar.
     const LHNReports = [...pinnedAndGBRReports, ...draftReports, ...nonArchivedReports, ...archivedReports].map((report) => report.reportID);
     setWithLimit(reportIDsCache, cachedReportsKey, LHNReports);
+    marker('LHNReports');
+    displayMarkers();
     return LHNReports;
 }
 

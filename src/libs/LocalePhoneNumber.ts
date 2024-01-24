@@ -9,6 +9,7 @@ Onyx.connect({
     callback: (val) => (countryCodeByIP = val ?? 1),
 });
 
+const SMS_DOMAIN_PATTERN = 'expensify.sms';
 /**
  * Returns a locally converted phone number for numbers from the same region
  * and an internationally converted phone number with the country code for numbers from other regions
@@ -18,6 +19,9 @@ function formatPhoneNumber(number: string): string {
         return '';
     }
 
+    if (!number.includes(SMS_DOMAIN_PATTERN)) { 
+        return number;
+    }
     const numberWithoutSMSDomain = Str.removeSMSDomain(number);
     const parsedPhoneNumber = parsePhoneNumber(numberWithoutSMSDomain);
 

@@ -17,9 +17,13 @@ Onyx.connect({
     },
 });
 
+const hiddenText = Localize.translateLocal('common.hidden');
 function getDisplayNameOrDefault(passedPersonalDetails?: Partial<PersonalDetails> | null, defaultValue = '', shouldFallbackToHidden = true): string {
-    const displayName = passedPersonalDetails?.displayName ? passedPersonalDetails.displayName.replace(CONST.REGEX.MERGED_ACCOUNT_PREFIX, '') : '';
-    const fallbackValue = shouldFallbackToHidden ? Localize.translateLocal('common.hidden') : '';
+    let displayName = passedPersonalDetails?.displayName ?? '';
+    if (displayName.startsWith('MERGED_')) {
+        displayName = displayName.substring(8);
+    }
+    const fallbackValue = shouldFallbackToHidden ? hiddenText : '';
     return displayName || defaultValue || fallbackValue;
 }
 

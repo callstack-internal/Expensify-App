@@ -9,6 +9,7 @@ import CONST from '@src/CONST';
 import isE2ETestSession from './E2E/isE2ETestSession';
 import getComponentDisplayName from './getComponentDisplayName';
 import * as Metrics from './Metrics';
+import { stopProfiling } from 'react-native-release-profiler';
 
 type WrappedComponentConfig = {id: string};
 
@@ -190,6 +191,7 @@ if (Metrics.canCapturePerformanceMetrics()) {
 
         if (stats.length > 0) {
             Alert.alert('Performance', statsAsText);
+            stopProfiling(true);
         }
     };
 

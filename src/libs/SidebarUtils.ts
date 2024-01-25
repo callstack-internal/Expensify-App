@@ -122,9 +122,21 @@ Onyx.connect({
     },
 })
 
-const collator = new Intl.Collator(currentLocale);
+const collator = new Intl.Collator(currentLocale, {usage: 'sort', sensitivity: 'base'});
+// const compareLocal = (str1: string, str2 : string) => {
+//     if (str1 === str2) {
+//         return 0;
+//     }
+
+//     if (str1 < str2) {
+//         return -1;
+//     }
+
+//     return 1;
+// }
 const localeComp = (str1: string, str2 : string) => {
-    return collator.compare(str1.toLowerCase(), str2.toLowerCase());
+    return collator.compare(str1, str2);
+    // return compareLocal(str1.toLowerCase(), str2.toLowerCase());
 };
 
 /**

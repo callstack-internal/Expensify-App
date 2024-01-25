@@ -4,7 +4,7 @@ import type {CanCaptureOnyxMetrics, CanCapturePerformanceMetrics} from './types'
 /**
  * Is capturing performance stats enabled.
  */
-const canCapturePerformanceMetrics: CanCapturePerformanceMetrics = () => CONFIG.CAPTURE_METRICS;
+const canCapturePerformanceMetrics: CanCapturePerformanceMetrics = () => true;//CONFIG.CAPTURE_METRICS;
 
 /**
  * Is capturing Onyx stats enabled.

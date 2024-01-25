@@ -22,6 +22,9 @@ import * as ReportUtils from './ReportUtils';
 import * as TaskUtils from './TaskUtils';
 import * as UserUtils from './UserUtils';
 
+const collator = new Intl.Collator('en');
+const localeComp = (str1: string, str2: string) => collator.compare(str1, str2);
+
 const visibleReportActionItems: ReportActions = {};
 const lastReportActions: ReportActions = {};
 
@@ -243,16 +246,16 @@ function getOrderedReportIDs(
     marker('reportsToDisplay.forEach');
 
     // Sort each group of reports accordingly
-    pinnedAndGBRReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+    pinnedAndGBRReports.sort((a, b) => (a?.displayName && b?.displayName ? localeComp(a.displayName, b.displayName) : 0));
     marker('pinnedAndGBRReports.sort');
-    draftReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+    draftReports.sort((a, b) => (a?.displayName && b?.displayName ? localeComp(a.displayName, b.displayName) : 0));
 
     marker('draftReports.sort');
 
     if (isInDefaultMode) {
         nonArchivedReports.sort((a, b) => {
             const compareDates = a?.lastVisibleActionCreated && b?.lastVisibleActionCreated ? compareStringDates(b.lastVisibleActionCreated, a.lastVisibleActionCreated) : 0;
-            const compareDisplayNames = a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0;
+            const compareDisplayNames = a?.displayName && b?.displayName ? localeComp(a.displayName, b.displayName) : 0;
             return compareDates || compareDisplayNames;
         });
         marker('nonArchivedReports.sort');
@@ -260,9 +263,9 @@ function getOrderedReportIDs(
         archivedReports.sort((a, b) => (a?.lastVisibleActionCreated && b?.lastVisibleActionCreated ? compareStringDates(b.lastVisibleActionCreated, a.lastVisibleActionCreated) : 0));
         marker('archivedReports.sort');
     } else {
-        nonArchivedReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+        nonArchivedReports.sort((a, b) => (a?.displayName && b?.displayName ? localeComp(a.displayName, b.displayName) : 0));
         marker('nonArchivedReports.sort');
-        archivedReports.sort((a, b) => (a?.displayName && b?.displayName ? a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()) : 0));
+        archivedReports.sort((a, b) => (a?.displayName && b?.displayName ? localeComp(a.displayName, b.displayName) : 0));
         marker('archivedReports.sort');
     }
 

@@ -718,6 +718,7 @@ const CONST = {
         HOMEPAGE_INITIAL_RENDER: 'homepage_initial_render',
         REPORT_INITIAL_RENDER: 'report_initial_render',
         SWITCH_REPORT: 'switch_report',
+        OPEN_REPORT: 'open_report',
         SIDEBAR_LOADED: 'sidebar_loaded',
         COLD: 'cold',
         WARM: 'warm',

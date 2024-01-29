@@ -23,6 +23,7 @@ import DateUtils from '@libs/DateUtils';
 import DomUtils from '@libs/DomUtils';
 import {getGroupChatName} from '@libs/GroupChatUtils';
 import * as OptionsListUtils from '@libs/OptionsListUtils';
+import Performance from '@libs/Performance';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
 import * as ReportUtils from '@libs/ReportUtils';
 import * as ReportActionContextMenu from '@pages/home/report/ContextMenu/ReportActionContextMenu';
@@ -170,6 +171,7 @@ function OptionRowLHN(props) {
                     <PressableWithSecondaryInteraction
                         ref={popoverAnchor}
                         onPress={(e) => {
+                            Performance.markStart(CONST.TIMING.OPEN_REPORT);
                             if (e) {
                                 e.preventDefault();
                             }

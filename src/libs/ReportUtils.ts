@@ -2250,12 +2250,7 @@ function getReportName(report: OnyxEntry<Report>, policy: OnyxEntry<Policy> = nu
         return formattedName;
     }
 
-    // Not a room or PolicyExpenseChat, generate title from participants
-    const participantAccountIDs = report?.participantAccountIDs ?? [];
-    const participantsWithoutCurrentUser = participantAccountIDs.filter((accountID) => accountID !== currentUserAccountID);
-    const isMultipleParticipantReport = participantsWithoutCurrentUser.length > 1;
-
-    return participantsWithoutCurrentUser.map((accountID) => getDisplayNameForParticipant(accountID, isMultipleParticipantReport)).join(', ');
+    return 'New Report (fallback name)';
 }
 
 /**

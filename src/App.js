@@ -29,6 +29,8 @@ import OnyxUpdateManager from './libs/actions/OnyxUpdateManager';
 import * as Session from './libs/actions/Session';
 import * as Environment from './libs/Environment/Environment';
 import {ReportAttachmentsProvider} from './pages/home/report/ReportAttachmentsContext';
+import {PerfDevtools} from './PERF';
+
 
 // For easier debugging and development, when we are in web we expose Onyx to the window, so you can more easily set data into Onyx
 if (window && Environment.isDevelopment()) {
@@ -78,6 +80,7 @@ function App() {
                     </ColorSchemeWrapper>
                 </ErrorBoundary>
             </ComposeProviders>
+            <PerfDevtools />
         </GestureHandlerRootView>
     );
 }

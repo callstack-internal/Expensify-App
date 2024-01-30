@@ -1,22 +1,19 @@
 import type {OnyxEntry} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
 import type ReportAction from '@src/types/onyx/ReportAction';
 import * as CollectionUtils from './CollectionUtils';
 import * as Localize from './Localize';
+import ReportCollectionObserver from './ReportCollectionObserver';
 
-const allReports: Record<string, Report> = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    callback: (report, key) => {
-        if (!key || !report) {
-            return;
-        }
-        const reportID = CollectionUtils.extractCollectionItemID(key);
-        allReports[reportID] = report;
-    },
+let allReports: Record<string, Report> = {};
+ReportCollectionObserver.getInstance().addListener((report, key) => {
+    if (!key || !report) {
+        return;
+    }
+    const reportID = CollectionUtils.extractCollectionItemID(key);
+    allReports[reportID] = report;
 });
 
 /**

@@ -19,6 +19,7 @@ import * as Localize from './Localize';
 import Log from './Log';
 import type {MessageElementBase, MessageTextElement} from './MessageElement';
 import * as PersonalDetailsUtils from './PersonalDetailsUtils';
+import ReportCollectionObserver from './ReportCollectionObserver';
 
 type LastVisibleMessage = {
     lastMessageTranslationKey?: string;
@@ -39,17 +40,14 @@ type MemberChangeMessageRoomReferenceElement = {
 
 type MemberChangeMessageElement = MessageTextElement | MemberChangeMessageUserMentionElement | MemberChangeMessageRoomReferenceElement;
 
-const allReports: OnyxCollection<Report> = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    callback: (report, key) => {
-        if (!key || !report) {
-            return;
-        }
+let allReports: OnyxCollection<Report> = {};
+ReportCollectionObserver.getInstance().addListener((report, key) => {
+    if (!key || !report) {
+        return;
+    }
 
-        const reportID = CollectionUtils.extractCollectionItemID(key);
-        allReports[reportID] = report;
-    },
+    const reportID = CollectionUtils.extractCollectionItemID(key);
+    allReports[reportID] = report;
 });
 
 const allReportActions: OnyxCollection<ReportActions> = {};

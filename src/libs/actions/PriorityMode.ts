@@ -6,6 +6,7 @@ import Log from '@libs/Log';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
+import ReportCollectionObserver from '@libs/ReportCollectionObserver';
 
 /**
  * This actions file is used to automatically switch a user into #focus mode when they exceed a certain number of reports. We do this primarily for performance reasons.
@@ -35,25 +36,22 @@ Onyx.connect({
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
 const autoSwitchToFocusMode = debounce(tryFocusModeUpdate, 300, {leading: true});
 
-let allReports: OnyxCollection<Report> | undefined;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    callback: (report, key) => {
-        if (!key || !report) {
-            return;
-        }
+let allReports: OnyxCollection<Report> | undefined = {};
+ReportCollectionObserver.getInstance().addListener((report, key) => {
+    if (!key || !report) {
+        return;
+    }
 
-        if (!allReports) {
-            allReports = {};
-        }
+    if (!allReports) {
+        allReports = {};
+    }
 
-        const reportID = CollectionUtils.extractCollectionItemID(key);
+    const reportID = CollectionUtils.extractCollectionItemID(key);
 
-        allReports[reportID] = report;
+    allReports[reportID] = report;
 
-        // Each time a new report is added we will check to see if the user should be switched
-        autoSwitchToFocusMode();
-    },
+    // Each time a new report is added we will check to see if the user should be switched
+    autoSwitchToFocusMode();
 });
 
 let isLoadingReportData = true;

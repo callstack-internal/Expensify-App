@@ -41,6 +41,7 @@ import type {LastVisibleMessage} from './ReportActionsUtils';
 import * as TransactionUtils from './TransactionUtils';
 import * as Url from './Url';
 import * as UserUtils from './UserUtils';
+import ReportCollectionObserver from './ReportCollectionObserver';
 
 type WelcomeMessage = {showReportName: boolean; phrase1?: string; phrase2?: string};
 
@@ -395,10 +396,8 @@ Onyx.connect({
 });
 
 let allReports: OnyxCollection<Report>;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    waitForCollectionCallback: true,
-    callback: (value) => (allReports = value),
+ReportCollectionObserver.getInstance(true).addListener((value) => {
+    allReports = value as OnyxCollection<Report>;
 });
 
 let doesDomainHaveApprovedAccountant = false;

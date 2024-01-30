@@ -1,10 +1,9 @@
 import type {OnyxCollection} from 'react-native-onyx';
-import Onyx from 'react-native-onyx';
 import * as ReportUtils from '@libs/ReportUtils';
 import Navigation, {navigationRef} from '@navigation/Navigation';
-import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
 import updateUnread from './updateUnread';
+import ReportCollectionObserver from '@libs/ReportCollectionObserver';
 
 let allReports: OnyxCollection<Report> = {};
 
@@ -18,13 +17,9 @@ const triggerUnreadUpdate = () => {
     updateUnread(unreadReports.length);
 };
 
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    waitForCollectionCallback: true,
-    callback: (reportsFromOnyx) => {
-        allReports = reportsFromOnyx;
-        triggerUnreadUpdate();
-    },
+ReportCollectionObserver.getInstance(true).addListener((reportsFromOnyx) => {
+    allReports = reportsFromOnyx as OnyxCollection<Report>;
+    triggerUnreadUpdate();
 });
 
 navigationRef.addListener('state', () => {

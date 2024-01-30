@@ -26,6 +26,7 @@ import ViolationsUtils from '@libs/ViolationsUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+import ReportCollectionObserver from '@libs/ReportCollectionObserver';
 import * as Policy from './Policy';
 import * as Report from './Report';
 
@@ -43,11 +44,9 @@ Onyx.connect({
     },
 });
 
-let allReports;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    waitForCollectionCallback: true,
-    callback: (val) => (allReports = val),
+let allReports = {};
+ReportCollectionObserver.getInstance(true).addListener((value) => {
+    allReports = value;
 });
 
 let allTransactions;

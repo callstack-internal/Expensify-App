@@ -41,6 +41,7 @@ import type {EmptyObject} from '@src/types/utils/EmptyObject';
 import {isEmptyObject, isNotEmptyObject} from '@src/types/utils/EmptyObject';
 import * as Session from './Session';
 import * as Welcome from './Welcome';
+import ReportCollectionObserver from '@libs/ReportCollectionObserver';
 
 type SubscriberCallback = (isFromCurrentUser: boolean, reportActionID: string | undefined) => void;
 
@@ -83,15 +84,12 @@ Onyx.connect({
 });
 
 const currentReportData: OnyxCollection<Report> = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    callback: (report, key) => {
-        if (!key || !report) {
-            return;
-        }
-        const reportID = CollectionUtils.extractCollectionItemID(key);
-        currentReportData[reportID] = report;
-    },
+ReportCollectionObserver.getInstance().addListener((report, key) => {
+    if (!key || !report) {
+        return;
+    }
+    const reportID = CollectionUtils.extractCollectionItemID(key);
+    currentReportData[reportID] = report;
 });
 
 let isNetworkOffline = false;
@@ -1088,9 +1086,8 @@ function handleReportChanged(report: OnyxEntry<Report>) {
     }
 }
 
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    callback: handleReportChanged,
+ReportCollectionObserver.getInstance().addListener((value) => {
+    handleReportChanged(value);
 });
 
 /** Deletes a comment from the report, basically sets it as empty string */

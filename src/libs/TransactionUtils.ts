@@ -12,6 +12,7 @@ import type {EmptyObject} from '@src/types/utils/EmptyObject';
 import {isCorporateCard, isExpensifyCard} from './CardUtils';
 import DateUtils from './DateUtils';
 import * as NumberUtils from './NumberUtils';
+import ReportCollectionObserver from './ReportCollectionObserver';
 
 type AdditionalTransactionChanges = {comment?: string; waypoints?: WaypointCollection};
 
@@ -30,11 +31,9 @@ Onyx.connect({
     },
 });
 
-let allReports: OnyxCollection<Report>;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    waitForCollectionCallback: true,
-    callback: (value) => (allReports = value),
+let allReports: OnyxCollection<Report> = {};
+ReportCollectionObserver.getInstance(true).addListener((value) => {
+    allReports = value as OnyxCollection<Report>;
 });
 
 function isDistanceRequest(transaction: Transaction): boolean {

@@ -1,21 +1,18 @@
 import type {OnyxCollection} from 'react-native-onyx';
-import Onyx from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
 import * as OptionsListUtils from './OptionsListUtils';
 import * as ReportActionsUtils from './ReportActionsUtils';
 import * as ReportUtils from './ReportUtils';
+import ReportCollectionObserver from './ReportCollectionObserver';
 
-let allReports: OnyxCollection<Report>;
+let allReports: OnyxCollection<Report> = {};
 
 type BrickRoad = ValueOf<typeof CONST.BRICK_ROAD> | undefined;
 
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    waitForCollectionCallback: true,
-    callback: (value) => (allReports = value),
+ReportCollectionObserver.getInstance(true).addListener((value) => {
+    allReports = value as OnyxCollection<Report>;
 });
 
 /**

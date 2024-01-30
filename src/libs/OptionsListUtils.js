@@ -22,6 +22,7 @@ import * as ReportUtils from './ReportUtils';
 import * as TaskUtils from './TaskUtils';
 import * as TransactionUtils from './TransactionUtils';
 import * as UserUtils from './UserUtils';
+import ReportCollectionObserver from './ReportCollectionObserver';
 
 /**
  * OptionsListUtils is used to build a list options passed to the OptionsList component. Several different UI views can
@@ -100,14 +101,11 @@ Onyx.connect({
 });
 
 const policyExpenseReports = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT,
-    callback: (report, key) => {
-        if (!ReportUtils.isPolicyExpenseChat(report)) {
-            return;
-        }
-        policyExpenseReports[key] = report;
-    },
+ReportCollectionObserver.getInstance().addListener((report, key) => {
+    if (!ReportUtils.isPolicyExpenseChat(report)) {
+        return;
+    }
+    policyExpenseReports[key] = report;
 });
 
 let allTransactions = {};

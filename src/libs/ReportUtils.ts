@@ -2251,7 +2251,7 @@ function getReportName(report: OnyxEntry<Report>, policy: OnyxEntry<Policy> = nu
     }
 
     // Not a room or PolicyExpenseChat, generate title from participants
-    const participantAccountIDs = report?.participantAccountIDs ?? [];
+    const participantAccountIDs = (report?.participantAccountIDs ?? []).slice(0, 4);
     const participantsWithoutCurrentUser = participantAccountIDs.filter((accountID) => accountID !== currentUserAccountID);
     const isMultipleParticipantReport = participantsWithoutCurrentUser.length > 1;
 

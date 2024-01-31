@@ -42,6 +42,8 @@ import * as TransactionUtils from './TransactionUtils';
 import * as Url from './Url';
 import * as UserUtils from './UserUtils';
 import ReportCollectionObserver from './ReportCollectionObserver';
+import TransactionCollectionObserver from './TransactionCollectionObserver';
+import PolicyCollectionObserver from './PolicyCollectionObserver';
 
 type WelcomeMessage = {showReportName: boolean; phrase1?: string; phrase2?: string};
 
@@ -407,10 +409,8 @@ Onyx.connect({
 });
 
 let allPolicies: OnyxCollection<Policy>;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.POLICY,
-    waitForCollectionCallback: true,
-    callback: (value) => (allPolicies = value),
+PolicyCollectionObserver.getInstance(true).addListener((value) => {
+    allPolicies = value
 });
 
 let loginList: OnyxEntry<Login>;
@@ -421,16 +421,13 @@ Onyx.connect({
 
 let allTransactions: OnyxCollection<Transaction> = {};
 
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.TRANSACTION,
-    waitForCollectionCallback: true,
-    callback: (value) => {
-        if (!value) {
-            return;
-        }
-        allTransactions = Object.fromEntries(Object.entries(value).filter(([, transaction]) => transaction));
-    },
+TransactionCollectionObserver.getInstance(true).addListener((value) => {
+    if (!value) {
+        return;
+    }
+    allTransactions = Object.fromEntries(Object.entries(value).filter(([, transaction]) => transaction));
 });
+
 
 function getChatType(report: OnyxEntry<Report>): ValueOf<typeof CONST.REPORT.CHAT_TYPE> | undefined {
     return report?.chatType;

@@ -13,6 +13,7 @@ import {isCorporateCard, isExpensifyCard} from './CardUtils';
 import DateUtils from './DateUtils';
 import * as NumberUtils from './NumberUtils';
 import ReportCollectionObserver from './ReportCollectionObserver';
+import TransactionCollectionObserver from './TransactionCollectionObserver';
 
 type AdditionalTransactionChanges = {comment?: string; waypoints?: WaypointCollection};
 
@@ -20,15 +21,11 @@ type TransactionChanges = Partial<Transaction> & AdditionalTransactionChanges;
 
 let allTransactions: OnyxCollection<Transaction> = {};
 
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.TRANSACTION,
-    waitForCollectionCallback: true,
-    callback: (value) => {
-        if (!value) {
-            return;
-        }
-        allTransactions = Object.fromEntries(Object.entries(value).filter(([, transaction]) => !!transaction));
-    },
+TransactionCollectionObserver.getInstance(true).addListener((value) => {
+    if (!value) {
+        return;
+    }
+    allTransactions = Object.fromEntries(Object.entries(value).filter(([, transaction]) => !!transaction));
 });
 
 let allReports: OnyxCollection<Report> = {};

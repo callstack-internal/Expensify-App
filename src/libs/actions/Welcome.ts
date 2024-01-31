@@ -9,6 +9,7 @@ import SCREENS from '@src/SCREENS';
 import type OnyxPolicy from '@src/types/onyx/Policy';
 import type Report from '@src/types/onyx/Report';
 import * as Policy from './Policy';
+import PolicyCollectionObserver from '@libs/PolicyCollectionObserver';
 
 let resolveIsReadyPromise: (value?: Promise<void>) => void | undefined;
 let isReadyPromise = new Promise<void>((resolve) => {
@@ -81,20 +82,17 @@ Onyx.connect({
 });
 
 const allPolicies: OnyxCollection<OnyxPolicy> = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.POLICY,
-    callback: (val, key) => {
-        if (!key) {
-            return;
-        }
+PolicyCollectionObserver.getInstance().addListener((val, key) => {
+    if (!key) {
+        return;
+    }
 
-        if (val === null || val === undefined) {
-            delete allPolicies[key];
-            return;
-        }
+    if (val === null || val === undefined) {
+        delete allPolicies[key];
+        return;
+    }
 
-        allPolicies[key] = {...allPolicies[key], ...val};
-    },
+    allPolicies[key] = {...allPolicies[key], ...val};
 });
 
 Onyx.connect({

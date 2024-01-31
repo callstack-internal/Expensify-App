@@ -23,6 +23,8 @@ import * as TaskUtils from './TaskUtils';
 import * as TransactionUtils from './TransactionUtils';
 import * as UserUtils from './UserUtils';
 import ReportCollectionObserver from './ReportCollectionObserver';
+import TransactionCollectionObserver from './TransactionCollectionObserver';
+import PolicyCollectionObserver from './PolicyCollectionObserver';
 
 /**
  * OptionsListUtils is used to build a list options passed to the OptionsList component. Several different UI views can
@@ -59,15 +61,12 @@ Onyx.connect({
 });
 
 const policies = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.POLICY,
-    callback: (policy, key) => {
-        if (!policy || !key || !policy.name) {
-            return;
-        }
+PolicyCollectionObserver.getInstance().addListener((policy, key) => {
+    if (!policy || !key || !policy.name) {
+        return;
+    }
 
-        policies[key] = policy;
-    },
+    policies[key] = policy;
 });
 
 const lastReportActions = {};
@@ -109,15 +108,11 @@ ReportCollectionObserver.getInstance().addListener((report, key) => {
 });
 
 let allTransactions = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.TRANSACTION,
-    waitForCollectionCallback: true,
-    callback: (val) => {
-        if (!val) {
-            return;
-        }
-        allTransactions = _.pick(val, (transaction) => transaction);
-    },
+TransactionCollectionObserver.getInstance(true).addListener((val) => {
+    if (!val) {
+        return;
+    }
+    allTransactions = _.pick(val, (transaction) => transaction);
 });
 
 /**

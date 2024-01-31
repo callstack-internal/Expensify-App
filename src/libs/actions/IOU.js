@@ -27,6 +27,7 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import ReportCollectionObserver from '@libs/ReportCollectionObserver';
+import TransactionCollectionObserver from '@libs/TransactionCollectionObserver';
 import * as Policy from './Policy';
 import * as Report from './Report';
 
@@ -49,18 +50,14 @@ ReportCollectionObserver.getInstance(true).addListener((value) => {
     allReports = value;
 });
 
-let allTransactions;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.TRANSACTION,
-    waitForCollectionCallback: true,
-    callback: (val) => {
-        if (!val) {
-            allTransactions = {};
-            return;
-        }
+let allTransactions = {};
+TransactionCollectionObserver.getInstance(true).addListener((val) => {
+    if (!val) {
+        allTransactions = {};
+        return;
+    }
 
-        allTransactions = val;
-    },
+    allTransactions = val;
 });
 
 let allTransactionDrafts = {};

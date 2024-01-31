@@ -10,6 +10,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {RecentWaypoint, Transaction} from '@src/types/onyx';
 import type {OnyxData} from '@src/types/onyx/Request';
 import type {WaypointCollection} from '@src/types/onyx/Transaction';
+import TransactionCollectionObserver from '@libs/TransactionCollectionObserver';
 
 let recentWaypoints: RecentWaypoint[] = [];
 Onyx.connect({
@@ -18,15 +19,12 @@ Onyx.connect({
 });
 
 const allTransactions: Record<string, Transaction> = {};
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.TRANSACTION,
-    callback: (transaction, key) => {
-        if (!key || !transaction) {
-            return;
-        }
-        const transactionID = CollectionUtils.extractCollectionItemID(key);
-        allTransactions[transactionID] = transaction;
-    },
+TransactionCollectionObserver.getInstance().addListener((transaction, key) => {
+    if (!key || !transaction) {
+        return;
+    }
+    const transactionID = CollectionUtils.extractCollectionItemID(key);
+    allTransactions[transactionID] = transaction;
 });
 
 function createInitialWaypoints(transactionID: string) {

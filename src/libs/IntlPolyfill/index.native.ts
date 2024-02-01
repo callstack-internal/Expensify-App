@@ -8,12 +8,12 @@ import type IntlPolyfill from './types';
  */
 const intlPolyfill: IntlPolyfill = () => {
     // Native devices require extra polyfills
-    require('@formatjs/intl-getcanonicallocales/polyfill');
-    require('@formatjs/intl-locale/polyfill');
-    require('@formatjs/intl-pluralrules/polyfill');
-    polyfillNumberFormat();
-    polyfillDateTimeFormat();
-    polyfillListFormat();
+    // require('@formatjs/intl-getcanonicallocales/polyfill');
+    // require('@formatjs/intl-locale/polyfill');
+    // require('@formatjs/intl-pluralrules/polyfill');
+    // polyfillNumberFormat();
+    // polyfillDateTimeFormat();
+    // polyfillListFormat();
 };
 
 export default intlPolyfill;

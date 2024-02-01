@@ -19,7 +19,8 @@ function formatPhoneNumber(number: string): string {
         return '';
     }
 
-    if (!number.includes(SMS_DOMAIN_PATTERN)) { 
+    // do not parse the string, if it's not a phone number
+    if (number.indexOf(SMS_DOMAIN_PATTERN) === -1) { 
         return number;
     }
     const numberWithoutSMSDomain = Str.removeSMSDomain(number);

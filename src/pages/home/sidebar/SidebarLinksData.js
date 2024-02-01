@@ -1,7 +1,7 @@
 import {deepEqual} from 'fast-equals';
 import lodashGet from 'lodash/get';
 import PropTypes from 'prop-types';
-import React, {useCallback, useMemo, useRef} from 'react';
+import React, {memo, useCallback, useMemo, useRef} from 'react';
 import {View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
 import _ from 'underscore';
@@ -72,8 +72,11 @@ function SidebarLinksData({isFocused, allReportActions, betas, chatReports, curr
 
     const reportIDsRef = useRef(null);
     const isLoading = isLoadingApp;
+
+    const opItems = useMemo(() => SidebarUtils.getOrderedReportIDs(null, chatReports, betas, policies, priorityMode, allReportActions), [allReportActions, betas, chatReports, policies, priorityMode])
+
     const optionListItems = useMemo(() => {
-        const reportIDs = SidebarUtils.getOrderedReportIDs(null, chatReports, betas, policies, priorityMode, allReportActions);
+        const reportIDs = opItems;
 
         if (deepEqual(reportIDsRef.current, reportIDs)) {
             return reportIDsRef.current;
@@ -85,7 +88,7 @@ function SidebarLinksData({isFocused, allReportActions, betas, chatReports, curr
             reportIDsRef.current = reportIDs;
         }
         return reportIDsRef.current || [];
-    }, [allReportActions, betas, chatReports, policies, priorityMode, isLoading, network.isOffline]);
+    }, [opItems, isLoading, network.isOffline]);
 
     // We need to make sure the current report is in the list of reports, but we do not want
     // to have to re-generate the list every time the currentReportID changes. To do that
@@ -229,4 +232,18 @@ export default compose(
             initialValue: {},
         },
     }),
-)(SidebarLinksData);
+)(
+    memo(
+        SidebarLinksData,
+        (prevProps, nextProps) =>
+            _.isEqual(prevProps.chatReports, nextProps.chatReports) &&
+            _.isEqual(prevProps.allReportActions, nextProps.allReportActions) &&
+            prevProps.isLoadingApp === nextProps.isLoadingApp &&
+            prevProps.priorityMode === nextProps.priorityMode &&
+            _.isEqual(prevProps.betas, nextProps.betas) &&
+            _.isEqual(prevProps.policies, nextProps.policies) &&
+            prevProps.network.isOffline === nextProps.network.isOffline &&
+            _.isEqual(prevProps.insets, nextProps.insets) &&
+            prevProps.onLinkClick === nextProps.onLinkClick,
+    ),
+);

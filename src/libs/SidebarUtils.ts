@@ -151,25 +151,28 @@ function getOrderedReportIDs(
     allReportActions: OnyxCollection<ReportAction[]>,
 ): string[] {
     // Generate a unique cache key based on the function arguments
-    const cachedReportsKey = JSON.stringify(
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        [currentReportId, allReports, betas, policies, priorityMode, allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${currentReportId}`]?.length || 1],
-        (key, value: unknown) => {
-            /**
-             *  Exclude some properties not to overwhelm a cached key value with huge data,
-             *  which we don't need to store in a cacheKey
-             */
-            if (key === 'participantAccountIDs' || key === 'participants' || key === 'lastMessageText' || key === 'visibleChatMemberAccountIDs') {
-                return undefined;
-            }
+    let cachedReportsKey = '';
 
-            return value;
-        },
-    );
+    if (hasInitialReportActions) {
+        cachedReportsKey = JSON.stringify(
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+            [currentReportId, allReports, betas, policies, priorityMode, allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${currentReportId}`]?.length || 1],
+            (key, value: unknown) => {
+                /**
+                 *  Exclude some properties not to overwhelm a cached key value with huge data,
+                 *  which we don't need to store in a cacheKey
+                 */
+                if (key === 'participantAccountIDs' || key === 'participants' || key === 'lastMessageText' || key === 'visibleChatMemberAccountIDs') {
+                    return undefined;
+                }
+    
+                return value;
+            },
+        );
+    }
 
-    // Check if the result is already in the cache
     const cachedIDs = reportIDsCache.get(cachedReportsKey);
-    if (cachedIDs && hasInitialReportActions) {
+    if (cachedIDs) {
         return cachedIDs;
     }
 
@@ -248,7 +251,9 @@ function getOrderedReportIDs(
     // Now that we have all the reports grouped and sorted, they must be flattened into an array and only return the reportID.
     // The order the arrays are concatenated in matters and will determine the order that the groups are displayed in the sidebar.
     const LHNReports = [...pinnedAndGBRReports, ...draftReports, ...nonArchivedReports, ...archivedReports].map((report) => report.reportID);
-    setWithLimit(reportIDsCache, cachedReportsKey, LHNReports);
+    if (cachedReportsKey) {
+        setWithLimit(reportIDsCache, cachedReportsKey, LHNReports);
+    }
     return LHNReports;
 }
 

@@ -218,6 +218,10 @@ function assertFormDataMatchesObject(formData, obj) {
 
 /**
  * This is a helper function to create a mock for the addListener function of the react-navigation library.
+ * The reason we need this is because we need to trigger the transitionEnd event in our tests to simulate
+ * the transitionEnd event that is triggered when the screen transition animation is completed.
+ *
+ * P.S: This can't be moved to a utils file because Jest wants any external function to stay in the scope.
  *
  * @returns {Object} An object with two functions: triggerTransitionEnd and addListener
  */

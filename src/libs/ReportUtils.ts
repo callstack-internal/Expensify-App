@@ -1485,6 +1485,8 @@ function getPersonalDetailsForAccountID(accountID: number): Partial<PersonalDeta
     );
 }
 
+const formattedLoginCache = new Map<string, string>();
+
 /**
  * Get the displayName for a single report participant.
  */
@@ -1494,13 +1496,16 @@ function getDisplayNameForParticipant(accountID?: number, shouldUseShortForm = f
     }
 
     const personalDetails = getPersonalDetailsForAccountID(accountID);
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    const formattedLogin = LocalePhoneNumber.formatPhoneNumber(personalDetails.login || '');
-    // This is to check if account is an invite/optimistically created one
-    // and prevent from falling back to 'Hidden', so a correct value is shown
-    // when searching for a new user
+
+    const login = personalDetails.login ?? '';
+
+    if (!formattedLoginCache.has(login)) {
+        formattedLoginCache.set(login, LocalePhoneNumber.formatPhoneNumber(login));
+    }
+
+    const formattedLogin = formattedLoginCache.get(login);
+
     if (personalDetails.isOptimisticPersonalDetail === true) {
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         return formattedLogin;
     }
 

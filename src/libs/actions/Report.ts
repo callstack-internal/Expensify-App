@@ -1030,7 +1030,7 @@ function saveReportCommentNumberOfLines(reportID: string, numberOfLines: number)
 
 /** Immediate indication whether the report has a draft comment. */
 function setReportWithDraft(reportID: string, hasDraft: boolean): Promise<void> {
-    return Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {hasDraft});
+    return Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_HAS_DRAFT}${reportID}`, hasDraft ? reportID : null);
 }
 
 /** Broadcasts whether or not a user is typing on a report over the report's private pusher channel. */

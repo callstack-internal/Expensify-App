@@ -135,7 +135,7 @@ function getOrderedReportIDs(
     betas: Beta[],
     policies: Record<string, Policy>,
     priorityMode: ValueOf<typeof CONST.PRIORITY_MODE>,
-): string[] {
+): Report[][] {
     marker('start');
 
     marker('hasInitialReportActions');
@@ -227,10 +227,9 @@ function getOrderedReportIDs(
 
     // Now that we have all the reports grouped and sorted, they must be flattened into an array and only return the reportID.
     // The order the arrays are concatenated in matters and will determine the order that the groups are displayed in the sidebar.
-    const LHNReports = [...pinnedAndGBRReports, ...draftReports, ...nonArchivedReports, ...archivedReports].map((report) => report.reportID);
     marker('LHNReports');
     displayMarkers();
-    return LHNReports;
+    return [pinnedAndGBRReports, nonArchivedReports, archivedReports];
 }
 
 type ActorDetails = {

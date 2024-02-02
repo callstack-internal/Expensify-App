@@ -49,15 +49,23 @@ const defaultProps = {
     policies: {},
 };
 
-function SidebarLinksData({isFocused, betas, chatReports, currentReportID, insets, isLoadingApp, onLinkClick, policies, priorityMode, network}) {
+function SidebarLinksData({isFocused, betas, chatReports, draftReports, currentReportID, insets, isLoadingApp, onLinkClick, policies, priorityMode, network}) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
 
     const reportIDsRef = useRef(null);
     const isLoading = isLoadingApp;
-    const optionListItems = useMemo(() => {
-        const reportIDs = SidebarUtils.getOrderedReportIDs(null, chatReports, betas, policies, priorityMode);
 
+    const reportsListsWithoutDraftList = useMemo(() => SidebarUtils.getOrderedReportIDs(null, chatReports, betas, policies, priorityMode), [betas, chatReports, policies, priorityMode]);
+    const reportIDs = useMemo(() => {
+        const [one, two, three] = reportsListsWithoutDraftList;
+        // eslint-disable-next-line rulesdir/prefer-underscore-method
+        const reports = [...one, ...Object.values(draftReports || {}).filter(Boolean), ...two, ...three];
+        // eslint-disable-next-line rulesdir/prefer-underscore-method
+        return reports.map((report) => report.reportID);
+    }, [draftReports, reportsListsWithoutDraftList]);
+
+    const optionListItems = useMemo(() => {
         if (deepEqual(reportIDsRef.current, reportIDs)) {
             return reportIDsRef.current;
         }
@@ -68,7 +76,7 @@ function SidebarLinksData({isFocused, betas, chatReports, currentReportID, inset
             reportIDsRef.current = reportIDs;
         }
         return reportIDsRef.current || [];
-    }, [betas, chatReports, policies, priorityMode, isLoading, network.isOffline]);
+    }, [reportIDs, isLoading, network.isOffline]);
 
     // We need to make sure the current report is in the list of reports, but we do not want
     // to have to re-generate the list every time the currentReportID changes. To do that
@@ -205,6 +213,9 @@ export default compose(
             key: ONYXKEYS.COLLECTION.POLICY,
             selector: policySelector,
             initialValue: {},
+        },
+        draftReports: {
+            key: ONYXKEYS.COLLECTION.REPORT_HAS_DRAFT,
         },
     }),
 )(SidebarLinksData);

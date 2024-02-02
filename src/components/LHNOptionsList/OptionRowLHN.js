@@ -3,6 +3,7 @@ import lodashGet from 'lodash/get';
 import PropTypes from 'prop-types';
 import React, {useCallback, useRef, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
+import {withOnyx} from 'react-native-onyx';
 import _ from 'underscore';
 import DisplayNames from '@components/DisplayNames';
 import Hoverable from '@components/Hoverable';
@@ -27,6 +28,7 @@ import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManag
 import * as ReportUtils from '@libs/ReportUtils';
 import * as ReportActionContextMenu from '@pages/home/report/ContextMenu/ReportActionContextMenu';
 import CONST from '@src/CONST';
+import ONYXKEYS from '@src/ONYXKEYS';
 
 const propTypes = {
     /** Style for hovered state */
@@ -292,7 +294,7 @@ function OptionRowLHN(props) {
                                     />
                                 </View>
                             )}
-                            {optionItem.hasDraftComment && optionItem.isAllowedToComment && (
+                            {props.hasDraft && (
                                 <View
                                     style={styles.ml2}
                                     accessibilityLabel={translate('sidebarScreen.draftedMessage')}
@@ -328,6 +330,10 @@ OptionRowLHN.propTypes = propTypes;
 OptionRowLHN.defaultProps = defaultProps;
 OptionRowLHN.displayName = 'OptionRowLHN';
 
-export default React.memo(OptionRowLHN);
+export default withOnyx({
+    hasDraft: {
+        key: ({reportID}) => `${ONYXKEYS.COLLECTION.REPORT_HAS_DRAFT}${reportID}`,
+    },
+})(React.memo(OptionRowLHN));
 
 export {propTypes, defaultProps};

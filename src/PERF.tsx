@@ -35,7 +35,7 @@ function ProfilingButton() {
             onPress={onPress}
             style={{padding: 10, backgroundColor: 'green', opacity: 0.5}}
         >
-            Profiling-v1
+            Profiling-onyx-patch
         </Text>
     );
 }

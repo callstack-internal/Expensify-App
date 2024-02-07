@@ -1,0 +1,100 @@
+diff --git a/node_modules/react-native-onyx/dist/Onyx.js b/node_modules/react-native-onyx/dist/Onyx.js
+index aabb482..fc0b84e 100644
+--- a/node_modules/react-native-onyx/dist/Onyx.js
++++ b/node_modules/react-native-onyx/dist/Onyx.js
+@@ -257,7 +257,7 @@ function tryGetCachedValue(key, mapping = {}) {
+         val = values;
+     }
+     if (mapping.selector) {
+-        const state = mapping.withOnyxInstance ? mapping.withOnyxInstance.state : undefined;
++        const state = mapping.withOnyxInstance ? mapping.withOnyxInstance.getStateProxy() : undefined;
+         if (isCollectionKey(key)) {
+             return reduceCollectionWithSelector(val, mapping.selector, state);
+         }
+@@ -433,7 +433,7 @@ function keysChanged(collectionKey, partialCollection, notifyRegularSubscibers =
+                 if (subscriber.selector) {
+                     subscriber.withOnyxInstance.setStateProxy((prevState) => {
+                         const previousData = prevState[subscriber.statePropertyName];
+-                        const newData = reduceCollectionWithSelector(cachedCollection, subscriber.selector, subscriber.withOnyxInstance.state);
++                        const newData = reduceCollectionWithSelector(cachedCollection, subscriber.selector, subscriber.withOnyxInstance.getStateProxy());
+                         if (!(0, fast_equals_1.deepEqual)(previousData, newData)) {
+                             return {
+                                 [subscriber.statePropertyName]: newData,
+@@ -471,7 +471,7 @@ function keysChanged(collectionKey, partialCollection, notifyRegularSubscibers =
+                 if (subscriber.selector) {
+                     subscriber.withOnyxInstance.setStateProxy((prevState) => {
+                         const prevData = prevState[subscriber.statePropertyName];
+-                        const newData = getSubsetOfData(cachedCollection[subscriber.key], subscriber.selector, subscriber.withOnyxInstance.state);
++                        const newData = getSubsetOfData(cachedCollection[subscriber.key], subscriber.selector, subscriber.withOnyxInstance.getStateProxy());
+                         if (!(0, fast_equals_1.deepEqual)(prevData, newData)) {
+                             PerformanceUtils.logSetStateCall(subscriber, prevData, newData, 'keysChanged', collectionKey);
+                             return {
+@@ -558,7 +558,7 @@ function keyChanged(key, data, canUpdateSubscriber, notifyRegularSubscibers = tr
+                     subscriber.withOnyxInstance.setStateProxy((prevState) => {
+                         const prevData = prevState[subscriber.statePropertyName];
+                         const newData = {
+-                            [key]: getSubsetOfData(data, subscriber.selector, subscriber.withOnyxInstance.state),
++                            [key]: getSubsetOfData(data, subscriber.selector, subscriber.withOnyxInstance.getStateProxy()),
+                         };
+                         const prevDataWithNewData = Object.assign(Object.assign({}, prevData), newData);
+                         if (!(0, fast_equals_1.deepEqual)(prevData, prevDataWithNewData)) {
+@@ -585,8 +585,8 @@ function keyChanged(key, data, canUpdateSubscriber, notifyRegularSubscibers = tr
+             // returned by the selector and only if the selected data has changed.
+             if (subscriber.selector) {
+                 subscriber.withOnyxInstance.setStateProxy((prevState) => {
+-                    const previousValue = getSubsetOfData(prevState[subscriber.statePropertyName], subscriber.selector, subscriber.withOnyxInstance.state);
+-                    const newValue = getSubsetOfData(data, subscriber.selector, subscriber.withOnyxInstance.state);
++                    const previousValue = getSubsetOfData(prevState[subscriber.statePropertyName], subscriber.selector, subscriber.withOnyxInstance.getStateProxy());
++                    const newValue = getSubsetOfData(data, subscriber.selector, subscriber.withOnyxInstance.getStateProxy());
+                     if (!(0, fast_equals_1.deepEqual)(previousValue, newValue)) {
+                         return {
+                             [subscriber.statePropertyName]: newValue,
+@@ -643,10 +643,10 @@ function sendDataToConnection(mapping, val, matchedKey, isBatched) {
+         // returned by the selector.
+         if (mapping.selector) {
+             if (isCollectionKey(mapping.key)) {
+-                newData = reduceCollectionWithSelector(val, mapping.selector, mapping.withOnyxInstance.state);
++                newData = reduceCollectionWithSelector(val, mapping.selector, mapping.withOnyxInstance.getStateProxy());
+             }
+             else {
+-                newData = getSubsetOfData(val, mapping.selector, mapping.withOnyxInstance.state);
++                newData = getSubsetOfData(val, mapping.selector, mapping.withOnyxInstance.getStateProxy());
+             }
+         }
+         PerformanceUtils.logSetStateCall(mapping, null, newData, 'sendDataToConnection');
+diff --git a/node_modules/react-native-onyx/dist/withOnyx.js b/node_modules/react-native-onyx/dist/withOnyx.js
+index a046fa2..6f58208 100644
+--- a/node_modules/react-native-onyx/dist/withOnyx.js
++++ b/node_modules/react-native-onyx/dist/withOnyx.js
+@@ -71,6 +71,8 @@ function default_1(mapOnyxToState, shouldDelayUpdates = false) {
+                 this.pendingSetStates = [];
+                 this.shouldDelayUpdates = shouldDelayUpdates;
+                 this.setWithOnyxState = this.setWithOnyxState.bind(this);
++                this.getStateProxy = this.getStateProxy.bind(this);
++                this.setStateProxy = this.setStateProxy.bind(this);
+                 this.flushPendingSetStates = this.flushPendingSetStates.bind(this);
+                 // This stores all the Onyx connection IDs to be used when the component unmounts so everything can be
+                 // disconnected. It is a key value store with the format {[mapping.key]: connectionID}.
+@@ -160,6 +162,9 @@ function default_1(mapOnyxToState, shouldDelayUpdates = false) {
+                     this.setState(modifier);
+                 }
+             }
++            getStateProxy() {
++                return this.state;
++            }
+             /**
+              * This method is used by the internal raw Onyx `sendDataToConnection`, it is designed to prevent unnecessary renders while a component
+              * still in a "loading" (read "mounting") state. The temporary initial state is saved to the HOC instance and setState()
+@@ -275,7 +280,11 @@ function default_1(mapOnyxToState, shouldDelayUpdates = false) {
+                 mapOnyxToState[statePropertyName].previousKey = key;
+                 // eslint-disable-next-line rulesdir/prefer-onyx-connect-in-libs
+                 this.activeConnectionIDs[key] = Onyx_1.default.connect(Object.assign(Object.assign({}, mapping), { key,
+-                    statePropertyName, withOnyxInstance: this, displayName }));
++                    statePropertyName, withOnyxInstance: {
++                        setWithOnyxState: this.setWithOnyxState,
++                        getStateProxy: this.getStateProxy,
++                        setStateProxy: this.setStateProxy,
++                    }, displayName }));
+             }
+             flushPendingSetStates() {
+                 if (!this.shouldDelayUpdates) {

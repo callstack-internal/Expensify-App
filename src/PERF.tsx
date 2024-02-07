@@ -6,7 +6,7 @@ import {startProfiling, stopProfiling} from 'react-native-release-profiler';
 function SendDataButton() {
     const onPress = () => {
         const metrics = Performance.getEntries();
-        fetch('http://192.168.1.53:8080', {
+        fetch('http://192.168.0.105:8080', {
             method: 'POST',
             body: JSON.stringify(metrics),
         });
@@ -35,7 +35,7 @@ function ProfilingButton() {
             onPress={onPress}
             style={{padding: 10, backgroundColor: 'green', opacity: 0.5}}
         >
-            Profiling
+            Profiling-v1
         </Text>
     );
 }

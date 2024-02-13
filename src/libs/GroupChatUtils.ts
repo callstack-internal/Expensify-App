@@ -1,5 +1,6 @@
 import type {Report} from '@src/types/onyx';
 import * as ReportUtils from './ReportUtils';
+import stringCompare from './stringCompare';
 
 /**
  * Returns the report name if the report is a group chat
@@ -10,7 +11,7 @@ function getGroupChatName(report: Report): string | undefined {
 
     return participants
         .map((participant) => ReportUtils.getDisplayNameForParticipant(participant, isMultipleParticipantReport))
-        .sort((first, second) => first?.localeCompare(second ?? '') ?? 0)
+        .sort((first, second) => stringCompare(first ?? '', second ?? '') ?? 0)
         .filter(Boolean)
         .join(', ');
 }

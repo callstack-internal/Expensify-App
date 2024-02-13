@@ -38,6 +38,7 @@ import * as PersonalDetailsUtils from './PersonalDetailsUtils';
 import * as PolicyUtils from './PolicyUtils';
 import * as ReportActionsUtils from './ReportActionsUtils';
 import type {LastVisibleMessage} from './ReportActionsUtils';
+import stringCompare from './stringCompare';
 import * as TransactionUtils from './TransactionUtils';
 import * as Url from './Url';
 import * as UserUtils from './UserUtils';
@@ -1296,7 +1297,7 @@ function getIconsForParticipants(participants: number[], personalDetails: OnyxCo
 
     const sortedParticipantDetails = participantDetails.sort((first, second) => {
         // First sort by displayName/login
-        const displayNameLoginOrder = first[1].localeCompare(second[1]);
+        const displayNameLoginOrder = stringCompare(first[1], second[1]);
         if (displayNameLoginOrder !== 0) {
             return displayNameLoginOrder;
         }
@@ -1545,7 +1546,7 @@ function getDisplayNamesWithTooltips(
         })
         .sort((first, second) => {
             // First sort by displayName/login
-            const displayNameLoginOrder = first.displayName.localeCompare(second.displayName);
+            const displayNameLoginOrder = stringCompare(first.displayName, second.displayName);
             if (displayNameLoginOrder !== 0) {
                 return displayNameLoginOrder;
             }

@@ -7,12 +7,9 @@ import ArrowKeyFocusManager from '@components/ArrowKeyFocusManager';
 import Button from '@components/Button';
 import FixedFooter from '@components/FixedFooter';
 import FormHelpMessage from '@components/FormHelpMessage';
-import Icon from '@components/Icon';
-import {Info} from '@components/Icon/Expensicons';
 import OptionsList from '@components/OptionsList';
-import {PressableWithoutFeedback} from '@components/Pressable';
+import ReferralProgramCTA from '@components/ReferralProgramCTA';
 import ShowMoreButton from '@components/ShowMoreButton';
-import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import withLocalize, {withLocalizePropTypes} from '@components/withLocalize';
 import withNavigationFocus from '@components/withNavigationFocus';
@@ -21,10 +18,8 @@ import withThemeStyles, {withThemeStylesPropTypes} from '@components/withThemeSt
 import compose from '@libs/compose';
 import getPlatform from '@libs/getPlatform';
 import KeyboardShortcut from '@libs/KeyboardShortcut';
-import Navigation from '@libs/Navigation/Navigation';
 import setSelection from '@libs/setSelection';
 import CONST from '@src/CONST';
-import ROUTES from '@src/ROUTES';
 import {defaultProps as optionsSelectorDefaultProps, propTypes as optionsSelectorPropTypes} from './optionsSelectorPropTypes';
 
 const propTypes = {
@@ -73,7 +68,6 @@ class BaseOptionsSelector extends Component {
         this.updateFocusedIndex = this.updateFocusedIndex.bind(this);
         this.scrollToIndex = this.scrollToIndex.bind(this);
         this.selectRow = this.selectRow.bind(this);
-        this.handleReferralModal = this.handleReferralModal.bind(this);
         this.selectFocusedOption = this.selectFocusedOption.bind(this);
         this.addToSelection = this.addToSelection.bind(this);
         this.updateSearchValue = this.updateSearchValue.bind(this);
@@ -96,7 +90,6 @@ class BaseOptionsSelector extends Component {
             allOptions,
             focusedIndex,
             shouldDisableRowSelection: false,
-            shouldShowReferralModal: false,
             errorMessage: '',
             paginationPage: 1,
             disableEnterShortCut: false,
@@ -120,19 +113,19 @@ class BaseOptionsSelector extends Component {
 
     componentDidUpdate(prevProps, prevState) {
         if (prevState.disableEnterShortCut !== this.state.disableEnterShortCut) {
-            if (this.state.disableEnterShortCut) {
-                this.unsubscribeEnter();
-            } else {
+            // Unregister the shortcut before registering a new one to avoid lingering shortcut listener
+            this.unsubscribeEnter();
+            if (!this.state.disableEnterShortCut) {
                 this.subscribeToEnterShortcut();
             }
         }
 
         if (prevProps.isFocused !== this.props.isFocused) {
+            // Unregister the shortcut before registering a new one to avoid lingering shortcut listener
+            this.unSubscribeFromKeyboardShortcut();
             if (this.props.isFocused) {
                 this.subscribeToEnterShortcut();
                 this.subscribeToCtrlEnterShortcut();
-            } else {
-                this.unSubscribeFromKeyboardShortcut();
             }
         }
 
@@ -220,11 +213,7 @@ class BaseOptionsSelector extends Component {
 
         const indexOfInitiallyFocusedOption = _.findIndex(allOptions, (option) => option.keyForList === this.props.initiallyFocusedOptionKey);
 
-        if (indexOfInitiallyFocusedOption >= 0) {
-            return indexOfInitiallyFocusedOption;
-        }
-
-        return defaultIndex;
+        return indexOfInitiallyFocusedOption;
     }
 
     /**
@@ -264,15 +253,11 @@ class BaseOptionsSelector extends Component {
     updateSearchValue(value) {
         this.setState({
             paginationPage: 1,
-            errorMessage: value.length > this.props.maxLength ? this.props.translate('common.error.characterLimitExceedCounter', {length: value.length, limit: this.props.maxLength}) : '',
+            errorMessage: value.length > this.props.maxLength ? ['common.error.characterLimitExceedCounter', {length: value.length, limit: this.props.maxLength}] : '',
             value,
         });
 
         this.props.onChangeText(value);
-    }
-
-    handleReferralModal() {
-        this.setState((prevState) => ({shouldShowReferralModal: !prevState.shouldShowReferralModal}));
     }
 
     handleFocusIn() {
@@ -438,17 +423,7 @@ class BaseOptionsSelector extends Component {
             return;
         }
 
-        // Note: react-native's SectionList automatically strips out any empty sections.
-        // So we need to reduce the sectionIndex to remove any empty sections in front of the one we're trying to scroll to.
-        // Otherwise, it will cause an index-out-of-bounds error and crash the app.
-        let adjustedSectionIndex = sectionIndex;
-        for (let i = 0; i < sectionIndex; i++) {
-            if (_.isEmpty(lodashGet(this.state.sections, `[${i}].data`))) {
-                adjustedSectionIndex--;
-            }
-        }
-
-        this.list.scrollToLocation({sectionIndex: adjustedSectionIndex, itemIndex, animated});
+        this.list.scrollToLocation({sectionIndex, itemIndex, animated});
     }
 
     /**
@@ -539,6 +514,7 @@ class BaseOptionsSelector extends Component {
                 spellCheck={false}
                 shouldInterceptSwipe={this.props.shouldTextInputInterceptSwipe}
                 isLoading={this.props.isLoadingNewOptions}
+                iconLeft={this.props.textIconLeft}
                 testID="options-selector-input"
             />
         );
@@ -549,6 +525,7 @@ class BaseOptionsSelector extends Component {
                 onSelectRow={this.props.onSelectRow ? this.selectRow : undefined}
                 sections={this.state.sections}
                 focusedIndex={this.state.focusedIndex}
+                disableFocusOptions={this.props.disableFocusOptions}
                 selectedOptions={this.props.selectedOptions}
                 canSelectMultipleOptions={this.props.canSelectMultipleOptions}
                 shouldShowMultipleOptionSelectorAsButton={this.props.shouldShowMultipleOptionSelectorAsButton}
@@ -581,7 +558,7 @@ class BaseOptionsSelector extends Component {
                 shouldPreventDefaultFocusOnSelectRow={this.props.shouldPreventDefaultFocusOnSelectRow}
                 nestedScrollEnabled={this.props.nestedScrollEnabled}
                 bounces={!this.props.shouldTextInputAppearBelowOptions || !this.props.shouldAllowScrollingChildren}
-                renderFooterContent={() =>
+                renderFooterContent={
                     shouldShowShowMoreButton && (
                         <ShowMoreButton
                             containerStyle={{...this.props.themeStyles.mt2, ...this.props.themeStyles.mb5}}
@@ -667,39 +644,7 @@ class BaseOptionsSelector extends Component {
                 </View>
                 {this.props.shouldShowReferralCTA && (
                     <View style={[this.props.themeStyles.ph5, this.props.themeStyles.pb5, this.props.themeStyles.flexShrink0]}>
-                        <PressableWithoutFeedback
-                            onPress={() => {
-                                Navigation.navigate(ROUTES.REFERRAL_DETAILS_MODAL.getRoute(this.props.referralContentType));
-                            }}
-                            style={[
-                                this.props.themeStyles.p5,
-                                this.props.themeStyles.w100,
-                                this.props.themeStyles.br2,
-                                this.props.themeStyles.highlightBG,
-                                this.props.themeStyles.flexRow,
-                                this.props.themeStyles.justifyContentBetween,
-                                this.props.themeStyles.alignItemsCenter,
-                                {gap: 10},
-                            ]}
-                            accessibilityLabel="referral"
-                            role={CONST.ACCESSIBILITY_ROLE.BUTTON}
-                        >
-                            <Text>
-                                {this.props.translate(`referralProgram.${this.props.referralContentType}.buttonText1`)}
-                                <Text
-                                    color={this.props.theme.success}
-                                    style={this.props.themeStyles.textStrong}
-                                >
-                                    {this.props.translate(`referralProgram.${this.props.referralContentType}.buttonText2`)}
-                                </Text>
-                            </Text>
-                            <Icon
-                                src={Info}
-                                height={20}
-                                width={20}
-                                fill={this.props.theme.icon}
-                            />
-                        </PressableWithoutFeedback>
+                        <ReferralProgramCTA referralContentType={this.props.referralContentType} />
                     </View>
                 )}
 

@@ -16,13 +16,6 @@ const e2eSourceExts = ['e2e.js', 'e2e.ts'];
  * @type {import('metro-config').MetroConfig}
  */
 const config = {
-    transformer: {
-        getTransformOptions: () => ({
-            transform: {
-                inlineRequires: true,
-            },
-        }),
-    },
     resolver: {
         assetExts: [...defaultAssetExts, 'lottie'],
         // When we run the e2e tests we want files that have the extension e2e.js to be resolved as source files

@@ -17,7 +17,7 @@ const e2eSourceExts = ['e2e.js', 'e2e.ts'];
  */
 const config = {
     transformer: {
-        getTransformOptions: () => ({
+        getTransformOptions: async () => ({
             transform: {
                 inlineRequires: true,
             },

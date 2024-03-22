@@ -14,7 +14,7 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PlaidData} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
-import FullPageOfflineBlockingView from './BlockingViews/FullPageOfflineBlockingView';
+import {FullPageOfflineBlockingView} from './BlockingViews/FullPageOfflineBlockingView';
 import FormHelpMessage from './FormHelpMessage';
 import Icon from './Icon';
 import getBankIcon from './Icon/BankIcons';

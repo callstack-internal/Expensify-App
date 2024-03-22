@@ -3,7 +3,7 @@ import React, {useRef} from 'react';
 import {View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
 import _ from 'underscore';
-import FixedFooter from '@components/FixedFooter';
+import {FixedFooter} from '@components/FixedFooter';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';
 import FormScrollView from '@components/FormScrollView';
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';

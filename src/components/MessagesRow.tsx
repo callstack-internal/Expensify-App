@@ -68,4 +68,4 @@ function MessagesRow({messages = {}, type, onClose = () => {}, containerStyles, 
 
 MessagesRow.displayName = 'MessagesRow';
 
-export default MessagesRow;
+export {MessagesRow};

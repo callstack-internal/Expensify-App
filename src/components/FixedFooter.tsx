@@ -19,4 +19,4 @@ function FixedFooter({style, children}: FixedFooterProps) {
 
 FixedFooter.displayName = 'FixedFooter';
 
-export default FixedFooter;
+export {FixedFooter};

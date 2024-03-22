@@ -7,7 +7,7 @@ import Animated, {runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequ
 import {useCameraDevices} from 'react-native-vision-camera';
 import Hand from '@assets/images/hand.svg';
 import Shutter from '@assets/images/shutter.svg';
-import AttachmentPicker from '@components/AttachmentPicker';
+import {AttachmentPicker} from '@components/AttachmentPicker';
 import Button from '@components/Button';
 import Icon from '@components/Icon';
 import * as Expensicons from '@components/Icon/Expensicons';

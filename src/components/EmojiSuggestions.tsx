@@ -92,4 +92,4 @@ function EmojiSuggestions({emojis, onSelect, prefix, isEmojiPickerLarge, preferr
 
 EmojiSuggestions.displayName = 'EmojiSuggestions';
 
-export default EmojiSuggestions;
+export {EmojiSuggestions};

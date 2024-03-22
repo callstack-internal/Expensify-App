@@ -2,7 +2,7 @@ import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
-import FullPageOfflineBlockingView from './BlockingViews/FullPageOfflineBlockingView';
+import {FullPageOfflineBlockingView} from './BlockingViews/FullPageOfflineBlockingView';
 import HeaderWithBackButton from './HeaderWithBackButton';
 import Lottie from './Lottie';
 import LottieAnimations from './LottieAnimations';

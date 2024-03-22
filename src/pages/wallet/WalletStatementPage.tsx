@@ -4,7 +4,7 @@ import Str from 'expensify-common/lib/str';
 import React, {useEffect} from 'react';
 import {withOnyx} from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
-import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
+import {FullPageOfflineBlockingView} from '@components/BlockingViews/FullPageOfflineBlockingView';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';
 import WalletStatementModal from '@components/WalletStatementModal';

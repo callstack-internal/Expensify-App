@@ -6,7 +6,7 @@ import {withOnyx} from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import AttachmentModal from '@components/AttachmentModal';
 import AutoUpdateTime from '@components/AutoUpdateTime';
-import Avatar from '@components/Avatar';
+import {Avatar} from '@components/Avatar';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import CommunicationsLink from '@components/CommunicationsLink';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';

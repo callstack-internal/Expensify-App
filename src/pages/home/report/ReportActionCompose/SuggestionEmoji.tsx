@@ -3,7 +3,7 @@ import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useRef, 
 import type {NativeSyntheticEvent, TextInputSelectionChangeEventData} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
 import type {Emoji} from '@assets/emojis/types';
-import EmojiSuggestions from '@components/EmojiSuggestions';
+import {EmojiSuggestions} from '@components/EmojiSuggestions';
 import useArrowKeyFocusManager from '@hooks/useArrowKeyFocusManager';
 import useLocalize from '@hooks/useLocalize';
 import * as EmojiUtils from '@libs/EmojiUtils';

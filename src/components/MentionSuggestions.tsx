@@ -8,7 +8,7 @@ import getStyledTextArray from '@libs/GetStyledTextArray';
 import CONST from '@src/CONST';
 import type {Icon} from '@src/types/onyx/OnyxCommon';
 import AutoCompleteSuggestions from './AutoCompleteSuggestions';
-import Avatar from './Avatar';
+import {Avatar} from './Avatar';
 import Text from './Text';
 
 type Mention = {

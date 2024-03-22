@@ -2,7 +2,7 @@ import React, {useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
 import type {StyleProp, ViewStyle} from 'react-native';
 import type {ValueOf} from 'type-fest';
-import Avatar from '@components/Avatar';
+import {Avatar} from '@components/Avatar';
 import Badge from '@components/Badge';
 import Icon from '@components/Icon';
 import * as Expensicons from '@components/Icon/Expensicons';

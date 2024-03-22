@@ -18,7 +18,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import compose from '@libs/compose';
 import {getPolicyMembersByIdWithoutCurrentUser} from '@libs/PolicyUtils';
 import * as ReportUtils from '@libs/ReportUtils';
-import SidebarUtils from '@libs/SidebarUtils';
+import * as SidebarUtils from '@libs/SidebarUtils';
 import reportPropTypes from '@pages/reportPropTypes';
 import * as Policy from '@userActions/Policy';
 import CONST from '@src/CONST';

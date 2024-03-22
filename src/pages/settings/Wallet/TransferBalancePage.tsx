@@ -3,7 +3,7 @@ import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import {withOnyx} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
-import ConfirmationPage from '@components/ConfirmationPage';
+import {ConfirmationPage} from '@components/ConfirmationPage';
 import CurrentWalletBalance from '@components/CurrentWalletBalance';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';

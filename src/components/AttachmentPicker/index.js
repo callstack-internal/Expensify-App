@@ -87,4 +87,4 @@ function AttachmentPicker(props) {
 
 AttachmentPicker.propTypes = propTypes;
 AttachmentPicker.defaultProps = defaultProps;
-export default AttachmentPicker;
+export {AttachmentPicker};

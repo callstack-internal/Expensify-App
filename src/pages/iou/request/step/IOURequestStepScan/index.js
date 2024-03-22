@@ -4,7 +4,7 @@ import {ActivityIndicator, PanResponder, PixelRatio, View} from 'react-native';
 import Hand from '@assets/images/hand.svg';
 import ReceiptUpload from '@assets/images/receipt-upload.svg';
 import Shutter from '@assets/images/shutter.svg';
-import AttachmentPicker from '@components/AttachmentPicker';
+import {AttachmentPicker} from '@components/AttachmentPicker';
 import Button from '@components/Button';
 import ConfirmModal from '@components/ConfirmModal';
 import CopyTextToClipboard from '@components/CopyTextToClipboard';

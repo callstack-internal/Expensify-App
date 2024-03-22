@@ -1,7 +1,7 @@
 import React from 'react';
 import BlockingView from '@components/BlockingViews/BlockingView';
 import Button from '@components/Button';
-import FixedFooter from '@components/FixedFooter';
+import {FixedFooter} from '@components/FixedFooter';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import * as Illustrations from '@components/Icon/Illustrations';
 import ScreenWrapper from '@components/ScreenWrapper';

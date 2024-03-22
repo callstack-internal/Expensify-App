@@ -60,4 +60,4 @@ function MenuItemList({menuItems = [], shouldUseSingleExecution = false}: MenuIt
 MenuItemList.displayName = 'MenuItemList';
 
 export type {MenuItemWithLink};
-export default MenuItemList;
+export {MenuItemList};

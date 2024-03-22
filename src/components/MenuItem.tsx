@@ -21,7 +21,7 @@ import * as Session from '@userActions/Session';
 import CONST from '@src/CONST';
 import type {Icon as IconType} from '@src/types/onyx/OnyxCommon';
 import type IconAsset from '@src/types/utils/IconAsset';
-import Avatar from './Avatar';
+import {Avatar} from './Avatar';
 import Badge from './Badge';
 import DisplayNames from './DisplayNames';
 import type {DisplayNameWithTooltip} from './DisplayNames/types';

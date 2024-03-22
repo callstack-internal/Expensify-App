@@ -7,7 +7,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import Navigation from '@libs/Navigation/Navigation';
 import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
-import Avatar from './Avatar';
+import {Avatar} from './Avatar';
 import avatarPropTypes from './avatarPropTypes';
 import PressableWithoutFocus from './Pressable/PressableWithoutFocus';
 import Text from './Text';

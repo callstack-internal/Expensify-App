@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {ActivityIndicator, View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
 import Button from '@components/Button';
-import FixedFooter from '@components/FixedFooter';
+import {FixedFooter} from '@components/FixedFooter';
 import FormHelpMessage from '@components/FormHelpMessage';
 import * as Expensicons from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';

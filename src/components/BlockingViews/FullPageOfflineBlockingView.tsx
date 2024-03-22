@@ -28,4 +28,4 @@ function FullPageOfflineBlockingView({children}: ChildrenProps) {
 
 FullPageOfflineBlockingView.displayName = 'FullPageOfflineBlockingView';
 
-export default FullPageOfflineBlockingView;
+export {FullPageOfflineBlockingView};

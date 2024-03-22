@@ -123,5 +123,5 @@ function Avatar({
 
 Avatar.displayName = 'Avatar';
 
-export default Avatar;
+export {Avatar};
 export {type AvatarProps};

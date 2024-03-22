@@ -6,7 +6,7 @@ import type {ValueOf} from 'type-fest';
 import Lottie from '@components/Lottie';
 import type DotLottieAnimation from '@components/LottieAnimations/types';
 import type {MenuItemWithLink} from '@components/MenuItemList';
-import MenuItemList from '@components/MenuItemList';
+import {MenuItemList} from '@components/MenuItemList';
 import Text from '@components/Text';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';

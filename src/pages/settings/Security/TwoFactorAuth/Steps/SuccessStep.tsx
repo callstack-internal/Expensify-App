@@ -1,5 +1,5 @@
 import React from 'react';
-import ConfirmationPage from '@components/ConfirmationPage';
+import {ConfirmationPage} from '@components/ConfirmationPage';
 import LottieAnimations from '@components/LottieAnimations';
 import useLocalize from '@hooks/useLocalize';
 import type {BackToParams} from '@libs/Navigation/types';

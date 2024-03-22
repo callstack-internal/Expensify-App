@@ -5,7 +5,7 @@ import {withOnyx} from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import Icon from '@components//Icon';
 import Button from '@components/Button';
-import FixedFooter from '@components/FixedFooter';
+import {FixedFooter} from '@components/FixedFooter';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import {MushroomTopHat} from '@components/Icon/Illustrations';
 import ScreenWrapper from '@components/ScreenWrapper';

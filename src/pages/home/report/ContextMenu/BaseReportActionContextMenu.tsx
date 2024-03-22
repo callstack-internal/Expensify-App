@@ -21,7 +21,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {Beta, ReportAction, ReportActions} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import type {ContextMenuAction, ContextMenuActionPayload} from './ContextMenuActions';
-import ContextMenuActions from './ContextMenuActions';
+import {ContextMenuActions} from './ContextMenuActions';
 import type {ContextMenuAnchor, ContextMenuType} from './ReportActionContextMenu';
 import {hideContextMenu, showContextMenu} from './ReportActionContextMenu';
 

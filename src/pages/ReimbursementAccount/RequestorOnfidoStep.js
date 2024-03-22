@@ -2,7 +2,7 @@ import lodashGet from 'lodash/get';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {withOnyx} from 'react-native-onyx';
-import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
+import {FullPageOfflineBlockingView} from '@components/BlockingViews/FullPageOfflineBlockingView';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import Onfido from '@components/Onfido';
 import ScreenWrapper from '@components/ScreenWrapper';

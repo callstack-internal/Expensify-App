@@ -2,7 +2,7 @@ import React from 'react';
 import {View} from 'react-native';
 import useThemeStyles from '@hooks/useThemeStyles';
 import Button from './Button';
-import FixedFooter from './FixedFooter';
+import {FixedFooter} from './FixedFooter';
 import Lottie from './Lottie';
 import LottieAnimations from './LottieAnimations';
 import type DotLottieAnimation from './LottieAnimations/types';
@@ -61,4 +61,4 @@ function ConfirmationPage({animation = LottieAnimations.Fireworks, heading, desc
 
 ConfirmationPage.displayName = 'ConfirmationPage';
 
-export default ConfirmationPage;
+export {ConfirmationPage};

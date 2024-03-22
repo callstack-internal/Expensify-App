@@ -1,7 +1,7 @@
 import Str from 'expensify-common/lib/str';
 import React, {useCallback} from 'react';
 import {View} from 'react-native';
-import Avatar from '@components/Avatar';
+import {Avatar} from '@components/Avatar';
 import {usePersonalDetails} from '@components/OnyxProvider';
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';

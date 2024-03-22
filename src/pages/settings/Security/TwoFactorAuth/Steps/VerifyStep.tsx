@@ -3,7 +3,7 @@ import {View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
 import expensifyLogo from '@assets/images/expensify-logo-round-transparent.png';
 import Button from '@components/Button';
-import FixedFooter from '@components/FixedFooter';
+import {FixedFooter} from '@components/FixedFooter';
 import * as Expensicons from '@components/Icon/Expensicons';
 import {useSession} from '@components/OnyxProvider';
 import PressableWithDelayToggle from '@components/Pressable/PressableWithDelayToggle';

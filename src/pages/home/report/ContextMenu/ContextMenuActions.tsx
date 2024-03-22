@@ -498,5 +498,5 @@ const ContextMenuActions: ContextMenuAction[] = [
     },
 ];
 
-export default ContextMenuActions;
+export {ContextMenuActions};
 export type {ContextMenuActionPayload, ContextMenuAction};

@@ -9,7 +9,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 import * as Browser from '@libs/Browser';
 import type ChildrenProps from '@src/types/utils/ChildrenProps';
-import FixedFooter from './FixedFooter';
+import {FixedFooter} from './FixedFooter';
 import HeaderWithBackButton from './HeaderWithBackButton';
 import type HeaderWithBackButtonProps from './HeaderWithBackButton/types';
 import ScreenWrapper from './ScreenWrapper';

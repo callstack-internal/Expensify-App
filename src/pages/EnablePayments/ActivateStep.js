@@ -1,7 +1,7 @@
 import React from 'react';
 import {withOnyx} from 'react-native-onyx';
 import _ from 'underscore';
-import ConfirmationPage from '@components/ConfirmationPage';
+import {ConfirmationPage} from '@components/ConfirmationPage';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import LottieAnimations from '@components/LottieAnimations';
 import withLocalize, {withLocalizePropTypes} from '@components/withLocalize';

@@ -14,7 +14,7 @@ import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
 import type {ReceiptError, ReceiptErrors} from '@src/types/onyx/Transaction';
 import type ChildrenProps from '@src/types/utils/ChildrenProps';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
-import MessagesRow from './MessagesRow';
+import {MessagesRow} from './MessagesRow';
 
 /**
  * This component should be used when we are using the offline pattern B (offline with feedback).

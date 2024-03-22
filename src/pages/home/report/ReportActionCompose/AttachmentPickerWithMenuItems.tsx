@@ -5,7 +5,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 import {withOnyx} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import type {FileObject} from '@components/AttachmentModal';
-import AttachmentPicker from '@components/AttachmentPicker';
+import {AttachmentPicker} from '@components/AttachmentPicker';
 import Icon from '@components/Icon';
 import * as Expensicons from '@components/Icon/Expensicons';
 import type {PopoverMenuItem} from '@components/PopoverMenu';

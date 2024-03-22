@@ -408,7 +408,4 @@ function getOptionData({
     return result;
 }
 
-export default {
-    getOptionData,
-    getOrderedReportIDs,
-};
+export {getOptionData, getOrderedReportIDs};

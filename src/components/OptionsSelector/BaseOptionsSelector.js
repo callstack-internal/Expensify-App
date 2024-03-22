@@ -5,7 +5,7 @@ import {View} from 'react-native';
 import _ from 'underscore';
 import ArrowKeyFocusManager from '@components/ArrowKeyFocusManager';
 import Button from '@components/Button';
-import FixedFooter from '@components/FixedFooter';
+import {FixedFooter} from '@components/FixedFooter';
 import FormHelpMessage from '@components/FormHelpMessage';
 import OptionsList from '@components/OptionsList';
 import ReferralProgramCTA from '@components/ReferralProgramCTA';

@@ -5,7 +5,7 @@ import {View} from 'react-native';
 import {withOnyx} from 'react-native-onyx';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import AutoUpdateTime from '@components/AutoUpdateTime';
-import Avatar from '@components/Avatar';
+import {Avatar} from '@components/Avatar';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import CommunicationsLink from '@components/CommunicationsLink';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';

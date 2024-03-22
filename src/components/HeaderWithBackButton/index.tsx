@@ -1,6 +1,6 @@
 import React from 'react';
 import {Keyboard, StyleSheet, View} from 'react-native';
-import Avatar from '@components/Avatar';
+import {Avatar} from '@components/Avatar';
 import AvatarWithDisplayName from '@components/AvatarWithDisplayName';
 import Header from '@components/Header';
 import Icon from '@components/Icon';

@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react';
 import {withOnyx} from 'react-native-onyx';
-import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
+import {FullPageOfflineBlockingView} from '@components/BlockingViews/FullPageOfflineBlockingView';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import Onfido from '@components/Onfido';
 import useLocalize from '@hooks/useLocalize';

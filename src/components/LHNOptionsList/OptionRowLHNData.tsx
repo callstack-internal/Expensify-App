@@ -1,7 +1,7 @@
 import {deepEqual} from 'fast-equals';
 import React, {useEffect, useMemo, useRef} from 'react';
 import * as ReportUtils from '@libs/ReportUtils';
-import SidebarUtils from '@libs/SidebarUtils';
+import {getOptionData} from '@libs/SidebarUtils';
 import * as Report from '@userActions/Report';
 import CONST from '@src/CONST';
 import type {OptionData} from '@src/libs/ReportUtils';
@@ -38,7 +38,7 @@ function OptionRowLHNData({
 
     const optionItem = useMemo(() => {
         // Note: ideally we'd have this as a dependent selector in onyx!
-        const item = SidebarUtils.getOptionData({
+        const item = getOptionData({
             report: fullReport,
             reportActions,
             personalDetails,

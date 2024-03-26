@@ -69,6 +69,7 @@ function LHNOptionsList({
             const itemComment = draftComments?.[`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`] ?? '';
             const sortedReportActions = ReportActionsUtils.getSortedReportActionsForDisplay(itemReportActions);
             const lastReportAction = sortedReportActions[0];
+            console.log('LHNOptionsList renderItem');
 
             // Get the transaction for the last report action
             let lastReportActionTransactionID = '';

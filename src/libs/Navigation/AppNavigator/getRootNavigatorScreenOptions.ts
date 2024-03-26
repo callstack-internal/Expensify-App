@@ -91,6 +91,7 @@ const getRootNavigatorScreenOptions: GetRootNavigatorScreenOptions = (isSmallScr
                 ...StyleUtils.getNavigationModalCardStyle(),
                 paddingRight: isSmallScreenWidth ? 0 : variables.sideBarWidth,
             },
+            gestureEnabled: false,
         },
 
         bottomTab: {

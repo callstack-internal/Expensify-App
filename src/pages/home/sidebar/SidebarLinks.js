@@ -113,6 +113,7 @@ function SidebarLinks({onLinkClick, insets, optionListItems, isLoading, priority
             if (isCreateMenuOpen || (option.reportID === Navigation.getTopmostReportId() && !reportActionID) || (isSmallScreenWidth && isActiveReport(option.reportID) && !reportActionID)) {
                 return;
             }
+            console.log('showReportPage', option.reportID);
             Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(option.reportID));
             onLinkClick();
         },

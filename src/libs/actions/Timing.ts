@@ -9,6 +9,7 @@ import Log from '@libs/Log';
 type TimestampData = {
     startTime: number;
     shouldUseFirebase: boolean;
+    meta?: unknown;
 };
 
 let timestampData: Record<string, TimestampData> = {};
@@ -19,8 +20,8 @@ let timestampData: Record<string, TimestampData> = {};
  * @param eventName
  * @param shouldUseFirebase - adds an additional trace in Firebase
  */
-function start(eventName: string, shouldUseFirebase = false) {
-    timestampData[eventName] = {startTime: Date.now(), shouldUseFirebase};
+function start(eventName: string, shouldUseFirebase = false, meta = {}) {
+    timestampData[eventName] = {startTime: Date.now(), shouldUseFirebase, meta};
 
     if (!shouldUseFirebase) {
         return;
@@ -44,6 +45,8 @@ function end(eventName: string, secondaryName = '', maxExecutionTime = 0) {
     const {startTime, shouldUseFirebase} = timestampData[eventName];
     Environment.getEnvironment().then((envName) => {
         const eventTime = Date.now() - startTime;
+
+        console.log(`[CONTROL]: ${eventName} took ${eventTime}`);
 
         if (shouldUseFirebase) {
             Firebase.stopTrace(eventName);
@@ -85,4 +88,5 @@ export default {
     start,
     end,
     clearData,
+    timestampData,
 };

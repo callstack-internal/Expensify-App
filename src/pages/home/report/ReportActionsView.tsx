@@ -339,6 +339,10 @@ function ReportActionsView({
      * Runs when the FlatList finishes laying out
      */
     const recordTimeToMeasureItemLayout = useCallback(() => {
+        if (reportID === Timing.timestampData?.['OPEN_A_REPORT']?.meta?.id) {
+            Timing.end('OPEN_A_REPORT');
+        }
+
         if (didLayout.current) {
             return;
         }
@@ -352,8 +356,9 @@ function ReportActionsView({
         } else {
             Performance.markEnd(CONST.TIMING.SWITCH_REPORT);
         }
+
         Timing.end(CONST.TIMING.SWITCH_REPORT, hasCachedActionOnFirstRender ? CONST.TIMING.WARM : CONST.TIMING.COLD);
-    }, [hasCachedActionOnFirstRender]);
+    }, [hasCachedActionOnFirstRender, reportID]);
 
     useEffect(() => {
         // Temporary solution for handling REPORTPREVIEW. More details: https://expensify.slack.com/archives/C035J5C9FAP/p1705417778466539?thread_ts=1705035404.136629&cid=C035J5C9FAP

@@ -9,6 +9,7 @@ import useLocalize from '@hooks/useLocalize';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import Timing from '@libs/actions/Timing';
 import KeyboardShortcut from '@libs/KeyboardShortcut';
 import Navigation from '@libs/Navigation/Navigation';
 import onyxSubscribe from '@libs/onyxSubscribe';
@@ -113,7 +114,9 @@ function SidebarLinks({onLinkClick, insets, optionListItems, isLoading, priority
             if (isCreateMenuOpen || (option.reportID === Navigation.getTopmostReportId() && !reportActionID) || (isSmallScreenWidth && isActiveReport(option.reportID) && !reportActionID)) {
                 return;
             }
-            Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(option.reportID));
+            const reportPath = ROUTES.REPORT_WITH_ID.getRoute(option.reportID);
+            Timing.start('OPEN_A_REPORT', false, {id: reportPath.replace('r/', '')});
+            Navigation.navigate(reportPath);
             onLinkClick();
         },
         [isCreateMenuOpen, isSmallScreenWidth, isActiveReport, onLinkClick],

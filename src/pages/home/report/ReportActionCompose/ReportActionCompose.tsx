@@ -23,6 +23,7 @@ import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import Timing from '@libs/actions/Timing';
 import canFocusInputOnScreenFocus from '@libs/canFocusInputOnScreenFocus';
 import getDraftComment from '@libs/ComposerUtils/getDraftComment';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
@@ -350,19 +351,24 @@ function ReportActionCompose({
 
     const isSendDisabled = isCommentEmpty || isBlockedFromConcierge || !!disabled || hasExceededMaxCommentLength;
 
+    const measureMessageSent = useCallback(() => {
+        Timing.start('SEND_A_MESSAGE', false, {text: 'boop'});
+    }, []);
+
     const handleSendMessage = useCallback(() => {
         'worklet';
 
         if (isSendDisabled || !isReportReadyForDisplay) {
             return;
         }
+        runOnJS(measureMessageSent)();
 
         // We are setting the isCommentEmpty flag to true so the status of it will be in sync of the native text input state
         runOnJS(setIsCommentEmpty)(true);
         runOnJS(resetFullComposerSize)();
         setNativeProps(animatedRef, {text: ''}); // clears native text input on the UI thread
         runOnJS(submitForm)();
-    }, [isSendDisabled, resetFullComposerSize, submitForm, animatedRef, isReportReadyForDisplay]);
+    }, [isSendDisabled, isReportReadyForDisplay, measureMessageSent, resetFullComposerSize, animatedRef, submitForm]);
 
     const emojiShiftVertical = useMemo(() => {
         const chatItemComposeSecondaryRowHeight = styles.chatItemComposeSecondaryRow.height + styles.chatItemComposeSecondaryRow.marginTop + styles.chatItemComposeSecondaryRow.marginBottom;

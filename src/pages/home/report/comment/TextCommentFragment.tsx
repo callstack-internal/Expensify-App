@@ -1,6 +1,6 @@
 import Str from 'expensify-common/lib/str';
 import {isEmpty} from 'lodash';
-import React, {memo} from 'react';
+import React, {memo, useEffect} from 'react';
 import type {StyleProp, TextStyle} from 'react-native';
 import Text from '@components/Text';
 import ZeroWidthView from '@components/ZeroWidthView';
@@ -8,6 +8,7 @@ import useLocalize from '@hooks/useLocalize';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import Timing from '@libs/actions/Timing';
 import convertToLTR from '@libs/convertToLTR';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
 import * as EmojiUtils from '@libs/EmojiUtils';
@@ -47,6 +48,13 @@ function TextCommentFragment({fragment, styleAsDeleted, styleAsMuted = false, so
     const {html = '', text} = fragment;
     const {translate} = useLocalize();
     const {isSmallScreenWidth} = useWindowDimensions();
+
+    useEffect(() => {
+        if (text !== Timing.timestampData?.['SEND_A_MESSAGE']?.meta?.text) {
+            return;
+        }
+        Timing.end('SEND_A_MESSAGE');
+    }, [text]);
 
     // If the only difference between fragment.text and fragment.html is <br /> tags and emoji tag
     // on native, we render it as text, not as html

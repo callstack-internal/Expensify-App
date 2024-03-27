@@ -50,6 +50,7 @@ type SearchPageSectionList = SearchPageSectionItem[];
 const setPerformanceTimersEnd = () => {
     Timing.end(CONST.TIMING.SEARCH_RENDER);
     Performance.markEnd(CONST.TIMING.SEARCH_RENDER);
+    Timing.end('OPEN_SEARCH');
 };
 
 const SearchPageFooterInstance = <SearchPageFooter />;

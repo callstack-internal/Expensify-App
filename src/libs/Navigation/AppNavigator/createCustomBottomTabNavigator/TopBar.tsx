@@ -11,6 +11,7 @@ import WorkspaceSwitcherButton from '@components/WorkspaceSwitcherButton';
 import useLocalize from '@hooks/useLocalize';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+import Timing from '@libs/actions/Timing';
 import Navigation from '@libs/Navigation/Navigation';
 import SignInButton from '@pages/home/sidebar/SignInButton';
 import * as Session from '@userActions/Session';
@@ -64,7 +65,10 @@ function TopBar({policy}: TopBarProps) {
                         <PressableWithoutFeedback
                             accessibilityLabel={translate('sidebarScreen.buttonSearch')}
                             style={[styles.flexRow, styles.mr2]}
-                            onPress={Session.checkIfActionIsAllowed(() => Navigation.navigate(ROUTES.SEARCH))}
+                            onPress={Session.checkIfActionIsAllowed(() => {
+                                Navigation.navigate(ROUTES.SEARCH);
+                                Timing.start('OPEN_SEARCH');
+                            })}
                         >
                             <Icon
                                 src={Expensicons.MagnifyingGlass}

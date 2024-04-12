@@ -34,6 +34,7 @@ import Expensify from './Expensify';
 import useDefaultDragAndDrop from './hooks/useDefaultDragAndDrop';
 import OnyxUpdateManager from './libs/actions/OnyxUpdateManager';
 import {ReportAttachmentsProvider} from './pages/home/report/ReportAttachmentsContext';
+import {PerfDevtools} from './PERF';
 import type {Route} from './ROUTES';
 
 type AppProps = {
@@ -90,6 +91,7 @@ function App({url}: AppProps) {
                             <Expensify />
                         </ColorSchemeWrapper>
                     </ErrorBoundary>
+                    <PerfDevtools />
                 </ComposeProviders>
             </GestureHandlerRootView>
         </InitialURLContextProvider>

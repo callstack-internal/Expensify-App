@@ -18,6 +18,7 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type {Policy, Session as SessionType} from '@src/types/onyx';
+import Performance from '@libs/Performance';
 
 type TopBarOnyxProps = {
     policy: OnyxEntry<Policy>;
@@ -66,7 +67,11 @@ function TopBar({policy, session}: TopBarProps) {
                         <PressableWithoutFeedback
                             accessibilityLabel={translate('sidebarScreen.buttonSearch')}
                             style={[styles.flexRow, styles.mr2]}
-                            onPress={Session.checkIfActionIsAllowed(() => Navigation.navigate(ROUTES.SEARCH))}
+                            onPress={Session.checkIfActionIsAllowed(() => {
+                                Performance.markStart("openSearchPage");
+                                Navigation.navigate(ROUTES.SEARCH);
+
+                            })}
                         >
                             <Icon
                                 src={Expensicons.MagnifyingGlass}

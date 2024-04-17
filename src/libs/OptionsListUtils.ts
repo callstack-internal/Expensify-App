@@ -1572,6 +1572,7 @@ function getOptions(
         recentlyUsedPolicyReportFieldOptions = [],
     }: GetOptionsConfig,
 ): Options {
+    Performance.markStart('GetOptions');
     if (includeCategories) {
         const categoryOptions = getCategoryListSections(categories, recentlyUsedCategories, selectedOptions as Category[], searchInputValue, maxRecentReportsToShow);
 
@@ -1881,7 +1882,7 @@ function getOptions(
         personalDetailsOptions = [];
         recentReportOptions = orderOptions(recentReportOptions, searchValue);
     }
-
+    Performance.markEnd('GetOptions');
     return {
         personalDetails: personalDetailsOptions,
         recentReports: recentReportOptions,

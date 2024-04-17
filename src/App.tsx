@@ -35,6 +35,7 @@ import useDefaultDragAndDrop from './hooks/useDefaultDragAndDrop';
 import OnyxUpdateManager from './libs/actions/OnyxUpdateManager';
 import {ReportAttachmentsProvider} from './pages/home/report/ReportAttachmentsContext';
 import type {Route} from './ROUTES';
+import {PerfDevtools} from './PERF';
 
 type AppProps = {
     /** URL passed to our top-level React Native component by HybridApp. Will always be undefined in "pure" NewDot builds. */
@@ -90,6 +91,7 @@ function App({url}: AppProps) {
                             <Expensify />
                         </ColorSchemeWrapper>
                     </ErrorBoundary>
+                    <PerfDevtools />
                 </ComposeProviders>
             </GestureHandlerRootView>
         </InitialURLContextProvider>

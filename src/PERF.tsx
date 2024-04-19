@@ -7,7 +7,7 @@ function SendMetricsButton() {
     const onPress = () => {
         const metrics = Performance.getEntries();
         // Change to your IP address
-        fetch('http://192.168.0.103:8080', {
+        fetch('http://192.168.0.104:8080', {
             method: 'POST',
             body: JSON.stringify(metrics),
         });

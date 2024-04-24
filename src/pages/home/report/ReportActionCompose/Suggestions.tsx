@@ -44,9 +44,6 @@ type SuggestionProps = {
     /** Whether the auto suggestion picker is large */
     isAutoSuggestionPickerLarge?: boolean;
 
-    /** The height of the composer */
-    composerHeight?: number;
-
     /** If current composer is connected with report from group policy */
     isGroupPolicyReport: boolean;
 
@@ -67,7 +64,6 @@ function Suggestions(
         selection,
         setSelection,
         updateComment,
-        composerHeight,
         resetKeyboardInput,
         measureParentContainer,
         isAutoSuggestionPickerLarge = true,
@@ -173,7 +169,6 @@ function Suggestions(
         selection,
         isComposerFullSize,
         updateComment,
-        composerHeight,
         isAutoSuggestionPickerLarge,
         measureParentContainer,
         isComposerFocused,

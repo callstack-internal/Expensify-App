@@ -774,7 +774,6 @@ function ComposerWithSuggestions(
                 isComposerFullSize={isComposerFullSize}
                 isComposerFocused={textInputRef.current?.isFocused()}
                 updateComment={updateComment}
-                composerHeight={composerHeight}
                 measureParentContainer={measureParentContainer}
                 isAutoSuggestionPickerLarge={isAutoSuggestionPickerLarge}
                 isGroupPolicyReport={isGroupPolicyReport}

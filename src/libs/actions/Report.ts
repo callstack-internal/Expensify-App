@@ -757,6 +757,14 @@ function openReport(
         return;
     }
 
+    // console.log('reportID: ', reportID); // newone
+    // console.log('participantLoginList: ', participantLoginList); // ['tomasz.lesniakiewicz+2@callstack.com']
+    // console.log('newReportObject: ', newReportObject); //{}
+    // console.log('parentReportActionID: ', parentReportActionID); // 0
+    // console.log('isFromDeepLink: ', isFromDeepLink); //false
+    // console.log('participantAccountIDList: ', participantAccountIDList); //[]
+    // console.log('avatar: ', avatar); // undefined
+
     const optimisticReport = reportActionsExist(reportID)
         ? {}
         : {
@@ -839,7 +847,12 @@ function openReport(
     }
 
     // If we are creating a new report, we need to add the optimistic report data and a report action
+    // const isCreatingNewReport = !isEmptyObject(newReportObject);
     const isCreatingNewReport = !isEmptyObject(newReportObject);
+
+    console.log('isCreatingNewReport: ', isCreatingNewReport);
+    console.log('newReportObject: ', newReportObject);
+    console.log('!isEmptyObject(newReportObject)', !isEmptyObject(newReportObject));
     if (isCreatingNewReport) {
         // Change the method to set for new reports because it doesn't exist yet, is faster,
         // and we need the data to be available when we navigate to the chat page
@@ -953,6 +966,11 @@ function openReport(
         });
     } else {
         // eslint-disable-next-line rulesdir/no-multiple-api-calls
+        // console.log('WRITE_COMMANDS.OPEN_REPORT:', WRITE_COMMANDS.OPEN_REPORT);
+        // console.log('parameters:', parameters);
+        // console.log('optimisticData:', optimisticData);
+        // console.log('successData:', successData);
+        // console.log('failureData:', failureData);
         API.write(WRITE_COMMANDS.OPEN_REPORT, parameters, {optimisticData, successData, failureData});
     }
 }

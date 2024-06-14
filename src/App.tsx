@@ -42,12 +42,14 @@ type AppProps = {
     url?: Route;
 };
 
-LogBox.ignoreLogs([
-    // Basically it means that if the app goes in the background and back to foreground on Android,
-    // the timer is lost. Currently Expensify is using a 30 minutes interval to refresh personal details.
-    // More details here: https://git.io/JJYeb
-    'Setting a timer for a long period of time',
-]);
+// LogBox.ignoreLogs([
+//     // Basically it means that if the app goes in the background and back to foreground on Android,
+//     // the timer is lost. Currently Expensify is using a 30 minutes interval to refresh personal details.
+//     // More details here: https://git.io/JJYeb
+//     'Setting a timer for a long period of time',
+//     'Encou: ...',
+// ]);
+LogBox.ignoreAllLogs();
 
 const fill = {flex: 1};
 

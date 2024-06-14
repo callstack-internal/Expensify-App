@@ -79,8 +79,10 @@ function getOrderedReportIDs(
     const isInDefaultMode = !isInFocusMode;
     const allReportsDictValues = Object.values(allReports ?? {});
 
-    console.log('allReports: ', allReports);
-    console.log('allReports length newest (should be 500): ', Object.keys(allReports).length);
+    // console.log('allReports: ', allReports);
+    console.log('allReports length5: ', Object.keys(allReports).length);
+
+    console.log('deepEqual: ', deepEqual);
 
     // Filter out all the reports that shouldn't be displayed
     let reportsToDisplay = allReportsDictValues.filter((report) => {

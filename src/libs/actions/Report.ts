@@ -841,9 +841,9 @@ function openReport(
     // const isCreatingNewReport = !isEmptyObject(newReportObject);
     const isCreatingNewReport = !isEmptyObject(newReportObject);
 
-    console.log('isCreatingNewReport: ', isCreatingNewReport);
-    console.log('newReportObject: ', newReportObject);
-    console.log('!isEmptyObject(newReportObject)', !isEmptyObject(newReportObject));
+    // console.log('isCreatingNewReport: ', isCreatingNewReport);
+    // console.log('newReportObject: ', newReportObject);
+    // console.log('!isEmptyObject(newReportObject)', !isEmptyObject(newReportObject));
     if (isCreatingNewReport) {
         // Change the method to set for new reports because it doesn't exist yet, is faster,
         // and we need the data to be available when we navigate to the chat page

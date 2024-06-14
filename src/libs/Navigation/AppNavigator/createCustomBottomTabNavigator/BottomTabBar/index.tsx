@@ -1,6 +1,6 @@
 import {useNavigation, useNavigationState} from '@react-navigation/native';
 import React, {useCallback, useEffect} from 'react';
-import {View} from 'react-native';
+import {Text, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import {withOnyx} from 'react-native-onyx';
 import Icon from '@components/Icon';
@@ -11,12 +11,14 @@ import useActiveWorkspace from '@hooks/useActiveWorkspace';
 import useLocalize from '@hooks/useLocalize';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+import {openReport} from '@libs/actions/Report';
 import * as Session from '@libs/actions/Session';
 import interceptAnonymousUser from '@libs/interceptAnonymousUser';
 import getTopmostBottomTabRoute from '@libs/Navigation/getTopmostBottomTabRoute';
 import getTopmostCentralPaneRoute from '@libs/Navigation/getTopmostCentralPaneRoute';
 import Navigation from '@libs/Navigation/Navigation';
 import type {RootStackParamList, State} from '@libs/Navigation/types';
+import {buildOptimisticChatReport} from '@libs/ReportUtils';
 import {getChatTabBrickRoad} from '@libs/WorkspacesSettingsUtils';
 import BottomTabAvatar from '@pages/home/sidebar/BottomTabAvatar';
 import BottomTabBarFloatingActionButton from '@pages/home/sidebar/BottomTabBarFloatingActionButton';
@@ -41,6 +43,24 @@ function BottomTabBar({isLoadingApp = false}: PurposeForUsingExpensifyModalProps
     const navigation = useNavigation();
     const {activeWorkspaceID} = useActiveWorkspace();
 
+    const addFakeReports = () => {
+        const policyID = CONST.POLICY.OWNER_EMAIL_FAKE;
+        const Tomasz2UserId = 16415821;
+        const CURRENT_USER_ID = 17490211;
+        const ownerAccountID = CURRENT_USER_ID;
+        for (let i = 1500; i < 2000; i++) {
+            const optimisticReport = buildOptimisticChatReport([Tomasz2UserId, ownerAccountID], `perf-desk-test+${i}`, CONST.REPORT.CHAT_TYPE.GROUP, policyID, ownerAccountID);
+
+            const newReportId = optimisticReport.reportID;
+            const participantLoginList = ['tomasz.lesniakiewicz+2@callstack.com', 'tomasz.lesniakiewicz+desk@callstack.com'];
+
+            // console.log('optimisticReport: ', optimisticReport);
+
+            openReport(newReportId, undefined, participantLoginList, optimisticReport, '0', false, [Tomasz2UserId, CURRENT_USER_ID]);
+            // console.log('optimisticReport: ', optimisticReport);
+        }
+    };
+
     useEffect(() => {
         const navigationState = navigation.getState() as State<RootStackParamList> | undefined;
         const routes = navigationState?.routes;
@@ -50,7 +70,7 @@ function BottomTabBar({isLoadingApp = false}: PurposeForUsingExpensifyModalProps
         if (!!(currentRoute && currentRoute.name !== NAVIGATORS.BOTTOM_TAB_NAVIGATOR && currentRoute.name !== NAVIGATORS.CENTRAL_PANE_NAVIGATOR) || Session.isAnonymousUser()) {
             return;
         }
-
+        // 1177
         Welcome.isOnboardingFlowCompleted({onNotCompleted: () => Navigation.navigate(ROUTES.ONBOARDING_ROOT)});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoadingApp]);
@@ -121,6 +141,17 @@ function BottomTabBar({isLoadingApp = false}: PurposeForUsingExpensifyModalProps
             <View style={[styles.flex1, styles.bottomTabBarItem]}>
                 <BottomTabBarFloatingActionButton />
             </View>
+            <PressableWithFeedback
+                onPress={addFakeReports}
+                role={CONST.ROLE.BUTTON}
+                accessibilityLabel={'test'}
+                wrapperStyle={styles.flex1}
+                style={styles.bottomTabBarItem}
+            >
+                <View>
+                    <Text>ADD fake</Text>
+                </View>
+            </PressableWithFeedback>
         </View>
     );
 }

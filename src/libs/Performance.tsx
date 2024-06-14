@@ -85,6 +85,8 @@ const Performance: PerformanceModule = {
     subscribeToMeasurements: () => {},
 };
 
+// console.log('CAN CAPTURE: ', Metrics.canCapturePerformanceMetrics());
+
 if (Metrics.canCapturePerformanceMetrics()) {
     const perfModule = require('react-native-performance');
     perfModule.setResourceLoggingEnabled(true);
@@ -106,12 +108,18 @@ if (Metrics.canCapturePerformanceMetrics()) {
      */
     Performance.measureTTI = (endMark?: string) => {
         // Make sure TTI is captured when the app is really usable
+
+        // console.log('IN MEASURE TTI');
         InteractionManager.runAfterInteractions(() => {
             requestAnimationFrame(() => {
                 Performance.measureFailSafe('TTI', 'nativeLaunchStart', endMark);
 
+                // console.log('IN MEASURE TTI 2');
+
                 // we don't want the alert to show on an e2e test session
                 if (!isE2ETestSession()) {
+                    // console.log('IN MEASURE TTI 3');
+
                     Performance.printPerformanceMetrics();
                 }
             });
@@ -123,9 +131,13 @@ if (Metrics.canCapturePerformanceMetrics()) {
      */
     Performance.setupPerformanceObserver = () => {
         // Monitor some native marks that we want to put on the timeline
+        // console.log('IN SETTING OBSERVER');
         new perfModule.PerformanceObserver((list: PerformanceObserverEntryList, observer: PerformanceObserver) => {
+            // console.log('LIST: ', list);
             list.getEntries().forEach((entry: PerformanceEntry) => {
                 if (entry.name === 'nativeLaunchEnd') {
+                    // console.log('IN SETTING OBSERVER : nativeLaunchEnd', entry);
+
                     Performance.measureFailSafe('nativeLaunch', 'nativeLaunchStart', 'nativeLaunchEnd');
                 }
                 if (entry.name === 'downloadEnd') {
@@ -186,7 +198,10 @@ if (Metrics.canCapturePerformanceMetrics()) {
      * Outputs performance stats. We alert these so that they are easy to access in release builds.
      */
     Performance.printPerformanceMetrics = () => {
+        // console.log('IN PRINT: ');
         const stats = Performance.getPerformanceMetrics();
+        // console.log('IN PRINT 2: ', stats);
+
         const statsAsText = stats.map((entry) => `\u2022 ${entry.name}: ${entry.duration.toFixed(1)}ms`).join('\n');
 
         if (stats.length > 0) {

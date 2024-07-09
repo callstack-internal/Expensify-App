@@ -522,6 +522,7 @@ export default {
         leaveThread: 'Leave thread',
         flagAsOffensive: 'Flag as offensive',
         menu: 'Menu',
+        copyOnyx: 'Copy Onyx data to clipboard'
     },
     emojiReactions: {
         addReactionTooltip: 'Add reaction',

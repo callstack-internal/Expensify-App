@@ -514,6 +514,7 @@ export default {
         leaveThread: 'Dejar hilo',
         flagAsOffensive: 'Marcar como ofensivo',
         menu: 'Menú',
+        copyOnyx: 'Copy Onyx data to clipboard'
     },
     emojiReactions: {
         addReactionTooltip: 'Añadir una reacción',

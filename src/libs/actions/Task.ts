@@ -1163,6 +1163,7 @@ export {
     clearTaskErrors,
     canModifyTask,
     setNewOptimisticAssignee,
+    getReport,
 };
 
 export type {PolicyValue, Assignee, ShareDestination};

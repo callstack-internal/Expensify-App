@@ -1,4 +1,5 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import crashlytics from '@react-native-firebase/crashlytics';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View} from 'react-native';
 import Onyx, {withOnyx} from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
@@ -53,6 +54,10 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
     const {isSmallScreenWidth} = useWindowDimensions();
     const illustrationStyle = getLightbulbIllustrationStyle();
     const [shouldMaskOnyxState, setShouldMaskOnyxState] = useState(true);
+
+    useEffect(() => {
+        crashlytics().crash();
+    }, []);
 
     const exportOnyxState = useCallback(() => {
         ExportOnyxState.readFromOnyxDatabase().then((value: Record<string, unknown>) => {

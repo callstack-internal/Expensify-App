@@ -1,3 +1,5 @@
+import crashlytics from '@react-native-firebase/crashlytics';
+import perf from '@react-native-firebase/perf';
 import type {NavigationState} from '@react-navigation/native';
 import {DefaultTheme, findFocusedRoute, NavigationContainer} from '@react-navigation/native';
 import React, {useContext, useEffect, useMemo, useRef} from 'react';
@@ -137,6 +139,14 @@ function NavigationRoot({authenticated, lastVisitedPath, initialUrl, onReady}: N
 
         // We want to clean saved scroll offsets for screens that aren't anymore in the state.
         cleanStaleScrollOffsets(state);
+
+        const currentRoute = navigationRef.getCurrentRoute();
+
+        perf()
+            .startScreenTrace(currentRoute?.name ?? '')
+            .then((trace) => trace.stop());
+
+        crashlytics().log(`Navigated to ${currentRoute?.name}`);
     };
 
     return (

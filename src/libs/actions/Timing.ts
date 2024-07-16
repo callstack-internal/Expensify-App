@@ -1,3 +1,4 @@
+import Onyx from 'react-native-onyx';
 import * as API from '@libs/API';
 import type {SendPerformanceTimingParams} from '@libs/API/parameters';
 import {READ_COMMANDS} from '@libs/API/types';
@@ -5,6 +6,24 @@ import * as Environment from '@libs/Environment/Environment';
 import Firebase from '@libs/Firebase';
 import getPlatform from '@libs/getPlatform';
 import Log from '@libs/Log';
+import * as PersonalDetailsUtils from '@libs/PersonalDetailsUtils';
+import {countPersonalDetails} from '@libs/PersonalDetailsUtils';
+import * as ReportConnection from '@libs/ReportConnection';
+import ONYXKEYS from '@src/ONYXKEYS';
+
+let currentUserAccountID = -1;
+let currentUserEmail = '';
+Onyx.connect({
+    key: ONYXKEYS.SESSION,
+    callback: (value) => {
+        if (!value) {
+            return;
+        }
+
+        currentUserAccountID = value?.accountID ?? -1;
+        currentUserEmail = value?.email ?? '';
+    },
+});
 
 type TimestampData = {
     startTime: number;
@@ -22,11 +41,19 @@ let timestampData: Record<string, TimestampData> = {};
 function start(eventName: string, shouldUseFirebase = false) {
     timestampData[eventName] = {startTime: Date.now(), shouldUseFirebase};
 
-    if (!shouldUseFirebase) {
-        return;
-    }
+    // if (!shouldUseFirebase) {
+    //     return;
+    // }
 
-    Firebase.startTrace(eventName);
+    const personalDetails = countPersonalDetails();
+    const reports = Object.entries(ReportConnection.getAllReports() ?? []).length;
+    console.log('STARTING TRACE', eventName);
+    Firebase.startTrace(eventName, {
+        personalDetails,
+        reports,
+        userId: currentUserAccountID,
+        email: currentUserEmail,
+    });
 }
 
 /**
@@ -45,9 +72,10 @@ function end(eventName: string, secondaryName = '', maxExecutionTime = 0) {
     Environment.getEnvironment().then((envName) => {
         const eventTime = Date.now() - startTime;
 
-        if (shouldUseFirebase) {
-            Firebase.stopTrace(eventName);
-        }
+        // if (shouldUseFirebase) {
+        console.log('END TRACE', eventName);
+        Firebase.stopTrace(eventName);
+        // }
 
         const baseEventName = `${envName}.new.expensify.${eventName}`;
         const grafanaEventName = secondaryName ? `${baseEventName}.${secondaryName}` : baseEventName;
@@ -64,13 +92,13 @@ function end(eventName: string, secondaryName = '', maxExecutionTime = 0) {
             Log.warn(`${eventName} exceeded max execution time of ${maxExecutionTime}.`, {eventTime, eventName});
         }
 
-        const parameters: SendPerformanceTimingParams = {
-            name: grafanaEventName,
-            value: eventTime,
-            platform: `${getPlatform()}`,
-        };
+        // const parameters: SendPerformanceTimingParams = {
+        //     name: grafanaEventName,
+        //     value: eventTime,
+        //     platform: `${getPlatform()}`,
+        // };
 
-        API.read(READ_COMMANDS.SEND_PERFORMANCE_TIMING, parameters, {});
+        // API.read(READ_COMMANDS.SEND_PERFORMANCE_TIMING, parameters, {});
     });
 }
 

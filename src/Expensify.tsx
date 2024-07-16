@@ -1,3 +1,4 @@
+import crashlytics from '@react-native-firebase/crashlytics';
 import {Audio} from 'expo-av';
 import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {NativeEventSubscription} from 'react-native';
@@ -109,6 +110,19 @@ function Expensify({
         }
         setAttemptedToOpenPublicRoom(true);
     }, [isCheckingPublicRoom]);
+
+    useEffect(() => {
+        crashlytics().log('Opened a report with ID 25723752378423');
+        if (session) {
+            crashlytics().setUserId((session.accountID as number).toString());
+            crashlytics().setAttributes({
+                email: session.email as string,
+                accountId: (session.accountID as number).toString(),
+            });
+        }
+
+        // crashlytics().crash();
+    }, []);
 
     const isAuthenticated = useMemo(() => !!(session?.authToken ?? null), [session]);
     const autoAuthState = useMemo(() => session?.autoAuthState ?? '', [session]);

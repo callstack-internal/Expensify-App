@@ -148,6 +148,14 @@ function getNewAccountIDsAndLogins(logins: string[], accountIDs: number[]) {
     return {newAccountIDs, newLogins};
 }
 
+function countPersonalDetails() {
+    if (!allPersonalDetails) {
+        return 0;
+    }
+
+    return Object.entries(allPersonalDetails).length;
+}
+
 /**
  * Given a list of logins and accountIDs, return Onyx data for users with no existing personal details stored. These users might be brand new or unknown.
  * They will have an "optimistic" accountID that must be cleaned up later.
@@ -325,4 +333,5 @@ export {
     createDisplayName,
     extractFirstAndLastNameFromAvailableDetails,
     getNewAccountIDsAndLogins,
+    countPersonalDetails,
 };

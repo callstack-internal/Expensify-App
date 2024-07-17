@@ -466,7 +466,6 @@ function ReportActionsView({
             Performance.markEnd(CONST.TIMING.SWITCH_REPORT);
         }
         Timing.end(CONST.TIMING.SWITCH_REPORT, hasCachedActionOnFirstRender ? CONST.TIMING.WARM : CONST.TIMING.COLD);
-        Performance.printPerformanceMetrics();
     }, [hasCachedActionOnFirstRender]);
 
     // Check if the first report action in the list is the one we're currently linked to

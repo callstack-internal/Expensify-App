@@ -1,5 +1,5 @@
 diff --git a/node_modules/@react-native-firebase/app/android/build.gradle b/node_modules/@react-native-firebase/app/android/build.gradle
-index 05f629a..7c36693 100644
+index 98da166..962e90b 100644
 --- a/node_modules/@react-native-firebase/app/android/build.gradle
 +++ b/node_modules/@react-native-firebase/app/android/build.gradle
 @@ -18,6 +18,7 @@ buildscript {
@@ -10,7 +10,7 @@ index 05f629a..7c36693 100644
  }
  
  def packageJson = PackageJson.getForProject(project)
-@@ -91,6 +92,7 @@ repositories {
+@@ -100,6 +101,7 @@ repositories {
  }
  
  dependencies {
@@ -18,7 +18,7 @@ index 05f629a..7c36693 100644
    implementation platform("com.google.firebase:firebase-bom:${ReactNative.ext.getVersion("firebase", "bom")}")
    implementation "com.google.firebase:firebase-common"
    implementation "com.google.android.gms:play-services-auth:${ReactNative.ext.getVersion("play", "play-services-auth")}"
-@@ -99,4 +101,3 @@ dependencies {
+@@ -108,4 +110,3 @@ dependencies {
  ReactNative.shared.applyPackageVersion()
  ReactNative.shared.applyDefaultExcludes()
  ReactNative.module.applyAndroidVersions()

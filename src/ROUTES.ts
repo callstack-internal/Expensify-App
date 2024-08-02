@@ -1346,6 +1346,10 @@ const ROUTES = {
         route: 'debug/report/:reportID/actions/:reportActionID/json',
         getRoute: (reportID: string, reportActionID: string) => `debug/report/${reportID}/actions/${reportActionID}/json` as const,
     },
+    DEBUG_REPORT_ACTION_TAB_PREVIEW: {
+        route: 'debug/report/:reportID/actions/:reportActionID/preview',
+        getRoute: (reportID: string, reportActionID: string) => `debug/report/${reportID}/actions/${reportActionID}/preview` as const,
+    },
 } as const;
 
 /**

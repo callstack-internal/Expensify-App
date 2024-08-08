@@ -4865,6 +4865,7 @@ export default {
         preview: 'Previa:',
         missingProperty: ({propertyName}) => `Falta ${propertyName}`,
         invalidProperty: ({propertyName, expectedType}) => `Propiedad inválida: ${propertyName} - Esperado: ${expectedType}`,
+        invalidValue: ({expectedValues}) => `Valor inválido - Esperado: ${expectedValues}`,
         createReportAction: 'Crear Report Action',
         reportAction: 'Report Action',
         report: 'Report',

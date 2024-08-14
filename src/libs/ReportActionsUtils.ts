@@ -1002,11 +1002,15 @@ function getOneTransactionThreadReportID(reportID: string, reportActions: OnyxEn
                 (action.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE && (isOffline ?? isNetworkOffline)))
         ) {
             iouRequestActions.push(action);
+            // If we have more than one IOU request actions, this isn't a oneTransaction report
+            if (iouRequestActions.length > 1) {
+                return;
+            }
         }
     }
 
-    // If we don't have any IOU request actions, or we have more than one IOU request actions, this isn't a oneTransaction report
-    if (!iouRequestActions.length || iouRequestActions.length > 1) {
+    // If we don't have any IOU request actions, this isn't a oneTransaction report
+    if (iouRequestActions.length === 0) {
         return;
     }
 

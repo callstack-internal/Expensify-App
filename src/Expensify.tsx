@@ -1,3 +1,4 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Audio} from 'expo-av';
 import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {NativeEventSubscription} from 'react-native';
@@ -21,6 +22,7 @@ import * as Report from './libs/actions/Report';
 import * as User from './libs/actions/User';
 import * as ActiveClientManager from './libs/ActiveClientManager';
 import BootSplash from './libs/BootSplash';
+import setupDatabaseHook from './libs/DatabaseConnector/setupDatabaseHook';
 import FS from './libs/Fullstory';
 import * as Growl from './libs/Growl';
 import Log from './libs/Log';
@@ -42,6 +44,9 @@ import * as ReportActionContextMenu from './pages/home/report/ContextMenu/Report
 import type {Route} from './ROUTES';
 import ROUTES from './ROUTES';
 import type {ScreenShareRequest} from './types/onyx';
+
+const queryClient = new QueryClient();
+setupDatabaseHook(queryClient);
 
 Onyx.registerLogger(({level, message}) => {
     if (level === 'alert') {
@@ -253,58 +258,60 @@ function Expensify({
     }
 
     return (
-        <DeeplinkWrapper
-            isAuthenticated={isAuthenticated}
-            autoAuthState={autoAuthState}
-            initialUrl={initialUrl ?? ''}
-        >
-            {shouldInit && (
-                <>
-                    <GrowlNotification ref={Growl.growlRef} />
-                    <PopoverReportActionContextMenu ref={ReportActionContextMenu.contextMenuRef} />
-                    <EmojiPicker ref={EmojiPickerAction.emojiPickerRef} />
-                    {/* We include the modal for showing a new update at the top level so the option is always present. */}
-                    {updateAvailable && !updateRequired ? <UpdateAppModal /> : null}
-                    {screenShareRequest ? (
-                        <ConfirmModal
-                            title={translate('guides.screenShare')}
-                            onConfirm={() => User.joinScreenShare(screenShareRequest.accessToken, screenShareRequest.roomName)}
-                            onCancel={User.clearScreenShareRequest}
-                            prompt={translate('guides.screenShareRequest')}
-                            confirmText={translate('common.join')}
-                            cancelText={translate('common.decline')}
-                            isVisible
-                        />
-                    ) : null}
-                    {focusModeNotification ? <FocusModeNotification /> : null}
-                    {shouldShowRequire2FAModal ? (
-                        <RequireTwoFactorAuthenticationModal
-                            onSubmit={() => {
-                                setShouldShowRequire2FAModal(false);
-                                Navigation.navigate(ROUTES.SETTINGS_2FA.getRoute(ROUTES.HOME));
-                            }}
-                            isVisible
-                            description={translate('twoFactorAuth.twoFactorAuthIsRequiredForAdminsDescription')}
-                        />
-                    ) : null}
-                </>
-            )}
+        <QueryClientProvider client={queryClient}>
+            <DeeplinkWrapper
+                isAuthenticated={isAuthenticated}
+                autoAuthState={autoAuthState}
+                initialUrl={initialUrl ?? ''}
+            >
+                {shouldInit && (
+                    <>
+                        <GrowlNotification ref={Growl.growlRef} />
+                        <PopoverReportActionContextMenu ref={ReportActionContextMenu.contextMenuRef} />
+                        <EmojiPicker ref={EmojiPickerAction.emojiPickerRef} />
+                        {/* We include the modal for showing a new update at the top level so the option is always present. */}
+                        {updateAvailable && !updateRequired ? <UpdateAppModal /> : null}
+                        {screenShareRequest ? (
+                            <ConfirmModal
+                                title={translate('guides.screenShare')}
+                                onConfirm={() => User.joinScreenShare(screenShareRequest.accessToken, screenShareRequest.roomName)}
+                                onCancel={User.clearScreenShareRequest}
+                                prompt={translate('guides.screenShareRequest')}
+                                confirmText={translate('common.join')}
+                                cancelText={translate('common.decline')}
+                                isVisible
+                            />
+                        ) : null}
+                        {focusModeNotification ? <FocusModeNotification /> : null}
+                        {shouldShowRequire2FAModal ? (
+                            <RequireTwoFactorAuthenticationModal
+                                onSubmit={() => {
+                                    setShouldShowRequire2FAModal(false);
+                                    Navigation.navigate(ROUTES.SETTINGS_2FA.getRoute(ROUTES.HOME));
+                                }}
+                                isVisible
+                                description={translate('twoFactorAuth.twoFactorAuthIsRequiredForAdminsDescription')}
+                            />
+                        ) : null}
+                    </>
+                )}
 
-            <AppleAuthWrapper />
-            {hasAttemptedToOpenPublicRoom && (
-                <SplashScreenHiddenContext.Provider value={contextValue}>
-                    <NavigationRoot
-                        onReady={setNavigationReady}
-                        authenticated={isAuthenticated}
-                        lastVisitedPath={lastVisitedPath as Route}
-                        initialUrl={initialUrl}
-                        shouldShowRequire2FAModal={shouldShowRequire2FAModal}
-                    />
-                </SplashScreenHiddenContext.Provider>
-            )}
-            {/* HybridApp has own middleware to hide SplashScreen */}
-            {!NativeModules.HybridAppModule && shouldHideSplash && <SplashScreenHider onHide={onSplashHide} />}
-        </DeeplinkWrapper>
+                <AppleAuthWrapper />
+                {hasAttemptedToOpenPublicRoom && (
+                    <SplashScreenHiddenContext.Provider value={contextValue}>
+                        <NavigationRoot
+                            onReady={setNavigationReady}
+                            authenticated={isAuthenticated}
+                            lastVisitedPath={lastVisitedPath as Route}
+                            initialUrl={initialUrl}
+                            shouldShowRequire2FAModal={shouldShowRequire2FAModal}
+                        />
+                    </SplashScreenHiddenContext.Provider>
+                )}
+                {/* HybridApp has own middleware to hide SplashScreen */}
+                {!NativeModules.HybridAppModule && shouldHideSplash && <SplashScreenHider onHide={onSplashHide} />}
+            </DeeplinkWrapper>
+        </QueryClientProvider>
     );
 }
 

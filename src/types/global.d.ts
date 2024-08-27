@@ -1,3 +1,5 @@
+import '@tanstack/react-query';
+
 declare module '*.png' {
     import type {ImageSourcePropType} from 'react-native';
 
@@ -38,4 +40,12 @@ interface Window {
 interface NodeRequire {
     // eslint-disable-next-line @typescript-eslint/prefer-function-type, @typescript-eslint/no-explicit-any
     <T = any>(id: string): T;
+}
+declare module '@tanstack/react-query' {
+    type QueryMeta = {
+        /*
+         * Keys specified here are going to trigger automatic revalidation.
+         */
+        automaticRevalidationKeys?: string[];
+    };
 }

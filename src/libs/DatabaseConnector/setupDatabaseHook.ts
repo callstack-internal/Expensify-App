@@ -1,4 +1,3 @@
-//@ts-nocheck
 import type {QueryClient} from '@tanstack/react-query';
 import Dexie from 'dexie';
 import databaseQueryHook from './databaseQueryHook';

@@ -1,11 +1,23 @@
 import Dexie from 'dexie';
+import type {Table} from 'dexie';
 import CONST from '@src/CONST';
 
-const db = new Dexie(CONST.DEFAULT_DB_NAME);
+type KeyValuePair = {
+    key: string;
+    value: unknown;
+};
 
-db.version(1).stores({keyvaluepairs: ''});
+class MyDatabase extends Dexie {
+    keyvaluepairs!: Table<KeyValuePair>;
 
-// console.log(db.keyvaluepairs);
-// const jj = db.keyvaluepairs.get('shouldStoreLogs');
-// jj.then((res) => console.log(res));
+    constructor() {
+        super(CONST.DEFAULT_DB_NAME);
+        this.version(0.1).stores({
+            keyvaluepairs: '',
+        });
+    }
+}
+
+const db = new MyDatabase();
+
 export default db;

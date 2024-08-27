@@ -1,7 +1,6 @@
 import {useNavigationState} from '@react-navigation/native';
 import type {StackNavigationOptions} from '@react-navigation/stack';
 import React from 'react';
-import db from '@libs/DatabaseConnector/index.web';
 import createCustomBottomTabNavigator from '@libs/Navigation/AppNavigator/createCustomBottomTabNavigator';
 import getTopmostCentralPaneRoute from '@libs/Navigation/getTopmostCentralPaneRoute';
 import type {BottomTabNavigatorParamList, CentralPaneName, NavigationPartialRoute, RootStackParamList} from '@libs/Navigation/types';
@@ -18,11 +17,6 @@ const screenOptions: StackNavigationOptions = {
     headerShown: false,
     animationEnabled: false,
 };
-db.keyvaluepairs
-    .where(':id')
-    .equals('shouldStoreLogs')
-    .first()
-    .then((res) => console.log(res));
 
 function BottomTabNavigator() {
     const activeRoute = useNavigationState<RootStackParamList, NavigationPartialRoute<CentralPaneName> | undefined>(getTopmostCentralPaneRoute);

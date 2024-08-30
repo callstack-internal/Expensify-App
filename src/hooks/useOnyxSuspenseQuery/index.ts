@@ -9,7 +9,6 @@ function useOnyxSuspenseQuery(key: string) {
             automaticRevalidationKeys: [key],
         },
     });
-
     return query;
 }
 

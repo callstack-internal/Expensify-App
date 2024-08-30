@@ -54,8 +54,7 @@ function TroubleshootPage({shouldStoreLogs}: TroubleshootPageProps) {
     const waitForNavigate = useWaitForNavigation();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const illustrationStyle = getLightbulbIllustrationStyle();
-    const {data: shouldMaskOnyxState} = useOnyxSuspenseQuery(ONYXKEYS.SHOULD_MASK_ONYX_STATE);
-
+    const {data: shouldMaskOnyxState, status} = useOnyxSuspenseQuery(ONYXKEYS.SHOULD_MASK_ONYX_STATE);
     const exportOnyxState = useCallback(() => {
         ExportOnyxState.readFromOnyxDatabase().then((value: Record<string, unknown>) => {
             let dataToShare = value;
@@ -184,9 +183,5 @@ TroubleshootPage.displayName = 'TroubleshootPage';
 export default withOnyx<TroubleshootPageProps, TroubleshootPageOnyxProps>({
     shouldStoreLogs: {
         key: ONYXKEYS.SHOULD_STORE_LOGS,
-    },
-    shouldMaskOnyxState: {
-        key: ONYXKEYS.SHOULD_MASK_ONYX_STATE,
-        selector: (shouldMaskOnyxState) => shouldMaskOnyxState ?? true,
     },
 })(TroubleshootPage);

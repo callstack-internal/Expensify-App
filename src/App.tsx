@@ -45,7 +45,7 @@ type AppProps = {
     url?: Route;
 };
 
-// test
+// test2
 
 LogBox.ignoreLogs([
     // Basically it means that if the app goes in the background and back to foreground on Android,

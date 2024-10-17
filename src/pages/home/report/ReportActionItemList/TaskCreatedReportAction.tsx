@@ -1,11 +1,9 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import TaskPreview from '@components/ReportActionItem/TaskPreview';
 import {ShowContextMenuContext} from '@components/ShowContextMenuContext';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
-import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
 import useContextMenu from './useContextMenu';
 
@@ -21,8 +19,7 @@ type TaskCreatedReportActionProps = {
 
 function TaskCreatedReportAction({displayAsGroup, action, report, reportID, hovered, transactionThreadReport, toggleContextMenuFromActiveReportAction}: TaskCreatedReportActionProps) {
     const styles = useThemeStyles();
-    const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report?.reportID ?? '-1'}`);
-    const {contextValue, popoverAnchorRef} = useContextMenu(action, report, reportNameValuePairs, transactionThreadReport);
+    const {contextValue, popoverAnchorRef} = useContextMenu(action, report, transactionThreadReport);
 
     return (
         <ShowContextMenuContext.Provider value={contextValue}>

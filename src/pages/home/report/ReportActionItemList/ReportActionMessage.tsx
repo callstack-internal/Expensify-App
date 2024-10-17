@@ -141,6 +141,8 @@ type ReportActionMessageProps = {
 
     /** Whether context menu should be displayed */
     shouldDisplayContextMenu?: boolean;
+
+    isHovered?: boolean;
 };
 
 function ReportActionMessage(props: ReportActionMessageProps) {

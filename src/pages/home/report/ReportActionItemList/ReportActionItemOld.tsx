@@ -460,17 +460,6 @@ function ReportActionItemOld({
                     shouldDisplayContextMenu={shouldDisplayContextMenu}
                 />
             );
-        } else if (ReportActionsUtils.isTripPreview(action)) {
-            children = (
-                <TripRoomPreview
-                    action={action}
-                    chatReportID={ReportActionsUtils.getOriginalMessage(action)?.linkedReportID ?? '-1'}
-                    isHovered={hovered}
-                    contextMenuAnchor={popoverAnchorRef.current}
-                    containerStyles={displayAsGroup ? [] : [styles.mt2]}
-                    checkIfContextMenuActive={toggleContextMenuFromActiveReportAction}
-                />
-            );
         } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW) {
             children = ReportUtils.isClosedExpenseReportWithNoExpenses(iouReport) ? (
                 <RenderHTML html={`<comment>${translate('parentReportAction.deletedReport')}</comment>`} />

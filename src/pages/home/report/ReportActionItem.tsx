@@ -546,10 +546,11 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
     const displayNamesWithTooltips = isWhisper ? ReportUtils.getDisplayNamesWithTooltips(whisperedToPersonalDetails, isMultipleParticipant) : [];
 
     const renderItemContent = (hovered: boolean) => {
-        if (ReportActionsUtils.isTaskAction(action) || ReportActionsUtils.isCreatedTaskReportAction(action)) {
+        if (ReportActionsUtils.isTripPreview(action) || ReportActionsUtils.isTaskAction(action) || ReportActionsUtils.isCreatedTaskReportAction(action)) {
             return (
                 <ReportActionMessage
                     transactionThreadReport={transactionThreadReport}
+                    isHovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
                     // eslint-disable-next-line react/jsx-props-no-spreading
                     {...rest}
                 />

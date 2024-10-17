@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
 import {FlatList, View} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
+import type {OnyxEntry} from 'react-native-onyx';
 import Button from '@components/Button';
 import Icon from '@components/Icon';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
@@ -18,7 +19,7 @@ import * as CurrencyUtils from '@libs/CurrencyUtils';
 import DateUtils from '@libs/DateUtils';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
 import Navigation from '@libs/Navigation/Navigation';
-import {getReportActionText} from '@libs/ReportActionsUtils';
+import {getOriginalMessage, getReportActionText} from '@libs/ReportActionsUtils';
 import * as ReportUtils from '@libs/ReportUtils';
 import * as TripReservationUtils from '@libs/TripReservationUtils';
 import type {ContextMenuAnchor} from '@pages/home/report/ContextMenu/ReportActionContextMenu';
@@ -26,7 +27,9 @@ import variables from '@styles/variables';
 import * as Expensicons from '@src/components/Icon/Expensicons';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+import useContextMenu from '@src/pages/home/report/ReportActionItemList/useContextMenu';
 import ROUTES from '@src/ROUTES';
+import type * as OnyxTypes from '@src/types/onyx';
 import type {ReportAction} from '@src/types/onyx';
 import type {Reservation} from '@src/types/onyx/Transaction';
 
@@ -48,6 +51,13 @@ type TripRoomPreviewProps = {
 
     /** Whether the corresponding report action item is hovered */
     isHovered?: boolean;
+
+    report: OnyxEntry<OnyxTypes.Report>;
+    reportID: string;
+    hovered: boolean;
+    displayAsGroup: boolean;
+    toggleContextMenuFromActiveReportAction: () => void;
+    transactionThreadReport?: OnyxEntry<OnyxTypes.Report>;
 };
 
 type ReservationViewProps = {
@@ -106,7 +116,36 @@ function ReservationView({reservation}: ReservationViewProps) {
 
 const renderItem = ({item}: {item: Reservation}) => <ReservationView reservation={item} />;
 
-function TripRoomPreview({action, chatReportID, containerStyles, contextMenuAnchor, isHovered = false, checkIfContextMenuActive = () => {}}: TripRoomPreviewProps) {
+function TripRoomPreview({
+    action,
+    displayAsGroup,
+    isHovered = false,
+    checkIfContextMenuActive = () => {},
+    report,
+    transactionThreadReport,
+}: Omit<TripRoomPreviewProps, 'chatReportID' | 'contextMenuAnchor'>) {
+    const styles = useThemeStyles();
+    const {popoverAnchorRef} = useContextMenu(action, report, transactionThreadReport);
+    return (
+        <TripRoomPreviewContent
+            action={action}
+            chatReportID={getOriginalMessage(action)?.linkedReportID ?? '-1'}
+            containerStyles={displayAsGroup ? [] : [styles.mt2]}
+            contextMenuAnchor={popoverAnchorRef.current}
+            isHovered={isHovered}
+            checkIfContextMenuActive={checkIfContextMenuActive}
+        />
+    );
+}
+
+function TripRoomPreviewContent({
+    action,
+    chatReportID,
+    containerStyles,
+    contextMenuAnchor,
+    isHovered = false,
+    checkIfContextMenuActive = () => {},
+}: Omit<TripRoomPreviewProps, 'report' | 'reportID' | 'hovered' | 'toggleContextMenuFromActiveReportAction' | 'displayAsGroup'>) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${chatReportID}`);

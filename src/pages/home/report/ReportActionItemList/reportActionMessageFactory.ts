@@ -1,5 +1,6 @@
 import type {ComponentType} from 'react';
 import TaskAction from '@components/ReportActionItem/TaskAction';
+import TripRoomPreview from '@components/ReportActionItem/TripRoomPreview';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
 import CONST from '@src/CONST';
 import type {OnyxInputOrEntry} from '@src/types/onyx';
@@ -21,6 +22,7 @@ function getFactoryType(reportAction: OnyxInputOrEntry<ReportAction>): string {
 }
 
 const messageFactory: ComponentMap = {
+    [CONST.REPORT.ACTIONS.TYPE.TRIPPREVIEW]: TripRoomPreview,
     [CONST.REPORT.ACTIONS.TYPE.TASK_COMPLETED]: TaskAction,
     [CONST.REPORT.ACTIONS.TYPE.TASK_CANCELLED]: TaskAction,
     [CONST.REPORT.ACTIONS.TYPE.TASK_REOPENED]: TaskAction,

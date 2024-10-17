@@ -23,10 +23,12 @@ import isReportMessageAttachment from './isReportMessageAttachment';
 import * as Localize from './Localize';
 import Log from './Log';
 import type {MessageElementBase, MessageTextElement} from './MessageElement';
+import ModifiedExpenseMessage from './ModifiedExpenseMessage';
 import Parser from './Parser';
 import * as PersonalDetailsUtils from './PersonalDetailsUtils';
 import * as PolicyUtils from './PolicyUtils';
 import * as ReportConnection from './ReportConnection';
+import * as ReportUtils from './ReportUtils';
 import type {OptimisticIOUReportAction, PartialReportAction} from './ReportUtils';
 import StringUtils from './StringUtils';
 // eslint-disable-next-line import/no-cycle
@@ -1769,6 +1771,80 @@ function getCardIssuedMessage(reportAction: OnyxEntry<ReportAction>, shouldRende
     }
 }
 
+function generateReportActionMessage(action: ReportAction, report: Report) {
+    if (action?.actionName === CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT) {
+    } else if (action?.actionName === CONST.REPORT.ACTIONS.TYPE.REIMBURSEMENT_DEQUEUED) {
+        return ReportUtils.getReimbursementDeQueuedActionMessage(action, report);
+    } else if (action?.actionName === CONST.REPORT.ACTIONS.TYPE.MODIFIED_EXPENSE) {
+        return ModifiedExpenseMessage.getForReportAction(report?.reportID, action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.SUBMITTED || action.actionName === CONST.REPORT.ACTIONS.TYPE.SUBMITTED_AND_CLOSED) {
+        const wasSubmittedViaHarvesting = getOriginalMessage(action)?.harvesting ?? false;
+
+        if (wasSubmittedViaHarvesting) {
+            return {
+                message: ReportUtils.getReportAutomaticallySubmittedMessage(action),
+                renderHtml: true,
+            };
+        }
+        return ReportUtils.getIOUSubmittedMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.APPROVED) {
+        const wasAutoApproved = getOriginalMessage(action)?.automaticAction ?? false;
+        if (wasAutoApproved) {
+            return {
+                message: ReportUtils.getReportAutomaticallyApprovedMessage(action),
+                renderHtml: true,
+            };
+        }
+
+        return ReportUtils.getIOUApprovedMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.UNAPPROVED) {
+        return ReportUtils.getIOUUnapprovedMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.FORWARDED) {
+        const wasAutoForwarded = ReportActionsUtils.getOriginalMessage(action)?.automaticAction ?? false;
+        if (wasAutoForwarded) {
+            return {
+                message: ReportUtils.getReportAutomaticallyForwardedMessage(action, report.reportID),
+                renderHtml: true,
+            };
+        }
+
+        return ReportUtils.getIOUForwardedMessage(action, report);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.REJECTED) {
+        return Localize.translateLocal('iou.rejectedThisReport');
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.HOLD) {
+        return Localize.translateLocal('iou.heldExpense');
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.HOLD_COMMENT) {
+        return getReportActionText(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.UNHOLD) {
+        return Localize.translateLocal('iou.unheldExpense');
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.MERGED_WITH_CASH_TRANSACTION) {
+        return Localize.translateLocal('systemMessage.mergedWithCashTransaction');
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.DISMISSED_VIOLATION) {
+        return getDismissedViolationMessageText(getOriginalMessage(action));
+    } else if (isTagModificationAction(action.actionName)) {
+        return PolicyUtils.getCleanedTagName(getReportActionMessage(action)?.text ?? '');
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_NAME) {
+        return ReportUtils.getWorkspaceNameUpdatedMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ADD_EMPLOYEE) {
+        return getPolicyChangeLogAddEmployeeMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_EMPLOYEE) {
+        return getPolicyChangeLogChangeRoleMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_EMPLOYEE) {
+        return getPolicyChangeLogDeleteMemberMessage(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.REMOVED_FROM_APPROVAL_CHAIN) {
+        return getRemovedFromApprovalChainMessage(action);
+    } else if (isRenamedAction(action)) {
+        return getRenamedAction(action);
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.INTEGRATION_SYNC_FAILED) {
+        const {label, errorMessage} = getOriginalMessage(action) ?? {label: '', errorMessage: ''};
+        return Localize.translateLocal('report.actions.type.integrationSyncFailed', {label, errorMessage});
+    } else if (action.actionName === CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_INTEGRATION) {
+        return getRemovedConnectionMessage(action);
+    }
+
+    return '';
+}
+
 export {
     doesReportHaveVisibleActions,
     extractLinksFromMessageHtml,
@@ -1878,6 +1954,7 @@ export {
     getCardIssuedMessage,
     getRemovedConnectionMessage,
     getActionableJoinRequestPendingReportAction,
+    generateReportActionMessage,
 };
 
 export type {LastVisibleMessage};

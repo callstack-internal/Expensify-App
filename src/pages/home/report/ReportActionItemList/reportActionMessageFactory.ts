@@ -1,4 +1,5 @@
 import type {ComponentType} from 'react';
+import ExportIntegration from '@components/ReportActionItem/ExportIntegration';
 import MoneyRequestAction from '@components/ReportActionItem/MoneyRequestAction';
 import ReportPreview from '@components/ReportActionItem/ReportPreview';
 import TaskAction from '@components/ReportActionItem/TaskAction';
@@ -31,7 +32,8 @@ const messageFactory: ComponentMap = {
     [CONST.REPORT.ACTIONS.TYPE.TASK_EDITED]: TaskAction,
     [additionalMessageTypes.CREATED_TASK_ACTION]: TaskCreatedReportAction,
     [CONST.REPORT.ACTIONS.TYPE.IOU]: MoneyRequestAction,
-    [CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW]: ReportPreview, // todo: RenderHTML with single comment
+    [CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW]: ReportPreview,
+    [CONST.REPORT.ACTIONS.TYPE.EXPORTED_TO_INTEGRATION]: ExportIntegration,
 };
 
 export {messageFactory, getFactoryType};

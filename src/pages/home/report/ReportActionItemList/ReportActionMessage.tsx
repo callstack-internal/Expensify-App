@@ -164,6 +164,7 @@ type ReportActionMessageProps = {
 };
 
 function ReportActionMessage(props: ReportActionMessageProps) {
+    const {translate} = useLocalize();
     const {action} = props;
     const componentType = getFactoryType(action);
     const originalMessage = ReportActionsUtils.getOriginalMessage(action);
@@ -172,6 +173,7 @@ function ReportActionMessage(props: ReportActionMessageProps) {
         originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.CREATE ||
         originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.SPLIT ||
         originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.TRACK;
+    const isClosedReportPreview = action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW && ReportUtils.isClosedExpenseReportWithNoExpenses(props.report);
     const MessageComponent = messageFactory[componentType];
     if (!MessageComponent) {
         return <View style={{backgroundColor: 'green', width: '100%', height: 200}} />;
@@ -179,6 +181,10 @@ function ReportActionMessage(props: ReportActionMessageProps) {
 
     if (isMoneyRequestAction && !shouldRenderMoneyRequestAction) {
         return null;
+    }
+
+    if (isClosedReportPreview) {
+        return <RenderHTML html={`<comment>${translate('parentReportAction.deletedReport')}</comment>`} />;
     }
     // eslint-disable-next-line react/jsx-props-no-spreading
     return <MessageComponent {...props} />;

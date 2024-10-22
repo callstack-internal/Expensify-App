@@ -553,7 +553,8 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
             ReportActionsUtils.isTaskAction(action) ||
             ReportActionsUtils.isCreatedTaskReportAction(action) ||
             ReportActionsUtils.isMoneyRequestAction(action) ||
-            action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW
+            action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW ||
+            ReportActionsUtils.isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL, CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS)
         ) {
             return (
                 <ReportActionMessage

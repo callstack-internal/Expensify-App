@@ -1,5 +1,6 @@
 import type {ComponentType} from 'react';
 import ExportIntegration from '@components/ReportActionItem/ExportIntegration';
+import IssueCardMessage from '@components/ReportActionItem/IssueCardMessage';
 import MoneyRequestAction from '@components/ReportActionItem/MoneyRequestAction';
 import ReportPreview from '@components/ReportActionItem/ReportPreview';
 import TaskAction from '@components/ReportActionItem/TaskAction';
@@ -34,6 +35,9 @@ const messageFactory: ComponentMap = {
     [CONST.REPORT.ACTIONS.TYPE.IOU]: MoneyRequestAction,
     [CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW]: ReportPreview,
     [CONST.REPORT.ACTIONS.TYPE.EXPORTED_TO_INTEGRATION]: ExportIntegration,
+    [CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED]: IssueCardMessage,
+    [CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL]: IssueCardMessage,
+    [CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS]: IssueCardMessage,
 };
 
 export {messageFactory, getFactoryType};

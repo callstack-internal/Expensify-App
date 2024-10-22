@@ -155,6 +155,12 @@ type ReportActionMessageProps = {
     checkIfContextMenuActive?: (() => void) | undefined;
 
     style?: StyleProp<ViewStyle>;
+
+    onPaymentOptionsShow?: () => void;
+
+    onPaymentOptionsHide?: () => void;
+
+    policyID?: string;
 };
 
 function ReportActionMessage(props: ReportActionMessageProps) {

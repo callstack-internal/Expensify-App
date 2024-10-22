@@ -552,7 +552,8 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
             ReportActionsUtils.isTripPreview(action) ||
             ReportActionsUtils.isTaskAction(action) ||
             ReportActionsUtils.isCreatedTaskReportAction(action) ||
-            ReportActionsUtils.isMoneyRequestAction(action)
+            ReportActionsUtils.isMoneyRequestAction(action) ||
+            action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW
         ) {
             return (
                 <ReportActionMessage
@@ -565,6 +566,7 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
                     checkIfContextMenuActive={toggleContextMenuFromActiveReportAction}
                     style={displayAsGroup ? [] : [styles.mt2]}
                     shouldDisplayContextMenu={shouldDisplayContextMenu}
+                    policyID={report?.policyID ?? '-1'}
                     // eslint-disable-next-line react/jsx-props-no-spreading
                     {...rest}
                 />

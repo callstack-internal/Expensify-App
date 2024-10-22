@@ -1,4 +1,5 @@
 import type {ComponentType} from 'react';
+import MoneyRequestAction from '@components/ReportActionItem/MoneyRequestAction';
 import TaskAction from '@components/ReportActionItem/TaskAction';
 import TripRoomPreview from '@components/ReportActionItem/TripRoomPreview';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
@@ -28,6 +29,7 @@ const messageFactory: ComponentMap = {
     [CONST.REPORT.ACTIONS.TYPE.TASK_REOPENED]: TaskAction,
     [CONST.REPORT.ACTIONS.TYPE.TASK_EDITED]: TaskAction,
     [additionalMessageTypes.CREATED_TASK_ACTION]: TaskCreatedReportAction,
+    [CONST.REPORT.ACTIONS.TYPE.IOU]: MoneyRequestAction,
 };
 
 export {messageFactory, getFactoryType};

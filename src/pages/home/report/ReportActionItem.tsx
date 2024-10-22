@@ -544,13 +544,27 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
         : [];
     const isWhisperOnlyVisibleByUser = isWhisper && ReportUtils.isCurrentUserTheOnlyParticipant(whisperedTo);
     const displayNamesWithTooltips = isWhisper ? ReportUtils.getDisplayNamesWithTooltips(whisperedToPersonalDetails, isMultipleParticipant) : [];
+    const hasIOUReportID = ReportActionsUtils.getOriginalMessage(action)?.IOUReportID;
+    const chatReportID = hasIOUReportID ? report?.chatReportID ?? '' : reportID;
 
     const renderItemContent = (hovered: boolean) => {
-        if (ReportActionsUtils.isTripPreview(action) || ReportActionsUtils.isTaskAction(action) || ReportActionsUtils.isCreatedTaskReportAction(action)) {
+        if (
+            ReportActionsUtils.isTripPreview(action) ||
+            ReportActionsUtils.isTaskAction(action) ||
+            ReportActionsUtils.isCreatedTaskReportAction(action) ||
+            ReportActionsUtils.isMoneyRequestAction(action)
+        ) {
             return (
                 <ReportActionMessage
                     transactionThreadReport={transactionThreadReport}
                     isHovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
+                    reportID={reportID}
+                    chatReportID={chatReportID}
+                    requestReportID={iouReportID}
+                    contextMenuAnchor={popoverAnchorRef.current}
+                    checkIfContextMenuActive={toggleContextMenuFromActiveReportAction}
+                    style={displayAsGroup ? [] : [styles.mt2]}
+                    shouldDisplayContextMenu={shouldDisplayContextMenu}
                     // eslint-disable-next-line react/jsx-props-no-spreading
                     {...rest}
                 />

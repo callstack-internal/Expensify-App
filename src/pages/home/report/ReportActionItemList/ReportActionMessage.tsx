@@ -1,6 +1,6 @@
 import lodashIsEqual from 'lodash/isEqual';
 import React, {memo, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import type {GestureResponderEvent, TextInput} from 'react-native';
+import type {GestureResponderEvent, StyleProp, TextInput, ViewStyle} from 'react-native';
 import {InteractionManager, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import {useOnyx} from 'react-native-onyx';
@@ -72,7 +72,7 @@ import type {JoinWorkspaceResolution} from '@src/types/onyx/OriginalMessage';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import {RestrictedReadOnlyContextMenuActions} from './ContextMenu/ContextMenuActions';
 import MiniReportActionContextMenu from './ContextMenu/MiniReportActionContextMenu';
-import * as ReportActionContextMenu from './ContextMenu/ReportActionContextMenu';
+import type * as ReportActionContextMenu from './ContextMenu/ReportActionContextMenu';
 import {hideContextMenu} from './ContextMenu/ReportActionContextMenu';
 import LinkPreviewer from './LinkPreviewer';
 import ReportActionItemBasicMessage from './ReportActionItemBasicMessage';
@@ -143,15 +143,36 @@ type ReportActionMessageProps = {
     shouldDisplayContextMenu?: boolean;
 
     isHovered?: boolean;
+
+    reportID: string;
+
+    chatReportID?: string;
+
+    requestReportID?: string;
+
+    contextMenuAnchor?: ReportActionContextMenu.ContextMenuAnchor;
+
+    checkIfContextMenuActive?: (() => void) | undefined;
+
+    style?: StyleProp<ViewStyle>;
 };
 
 function ReportActionMessage(props: ReportActionMessageProps) {
     const {action} = props;
     const componentType = getFactoryType(action);
+    const originalMessage = ReportActionsUtils.getOriginalMessage(action);
+    const isMoneyRequestAction = ReportActionsUtils.isMoneyRequestAction(action);
+    const shouldRenderMoneyRequestAction =
+        originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.CREATE ||
+        originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.SPLIT ||
+        originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.TRACK;
     const MessageComponent = messageFactory[componentType];
-
     if (!MessageComponent) {
         return <View style={{backgroundColor: 'green', width: '100%', height: 200}} />;
+    }
+
+    if (isMoneyRequestAction && !shouldRenderMoneyRequestAction) {
+        return null;
     }
     // eslint-disable-next-line react/jsx-props-no-spreading
     return <MessageComponent {...props} />;

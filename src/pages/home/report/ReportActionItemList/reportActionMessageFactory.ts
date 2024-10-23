@@ -13,6 +13,7 @@ import * as ReportUtils from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import type * as OnyxTypes from '@src/types/onyx';
 import type ReportAction from '@src/types/onyx/ReportAction';
+import ReportActionItemContent from './ReportActionItemContent';
 import TaskCreatedReportAction from './TaskCreatedReportAction';
 
 const additionalMessageTypes = {
@@ -50,6 +51,7 @@ const messageFactory: ComponentMap = {
     [CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED]: IssueCardMessage,
     [CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL]: IssueCardMessage,
     [CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS]: IssueCardMessage,
+    [CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT]: ReportActionItemContent,
 };
 
 const basicMessageFactory: MessageMap = {

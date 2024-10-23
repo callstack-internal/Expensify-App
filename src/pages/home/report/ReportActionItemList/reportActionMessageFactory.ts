@@ -125,6 +125,57 @@ const basicMessageFactory: MessageMap = {
         getMessage: () => Localize.translateLocal('iou.heldExpense'),
         shouldRenderHtml: false,
     },
+    [CONST.REPORT.ACTIONS.TYPE.HOLD_COMMENT]: {
+        getMessage: (action) => ReportActionsUtils.getReportActionText(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.UNHOLD]: {
+        getMessage: () => Localize.translateLocal('iou.unheldExpense'),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.MERGED_WITH_CASH_TRANSACTION]: {
+        getMessage: () => Localize.translateLocal('systemMessage.mergedWithCashTransaction'),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.DISMISSED_VIOLATION]: {
+        getMessage: (action) => ReportActionsUtils.getDismissedViolationMessageText(ReportActionsUtils.getOriginalMessage(action)),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_NAME]: {
+        getMessage: (action) => ReportUtils.getWorkspaceNameUpdatedMessage(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ADD_EMPLOYEE]: {
+        getMessage: (action) => ReportActionsUtils.getPolicyChangeLogAddEmployeeMessage(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_EMPLOYEE]: {
+        getMessage: (action) => ReportActionsUtils.getPolicyChangeLogChangeRoleMessage(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_EMPLOYEE]: {
+        getMessage: (action) => ReportActionsUtils.getPolicyChangeLogDeleteMemberMessage(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.REMOVED_FROM_APPROVAL_CHAIN]: {
+        getMessage: (action) => ReportActionsUtils.getRemovedFromApprovalChainMessage(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.RENAMED]: {
+        getMessage: (action) => ReportActionsUtils.getRenamedAction(action),
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.INTEGRATION_SYNC_FAILED]: {
+        getMessage: (action) => {
+            const {label, errorMessage} = ReportActionsUtils.getOriginalMessage(action) ?? {label: '', errorMessage: ''};
+            return Localize.translateLocal('report.actions.type.integrationSyncFailed', {label, errorMessage});
+        },
+        shouldRenderHtml: false,
+    },
+    [CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_INTEGRATION]: {
+        getMessage: (action) => ReportActionsUtils.getRemovedConnectionMessage(action),
+        shouldRenderHtml: false,
+    },
 };
 
 export {messageFactory, getFactoryType, basicMessageFactory};

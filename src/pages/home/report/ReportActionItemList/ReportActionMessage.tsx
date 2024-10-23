@@ -55,6 +55,7 @@ import * as ReportUtils from '@libs/ReportUtils';
 import SelectionScraper from '@libs/SelectionScraper';
 import shouldRenderAddPaymentCard from '@libs/shouldRenderAppPaymentCard';
 import * as TransactionUtils from '@libs/TransactionUtils';
+import ReportActionItemBasicMessage from '@pages/home/report/ReportActionItemBasicMessage';
 import {ReactionListContext} from '@pages/home/ReportScreenContext';
 import * as BankAccounts from '@userActions/BankAccounts';
 import * as EmojiPickerAction from '@userActions/EmojiPickerAction';
@@ -75,7 +76,6 @@ import MiniReportActionContextMenu from './ContextMenu/MiniReportActionContextMe
 import type * as ReportActionContextMenu from './ContextMenu/ReportActionContextMenu';
 import {hideContextMenu} from './ContextMenu/ReportActionContextMenu';
 import LinkPreviewer from './LinkPreviewer';
-import ReportActionItemBasicMessage from './ReportActionItemBasicMessage';
 import ReportActionItemContentCreated from './ReportActionItemContentCreated';
 import ReportActionItemDraft from './ReportActionItemDraft';
 import ReportActionItemGrouped from './ReportActionItemGrouped';
@@ -83,7 +83,7 @@ import ReportActionItemMessageEdit from './ReportActionItemMessageEdit';
 import ReportActionItemSingle from './ReportActionItemSingle';
 import ReportActionItemThread from './ReportActionItemThread';
 import ReportActionItemMessage from './ReportActionMessage';
-import {getFactoryType, messageFactory} from './reportActionMessageFactory';
+import {basicMessageFactory, getFactoryType, messageFactory} from './reportActionMessageFactory';
 import ReportAttachmentsContext from './ReportAttachmentsContext';
 
 type ReportActionMessageProps = {
@@ -165,7 +165,7 @@ type ReportActionMessageProps = {
 
 function ReportActionMessage(props: ReportActionMessageProps) {
     const {translate} = useLocalize();
-    const {action} = props;
+    const {action, report} = props;
     const componentType = getFactoryType(action);
     const originalMessage = ReportActionsUtils.getOriginalMessage(action);
     const isMoneyRequestAction = ReportActionsUtils.isMoneyRequestAction(action);
@@ -176,6 +176,11 @@ function ReportActionMessage(props: ReportActionMessageProps) {
     const isClosedReportPreview = action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW && ReportUtils.isClosedExpenseReportWithNoExpenses(props.report);
     const MessageComponent = messageFactory[componentType];
     if (!MessageComponent) {
+        const messageFactoryItem = basicMessageFactory[action.actionName];
+        if (messageFactoryItem) {
+            const message = messageFactoryItem.getMessage(action, report);
+            return <ReportActionItemBasicMessage message={message} />;
+        }
         return <View style={{backgroundColor: 'green', width: '100%', height: 200}} />;
     }
 

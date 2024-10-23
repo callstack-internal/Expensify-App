@@ -548,41 +548,42 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
     const chatReportID = hasIOUReportID ? report?.chatReportID ?? '' : reportID;
 
     const renderItemContent = (hovered: boolean) => {
-        if (
-            ReportActionsUtils.isTripPreview(action) ||
-            ReportActionsUtils.isTaskAction(action) ||
-            ReportActionsUtils.isCreatedTaskReportAction(action) ||
-            ReportActionsUtils.isMoneyRequestAction(action) ||
-            action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW ||
-            ReportActionsUtils.isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL, CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS)
-        ) {
-            return (
-                <ReportActionMessage
-                    transactionThreadReport={transactionThreadReport}
-                    isHovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
-                    reportID={reportID}
-                    chatReportID={chatReportID}
-                    requestReportID={iouReportID}
-                    contextMenuAnchor={popoverAnchorRef.current}
-                    checkIfContextMenuActive={toggleContextMenuFromActiveReportAction}
-                    style={displayAsGroup ? [] : [styles.mt2]}
-                    shouldDisplayContextMenu={shouldDisplayContextMenu}
-                    policyID={report?.policyID ?? '-1'}
-                    // eslint-disable-next-line react/jsx-props-no-spreading
-                    {...rest}
-                />
-            );
-        }
+        // if (
+        //     ReportActionsUtils.isTripPreview(action) ||
+        //     ReportActionsUtils.isTaskAction(action) ||
+        //     ReportActionsUtils.isCreatedTaskReportAction(action) ||
+        //     ReportActionsUtils.isMoneyRequestAction(action) ||
+        //     action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW ||
+        //     ReportActionsUtils.isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL, CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS) ||
+        //     ReportActionsUtils.isReimbursementDeQueuedAction(action)
+        // ) {
         return (
-            <ReportActionItemOld
+            <ReportActionMessage
                 transactionThreadReport={transactionThreadReport}
-                hovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
-                isWhisper={isWhisper}
-                hasErrors={hasErrors}
+                isHovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
+                reportID={reportID}
+                chatReportID={chatReportID}
+                requestReportID={iouReportID}
+                contextMenuAnchor={popoverAnchorRef.current}
+                checkIfContextMenuActive={toggleContextMenuFromActiveReportAction}
+                style={displayAsGroup ? [] : [styles.mt2]}
+                shouldDisplayContextMenu={shouldDisplayContextMenu}
+                policyID={report?.policyID ?? '-1'}
                 // eslint-disable-next-line react/jsx-props-no-spreading
                 {...rest}
             />
         );
+        // }
+        // return (
+        //     <ReportActionItemOld
+        //         transactionThreadReport={transactionThreadReport}
+        //         hovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
+        //         isWhisper={isWhisper}
+        //         hasErrors={hasErrors}
+        //         // eslint-disable-next-line react/jsx-props-no-spreading
+        //         {...rest}
+        //     />
+        // );
     };
 
     return (

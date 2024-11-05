@@ -31,6 +31,8 @@ import focusComposerWithDelay from '@libs/focusComposerWithDelay';
 import Navigation from '@libs/Navigation/Navigation';
 import Permissions from '@libs/Permissions';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
+import * as PersonalDetailsUtils from '@libs/PersonalDetailsUtils';
+import * as PolicyUtils from '@libs/PolicyUtils';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
 import * as ReportUtils from '@libs/ReportUtils';
 import SelectionScraper from '@libs/SelectionScraper';
@@ -288,7 +290,6 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
                 return;
             }
 
-            ReportActionComposeFocusManager.blurAll();
             setIsContextMenuActive(true);
             const selection = SelectionScraper.getCurrentSelection();
             ReportActionContextMenu.showContextMenu(
@@ -450,7 +451,7 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
             },
         ];
     }, [action, isActionableWhisper, reportID, canUseP2PDistanceRequests]);
-
+    
     if (action.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED) {
         const transactionID = ReportActionsUtils.isMoneyRequestAction(parentReportActionForTransactionThread)
             ? ReportActionsUtils.getOriginalMessage(parentReportActionForTransactionThread)?.IOUTransactionID
@@ -516,6 +517,7 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
     const hasIOUReportID = ReportActionsUtils.getOriginalMessage(action)?.IOUReportID;
     const chatReportID = hasIOUReportID ? report?.chatReportID ?? '' : reportID;
 
+    // Todo check with main if something is missing
     const renderItemContent = (hovered: boolean) => {
         // if (
         //     ReportActionsUtils.isTripPreview(action) ||
@@ -571,6 +573,7 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
             <Hoverable
                 shouldHandleScroll
                 isDisabled={draftMessage !== undefined}
+                shouldFreezeCapture={isPaymentMethodPopoverActive}
             >
                 {(hovered) => (
                     <View style={highlightedBackgroundColorIfNeeded}>

@@ -1,39 +1,40 @@
 diff --git a/node_modules/react-native-web/dist/exports/Image/index.js b/node_modules/react-native-web/dist/exports/Image/index.js
-index 9649d27..66ef95c 100644
+index 348831d..05e6574 100644
 --- a/node_modules/react-native-web/dist/exports/Image/index.js
 +++ b/node_modules/react-native-web/dist/exports/Image/index.js
-@@ -135,7 +135,22 @@ function resolveAssetUri(source) {
+@@ -137,7 +137,23 @@ function resolveAssetUri(source) {
    }
    return uri;
  }
 -var Image = /*#__PURE__*/React.forwardRef((props, ref) => {
 +function raiseOnErrorEvent(uri, _ref) {
 +  var onError = _ref.onError,
-+    onLoadEnd = _ref.onLoadEnd;
++  onLoadEnd = _ref.onLoadEnd;
 +  if (onError) {
 +    onError({
 +      nativeEvent: {
-+        error: "Failed to load resource " + uri + " (404)"
-+      }
-+    });
++       error: "Failed to load resource " + uri + " (404)"
++        }
++      });
 +  }
 +  if (onLoadEnd) onLoadEnd();
 +}
 +function hasSourceDiff(a, b) {
 +  return a.uri !== b.uri || JSON.stringify(a.headers) !== JSON.stringify(b.headers);
 +}
++
 +var BaseImage = /*#__PURE__*/React.forwardRef((props, ref) => {
    var _ariaLabel = props['aria-label'],
      accessibilityLabel = props.accessibilityLabel,
      blurRadius = props.blurRadius,
-@@ -238,16 +253,10 @@ var Image = /*#__PURE__*/React.forwardRef((props, ref) => {
+@@ -240,16 +256,10 @@ var Image = /*#__PURE__*/React.forwardRef((props, ref) => {
          }
        }, function error() {
          updateState(ERRORED);
 -        if (onError) {
 -          onError({
 -            nativeEvent: {
--              error: "Failed to load resource " + uri + " (404)"
+-              error: "Failed to load resource " + uri
 -            }
 -          });
 -        }
@@ -47,11 +48,11 @@ index 9649d27..66ef95c 100644
        });
      }
      function abortPendingRequest() {
-@@ -279,10 +288,79 @@ var Image = /*#__PURE__*/React.forwardRef((props, ref) => {
-     suppressHydrationWarning: true
-   }), hiddenImage, createTintColorSVG(tintColor, filterRef.current));
- });
--Image.displayName = 'Image';
+@@ -284,7 +294,77 @@ var Image = /*#__PURE__*/React.forwardRef((props, ref) => {
+ Image.displayName = 'Image';
+ 
+ // $FlowIgnore: This is the correct type, but casting makes it unhappy since the variables aren't defined yet
+-var ImageWithStatics = Image;
 +BaseImage.displayName = 'Image';
 +
 +/**
@@ -113,24 +114,21 @@ index 9649d27..66ef95c 100644
 +    ref: ref
 +  }, propsToPass));
 +});
- 
- // $FlowIgnore: This is the correct type, but casting makes it unhappy since the variables aren't defined yet
--var ImageWithStatics = Image;
 +var ImageWithStatics = /*#__PURE__*/React.forwardRef((props, ref) => {
 +  if (props.source && props.source.headers) {
 +    return /*#__PURE__*/React.createElement(ImageWithHeaders, _extends({
 +      ref: ref
 +    }, props));
-+  }
-+  return /*#__PURE__*/React.createElement(BaseImage, _extends({
-+    ref: ref
-+  }, props));
-+});
++    }
++    return /*#__PURE__*/React.createElement(BaseImage, _extends({
++      ref: ref
++    }, props));
++  });
  ImageWithStatics.getSize = function (uri, success, failure) {
    ImageLoader.getSize(uri, success, failure);
  };
 diff --git a/node_modules/react-native-web/dist/modules/ImageLoader/index.js b/node_modules/react-native-web/dist/modules/ImageLoader/index.js
-index bc06a87..5a22819 100644
+index bc06a87..6b820dd 100644
 --- a/node_modules/react-native-web/dist/modules/ImageLoader/index.js
 +++ b/node_modules/react-native-web/dist/modules/ImageLoader/index.js
 @@ -76,7 +76,7 @@ var ImageLoader = {
@@ -138,7 +136,7 @@ index bc06a87..5a22819 100644
        if (image) {
          var naturalHeight = image.naturalHeight,
 -          naturalWidth = image.naturalWidth;
-+            naturalWidth = image.naturalWidth;
++        naturalWidth = image.naturalWidth;
          if (naturalHeight && naturalWidth) {
            success(naturalWidth, naturalHeight);
            complete = true;
@@ -152,7 +150,7 @@ index bc06a87..5a22819 100644
 -      var onDecode = () => onLoad({
 -        nativeEvent: e
 -      });
-+      var onDecode = () => {
++        var onDecode = () => {
 +        // Append `source` to match RN's ImageLoadEvent interface
 +        nativeEvent.source = {
 +          uri: image.src,
@@ -166,7 +164,7 @@ index bc06a87..5a22819 100644
        if (typeof image.decode === 'function') {
          // Safari currently throws exceptions when decoding svgs.
          // We want to catch that error and allow the load handler
-@@ -120,6 +128,32 @@ var ImageLoader = {
+@@ -120,6 +128,31 @@ var ImageLoader = {
      requests["" + id] = image;
      return id;
    },
@@ -176,26 +174,25 @@ index bc06a87..5a22819 100644
 +    var request = new Request(source.uri, {
 +      headers: source.headers,
 +      signal: abortController.signal
-+    });
-+    request.headers.append('accept', 'image/*');
-+    var promise = fetch(request).then(response => response.blob()).then(blob => {
++      });
++      request.headers.append('accept', 'image/*');
++      var promise = fetch(request).then(response => response.blob()).then(blob => {
 +      uri = URL.createObjectURL(blob);
 +      return uri;
 +    }).catch(error => {
 +      if (error.name === 'AbortError') {
-+        return '';
-+      }
++      return '';
++    }
 +      throw error;
 +    });
 +    return {
 +      promise,
 +      source,
 +      cancel: () => {
-+        abortController.abort();
-+        URL.revokeObjectURL(uri);
-+      }
-+    };
-+  },
++      abortController.abort();
++      URL.revokeObjectURL(uri);
++      }};
++    },
    prefetch(uri) {
      return new Promise((resolve, reject) => {
        ImageLoader.load(uri, () => {

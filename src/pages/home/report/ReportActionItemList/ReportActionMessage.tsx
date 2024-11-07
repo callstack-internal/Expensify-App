@@ -91,6 +91,7 @@ type ReportActionMessageProps = {
 };
 
 function ReportActionMessage(props: ReportActionMessageProps) {
+    console.log('ReportActionMessage: ', props);
     const {translate} = useLocalize();
     const {action, report} = props;
     const componentType = getFactoryType(action);

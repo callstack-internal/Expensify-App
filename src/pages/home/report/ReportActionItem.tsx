@@ -30,9 +30,9 @@ import * as ErrorUtils from '@libs/ErrorUtils';
 import focusComposerWithDelay from '@libs/focusComposerWithDelay';
 import Navigation from '@libs/Navigation/Navigation';
 import Permissions from '@libs/Permissions';
-import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
 import * as PersonalDetailsUtils from '@libs/PersonalDetailsUtils';
 import * as PolicyUtils from '@libs/PolicyUtils';
+import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
 import * as ReportUtils from '@libs/ReportUtils';
 import SelectionScraper from '@libs/SelectionScraper';
@@ -54,8 +54,11 @@ import {RestrictedReadOnlyContextMenuActions} from './ContextMenu/ContextMenuAct
 import MiniReportActionContextMenu from './ContextMenu/MiniReportActionContextMenu';
 import * as ReportActionContextMenu from './ContextMenu/ReportActionContextMenu';
 import ReportActionItemContentCreated from './ReportActionItemContentCreated';
+import ReportActionItemDraft from './ReportActionItemDraft';
+import ReportActionItemGrouped from './ReportActionItemGrouped';
 import ReportActionItemOld from './ReportActionItemList/ReportActionItemOld';
 import ReportActionMessage from './ReportActionItemList/ReportActionMessage';
+import ReportActionItemSingle from './ReportActionItemSingle';
 
 type ReportActionItemProps = {
     /** Report for this action */
@@ -158,7 +161,7 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
     const [isContextMenuActive, setIsContextMenuActive] = useState(() => ReportActionContextMenu.isActiveReportAction(action.reportActionID));
     const [isEmojiPickerActive, setIsEmojiPickerActive] = useState<boolean | undefined>();
     const [isPaymentMethodPopoverActive, setIsPaymentMethodPopoverActive] = useState<boolean | undefined>();
-
+    const [iouReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${ReportActionsUtils.getIOUReportIDFromReportActionPreview(action) ?? -1}`);
     const [isHidden, setIsHidden] = useState(false);
     const [moderationDecision, setModerationDecision] = useState<OnyxTypes.DecisionName>(CONST.MODERATION.MODERATOR_DECISION_APPROVED);
     const reactionListRef = useContext(ReactionListContext);
@@ -451,7 +454,7 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
             },
         ];
     }, [action, isActionableWhisper, reportID, canUseP2PDistanceRequests]);
-    
+
     if (action.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED) {
         const transactionID = ReportActionsUtils.isMoneyRequestAction(parentReportActionForTransactionThread)
             ? ReportActionsUtils.getOriginalMessage(parentReportActionForTransactionThread)?.IOUTransactionID
@@ -528,7 +531,8 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
         //     ReportActionsUtils.isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL, CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS) ||
         //     ReportActionsUtils.isReimbursementDeQueuedAction(action)
         // ) {
-        return (
+
+        const messageContent = (
             <ReportActionMessage
                 transactionThreadReport={transactionThreadReport}
                 isHovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
@@ -544,6 +548,32 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
                 {...rest}
             />
         );
+        if (draftMessage !== undefined) {
+            return <ReportActionItemDraft>{messageContent}</ReportActionItemDraft>;
+        }
+
+        if (displayAsGroup) {
+            return <ReportActionItemGrouped wrapperStyle={isWhisper ? styles.pt1 : {}}>{messageContent}</ReportActionItemGrouped>;
+        }
+
+        return (
+            <ReportActionItemSingle
+                action={action}
+                showHeader={draftMessage === undefined}
+                wrapperStyle={isWhisper ? styles.pt1 : {}}
+                shouldShowSubscriptAvatar={shouldShowSubscriptAvatar}
+                report={report}
+                iouReport={iouReport}
+                isHovered={hovered}
+                hasBeenFlagged={
+                    ![CONST.MODERATION.MODERATOR_DECISION_APPROVED, CONST.MODERATION.MODERATOR_DECISION_PENDING].some((item) => item === moderationDecision) &&
+                    !ReportActionsUtils.isPendingRemove(action)
+                }
+            >
+                {messageContent}
+            </ReportActionItemSingle>
+        );
+
         // }
         // return (
         //     <ReportActionItemOld

@@ -101,7 +101,6 @@ function ReportActionMessage(props: ReportActionMessageProps) {
         originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.CREATE ||
         originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.SPLIT ||
         originalMessage?.type === CONST.IOU.REPORT_ACTION_TYPE.TRACK;
-    const isClosedReportPreview = action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW && ReportUtils.isClosedExpenseReportWithNoExpenses(props.report);
     const MessageComponent = messageFactory[componentType];
     if (!MessageComponent) {
         const messageFactoryItem = basicMessageFactory[action.actionName];
@@ -116,9 +115,6 @@ function ReportActionMessage(props: ReportActionMessageProps) {
         return null;
     }
 
-    if (isClosedReportPreview) {
-        return <RenderHTML html={`<comment>${translate('parentReportAction.deletedReport')}</comment>`} />;
-    }
     // eslint-disable-next-line react/jsx-props-no-spreading
     return <MessageComponent {...props} />;
 }

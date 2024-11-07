@@ -522,16 +522,6 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
 
     // Todo check with main if something is missing
     const renderItemContent = (hovered: boolean) => {
-        // if (
-        //     ReportActionsUtils.isTripPreview(action) ||
-        //     ReportActionsUtils.isTaskAction(action) ||
-        //     ReportActionsUtils.isCreatedTaskReportAction(action) ||
-        //     ReportActionsUtils.isMoneyRequestAction(action) ||
-        //     action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW ||
-        //     ReportActionsUtils.isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED, CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL, CONST.REPORT.ACTIONS.TYPE.CARD_MISSING_ADDRESS) ||
-        //     ReportActionsUtils.isReimbursementDeQueuedAction(action)
-        // ) {
-
         const messageContent = (
             <ReportActionMessage
                 transactionThreadReport={transactionThreadReport}
@@ -573,18 +563,6 @@ function ReportActionItem({...rest}: ReportActionItemProps) {
                 {messageContent}
             </ReportActionItemSingle>
         );
-
-        // }
-        // return (
-        //     <ReportActionItemOld
-        //         transactionThreadReport={transactionThreadReport}
-        //         hovered={!!hovered || !!isReportActionLinked || isEmojiPickerActive}
-        //         isWhisper={isWhisper}
-        //         hasErrors={hasErrors}
-        //         // eslint-disable-next-line react/jsx-props-no-spreading
-        //         {...rest}
-        //     />
-        // );
     };
 
     return (

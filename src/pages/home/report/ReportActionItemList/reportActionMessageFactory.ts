@@ -4,6 +4,7 @@ import ExportIntegration from '@components/ReportActionItem/ExportIntegration';
 import IssueCardMessage from '@components/ReportActionItem/IssueCardMessage';
 import MoneyRequestAction from '@components/ReportActionItem/MoneyRequestAction';
 import ReportPreview from '@components/ReportActionItem/ReportPreview';
+import ReportPreviewAction from '@components/ReportActionItem/ReportPreviewAction';
 import TaskAction from '@components/ReportActionItem/TaskAction';
 import TripRoomPreview from '@components/ReportActionItem/TripRoomPreview';
 import * as Localize from '@libs/Localize';
@@ -38,6 +39,7 @@ function getFactoryType(reportAction: OnyxTypes.OnyxInputOrEntry<ReportAction>):
     return reportAction?.actionName ?? 'UNKNOWN';
 }
 
+// Every if that uses isActionOfType must be a component here
 const messageFactory: ComponentMap = {
     [CONST.REPORT.ACTIONS.TYPE.TRIPPREVIEW]: TripRoomPreview,
     [CONST.REPORT.ACTIONS.TYPE.TASK_COMPLETED]: TaskAction,
@@ -46,7 +48,7 @@ const messageFactory: ComponentMap = {
     [CONST.REPORT.ACTIONS.TYPE.TASK_EDITED]: TaskAction,
     [additionalMessageTypes.CREATED_TASK_ACTION]: TaskCreatedReportAction,
     [CONST.REPORT.ACTIONS.TYPE.IOU]: MoneyRequestAction,
-    [CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW]: ReportPreview,
+    [CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW]: ReportPreviewAction,
     [CONST.REPORT.ACTIONS.TYPE.EXPORTED_TO_INTEGRATION]: ExportIntegration,
     [CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED]: IssueCardMessage,
     [CONST.REPORT.ACTIONS.TYPE.CARD_ISSUED_VIRTUAL]: IssueCardMessage,

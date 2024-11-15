@@ -1,0 +1,55 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["react", "unicorn", "typescript", "oxc"],
+    "env": {
+        "jest": true
+    },
+    "globals": {},
+    "settings": {},
+    "rules": {
+        "eqeqeq": "off",
+        "import/no-cycle": "off",
+        "eslint/no-unused-vars": "off",
+        "unicorn/no-useless-spread": "off",
+        "eslint/no-constant-binary-expression": "off",
+        "react/jsx-key": "off",
+        "unicorn/no-new-array": "off",
+        "unicorn/no-document-cookie": "off",
+        "import/default": "off",
+        "import/namespace": "off",
+        "eslint/no-useless-escape": "off",
+        "eslint/no-control-regex": "off",
+        "react/iframe-missing-sandbox": "off",
+        "unicorn/no-useless-fallback-in-spread": "off",
+        "unicorn/no-empty-file": "off",
+        "unicorn/no-invalid-remove-event-listener": "off",
+
+        "typescript/prefer-enum-initializers": "error",
+        "typescript/no-var-requires": "off",
+        "typescript/no-non-null-assertion": "error",
+        "typescript/switch-exhaustiveness-check": "error",
+        "typescript/consistent-type-definitions": ["error", "type"],
+        "typescript/no-import-type-side-effects": "error",
+        "typescript/array-type": ["error", {"default": "array-simple"}],
+        "typescript/no-non-null-asserted-nullish-coalescing": "off",
+        "typescript/ban-types": [
+            "error",
+            {
+                "types": {
+                    "object": "Use 'Record<string, T>' instead."
+                },
+                "extendDefaults": true
+            }
+        ],
+
+        "typescript/consistent-type-imports": [
+            "error",
+            {
+                "prefer": "type-imports",
+                "fixStyle": "separate-type-imports"
+            }
+        ],
+        "typescript/no-use-before-define": ["error", {"functions": false}],
+        "oxc/no-optional-chaining": "off"
+    }
+}

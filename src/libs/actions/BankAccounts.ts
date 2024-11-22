@@ -701,6 +701,16 @@ function validatePlaidSelection(values: FormOnyxValues<AccountFormValues>): Form
     return errorFields;
 }
 
+// TODO: this should probably by in separate action file dedidaed to Corpay
+function getCorpayOnboardingFields(country: string, currency: string) {
+    const parameters = {
+        countryISO: country,
+        currency,
+    };
+
+    return API.read(READ_COMMANDS.GET_CORPAY_ONBOARDING_FIELDS, parameters);
+}
+
 export {
     acceptACHContractForBankAccount,
     addBusinessWebsiteForDraft,
@@ -730,6 +740,7 @@ export {
     clearPersonalBankAccountSetupType,
     validatePlaidSelection,
     getCorpayBankAccountFields,
+    getCorpayOnboardingFields,
 };
 
 export type {BusinessAddress, PersonalAddress};

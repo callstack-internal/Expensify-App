@@ -1,4 +1,4 @@
-import type {ComponentType} from 'react';
+import { ComponentType, useEffect } from "react";
 import React, {useState} from 'react';
 import {useOnyx} from 'react-native-onyx';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
@@ -17,6 +17,7 @@ import DateOfBirth from './substeps/DateOfBirth';
 import JobTitle from './substeps/JobTitle';
 import Name from './substeps/Name';
 import UploadDocuments from './substeps/UploadDocuments';
+import * as BankAccounts from '@userActions/BankAccounts';
 
 type SignerInfoProps = {
     /** Handles back button press */
@@ -27,6 +28,8 @@ type SignerInfoProps = {
 };
 
 type SignerDetailsFormProps = SubStepProps & {isSecondSigner: boolean};
+
+const {COUNTRY} = INPUT_IDS.ADDITIONAL_DATA;
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
 const SUBSTEP: Record<string, number> = CONST.NON_USD_BANK_ACCOUNT.SIGNER_INFO_STEP.SUBSTEP;
@@ -42,6 +45,7 @@ function SignerInfo({onBackButtonPress, onSubmit}: SignerInfoProps) {
     const [reimbursementAccountDraft] = useOnyx(ONYXKEYS.FORMS.REIMBURSEMENT_ACCOUNT_FORM_DRAFT);
     const policyID = reimbursementAccount?.achData?.policyID ?? '-1';
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`);
+    const country = reimbursementAccountDraft?.[COUNTRY] ?? '';
     const currency = policy?.outputCurrency ?? '';
     // TODO set this based on param from redirect or BE response
     const isSecondSigner = false;
@@ -50,6 +54,13 @@ function SignerInfo({onBackButtonPress, onSubmit}: SignerInfoProps) {
 
     const [currentSubStep, setCurrentSubStep] = useState<number>(SUBSTEP.IS_DIRECTOR);
     const [isUserDirector, setIsUserDirector] = useState(false);
+
+    useEffect(() => {
+        console.log('country:', country);
+        console.log('currency:', currency);
+        const response = BankAccounts.getCorpayOnboardingFields(country, currency);
+        console.log('onboarding fields:', response);
+    }, [country, currency]);
 
     const submit = () => {
         if (currency === CONST.CURRENCY.AUD) {

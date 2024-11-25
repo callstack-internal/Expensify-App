@@ -1,6 +1,7 @@
+import type {Country} from '@src/CONST';
+
 type GetCorpayOnboardingFieldsParams = {
-    countryISO: string;
-    currency: string;
+    countryISO: Country | '';
 };
 
 export default GetCorpayOnboardingFieldsParams;

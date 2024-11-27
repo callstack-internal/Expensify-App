@@ -6862,6 +6862,16 @@ function canIOUBePaid(
     chatReportRNVP?: OnyxTypes.ReportNameValuePairs,
     invoiceReceiverPolicy?: SearchPolicy,
 ) {
+    console.debug('[dev] canIOUBePaid', {
+        iouReport,
+        chatReport,
+        policy,
+        transactions,
+        violations,
+        onlyShowPayElsewhere,
+        chatReportRNVP,
+        invoiceReceiverPolicy,
+    });
     const isPolicyExpenseChat = ReportUtils.isPolicyExpenseChat(chatReport);
     const reportNameValuePairs = chatReportRNVP ?? ReportUtils.getReportNameValuePairs(chatReport?.reportID);
     const isChatReportArchived = ReportUtils.isArchivedRoom(chatReport, reportNameValuePairs);
@@ -6963,10 +6973,10 @@ function getNextApproverAccountID(report: OnyxEntry<OnyxTypes.Report>) {
 }
 
 function approveMoneyRequest(expenseReport: OnyxEntry<OnyxTypes.Report>, full?: boolean) {
-    if (expenseReport?.policyID && SubscriptionUtils.shouldRestrictUserBillableActions(expenseReport.policyID)) {
-        Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(expenseReport.policyID));
-        return;
-    }
+    // if (expenseReport?.policyID && SubscriptionUtils.shouldRestrictUserBillableActions(expenseReport.policyID)) {
+    //     Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(expenseReport.policyID));
+    //     return;
+    // }
 
     const currentNextStep = allNextSteps[`${ONYXKEYS.COLLECTION.NEXT_STEP}${expenseReport?.reportID}`] ?? null;
     let total = expenseReport?.total ?? 0;
@@ -7238,10 +7248,10 @@ function unapproveExpenseReport(expenseReport: OnyxEntry<OnyxTypes.Report>) {
 }
 
 function submitReport(expenseReport: OnyxTypes.Report) {
-    if (expenseReport.policyID && SubscriptionUtils.shouldRestrictUserBillableActions(expenseReport.policyID)) {
-        Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(expenseReport.policyID));
-        return;
-    }
+    // if (expenseReport.policyID && SubscriptionUtils.shouldRestrictUserBillableActions(expenseReport.policyID)) {
+    //     Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(expenseReport.policyID));
+    //     return;
+    // }
 
     const currentNextStep = allNextSteps[`${ONYXKEYS.COLLECTION.NEXT_STEP}${expenseReport.reportID}`] ?? null;
     const parentReport = ReportUtils.getReportOrDraftReport(expenseReport.parentReportID);
@@ -7531,10 +7541,10 @@ function completePaymentOnboarding(paymentSelected: ValueOf<typeof CONST.PAYMENT
     );
 }
 function payMoneyRequest(paymentType: PaymentMethodType, chatReport: OnyxTypes.Report, iouReport: OnyxEntry<OnyxTypes.Report>, full = true) {
-    if (chatReport.policyID && SubscriptionUtils.shouldRestrictUserBillableActions(chatReport.policyID)) {
-        Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(chatReport.policyID));
-        return;
-    }
+    // if (chatReport.policyID && SubscriptionUtils.shouldRestrictUserBillableActions(chatReport.policyID)) {
+    //     Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(chatReport.policyID));
+    //     return;
+    // }
 
     const paymentSelected = paymentType === CONST.IOU.PAYMENT_TYPE.VBBA ? CONST.IOU.PAYMENT_SELECTED.BBA : CONST.IOU.PAYMENT_SELECTED.PBA;
     completePaymentOnboarding(paymentSelected);

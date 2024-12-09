@@ -1,0 +1,14 @@
+{
+    "plugins": ["import"],
+    "categories": {
+        "correctness": "off",
+        "suspicious": "off",
+        "pedantic": "off",
+        "style": "off",
+        "nursery": "off",
+        "restriction": "off"
+    },
+    "rules": {
+        "import/no-cycle": "warn"
+    }
+}

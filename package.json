@@ -35,7 +35,7 @@
     "test": "TZ=utc NODE_OPTIONS=--experimental-vm-modules jest",
     "perf-test": "NODE_OPTIONS=--experimental-vm-modules npx reassure",
     "typecheck": "NODE_OPTIONS=--max_old_space_size=8192 tsc",
-    "lint": "NODE_OPTIONS=--max_old_space_size=8192 eslint . --max-warnings=0 --cache --cache-location=node_modules/.cache/eslint",
+    "lint": "oxlint && TIMING=1 NODE_OPTIONS=--max_old_space_size=8192 eslint . --max-warnings=0 --cache --cache-location=node_modules/.cache/eslint",
     "lint-changed": "NODE_OPTIONS=--max_old_space_size=8192 eslint --max-warnings=0 --config ./.eslintrc.changed.js $(git diff --diff-filter=AM --name-only origin/main HEAD -- \"*.ts\" \"*.tsx\")",
     "lint-watch": "npx eslint-watch --watch --changed",
     "shellcheck": "./scripts/shellCheck.sh",
@@ -64,7 +64,8 @@
     "react-compiler-healthcheck-test": "react-compiler-healthcheck --verbose &> react-compiler-output.txt",
     "generate-search-parser": "peggy --format es -o src/libs/SearchParser/searchParser.js src/libs/SearchParser/searchParser.peggy src/libs/SearchParser/baseRules.peggy",
     "generate-autocomplete-parser": "peggy --format es -o src/libs/SearchParser/autocompleteParser.js src/libs/SearchParser/autocompleteParser.peggy src/libs/SearchParser/baseRules.peggy",
-    "web:prod": "http-server ./dist --cors"
+    "web:prod": "http-server ./dist --cors",
+    "oxlint": "oxlint"
   },
   "dependencies": {
     "@dotlottie/react-player": "^1.6.3",
@@ -282,6 +283,7 @@
     "eslint-plugin-jest": "^28.6.0",
     "eslint-plugin-jsdoc": "^46.2.6",
     "eslint-plugin-lodash": "^7.4.0",
+    "eslint-plugin-oxlint": "^0.14.1",
     "eslint-plugin-react-compiler": "^19.0.0-beta-8a03594-20241020",
     "eslint-plugin-react-native-a11y": "^3.3.0",
     "eslint-plugin-storybook": "^0.8.0",
@@ -301,6 +303,7 @@
     "memfs": "^4.6.0",
     "onchange": "^7.1.0",
     "openai": "^4.47.2",
+    "oxlint": "^0.14.1",
     "patch-package": "^8.0.0",
     "peggy": "^4.0.3",
     "portfinder": "^1.0.28",

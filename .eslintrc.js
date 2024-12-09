@@ -107,6 +107,7 @@ module.exports = {
         'plugin:@typescript-eslint/stylistic-type-checked',
         'plugin:you-dont-need-lodash-underscore/all',
         'plugin:prettier/recommended',
+        "plugin:oxlint/recommended",
     ],
     plugins: ['@typescript-eslint', 'jsdoc', 'you-dont-need-lodash-underscore', 'react-native-a11y', 'react', 'testing-library', 'eslint-plugin-react-compiler', 'lodash', 'deprecation'],
     parser: '@typescript-eslint/parser',
@@ -181,6 +182,7 @@ module.exports = {
         // Import specific rules
         'import/consistent-type-specifier-style': ['error', 'prefer-top-level'],
         'import/no-extraneous-dependencies': 'off',
+        "import/no-cycle": "off",
 
         // Rulesdir specific rules
         'rulesdir/no-default-props': 'error',

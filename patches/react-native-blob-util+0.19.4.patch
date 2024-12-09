@@ -1,0 +1,127 @@
+diff --git a/node_modules/react-native-blob-util/class/ReactNativeBlobUtilBlobResponse.js b/node_modules/react-native-blob-util/class/ReactNativeBlobUtilBlobResponse.js
+index afa6fed..e69e637 100644
+--- a/node_modules/react-native-blob-util/class/ReactNativeBlobUtilBlobResponse.js
++++ b/node_modules/react-native-blob-util/class/ReactNativeBlobUtilBlobResponse.js
+@@ -1,3 +1,4 @@
++// @flow
+ import {ReactNativeBlobUtilResponseInfo, ReactNativeBlobUtilStream} from "../types";
+ import fs from "../fs";
+ import Blob from "../polyfill/Blob";
+diff --git a/node_modules/react-native-blob-util/fetch.js b/node_modules/react-native-blob-util/fetch.js
+index 3300337..84c0ca3 100644
+--- a/node_modules/react-native-blob-util/fetch.js
++++ b/node_modules/react-native-blob-util/fetch.js
+@@ -1,3 +1,4 @@
++// @flow
+ import {ReactNativeBlobUtilConfig} from './types';
+ import URIUtil from './utils/uri';
+ import fs from './fs';
+diff --git a/node_modules/react-native-blob-util/fs.js b/node_modules/react-native-blob-util/fs.js
+index 3e9821e..7d2abb6 100644
+--- a/node_modules/react-native-blob-util/fs.js
++++ b/node_modules/react-native-blob-util/fs.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/ios.js b/node_modules/react-native-blob-util/ios.js
+index 266db22..803d063 100644
+--- a/node_modules/react-native-blob-util/ios.js
++++ b/node_modules/react-native-blob-util/ios.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/json-stream.js b/node_modules/react-native-blob-util/json-stream.js
+index 787dd52..48f5720 100644
+--- a/node_modules/react-native-blob-util/json-stream.js
++++ b/node_modules/react-native-blob-util/json-stream.js
+@@ -1,3 +1,4 @@
++// @flow
+ import Oboe from './lib/oboe-browser.min.js';
+ import XMLHttpRequest from './polyfill/XMLHttpRequest';
+ import URIUtil from './utils/uri';
+diff --git a/node_modules/react-native-blob-util/mediacollection.js b/node_modules/react-native-blob-util/mediacollection.js
+index 6b0df8f..ca3ab45 100644
+--- a/node_modules/react-native-blob-util/mediacollection.js
++++ b/node_modules/react-native-blob-util/mediacollection.js
+@@ -1,3 +1,4 @@
++// @flow
+ import type {ReactNativeBlobUtilNative, filedescriptor} from "./types";
+ import ReactNativeBlobUtil from "./codegenSpecs/NativeBlobUtils";
+ 
+diff --git a/node_modules/react-native-blob-util/polyfill/Blob.js b/node_modules/react-native-blob-util/polyfill/Blob.js
+index 6444de6..6448cef 100644
+--- a/node_modules/react-native-blob-util/polyfill/Blob.js
++++ b/node_modules/react-native-blob-util/polyfill/Blob.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/polyfill/Fetch.js b/node_modules/react-native-blob-util/polyfill/Fetch.js
+index e2702d3..2e3bd7e 100644
+--- a/node_modules/react-native-blob-util/polyfill/Fetch.js
++++ b/node_modules/react-native-blob-util/polyfill/Fetch.js
+@@ -1,3 +1,4 @@
++// @flow
+ import Log from '../utils/log.js';
+ import Blob from './Blob';
+ import {config as RNconfig} from "../fetch";
+diff --git a/node_modules/react-native-blob-util/polyfill/File.js b/node_modules/react-native-blob-util/polyfill/File.js
+index d0d4fa7..95e89b9 100644
+--- a/node_modules/react-native-blob-util/polyfill/File.js
++++ b/node_modules/react-native-blob-util/polyfill/File.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/polyfill/FileReader.js b/node_modules/react-native-blob-util/polyfill/FileReader.js
+index 02c65cb..a90c801 100644
+--- a/node_modules/react-native-blob-util/polyfill/FileReader.js
++++ b/node_modules/react-native-blob-util/polyfill/FileReader.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/polyfill/ProgressEvent.js b/node_modules/react-native-blob-util/polyfill/ProgressEvent.js
+index 9fc7d6b..7c2fa7e 100644
+--- a/node_modules/react-native-blob-util/polyfill/ProgressEvent.js
++++ b/node_modules/react-native-blob-util/polyfill/ProgressEvent.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/polyfill/XMLHttpRequest.js b/node_modules/react-native-blob-util/polyfill/XMLHttpRequest.js
+index 2e66e1b..382cb6e 100644
+--- a/node_modules/react-native-blob-util/polyfill/XMLHttpRequest.js
++++ b/node_modules/react-native-blob-util/polyfill/XMLHttpRequest.js
+@@ -1,3 +1,4 @@
++// @flow
+ // Copyright 2016 wkh237@github. All rights reserved.
+ // Use of this source code is governed by a MIT-style license that can be
+ // found in the LICENSE file.
+diff --git a/node_modules/react-native-blob-util/types.js b/node_modules/react-native-blob-util/types.js
+index 57b8729..d20532f 100644
+--- a/node_modules/react-native-blob-util/types.js
++++ b/node_modules/react-native-blob-util/types.js
+@@ -1,4 +1,4 @@
+-
++// @flow
+ export type ReactNativeBlobUtilConfig = {
+   Progress: any,
+   UploadProgress: any,
+diff --git a/node_modules/react-native-blob-util/utils/uri.js b/node_modules/react-native-blob-util/utils/uri.js
+index 8a2448e..17d4b3b 100644
+--- a/node_modules/react-native-blob-util/utils/uri.js
++++ b/node_modules/react-native-blob-util/utils/uri.js
+@@ -1,3 +1,4 @@
++// @flow
+ export default {
+ 
+     isFileURI: (uri: string): boolean => {

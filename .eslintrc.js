@@ -107,7 +107,6 @@ module.exports = {
         'plugin:@typescript-eslint/stylistic-type-checked',
         'plugin:you-dont-need-lodash-underscore/all',
         'plugin:prettier/recommended',
-        "plugin:oxlint/recommended",
     ],
     plugins: ['@typescript-eslint', 'jsdoc', 'you-dont-need-lodash-underscore', 'react-native-a11y', 'react', 'testing-library', 'eslint-plugin-react-compiler', 'lodash', 'deprecation'],
     parser: '@typescript-eslint/parser',

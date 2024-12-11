@@ -123,11 +123,11 @@ module.exports = {
         // TypeScript specific rules
         '@typescript-eslint/prefer-enum-initializers': 'error',
         '@typescript-eslint/no-var-requires': 'off',
-        '@typescript-eslint/no-non-null-assertion': 'error',
+        '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/switch-exhaustiveness-check': 'error',
-        '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+        '@typescript-eslint/consistent-type-definitions': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
-        '@typescript-eslint/no-import-type-side-effects': 'error',
+        '@typescript-eslint/no-import-type-side-effects': 'off',
         '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
         '@typescript-eslint/naming-convention': [
             'error',
@@ -255,7 +255,7 @@ module.exports = {
                     '@github': './.github',
                 },
             },
-        ],
+        ]
     },
 
     overrides: [

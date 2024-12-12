@@ -35,6 +35,7 @@ import useWindowDimensions from '@hooks/useWindowDimensions';
 import {isConnectionInProgress} from '@libs/actions/connections';
 import {turnOffMobileSelectionMode} from '@libs/actions/MobileSelectionMode';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
+import getPlatform from '@libs/getPlatform';
 import localeCompare from '@libs/LocaleCompare';
 import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
@@ -341,6 +342,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
     }, [policyId, translate, isOffline, hasVisibleCategories, policy, isQuickSettingsFlow, backTo]);
 
     const selectionModeHeader = selectionMode?.isEnabled && shouldUseNarrowLayout;
+    const isWebOrDesktop = getPlatform(true) === CONST.PLATFORM.WEB || getPlatform(true) === CONST.PLATFORM.DESKTOP;
 
     return (
         <AccessOrNotFoundWrapper
@@ -421,6 +423,8 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                         listHeaderWrapperStyle={[styles.ph9, styles.pv3, styles.pb5]}
                         listHeaderContent={shouldUseNarrowLayout ? getHeaderText() : null}
                         showScrollIndicator={false}
+                        windowSize={isWebOrDesktop ? 50 : undefined}
+                        updateCellsBatchingPeriod={isWebOrDesktop ? 100 : undefined}
                     />
                 )}
 

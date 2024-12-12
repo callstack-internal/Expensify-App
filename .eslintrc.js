@@ -149,39 +149,48 @@ module.exports = {
                 leadingUnderscore: 'allow',
             },
         ],
-        '@typescript-eslint/ban-types': [
-            'error',
-            {
-                types: {
-                    object: "Use 'Record<string, T>' instead.",
-                },
-                extendDefaults: true,
-            },
-        ],
-        '@typescript-eslint/consistent-type-imports': [
-            'error',
-            {
-                prefer: 'type-imports',
-                fixStyle: 'separate-type-imports',
-            },
-        ],
-        '@typescript-eslint/consistent-type-exports': [
-            'error',
-            {
-                fixMixedExportsWithInlineTypeSpecifier: false,
-            },
-        ],
-        '@typescript-eslint/no-use-before-define': ['error', {functions: false}],
+        '@typescript-eslint/ban-types': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-empty-interface': 'off',
+        '@typescript-eslint/no-namespace': 'off',
+        '@typescript-eslint/no-array-constructor': 'off',
 
-        // ESLint core rules
-        'es/no-nullish-coalescing-operators': 'off',
-        'es/no-optional-chaining': 'off',
-        'deprecation/deprecation': 'off',
+        // ESLint core rules that are now handled by oxlint
+        'no-constant-condition': 'off',
+        'no-debugger': 'off',
+        'no-empty': 'off',
+        'no-console': 'off',
+        'no-duplicate-case': 'off',
+        'getter-return': 'off',
+        'no-unsafe-negation': 'off',
+        'valid-typeof': 'off',
+        'no-dupe-keys': 'off',
+        'no-dupe-args': 'off',
+        'no-const-assign': 'off',
+        'no-func-assign': 'off',
+        'no-new-symbol': 'off',
+        'curly': 'off',
+
+        // React rules that are now handled by oxlint
+        'react/jsx-no-duplicate-props': 'off',
+        'react/jsx-no-undef': 'off',
+        'react/jsx-uses-vars': 'off',
+        'react/no-children-prop': 'off',
+        'react/no-danger': 'off',
+        'react/no-deprecated': 'off',
+        'react/no-direct-mutation-state': 'off',
+        'react/no-find-dom-node': 'off',
+        'react/no-is-mounted': 'off',
+        'react/no-render-return-value': 'off',
+        'react/no-string-refs': 'off',
+        'react/no-unescaped-entities': 'off',
+
+        // Import rules that are now handled by oxlint
+        'import/no-cycle': 'off',
 
         // Import specific rules
         'import/consistent-type-specifier-style': ['error', 'prefer-top-level'],
         'import/no-extraneous-dependencies': 'off',
-        "import/no-cycle": "off",
 
         // Rulesdir specific rules
         'rulesdir/no-default-props': 'error',
@@ -228,7 +237,6 @@ module.exports = {
         ],
 
         // Other rules
-        curly: 'error',
         'you-dont-need-lodash-underscore/throttle': 'off',
         // The suggested alternative (structuredClone) is not supported in Hermes:https://github.com/facebook/hermes/issues/684
         'you-dont-need-lodash-underscore/clone-deep': 'off',

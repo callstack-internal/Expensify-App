@@ -12,6 +12,44 @@
         "import/no-cycle": "warn",
         "typescript/no-non-null-assertion": "error",
         "typescript/consistent-type-definitions": ["error", "type"],
-        "typescript/no-import-type-side-effects": "error"
+        "typescript/no-import-type-side-effects": "error",
+        "no-constant-condition": "error",
+        "no-debugger": "error",
+        "no-empty": "error",
+        "no-console": "warn",
+        "no-duplicate-case": "error",
+        "getter-return": "error",
+        "no-unsafe-negation": "error",
+        "valid-typeof": "error",
+        "no-dupe-keys": "error",
+        "no-dupe-args": "error",
+        "no-const-assign": "error",
+        "no-func-assign": "error",
+        "no-new-symbol": "error",
+        "curly": "error",
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-empty-interface": "error",
+        "@typescript-eslint/no-namespace": "error",
+        "@typescript-eslint/ban-types": [
+            "error",
+            {
+                "types": {
+                    "object": "Use 'Record<string, T>' instead."
+                }
+            }
+        ],
+        "@typescript-eslint/no-array-constructor": "error",
+        "react/jsx-no-duplicate-props": "error",
+        "react/jsx-no-undef": "error",
+        "react/jsx-uses-vars": "error",
+        "react/no-children-prop": "error",
+        "react/no-danger": "error",
+        "react/no-deprecated": "error",
+        "react/no-direct-mutation-state": "error",
+        "react/no-find-dom-node": "error",
+        "react/no-is-mounted": "error",
+        "react/no-render-return-value": "error",
+        "react/no-string-refs": "error",
+        "react/no-unescaped-entities": "error"
     }
 }

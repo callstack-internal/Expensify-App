@@ -1259,6 +1259,7 @@ const translations = {
             maskExportOnyxStateData: 'Mask fragile member data while exporting Onyx state',
             exportOnyxState: 'Export Onyx state',
             importOnyxState: 'Import Onyx state',
+            exportPerformanceMetrics: 'Export performance metrics',
             testCrash: 'Test crash',
             resetToOriginalState: 'Reset to original state',
             usingImportedState: 'You are using imported state. Press here to clear it.',

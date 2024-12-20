@@ -27,6 +27,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import useWaitForNavigation from '@hooks/useWaitForNavigation';
 import {setShouldMaskOnyxState} from '@libs/actions/MaskOnyx';
 import ExportOnyxState from '@libs/ExportOnyxState';
+import localFileDownload from '@libs/localFileDownload';
 import Navigation from '@libs/Navigation/Navigation';
 import {clearOnyxAndResetApp} from '@userActions/App';
 import * as Report from '@userActions/Report';
@@ -61,6 +62,11 @@ function TroubleshootPage() {
         });
     }, [shouldMaskOnyxState]);
 
+    const exportPerformanceMetrics = useCallback(() => {
+        const data = {metrics: []};
+        localFileDownload('performance-metrics', JSON.stringify(data, null, 2));
+    }, []);
+
     const menuItems = useMemo(() => {
         const debugConsoleItem: BaseMenuItem = {
             translationKey: 'initialSettingsPage.troubleshoot.viewConsole',
@@ -79,6 +85,11 @@ function TroubleshootPage() {
                 icon: Expensicons.Download,
                 action: exportOnyxState,
             },
+            {
+                translationKey: 'initialSettingsPage.troubleshoot.exportPerformanceMetrics',
+                icon: Expensicons.Download,
+                action: exportPerformanceMetrics,
+            },
         ];
 
         if (shouldStoreLogs) {
@@ -94,7 +105,7 @@ function TroubleshootPage() {
                 wrapperStyle: [styles.sectionMenuItemTopDescription],
             }))
             .reverse();
-    }, [waitForNavigate, exportOnyxState, shouldStoreLogs, translate, styles.sectionMenuItemTopDescription]);
+    }, [waitForNavigate, exportOnyxState, exportPerformanceMetrics, shouldStoreLogs, translate, styles.sectionMenuItemTopDescription]);
 
     return (
         <ScreenWrapper

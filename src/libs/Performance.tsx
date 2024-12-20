@@ -23,6 +23,7 @@ type BlankHOC = <P extends Record<string, unknown>>(Component: React.ComponentTy
 type SetupPerformanceObserver = () => void;
 type DiffObject = (object: Record<string, unknown>, base: Record<string, unknown>) => Record<string, unknown>;
 type GetPerformanceMetrics = () => PerformanceEntry[];
+type GetPerformanceMeasures = () => PerformanceEntry[];
 type PrintPerformanceMetrics = () => void;
 type MarkStart = (name: string, detail?: Record<string, unknown>) => PerformanceMark | void;
 type MarkEnd = (name: string, detail?: Record<string, unknown>) => PerformanceMark | void;
@@ -36,6 +37,7 @@ type PerformanceModule = {
     diffObject: DiffObject;
     setupPerformanceObserver: SetupPerformanceObserver;
     getPerformanceMetrics: GetPerformanceMetrics;
+    getPerformanceMeasures: GetPerformanceMeasures;
     printPerformanceMetrics: PrintPerformanceMetrics;
     markStart: MarkStart;
     markEnd: MarkEnd;
@@ -70,6 +72,7 @@ const Performance: PerformanceModule = {
     // When performance monitoring is disabled the implementations are blank
     diffObject,
     setupPerformanceObserver: () => {},
+    getPerformanceMeasures: () => [],
     getPerformanceMetrics: () => [],
     printPerformanceMetrics: () => {},
     markStart: () => {},
@@ -167,6 +170,8 @@ if (Metrics.canCapturePerformanceMetrics()) {
             });
         }).observe({type: 'mark', buffered: true});
     };
+
+    Performance.getPerformanceMeasures = (): PerformanceEntry[] => rnPerformance.getEntriesByType('measure');
 
     Performance.getPerformanceMetrics = (): PerformanceEntry[] =>
         [

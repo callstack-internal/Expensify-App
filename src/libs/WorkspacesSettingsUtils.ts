@@ -198,36 +198,36 @@ function getChatTabBrickRoad(
  * @returns a map where the keys are policyIDs and the values are BrickRoads for each policy
  */
 function getWorkspacesBrickRoads(reports: OnyxCollection<Report>, policies: OnyxCollection<Policy>, reportActions: OnyxCollection<ReportActions>): Record<string, BrickRoad> {
-    if (!reports) {
+    if (!reports || !policies) {
         return {};
     }
 
-    // The key in this map is the workspace id
     const workspacesBrickRoadsMap: Record<string, BrickRoad> = {};
-    Object.values(policies ?? {}).forEach((policy) => {
-        // Only policies which user has access to on the list should be checked. Policies that don't have an ID and contain only information about the errors aren't displayed anywhere.
-        if (!policy?.id) {
-            return;
-        }
 
-        if (hasWorkspaceSettingsRBR(policy)) {
+    for (const policy of Object.values(policies)) {
+        if (policy?.id && hasWorkspaceSettingsRBR(policy)) {
             workspacesBrickRoadsMap[policy.id] = CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR;
         }
-    });
+    }
 
-    Object.values(reports).forEach((report) => {
-        const policyID = report?.policyID ?? CONST.POLICY.EMPTY;
-        if (!report || workspacesBrickRoadsMap[policyID] === CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR) {
-            return;
+    for (const report of Object.values(reports)) {
+        if (!report) {
+            // eslint-disable-next-line no-continue
+            continue;
+        }
+
+        const policyID = report.policyID ?? CONST.POLICY.EMPTY;
+
+        if (workspacesBrickRoadsMap[policyID] === CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR) {
+            // eslint-disable-next-line no-continue
+            continue;
         }
         const workspaceBrickRoad = getBrickRoadForPolicy(report, reportActions);
 
-        if (!workspaceBrickRoad && !!workspacesBrickRoadsMap[policyID]) {
-            return;
+        if (workspaceBrickRoad) {
+            workspacesBrickRoadsMap[policyID] = workspaceBrickRoad;
         }
-
-        workspacesBrickRoadsMap[policyID] = workspaceBrickRoad;
-    });
+    }
 
     return workspacesBrickRoadsMap;
 }

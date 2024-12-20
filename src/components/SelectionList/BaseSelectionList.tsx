@@ -388,15 +388,15 @@ function BaseSelectionList<TItem extends ListItem>(
         ],
     );
 
-    const selectAllRow = () => {
+    const selectAllRow = useCallback(() => {
         onSelectAll?.();
 
         if (shouldShowTextInput && shouldPreventDefaultFocusOnSelectRow && innerTextInputRef.current) {
             innerTextInputRef.current.focus();
         }
-    };
+    }, [onSelectAll, shouldPreventDefaultFocusOnSelectRow, shouldShowTextInput]);
 
-    const selectFocusedOption = () => {
+    const selectFocusedOption = useCallback(() => {
         const focusedOption = focusedIndex !== -1 ? flattenedSections.allOptions.at(focusedIndex) : undefined;
 
         if (!focusedOption || (focusedOption.isDisabled && !focusedOption.isSelected)) {
@@ -404,7 +404,7 @@ function BaseSelectionList<TItem extends ListItem>(
         }
 
         selectRow(focusedOption);
-    };
+    }, [flattenedSections.allOptions, focusedIndex, selectRow]);
 
     /**
      * This function is used to compute the layout of any given item in our list.
@@ -458,80 +458,129 @@ function BaseSelectionList<TItem extends ListItem>(
         );
     };
 
-    const header = () => (
-        <>
-            {!headerMessage && canSelectMultiple && shouldShowSelectAll && (
-                <View style={[styles.userSelectNone, styles.peopleRow, styles.ph5, styles.pb3, listHeaderWrapperStyle, styles.selectionListStickyHeader]}>
-                    <View style={[styles.flexRow, styles.alignItemsCenter]}>
-                        <Checkbox
-                            accessibilityLabel={translate('workspace.people.selectAll')}
-                            isChecked={flattenedSections.allSelected}
-                            onPress={selectAllRow}
-                            disabled={flattenedSections.allOptions.length === flattenedSections.disabledOptionsIndexes.length}
-                        />
-                        {!customListHeader && (
-                            <PressableWithFeedback
-                                style={[styles.userSelectNone, styles.flexRow, styles.alignItemsCenter]}
-                                onPress={selectAllRow}
+    const header = useMemo(
+        () => (
+            <>
+                {!headerMessage && canSelectMultiple && shouldShowSelectAll && (
+                    <View style={[styles.userSelectNone, styles.peopleRow, styles.ph5, styles.pb3, listHeaderWrapperStyle, styles.selectionListStickyHeader]}>
+                        <View style={[styles.flexRow, styles.alignItemsCenter]}>
+                            <Checkbox
                                 accessibilityLabel={translate('workspace.people.selectAll')}
-                                role="button"
-                                accessibilityState={{checked: flattenedSections.allSelected}}
+                                isChecked={flattenedSections.allSelected}
+                                onPress={selectAllRow}
                                 disabled={flattenedSections.allOptions.length === flattenedSections.disabledOptionsIndexes.length}
-                                dataSet={{[CONST.SELECTION_SCRAPER_HIDDEN_ELEMENT]: true}}
-                                onMouseDown={shouldPreventDefaultFocusOnSelectRow ? (e) => e.preventDefault() : undefined}
-                            >
-                                <Text style={[styles.textStrong, styles.ph3]}>{translate('workspace.people.selectAll')}</Text>
-                            </PressableWithFeedback>
-                        )}
+                            />
+                            {!customListHeader && (
+                                <PressableWithFeedback
+                                    style={[styles.userSelectNone, styles.flexRow, styles.alignItemsCenter]}
+                                    onPress={selectAllRow}
+                                    accessibilityLabel={translate('workspace.people.selectAll')}
+                                    role="button"
+                                    accessibilityState={{checked: flattenedSections.allSelected}}
+                                    disabled={flattenedSections.allOptions.length === flattenedSections.disabledOptionsIndexes.length}
+                                    dataSet={{[CONST.SELECTION_SCRAPER_HIDDEN_ELEMENT]: true}}
+                                    onMouseDown={shouldPreventDefaultFocusOnSelectRow ? (e) => e.preventDefault() : undefined}
+                                >
+                                    <Text style={[styles.textStrong, styles.ph3]}>{translate('workspace.people.selectAll')}</Text>
+                                </PressableWithFeedback>
+                            )}
+                        </View>
+                        {customListHeader}
                     </View>
-                    {customListHeader}
-                </View>
-            )}
-            {!headerMessage && !canSelectMultiple && customListHeader}
-        </>
+                )}
+                {!headerMessage && !canSelectMultiple && customListHeader}
+            </>
+        ),
+        [
+            headerMessage,
+            canSelectMultiple,
+            shouldShowSelectAll,
+            styles.userSelectNone,
+            styles.peopleRow,
+            styles.ph5,
+            styles.pb3,
+            styles.selectionListStickyHeader,
+            styles.flexRow,
+            styles.alignItemsCenter,
+            styles.textStrong,
+            styles.ph3,
+            listHeaderWrapperStyle,
+            translate,
+            flattenedSections.allSelected,
+            flattenedSections.allOptions.length,
+            flattenedSections.disabledOptionsIndexes.length,
+            selectAllRow,
+            customListHeader,
+            shouldPreventDefaultFocusOnSelectRow,
+        ],
     );
 
-    const renderItem = ({item, index, section}: SectionListRenderItemInfo<TItem, SectionWithIndexOffset<TItem>>) => {
-        const normalizedIndex = index + (section?.indexOffset ?? 0);
-        const isDisabled = !!section.isDisabled || item.isDisabled;
-        const isItemFocused = (!isDisabled || item.isSelected) && focusedIndex === normalizedIndex;
-        const isItemHighlighted = !!itemsToHighlight?.has(item.keyForList ?? '');
+    const renderItem = useCallback(
+        ({item, index, section}: SectionListRenderItemInfo<TItem, SectionWithIndexOffset<TItem>>) => {
+            const normalizedIndex = index + (section?.indexOffset ?? 0);
+            const isDisabled = !!section.isDisabled || item.isDisabled;
+            const isItemFocused = (!isDisabled || item.isSelected) && focusedIndex === normalizedIndex;
+            const isItemHighlighted = !!itemsToHighlight?.has(item.keyForList ?? '');
 
-        return (
-            <View onLayout={(event: LayoutChangeEvent) => onItemLayout(event, item?.keyForList)}>
-                <BaseSelectionListItemRenderer
-                    ListItem={ListItem}
-                    item={{
-                        shouldAnimateInHighlight: isItemHighlighted,
-                        ...item,
-                    }}
-                    index={index}
-                    isFocused={isItemFocused}
-                    isDisabled={isDisabled}
-                    showTooltip={shouldShowTooltips}
-                    canSelectMultiple={canSelectMultiple}
-                    onLongPressRow={onLongPressRow}
-                    shouldSingleExecuteRowSelect={shouldSingleExecuteRowSelect}
-                    selectRow={selectRow}
-                    onCheckboxPress={onCheckboxPress}
-                    onDismissError={onDismissError}
-                    shouldPreventDefaultFocusOnSelectRow={shouldPreventDefaultFocusOnSelectRow}
-                    rightHandSideComponent={rightHandSideComponent}
-                    isMultilineSupported={isRowMultilineSupported}
-                    isAlternateTextMultilineSupported={isAlternateTextMultilineSupported}
-                    alternateTextNumberOfLines={alternateTextNumberOfLines}
-                    shouldIgnoreFocus={shouldIgnoreFocus}
-                    setFocusedIndex={setFocusedIndex}
-                    normalizedIndex={normalizedIndex}
-                    shouldSyncFocus={!isTextInputFocusedRef.current}
-                    wrapperStyle={listItemWrapperStyle}
-                    titleStyles={listItemTitleStyles}
-                    shouldHighlightSelectedItem={shouldHighlightSelectedItem}
-                    singleExecution={singleExecution}
-                />
-            </View>
-        );
-    };
+            return (
+                <View onLayout={(event: LayoutChangeEvent) => onItemLayout(event, item?.keyForList)}>
+                    <BaseSelectionListItemRenderer
+                        ListItem={ListItem}
+                        item={{
+                            shouldAnimateInHighlight: isItemHighlighted,
+                            ...item,
+                        }}
+                        index={index}
+                        isFocused={isItemFocused}
+                        isDisabled={isDisabled}
+                        showTooltip={shouldShowTooltips}
+                        canSelectMultiple={canSelectMultiple}
+                        onLongPressRow={onLongPressRow}
+                        shouldSingleExecuteRowSelect={shouldSingleExecuteRowSelect}
+                        selectRow={selectRow}
+                        onCheckboxPress={onCheckboxPress}
+                        onDismissError={onDismissError}
+                        shouldPreventDefaultFocusOnSelectRow={shouldPreventDefaultFocusOnSelectRow}
+                        rightHandSideComponent={rightHandSideComponent}
+                        isMultilineSupported={isRowMultilineSupported}
+                        isAlternateTextMultilineSupported={isAlternateTextMultilineSupported}
+                        alternateTextNumberOfLines={alternateTextNumberOfLines}
+                        shouldIgnoreFocus={shouldIgnoreFocus}
+                        setFocusedIndex={setFocusedIndex}
+                        normalizedIndex={normalizedIndex}
+                        shouldSyncFocus={!isTextInputFocusedRef.current}
+                        wrapperStyle={listItemWrapperStyle}
+                        titleStyles={listItemTitleStyles}
+                        shouldHighlightSelectedItem={shouldHighlightSelectedItem}
+                        singleExecution={singleExecution}
+                    />
+                </View>
+            );
+        },
+        [
+            ListItem,
+            alternateTextNumberOfLines,
+            canSelectMultiple,
+            focusedIndex,
+            isAlternateTextMultilineSupported,
+            isRowMultilineSupported,
+            itemsToHighlight,
+            listItemTitleStyles,
+            listItemWrapperStyle,
+            onCheckboxPress,
+            onDismissError,
+            onLongPressRow,
+            rightHandSideComponent,
+            selectRow,
+            setFocusedIndex,
+            shouldHighlightSelectedItem,
+            shouldIgnoreFocus,
+            shouldPreventDefaultFocusOnSelectRow,
+            shouldShowTooltips,
+            shouldSingleExecuteRowSelect,
+            singleExecution,
+        ],
+    );
 
     const renderListEmptyContent = () => {
         if (showLoadingPlaceholder) {
@@ -543,8 +592,8 @@ function BaseSelectionList<TItem extends ListItem>(
         return null;
     };
 
-    const renderInput = () => {
-        return (
+    const renderInput = useMemo(
+        () => (
             <View style={[styles.ph5, styles.pb3]}>
                 <TextInput
                     ref={(element) => {
@@ -582,8 +631,25 @@ function BaseSelectionList<TItem extends ListItem>(
                     shouldInterceptSwipe={shouldTextInputInterceptSwipe}
                 />
             </View>
-        );
-    };
+        ),
+        [
+            styles.ph5,
+            styles.pb3,
+            textInputLabel,
+            textInputHint,
+            textInputValue,
+            textInputPlaceholder,
+            textInputMaxLength,
+            onChangeText,
+            inputMode,
+            textInputIconLeft,
+            selectFocusedOption,
+            flattenedSections.allOptions.length,
+            isLoadingNewOptions,
+            shouldTextInputInterceptSwipe,
+            textInputRef,
+        ],
+    );
 
     const scrollToFocusedIndexOnFirstRender = useCallback(
         (nativeEvent: LayoutChangeEvent) => {
@@ -774,7 +840,7 @@ function BaseSelectionList<TItem extends ListItem>(
     // TODO: test _every_ component that uses SelectionList
     return (
         <View style={[styles.flex1, (!isKeyboardShown || !!footerContent) && includeSafeAreaPaddingBottom && safeAreaPaddingBottomStyle, containerStyle]}>
-            {shouldShowTextInput && !shouldShowTextInputAfterHeader && renderInput()}
+            {shouldShowTextInput && !shouldShowTextInputAfterHeader && renderInput}
             {/* If we are loading new options we will avoid showing any header message. This is mostly because one of the header messages says there are no options. */}
             {/* This is misleading because we might be in the process of loading fresh options from the server. */}
             {(!isLoadingNewOptions || headerMessage !== translate('common.noResultsFound') || (flattenedSections.allOptions.length === 0 && !showLoadingPlaceholder)) && !!headerMessage && (
@@ -787,7 +853,7 @@ function BaseSelectionList<TItem extends ListItem>(
                 renderListEmptyContent()
             ) : (
                 <>
-                    {!listHeaderContent && header()}
+                    {!listHeaderContent && header}
                     <SectionList
                         removeClippedSubviews={removeClippedSubviews}
                         ref={listRef}
@@ -796,7 +862,7 @@ function BaseSelectionList<TItem extends ListItem>(
                         renderSectionHeader={(arg) => (
                             <>
                                 {renderSectionHeader(arg)}
-                                {listHeaderContent && header()}
+                                {listHeaderContent && header}
                             </>
                         )}
                         renderItem={renderItem}
@@ -822,7 +888,7 @@ function BaseSelectionList<TItem extends ListItem>(
                             shouldShowTextInput && shouldShowTextInputAfterHeader ? (
                                 <>
                                     {listHeaderContent}
-                                    {renderInput()}
+                                    {renderInput}
                                 </>
                             ) : (
                                 listHeaderContent

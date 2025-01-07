@@ -16,9 +16,9 @@ export default {
         overflow: 'visible',
     },
 
-    overflowScroll: {
-        overflow: 'scroll',
-    },
+    // overflowScroll: {
+    //     overflow: 'scroll',
+    // },
 
     overscrollBehaviorXNone: {
         overscrollBehaviorX: 'none',
@@ -26,5 +26,5 @@ export default {
 
     overscrollBehaviorContain,
 
-    overflowAuto,
+    // overflowAuto,
 } satisfies Record<string, ViewStyle>;

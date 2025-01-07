@@ -10,7 +10,7 @@ export default {
     oFContain: {
         objectFit: 'contain',
     },
-    oFNone: {
-        objectFit: 'none',
-    },
+    // oFNone: {
+    //     objectFit: 'none',
+    // },
 } satisfies Record<string, ViewStyle>;

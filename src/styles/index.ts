@@ -252,7 +252,7 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
     ...sizing,
     ...flex,
     ...display,
-    // ...overflow,
+    ...overflow,
     ...positioning,
     ...wordBreak,
     ...whiteSpace,
@@ -260,10 +260,12 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
     ...cursor,
     ...userSelect,
     ...textUnderline,
-    // ...objectFit,
+    ...objectFit,
     ...textDecorationLine,
     // editedLabelStyles,
+    editedLabelStyles: {},
     // emojiDefaultStyles,
+    emojiDefaultStyles: {},
 
     autoCompleteSuggestionsContainer: {
         backgroundColor: theme.appBG,
@@ -1459,9 +1461,9 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         lineHeight: 20,
     },
 
-    // lh140Percent: {
-    //     lineHeight: '140%',
-    // },
+    lh140Percent: {
+        // lineHeight: '140%',
+    },
 
     formHelp: {
         color: theme.textSupporting,
@@ -1784,12 +1786,14 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
     //         // To achieve that sidebar must be moved by: distance from the bottom of the sidebar to the fab (variables.fabBottom) + fab height (variables.componentSizeLarge) + distance above the fab (12px)
     //         vertical: windowHeight - (variables.fabBottom + variables.componentSizeLarge + 12),
     //     } satisfies AnchorPosition),
+    createMenuPositionSidebar: (windowHeight: number) => ({}),
 
     // createAccountMenuPositionProfile: () =>
     //     ({
     //         horizontal: 18,
     //         ...getPopOverVerticalOffset(202 + 40),
     //     } satisfies AnchorPosition),
+    createAccountMenuPositionProfile: () => ({}),
 
     // createMenuPositionReportActionCompose: (shouldUseNarrowLayout: boolean, windowHeight: number, windowWidth: number) =>
     //     ({
@@ -1797,6 +1801,7 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
     //         horizontal: (shouldUseNarrowLayout ? windowWidth - variables.sideBarWidth : variables.sideBarWidth) + 18,
     //         vertical: windowHeight - CONST.MENU_POSITION_REPORT_ACTION_COMPOSE_BOTTOM,
     //     } satisfies AnchorPosition),
+    createMenuPositionReportActionCompose: (shouldUseNarrowLayout: boolean, windowHeight: number, windowWidth: number) => ({}),
 
     createMenuPositionRightSidepane: {
         right: 18,
@@ -2061,12 +2066,12 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         paddingTop: CONST.CHAT_HEADER_LOADER_HEIGHT,
     },
 
-    // chatContentScrollView: {
-    //     flexGrow: 1,
-    //     justifyContent: 'flex-start',
-    //     paddingBottom: 16,
-    //     ...chatContentScrollViewPlatformStyles,
-    // },
+    chatContentScrollView: {
+        flexGrow: 1,
+        justifyContent: 'flex-start',
+        paddingBottom: 16,
+        // ...chatContentScrollViewPlatformStyles,
+    },
 
     // Chat Item
     chatItem: {
@@ -3074,9 +3079,9 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         textTransform: 'capitalize',
     },
 
-    // flipUpsideDown: {
-    //     transform: `rotate(180deg)`,
-    // },
+    flipUpsideDown: {
+        // transform: `rotate(180deg)`,
+    },
 
     navigationScreenCardStyle: {
         backgroundColor: theme.appBG,
@@ -3304,22 +3309,22 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         alignSelf: 'center',
     },
 
-    // codeWordWrapper: {
-    //     ...codeStyles.codeWordWrapper,
-    // },
+    codeWordWrapper: {
+        // ...codeStyles.codeWordWrapper,
+    },
 
-    // codeWordStyle: {
-    //     borderLeftWidth: 0,
-    //     borderRightWidth: 0,
-    //     borderTopLeftRadius: 0,
-    //     borderBottomLeftRadius: 0,
-    //     borderTopRightRadius: 0,
-    //     borderBottomRightRadius: 0,
-    //     paddingLeft: 0,
-    //     paddingRight: 0,
-    //     justifyContent: 'center',
-    //     ...codeStyles.codeWordStyle,
-    // },
+    codeWordStyle: {
+        borderLeftWidth: 0,
+        borderRightWidth: 0,
+        borderTopLeftRadius: 0,
+        borderBottomLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderBottomRightRadius: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        justifyContent: 'center',
+        // ...codeStyles.codeWordStyle,
+    },
 
     codeFirstWordStyle: {
         borderLeftWidth: 1,
@@ -3399,6 +3404,7 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
     //             [translationType]: 0,
     //         },
     //     } satisfies CustomAnimation),
+    makeSlideInTranslation: (translationType: Translation, fromValue: number) => ({}),
 
     growlNotificationBox: {
         backgroundColor: theme.inverse,
@@ -3725,30 +3731,35 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
     //         ...getPopOverVerticalOffset(60),
     //         horizontal: windowWidth - 60,
     //     } satisfies AnchorPosition),
+    threeDotsPopoverOffset: (windowWidth: number) => ({}),
 
     // threeDotsPopoverOffsetNoCloseButton: (windowWidth: number) =>
     //     ({
     //         ...getPopOverVerticalOffset(60),
     //         horizontal: windowWidth - 10,
     //     } satisfies AnchorPosition),
+    threeDotsPopoverOffsetNoCloseButton: (windowWidth: number) => ({}),
 
     // threeDotsPopoverOffsetAttachmentModal: (windowWidth: number) =>
     //     ({
     //         ...getPopOverVerticalOffset(80),
     //         horizontal: windowWidth - 140,
     //     } satisfies AnchorPosition),
+    threeDotsPopoverOffsetAttachmentModal: (windowWidth: number) => ({}),
 
     // popoverMenuOffset: (windowWidth: number) =>
     //     ({
     //         ...getPopOverVerticalOffset(180),
     //         horizontal: windowWidth - 355,
     //     } satisfies AnchorPosition),
+    popoverMenuOffset: (windowWidth: number) => ({}),
 
     // popoverButtonDropdownMenuOffset: (windowWidth: number) =>
     //     ({
     //         ...getPopOverVerticalOffset(70),
     //         horizontal: windowWidth - 20,
     //     } satisfies AnchorPosition),
+    popoverButtonDropdownMenuOffset: (windowWidth: number) => ({}),
 
     iPhoneXSafeArea: {
         backgroundColor: theme.appBG,
@@ -4246,14 +4257,14 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         minHeight: variables.avatarSizeSubscript,
     },
 
-    // taskRightIconContainer: {
-    //     width: variables.componentSizeNormal,
-    //     marginLeft: 'auto',
-    //     ...spacing.mt1,
-    //     ...pointerEventsAuto,
-    //     ...display.dFlex,
-    //     ...flex.alignItemsCenter,
-    // },
+    taskRightIconContainer: {
+        width: variables.componentSizeNormal,
+        marginLeft: 'auto',
+        ...spacing.mt1,
+        // ...pointerEventsAuto,
+        ...display.dFlex,
+        ...flex.alignItemsCenter,
+    },
 
     shareCodeContainer: {
         width: '100%',
@@ -4372,9 +4383,9 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
             fontSize: variables.fontSizeLabel,
         } satisfies TextStyle),
 
-    // tabBackground: (hovered: boolean, isFocused: boolean, background: string | Animated.AnimatedInterpolation<string>) => ({
-    //     backgroundColor: hovered && !isFocused ? theme.highlightBG : background,
-    // }),
+    tabBackground: (hovered: boolean, isFocused: boolean, background: string | Animated.AnimatedInterpolation<string>) => ({
+        // backgroundColor: hovered && !isFocused ? theme.highlightBG : background,
+    }),
 
     tabOpacity: (
         hovered: boolean,
@@ -4566,22 +4577,22 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         alignItems: 'center',
     },
 
-    // rotate90: {
-    //     transform: 'rotate(90deg)',
-    // },
+    rotate90: {
+        // transform: 'rotate(90deg)',
+    },
 
-    // emojiStatusLHN: {
-    //     fontSize: 9,
-    //     ...(Browser.getBrowser() && !Browser.isMobile() && {transform: 'scale(.5)', fontSize: 22, overflow: 'visible'}),
-    //     ...(Browser.getBrowser() &&
-    //         Browser.isSafari() &&
-    //         !Browser.isMobile() && {
-    //             transform: 'scale(0.7)',
-    //             fontSize: 13,
-    //             lineHeight: 15,
-    //             overflow: 'visible',
-    //         }),
-    // },
+    emojiStatusLHN: {
+        fontSize: 9,
+        // ...(Browser.getBrowser() && !Browser.isMobile() && {transform: 'scale(.5)', fontSize: 22, overflow: 'visible'}),
+        // ...(Browser.getBrowser() &&
+        //     Browser.isSafari() &&
+        //     !Browser.isMobile() && {
+        //         transform: 'scale(0.7)',
+        //         fontSize: 13,
+        //         lineHeight: 15,
+        //         overflow: 'visible',
+        //     }),
+    },
 
     onboardingVideoPlayer: {
         borderRadius: 12,
@@ -4708,15 +4719,15 @@ const styles = createStyleSheet((theme: ThemeColors) => ({
         height: 200,
     },
 
-    // mapDirection: {
-    //     lineColor: theme.success,
-    //     lineWidth: 7,
-    // },
+    mapDirection: {
+        // lineColor: theme.success,
+        // lineWidth: 7,
+    },
 
-    // mapDirectionLayer: {
-    //     layout: {'line-join': 'round', 'line-cap': 'round'},
-    //     paint: {'line-color': theme.success, 'line-width': 7},
-    // },
+    mapDirectionLayer: {
+        // layout: {'line-join': 'round', 'line-cap': 'round'},
+        // paint: {'line-color': theme.success, 'line-width': 7},
+    },
 
     mapPendingView: {
         backgroundColor: theme.hoverComponentBG,
@@ -5366,5 +5377,5 @@ type ThemeStyles = ReturnType<typeof styles>;
 const defaultStyles = styles(defaultTheme);
 
 export default styles;
-export {defaultStyles};
+export {defaultStyles, webViewStyles};
 export type {Styles, ThemeStyles, StatusBarStyle, ColorScheme, AnchorPosition, AnchorDimensions};

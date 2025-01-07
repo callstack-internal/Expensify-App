@@ -1,8 +1,11 @@
 import React, {useMemo} from 'react';
 import type {TextProps} from 'react-native';
 import {HTMLContentModel, HTMLElementModel, RenderHTMLConfigProvider, TRenderEngineProvider} from 'react-native-render-html';
+import {useStyles} from 'react-native-unistyles';
+import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import convertToLTR from '@libs/convertToLTR';
+import {webViewStyles} from '@styles/index';
 import FontUtils from '@styles/utils/FontUtils';
 import type ChildrenProps from '@src/types/utils/ChildrenProps';
 import * as HTMLEngineUtils from './htmlEngineUtils';
@@ -23,6 +26,7 @@ type BaseHTMLEngineProviderProps = ChildrenProps & {
 // costly invalidations and commits.
 function BaseHTMLEngineProvider({textSelectable = false, children, enableExperimentalBRCollapsing = false}: BaseHTMLEngineProviderProps) {
     const styles = useThemeStyles();
+    const theme = useTheme();
 
     // Declare nonstandard tags and their content model here
     /* eslint-disable @typescript-eslint/naming-convention */
@@ -113,8 +117,8 @@ function BaseHTMLEngineProvider({textSelectable = false, children, enableExperim
     return (
         <TRenderEngineProvider
             customHTMLElementModels={customHTMLElementModels}
-            baseStyle={styles.webViewStyles.baseFontStyle}
-            tagsStyles={styles.webViewStyles.tagStyles}
+            baseStyle={webViewStyles(theme).baseFontStyle}
+            tagsStyles={webViewStyles(theme).tagStyles}
             enableCSSInlineProcessing={false}
             systemFonts={Object.values(FontUtils.fontFamily.single).map((font) => font.fontFamily)}
             htmlParserOptions={{

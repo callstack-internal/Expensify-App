@@ -1,12 +1,16 @@
 import React, {useCallback} from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
-import {View} from 'react-native';
+import {Platform, View} from 'react-native';
+import {createStyleSheet, useStyles} from 'react-native-unistyles';
 import useNetwork from '@hooks/useNetwork';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import mapChildrenFlat from '@libs/mapChildrenFlat';
 import shouldRenderOffscreen from '@libs/shouldRenderOffscreen';
+import type {ThemeColors} from '@styles/theme/types';
+import spacing from '@styles/utils/spacing';
 import type {AllStyles} from '@styles/utils/types';
+import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
 import type {ReceiptErrors} from '@src/types/onyx/Transaction';
@@ -88,6 +92,8 @@ function OfflineWithFeedback({
     const StyleUtils = useStyleUtils();
     const {isOffline} = useNetwork();
 
+    const {styles: unistyles} = useStyles(stylesheet);
+
     const hasErrors = !isEmptyObject(errors ?? {});
 
     const isOfflinePendingAction = !!isOffline && !!pendingAction;
@@ -111,7 +117,7 @@ function OfflineWithFeedback({
                 type ChildComponentProps = ChildrenProps & {style?: AllStyles};
                 const childProps = child.props as ChildComponentProps;
                 const props: StrikethroughProps = {
-                    style: StyleUtils.combineStyles(childProps.style ?? [], styles.offlineFeedback.deleted, styles.userSelectNone),
+                    style: StyleUtils.combineStyles(childProps.style ?? [], unistyles.deleted, styles.userSelectNone),
                 };
 
                 if (childProps.children) {
@@ -142,10 +148,10 @@ function OfflineWithFeedback({
             )}
             {!hideChildren && (
                 <View
-                    style={[needsOpacity ? styles.offlineFeedback.pending : styles.offlineFeedback.default, contentContainerStyle]}
+                    style={[needsOpacity ? unistyles.pending : unistyles.default, contentContainerStyle]}
                     needsOffscreenAlphaCompositing={shouldRenderOffscreen ? needsOpacity && needsOffscreenAlphaCompositing : undefined}
                 >
-                    <CustomStylesForChildrenProvider style={needsStrikeThrough ? [styles.offlineFeedback.deleted, styles.userSelectNone] : null}>{children}</CustomStylesForChildrenProvider>
+                    <CustomStylesForChildrenProvider style={needsStrikeThrough ? [unistyles.deleted, styles.userSelectNone] : null}>{children}</CustomStylesForChildrenProvider>
                 </View>
             )}
             {shouldShowErrorMessages && !shouldDisplayErrorAbove && (
@@ -159,6 +165,41 @@ function OfflineWithFeedback({
         </View>
     );
 }
+
+const stylesheet = createStyleSheet((theme: ThemeColors) => ({
+    deleted: {
+        textDecorationLine: 'line-through',
+        textDecorationStyle: 'solid',
+    },
+    pending: {
+        opacity: 0.5,
+    },
+    default: {
+        // fixes a crash on iOS when we attempt to remove already unmounted children
+        // see https://github.com/Expensify/App/issues/48197 for more details
+        // it's a temporary solution while we are working on a permanent fix
+        opacity: Platform.OS === 'ios' ? 0.99 : undefined,
+    },
+    error: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    container: {
+        ...spacing.pv2,
+    },
+    textContainer: {
+        flexDirection: 'column',
+        flex: 1,
+    },
+    text: {
+        color: theme.textSupporting,
+        verticalAlign: 'middle',
+        fontSize: variables.fontSizeLabel,
+    },
+    errorDot: {
+        marginRight: 12,
+    },
+}));
 
 OfflineWithFeedback.displayName = 'OfflineWithFeedback';
 

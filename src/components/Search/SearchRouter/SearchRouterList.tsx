@@ -1,5 +1,5 @@
 import {Str} from 'expensify-common';
-import React, {forwardRef, useCallback, useEffect, useMemo, useState} from 'react';
+import React, {forwardRef, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useState} from 'react';
 import type {ForwardedRef} from 'react';
 import {useOnyx} from 'react-native-onyx';
 import * as Expensicons from '@components/Icon/Expensicons';
@@ -125,6 +125,7 @@ function SearchRouterList(
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const [sections, setSections] = useState<Array<SectionListDataType<OptionData | SearchQueryItem>>>([]);
 
     const {activeWorkspaceID} = useActiveWorkspace();
     const policy = usePolicy(activeWorkspaceID);
@@ -135,6 +136,7 @@ function SearchRouterList(
     const taxRates = getAllTaxRates();
 
     const {options, areOptionsInitialized} = useOptionsList();
+    const deferredQuery = useDeferredValue(autocompleteQueryValue);
     const searchOptions = useMemo(() => {
         if (!areOptionsInitialized) {
             return defaultListOptions;
@@ -214,7 +216,7 @@ function SearchRouterList(
     const recentTagsAutocompleteList = getAutocompleteRecentTags(allRecentTags, activeWorkspaceID);
 
     const autocompleteSuggestions = useMemo<AutocompleteItemData[]>(() => {
-        const autocompleteParsedQuery = parseForAutocomplete(autocompleteQueryValue);
+        const autocompleteParsedQuery = parseForAutocomplete(deferredQuery);
         const {autocomplete, ranges = []} = autocompleteParsedQuery ?? {};
         const autocompleteKey = autocomplete?.key;
         const autocompleteValue = autocomplete?.value ?? '';
@@ -355,7 +357,7 @@ function SearchRouterList(
             }
         }
     }, [
-        autocompleteQueryValue,
+        deferredQuery,
         tagAutocompleteList,
         recentTagsAutocompleteList,
         categoryAutocompleteList,
@@ -376,16 +378,20 @@ function SearchRouterList(
         return Object.values(recentSearches ?? {}).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
     }, [recentSearches]);
 
-    const recentSearchesData = sortedRecentSearches?.slice(0, 5).map(({query, timestamp}) => {
-        const searchQueryJSON = buildSearchQueryJSON(query);
-        return {
-            text: searchQueryJSON ? buildUserReadableQueryString(searchQueryJSON, personalDetails, reports, taxRates, allCards) : query,
-            singleIcon: Expensicons.History,
-            searchQuery: query,
-            keyForList: timestamp,
-            searchItemType: CONST.SEARCH.SEARCH_ROUTER_ITEM_TYPE.SEARCH,
-        };
-    });
+    const recentSearchesData = useMemo(
+        () =>
+            sortedRecentSearches?.slice(0, 5).map(({query, timestamp}) => {
+                const searchQueryJSON = buildSearchQueryJSON(query);
+                return {
+                    text: searchQueryJSON ? buildUserReadableQueryString(searchQueryJSON, personalDetails, reports, taxRates, allCards) : query,
+                    singleIcon: Expensicons.History,
+                    searchQuery: query,
+                    keyForList: timestamp,
+                    searchItemType: CONST.SEARCH.SEARCH_ROUTER_ITEM_TYPE.SEARCH,
+                };
+            }),
+        [sortedRecentSearches, personalDetails, reports, taxRates, allCards],
+    );
 
     /**
      * Builds a suffix tree and returns a function to search in it.
@@ -393,13 +399,13 @@ function SearchRouterList(
     const filterOptions = useFastSearchFromOptions(searchOptions, {includeUserToInvite: true});
 
     const [recentReportsOptions, userToInvite] = useMemo(() => {
-        if (autocompleteQueryValue.trim() === '') {
+        if (deferredQuery.trim() === '') {
             return [searchOptions.recentReports.slice(0, 20)];
         }
 
         Timing.start(CONST.TIMING.SEARCH_FILTER_OPTIONS);
-        const filteredOptions = filterOptions(autocompleteQueryValue);
-        const orderedOptions = combineOrderingOfReportsAndPersonalDetails(filteredOptions, autocompleteQueryValue, {
+        const filteredOptions = filterOptions(deferredQuery);
+        const orderedOptions = combineOrderingOfReportsAndPersonalDetails(filteredOptions, deferredQuery, {
             sortByReportTypeInSearch: true,
             preferChatroomsOverThreads: true,
         });
@@ -407,54 +413,91 @@ function SearchRouterList(
 
         const reportOptions: OptionData[] = [...orderedOptions.recentReports, ...orderedOptions.personalDetails];
         return [reportOptions.slice(0, 20), filteredOptions.userToInvite];
-    }, [autocompleteQueryValue, filterOptions, searchOptions]);
+    }, [deferredQuery, filterOptions, searchOptions]);
+
+    const styledRecentReports = recentReportsOptions.map((item) => ({
+        ...item,
+        pressableStyle: styles.br2,
+        wrapperStyle: [styles.pr3, styles.pl3],
+        keyForList: item.reportID || item.accountID?.toString(),
+    }));
+
+    const styledUserToInvite = useMemo(
+        () =>
+            userToInvite
+                ? [
+                      {
+                          ...userToInvite,
+                          pressableStyle: styles.br2,
+                          wrapperStyle: [styles.pr3, styles.pl3],
+                      },
+                  ]
+                : [],
+        [userToInvite, styles],
+    );
+    const autocompleteData = useMemo(() => {
+        if (!autocompleteSuggestions.length) return [];
+
+        return autocompleteSuggestions.map(({filterKey, text, autocompleteID, mapKey}) => ({
+            text: getAutocompleteDisplayText(filterKey, text),
+            mapKey: mapKey ? getSubstitutionMapKey(mapKey, text) : undefined,
+            singleIcon: Expensicons.MagnifyingGlass,
+            searchQuery: text,
+            autocompleteID,
+            keyForList: autocompleteID ?? text,
+            searchItemType: CONST.SEARCH.SEARCH_ROUTER_ITEM_TYPE.AUTOCOMPLETE_SUGGESTION,
+        }));
+    }, [autocompleteSuggestions]);
 
     useEffect(() => {
-        searchInServer(autocompleteQueryValue.trim());
-    }, [autocompleteQueryValue]);
+        searchInServer(deferredQuery.trim());
+    }, [deferredQuery]);
 
     /* Sections generation */
-    const sections: Array<SectionListDataType<OptionData | SearchQueryItem>> = [];
-
-    if (searchQueryItem) {
-        sections.push({data: [searchQueryItem]});
-    }
-
     const additionalSections = useMemo(() => {
         return getAdditionalSections?.(searchOptions);
     }, [getAdditionalSections, searchOptions]);
 
-    if (additionalSections) {
-        sections.push(...additionalSections);
-    }
+    useEffect(() => {
+        startTransition(() => {
+            const newSections: Array<SectionListDataType<OptionData | SearchQueryItem>> = [];
 
-    if (!autocompleteQueryValue && recentSearchesData && recentSearchesData.length > 0) {
-        sections.push({title: translate('search.recentSearches'), data: recentSearchesData});
-    }
+            if (searchQueryItem) {
+                newSections.push({data: [searchQueryItem]});
+            }
 
-    if (userToInvite) {
-        const styledUserToInvite = [userToInvite]?.map((item) => ({...item, pressableStyle: styles.br2, wrapperStyle: [styles.pr3, styles.pl3]}));
-        sections.push({title: undefined, data: styledUserToInvite});
-    }
+            if (additionalSections) {
+                newSections.push(...additionalSections);
+            }
 
-    const styledRecentReports = recentReportsOptions.map((item) => ({...item, pressableStyle: styles.br2, wrapperStyle: [styles.pr3, styles.pl3]}));
-    sections.push({title: translate('search.recentChats'), data: styledRecentReports});
+            if (!deferredQuery && recentSearchesData && recentSearchesData.length > 0) {
+                newSections.push({title: translate('search.recentSearches'), data: recentSearchesData});
+            }
 
-    if (autocompleteSuggestions.length > 0) {
-        const autocompleteData = autocompleteSuggestions.map(({filterKey, text, autocompleteID, mapKey}) => {
-            return {
-                text: getAutocompleteDisplayText(filterKey, text),
-                mapKey: mapKey ? getSubstitutionMapKey(mapKey, text) : undefined,
-                singleIcon: Expensicons.MagnifyingGlass,
-                searchQuery: text,
-                autocompleteID,
-                keyForList: autocompleteID ?? text, // in case we have a unique identifier then use it because text might not be unique
-                searchItemType: CONST.SEARCH.SEARCH_ROUTER_ITEM_TYPE.AUTOCOMPLETE_SUGGESTION,
-            };
+            if (styledUserToInvite.length > 0) {
+                newSections.push({title: undefined, data: styledUserToInvite});
+            }
+
+            if (styledRecentReports.length > 0) {
+                newSections.push({title: translate('search.recentChats'), data: styledRecentReports});
+            }
+
+            if (autocompleteData.length > 0) {
+                newSections.push({title: translate('search.suggestions'), data: autocompleteData});
+            }
+
+            setSections(newSections);
         });
-
-        sections.push({title: translate('search.suggestions'), data: autocompleteData});
-    }
+    }, [
+        searchQueryItem?.keyForList,
+        additionalSections?.length,
+        deferredQuery,
+        recentSearchesData?.length,
+        styledUserToInvite.length,
+        styledRecentReports.length,
+        autocompleteData.length,
+        translate,
+    ]);
 
     const onArrowFocus = useCallback(
         (focusedItem: OptionData | SearchQueryItem) => {
@@ -462,11 +505,11 @@ function SearchRouterList(
                 return;
             }
 
-            const trimmedUserSearchQuery = getQueryWithoutAutocompletedPart(autocompleteQueryValue);
+            const trimmedUserSearchQuery = getQueryWithoutAutocompletedPart(deferredQuery);
             setTextQuery(`${trimmedUserSearchQuery}${sanitizeSearchValue(focusedItem.searchQuery)} `);
             updateAutocompleteSubstitutions(focusedItem);
         },
-        [autocompleteQueryValue, setTextQuery, updateAutocompleteSubstitutions],
+        [deferredQuery, setTextQuery, updateAutocompleteSubstitutions],
     );
 
     return (

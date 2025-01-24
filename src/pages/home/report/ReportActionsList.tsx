@@ -489,7 +489,7 @@ function ReportActionsList({
             return;
         }
 
-        if (isNewMessageDisplayed) {
+        if (isNewMessageDisplayed || pendingBottomScroll) {
             InteractionManager.runAfterInteractions(() => {
                 setIsFloatingMessageCounterVisible(false);
                 reportScrollManager.scrollToBottom();

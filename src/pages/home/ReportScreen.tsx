@@ -10,6 +10,7 @@ import Banner from '@components/Banner';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import DragAndDropProvider from '@components/DragAndDrop/Provider';
 import * as Expensicons from '@components/Icon/Expensicons';
+import LoadingBar from '@components/LoadingBar';
 import MoneyReportHeader from '@components/MoneyReportHeader';
 import MoneyRequestHeader from '@components/MoneyRequestHeader';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
@@ -766,12 +767,6 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
     const isSingleIOUReportAction = reportActions.filter((action) => action.actionName === CONST.REPORT.ACTIONS.TYPE.IOU).length === 1;
     const isSingleExpenseReport = isExpenseReport(report) && isMostRecentReportIOU && isSingleIOUReportAction;
     const isSingleInvoiceReport = isInvoiceReport(report) && isMostRecentReportIOU && isSingleIOUReportAction;
-    const shouldShowMostRecentReportAction =
-        !!mostRecentReportAction &&
-        !isSingleExpenseReport &&
-        !isSingleInvoiceReport &&
-        !isActionOfType(mostRecentReportAction, CONST.REPORT.ACTIONS.TYPE.CREATED) &&
-        !isDeletedAction(mostRecentReportAction);
 
     const lastRoute = usePrevious(route);
     const lastReportActionIDFromRoute = usePrevious(reportActionIDFromRoute);
@@ -825,12 +820,13 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
                                 shouldShowButton
                             />
                         )}
+                        <LoadingBar shouldShow={shouldShowSkeleton} />
                         <DragAndDropProvider isDisabled={!isCurrentReportLoadedFromOnyx || !canUserPerformWriteAction(report)}>
                             <View
                                 style={[styles.flex1, styles.justifyContentEnd, styles.overflowHidden]}
                                 testID="report-actions-view-wrapper"
                             >
-                                {!shouldShowSkeleton && !!report && (
+                                {report && (
                                     <ReportActionsView
                                         reportActions={reportActions}
                                         hasNewerActions={hasNewerActions}
@@ -846,32 +842,6 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
                                     />
                                 )}
 
-                                {/* Note: The ReportActionsSkeletonView should be allowed to mount even if the initial report actions are not loaded.
-                                    If we prevent rendering the report while they are loading then
-                                    we'll unnecessarily unmount the ReportActionsView which will clear the new marker lines initial state. */}
-                                {shouldShowSkeleton && (
-                                    <>
-                                        <ReportActionsSkeletonView />
-                                        {shouldShowMostRecentReportAction && (
-                                            <ReportActionsListItemRenderer
-                                                reportAction={mostRecentReportAction}
-                                                reportActions={reportActions}
-                                                parentReportAction={parentReportAction}
-                                                parentReportActionForTransactionThread={undefined}
-                                                transactionThreadReport={undefined}
-                                                index={0}
-                                                report={report}
-                                                displayAsGroup={false}
-                                                shouldHideThreadDividerLine
-                                                shouldDisplayNewMarker={false}
-                                                shouldDisplayReplyDivider={false}
-                                                isFirstVisibleReportAction
-                                                shouldUseThreadDividerLine={false}
-                                            />
-                                        )}
-                                    </>
-                                )}
-
                                 {isCurrentReportLoadedFromOnyx ? (
                                     <ReportFooter
                                         onComposerFocus={onComposerFocus}
@@ -879,9 +849,7 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
                                         report={report}
                                         reportMetadata={reportMetadata}
                                         policy={policy}
-                                        pendingAction={reportPendingAction}
                                         isComposerFullSize={!!isComposerFullSize}
-                                        lastReportAction={lastReportAction}
                                         showSoftInputOnFocus={showSoftInputOnFocus}
                                         setShowSoftInputOnFocus={setShowSoftInputOnFocus}
                                     />

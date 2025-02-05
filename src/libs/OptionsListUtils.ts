@@ -36,6 +36,7 @@ import {translate, translateLocal} from './Localize';
 import {appendCountryCode, getPhoneNumberWithoutSpecialChars} from './LoginUtils';
 import ModifiedExpenseMessage from './ModifiedExpenseMessage';
 import Navigation from './Navigation/Navigation';
+import {reportsMetadata} from './OnyxComputedValues';
 import Parser from './Parser';
 import Performance from './Performance';
 import {getDisplayNameOrDefault} from './PersonalDetailsUtils';
@@ -91,7 +92,6 @@ import {
     getReportAutomaticallyForwardedMessage,
     getReportAutomaticallySubmittedMessage,
     getReportLastMessage,
-    getReportName,
     getReportNameValuePairs,
     getReportNotificationPreference,
     getReportOrDraftReport,
@@ -122,7 +122,6 @@ import {
     isPolicyExpenseChat as reportUtilsIsPolicyExpenseChat,
     isSelfDM as reportUtilsIsSelfDM,
     isTaskReport as reportUtilsIsTaskReport,
-    shouldDisplayViolationsRBRInLHN,
     shouldReportBeInOptionList,
     shouldReportShowSubscript,
 } from './ReportUtils';
@@ -398,6 +397,18 @@ let activePolicyID: OnyxEntry<string>;
 Onyx.connect({
     key: ONYXKEYS.NVP_ACTIVE_POLICY_ID,
     callback: (value) => (activePolicyID = value),
+});
+
+let reportsData = {};
+Onyx.connect({
+    key: reportsMetadata,
+    callback: (value) => {
+        if (!value) {
+            return;
+        }
+
+        reportsData = value;
+    },
 });
 
 /**
@@ -824,7 +835,9 @@ function createOption(
         // If displaying chat preview line is needed, let's overwrite the default alternate text
         result.alternateText = showPersonalDetails && personalDetail?.login ? personalDetail.login : getAlternateText(result, {showChatPreviewLine, forcePolicyNamePreview});
 
-        reportName = showPersonalDetails ? getDisplayNameForParticipant({accountID: accountIDs.at(0)}) || formatPhoneNumber(personalDetail?.login ?? '') : getReportName(report);
+        reportName = showPersonalDetails
+            ? getDisplayNameForParticipant({accountID: accountIDs.at(0)}) || formatPhoneNumber(personalDetail?.login ?? '')
+            : reportsData[report.reportID]?.reportName;
     } else {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         reportName = getDisplayNameForParticipant({accountID: accountIDs.at(0)}) || formatPhoneNumber(personalDetail?.login ?? '');
@@ -871,7 +884,7 @@ function getReportOption(participant: Participant): OptionData {
     if (option.isSelfDM) {
         option.alternateText = translateLocal('reportActionsView.yourSpace');
     } else if (option.isInvoiceRoom) {
-        option.text = getReportName(report);
+        option.text = reportsMetadata[report.reportID]?.reportName;
         option.alternateText = translateLocal('workspace.common.invoices');
     } else {
         option.text = getPolicyName({report});
@@ -1277,7 +1290,7 @@ function getValidReports(
         // eslint-disable-next-line rulesdir/prefer-at
         const option = reports[i];
         const report = option.item;
-        const doesReportHaveViolations = shouldDisplayViolationsRBRInLHN(report, transactionViolations);
+        const doesReportHaveViolations = reportsMetadata[report.reportID]?.doesReportHaveViolations;
 
         const shouldBeInOptionList = shouldReportBeInOptionList({
             report,

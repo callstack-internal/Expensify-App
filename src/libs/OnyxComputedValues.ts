@@ -3,7 +3,14 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report, TransactionViolation} from '@src/types/onyx';
 import {hasValidDraftComment} from './DraftCommentUtils';
 import {getReportAction} from './ReportActionsUtils';
-import {hasReportErrorsOtherThanFailedReceipt, isHiddenForCurrentUser, requiresAttentionFromCurrentUser, shouldDisplayViolationsRBRInLHN} from './ReportUtils';
+import {
+    getReportName,
+    hasReportErrorsOtherThanFailedReceipt,
+    isHiddenForCurrentUser,
+    isOneTransactionThread,
+    requiresAttentionFromCurrentUser,
+    shouldDisplayViolationsRBRInLHN,
+} from './ReportUtils';
 
 const reportsMetadata = {
     cacheKey: 'reportsMetadata',
@@ -22,6 +29,8 @@ const reportsMetadata = {
             const hasValidDraft = hasValidDraftComment(report.reportID);
             const parentReportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
             const requiresAttention = requiresAttentionFromCurrentUser(report, parentReportAction);
+            const isOneTransaction = isOneTransactionThread(report.reportID, report.parentReportID, parentReportAction);
+            const reportName = getReportName(report);
             metadata[report.reportID] = {
                 doesReportHaveViolations: doesHaveViolations,
                 isHiddenForCurrentUser: isHidden,
@@ -29,6 +38,8 @@ const reportsMetadata = {
                 hasValidDraft,
                 requiresAttention,
                 parentReportAction,
+                isOneTransactionThread: isOneTransaction,
+                reportName,
             };
         });
         // console.log('metadata', metadata);

@@ -13,7 +13,6 @@ import type Report from '@src/types/onyx/Report';
 import type ReportAction from '@src/types/onyx/ReportAction';
 import type DeepValueOf from '@src/types/utils/DeepValueOf';
 import {extractCollectionItemID} from './CollectionUtils';
-import {hasValidDraftComment} from './DraftCommentUtils';
 import localeCompare from './LocaleCompare';
 import {formatPhoneNumber} from './LocalePhoneNumber';
 import {translate, translateLocal} from './Localize';
@@ -32,7 +31,6 @@ import {
     getPolicyChangeLogDeleteMemberMessage,
     getRemovedConnectionMessage,
     getRenamedAction,
-    getReportAction,
     getReportActionMessage,
     getReportActionMessageText,
     getSortedReportActions,
@@ -82,7 +80,6 @@ import {
     isIOUOwnedByCurrentUser,
     isJoinRequestInAdminRoom,
     isMoneyRequestReport,
-    isOneTransactionThread,
     isPolicyExpenseChat,
     isSelfDM,
     isSystemChat as isSystemChatUtil,
@@ -214,7 +211,7 @@ function getOrderedReportIDs(
         const isFocused = report.reportID === currentReportId;
         const hasErrorsOtherThanFailedReceipt = reportInfo.hasErrorsOtherThanFailedReceipt;
         const isReportInAccessible = report?.errorFields?.notFound;
-        if (isOneTransactionThread(report.reportID, report.parentReportID, parentReportAction)) {
+        if (reportInfo.isOneTransactionThread) {
             return;
         }
         if (hasErrorsOtherThanFailedReceipt && !isReportInAccessible) {
@@ -275,18 +272,17 @@ function getOrderedReportIDs(
         const report = reportToDisplay;
         const miniReport: MiniReport = {
             reportID: report?.reportID,
-            displayName: getReportName(report),
+            displayName: reportMetadata[report?.reportID]?.reportName,
             lastVisibleActionCreated: report?.lastVisibleActionCreated,
         };
 
         const isPinned = report?.isPinned ?? false;
-        const reportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
         const reportNameValuePairs = getReportNameValuePairs(report?.reportID);
-        if (isPinned || requiresAttentionFromCurrentUser(report, reportAction)) {
+        if (isPinned || reportMetadata[report?.reportID]?.requiresAttention) {
             pinnedAndGBRReports.push(miniReport);
         } else if (report?.hasErrorsOtherThanFailedReceipt) {
             errorReports.push(miniReport);
-        } else if (hasValidDraftComment(report?.reportID)) {
+        } else if (reportMetadata[report?.reportID]?.hasValidDraft) {
             draftReports.push(miniReport);
         } else if (isArchivedNonExpenseReport(report, reportNameValuePairs)) {
             archivedReports.push(miniReport);

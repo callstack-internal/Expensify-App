@@ -28,6 +28,7 @@ const reportsMetadata = {
                 hasErrorsOtherThanFailedReceipt,
                 hasValidDraft,
                 requiresAttention,
+                parentReportAction,
             };
         });
         // console.log('metadata', metadata);

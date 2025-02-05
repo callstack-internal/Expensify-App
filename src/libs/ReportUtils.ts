@@ -66,7 +66,6 @@ import {handleReportChanged, prepareOnboardingOnyxData} from './actions/Report';
 import {isAnonymousUser as isAnonymousUserSession} from './actions/Session';
 import {convertToDisplayString, getCurrencySymbol} from './CurrencyUtils';
 import DateUtils from './DateUtils';
-import {hasValidDraftComment} from './DraftCommentUtils';
 import {getMicroSecondOnyxErrorWithTranslationKey} from './ErrorUtils';
 import getAttachmentDetails from './fileDownload/getAttachmentDetails';
 import isReportMessageAttachment from './isReportMessageAttachment';
@@ -80,6 +79,7 @@ import ModifiedExpenseMessage from './ModifiedExpenseMessage';
 import {linkingConfig} from './Navigation/linkingConfig';
 import Navigation from './Navigation/Navigation';
 import {rand64} from './NumberUtils';
+import {reportsMetadata} from './OnyxComputedValues';
 import Parser from './Parser';
 import Permissions from './Permissions';
 import {getAccountIDsByLogins, getDisplayNameOrDefault, getEffectiveDisplayName, getLoginsByAccountIDs, getPersonalDetailByEmail, getPersonalDetailsByIDs} from './PersonalDetailsUtils';
@@ -909,6 +909,18 @@ Onyx.connect({
     callback: (value) => (activePolicyID = value),
 });
 
+let reportsData = {};
+Onyx.connect({
+    key: reportsMetadata,
+    callback: (value) => {
+        if (!value) {
+            return;
+        }
+
+        reportsData = value;
+    },
+});
+
 function getCurrentUserAvatar(): AvatarSource | undefined {
     return currentUserPersonalDetails?.avatar;
 }
@@ -1647,7 +1659,7 @@ function hasExpensifyGuidesEmails(accountIDs: number[]): boolean {
 
 function getMostRecentlyVisitedReport(reports: Array<OnyxEntry<Report>>, reportMetadata: OnyxCollection<ReportMetadata>): OnyxEntry<Report> {
     const filteredReports = reports.filter((report) => {
-        const shouldKeep = !isChatThread(report) || !isHiddenForCurrentUser(report);
+        const shouldKeep = !isChatThread(report) || !reportsData[report.reportID]?.isHiddenForCurrentUser;
         return shouldKeep && !!report?.reportID && !!(reportMetadata?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report.reportID}`]?.lastVisitTime ?? report?.lastReadTime);
     });
     return lodashMaxBy(filteredReports, (a) => [reportMetadata?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${a?.reportID}`]?.lastVisitTime ?? '', a?.lastReadTime ?? '']);
@@ -2006,7 +2018,7 @@ function isOneTransactionThread(reportID: string | undefined, parentReportID: st
 function getDisplayedReportID(reportID: string): string {
     const report = getReport(reportID, allReports);
     const parentReportID = report?.parentReportID;
-    const parentReportAction = getReportAction(parentReportID, report?.parentReportActionID);
+    const parentReportAction = reportsData[parentReportID]?.parentReportAction;
     return parentReportID && isOneTransactionThread(reportID, parentReportID, parentReportAction) ? parentReportID : reportID;
 }
 
@@ -2491,7 +2503,7 @@ function getParticipantsAccountIDsForDisplay(report: OnyxEntry<Report>, shouldEx
                 return false;
             }
 
-            if (shouldExcludeHidden && isHiddenForCurrentUser(reportParticipants[accountID]?.notificationPreference)) {
+            if (shouldExcludeHidden && reportsData[report.reportID]?.isHiddenForCurrentUser) {
                 return false;
             }
 
@@ -7043,7 +7055,7 @@ function hasReportErrorsOtherThanFailedReceipt(report: Report, doesReportHaveVio
     let doesTransactionThreadReportHasViolations = false;
     if (oneTransactionThreadReportID) {
         const transactionReport = getReport(oneTransactionThreadReportID, allReports);
-        doesTransactionThreadReportHasViolations = !!transactionReport && shouldDisplayViolationsRBRInLHN(transactionReport, transactionViolations);
+        doesTransactionThreadReportHasViolations = !!transactionReport && reportsData[transactionReport.reportID].doesReportHaveViolations;
     }
     return (
         doesTransactionThreadReportHasViolations ||
@@ -7132,7 +7144,7 @@ function reasonForReportToBeInOptionList({
     }
 
     // Retrieve the draft comment for the report and convert it to a boolean
-    const hasDraftComment = hasValidDraftComment(report.reportID);
+    const hasDraftComment = reportsData[report.reportID]?.hasValidDraft;
 
     // Include reports that are relevant to the user in any view mode. Criteria include having a draft or having a GBR showing.
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -7140,7 +7152,7 @@ function reasonForReportToBeInOptionList({
         return CONST.REPORT_IN_LHN_REASONS.HAS_DRAFT_COMMENT;
     }
 
-    if (requiresAttentionFromCurrentUser(report)) {
+    if (reportsData[report.reportID]?.requiresAttention) {
         return CONST.REPORT_IN_LHN_REASONS.HAS_GBR;
     }
 
@@ -7791,7 +7803,7 @@ function isMoneyRequestReportPendingDeletion(reportOrID: OnyxEntry<Report> | str
         return false;
     }
 
-    const parentReportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
+    const parentReportAction = reportsData[report.reportID]?.parentReportAction;
     return parentReportAction?.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
 }
 
@@ -8382,7 +8394,7 @@ function getAllAncestorReportActions(report: Report | null | undefined, currentU
 
     while (parentReportID) {
         const parentReport = currentUpdatedReport && currentUpdatedReport.reportID === parentReportID ? currentUpdatedReport : getReportOrDraftReport(parentReportID);
-        const parentReportAction = getReportAction(parentReportID, parentReportActionID);
+        const parentReportAction = reportsData[parentReportID]?.parentReportAction;
 
         if (!parentReport || !parentReportAction || (isTransactionThread(parentReportAction) && !isSentMoneyReportAction(parentReportAction)) || isReportPreviewAction(parentReportAction)) {
             break;
@@ -8419,7 +8431,7 @@ function getAllAncestorReportActionIDs(report: Report | null | undefined, includ
 
     while (parentReportID) {
         const parentReport = getReportOrDraftReport(parentReportID);
-        const parentReportAction = getReportAction(parentReportID, parentReportActionID);
+        const parentReportAction = reportsData[parentReportID]?.parentReportAction;
 
         if (
             !parentReportAction ||
@@ -8467,7 +8479,7 @@ function getOptimisticDataForParentReportAction(reportID: string | undefined, la
             return null;
         }
 
-        const ancestorReportAction = getReportAction(ancestorReport.reportID, ancestors.reportActionsIDs.at(index) ?? '');
+        const ancestorReportAction = reportsData[ancestorReport.reportID]?.parentReportAction;
 
         if (!ancestorReportAction?.reportActionID || isEmptyObject(ancestorReportAction)) {
             return null;
@@ -8619,7 +8631,7 @@ function canJoinChat(report: OnyxEntry<Report>, parentReportAction: OnyxInputOrE
     }
 
     // If the notification preference of the chat is not hidden that means we have already joined the chat
-    if (!isHiddenForCurrentUser(report)) {
+    if (!reportsData[report.reportID]?.isHiddenForCurrentUser) {
         return false;
     }
 
@@ -8653,7 +8665,7 @@ function canLeaveChat(report: OnyxEntry<Report>, policy: OnyxEntry<Policy>): boo
         return false;
     }
 
-    if (isHiddenForCurrentUser(report)) {
+    if (reportsData[report.reportID]?.isHiddenForCurrentUser) {
         return false;
     }
 

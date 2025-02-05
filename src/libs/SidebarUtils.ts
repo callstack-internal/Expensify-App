@@ -65,7 +65,6 @@ import {
     getReportNotificationPreference,
     getReportParticipantsTitle,
     getWorkspaceNameUpdatedMessage,
-    hasReportErrorsOtherThanFailedReceipt,
     isAdminRoom,
     isAnnounceRoom,
     isArchivedNonExpenseReport,
@@ -78,7 +77,6 @@ import {
     isExpenseReport,
     isExpenseRequest,
     isGroupChat as isGroupChatUtil,
-    isHiddenForCurrentUser,
     isInvoiceReport,
     isInvoiceRoom,
     isIOUOwnedByCurrentUser,
@@ -93,7 +91,6 @@ import {
     isUnread,
     isUnreadWithMention,
     requiresAttentionFromCurrentUser,
-    shouldDisplayViolationsRBRInLHN,
     shouldReportBeInOptionList,
     shouldReportShowSubscript,
 } from './ReportUtils';
@@ -210,11 +207,12 @@ function getOrderedReportIDs(
         if ((Object.values(CONST.REPORT.UNSUPPORTED_TYPE) as string[]).includes(report?.type ?? '')) {
             return;
         }
-        const parentReportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
-        const doesReportHaveViolations = reportMetadata[report?.reportID]?.doesReportHaveViolations ?? false;
-        const isHidden = isHiddenForCurrentUser(report);
+        const reportInfo = reportMetadata[report.reportID] ?? {};
+        const parentReportAction = reportInfo.parentReportAction;
+        const doesReportHaveViolations = reportInfo.doesReportHaveViolations;
+        const isHidden = reportInfo.isHiddenForCurrentUser;
         const isFocused = report.reportID === currentReportId;
-        const hasErrorsOtherThanFailedReceipt = hasReportErrorsOtherThanFailedReceipt(report, doesReportHaveViolations, transactionViolations);
+        const hasErrorsOtherThanFailedReceipt = reportInfo.hasErrorsOtherThanFailedReceipt;
         const isReportInAccessible = report?.errorFields?.notFound;
         if (isOneTransactionThread(report.reportID, report.parentReportID, parentReportAction)) {
             return;
@@ -341,8 +339,8 @@ function getReasonAndReportActionThatHasRedBrickRoad(
     const {reportAction} = getAllReportActionsErrorsAndReportActionThatRequiresAttention(report, reportActions);
     const errors = getAllReportErrors(report, reportActions);
     const hasErrors = Object.keys(errors).length !== 0;
-
-    if (shouldDisplayViolationsRBRInLHN(report, transactionViolations)) {
+    const doesReportHaveViolations = reportMetadata[report?.reportID]?.doesReportHaveViolations ?? false;
+    if (doesReportHaveViolations) {
         return {
             reason: CONST.RBR_REASONS.HAS_TRANSACTION_THREAD_VIOLATIONS,
         };

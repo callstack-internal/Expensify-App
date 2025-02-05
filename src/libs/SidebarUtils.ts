@@ -17,6 +17,7 @@ import {hasValidDraftComment} from './DraftCommentUtils';
 import localeCompare from './LocaleCompare';
 import {formatPhoneNumber} from './LocalePhoneNumber';
 import {translate, translateLocal} from './Localize';
+import {reportsMetadata} from './OnyxComputedValues';
 import {getLastActorDisplayName, getLastMessageTextForReport, getPersonalDetailsForAccountIDs} from './OptionsListUtils';
 import Parser from './Parser';
 import Performance from './Performance';
@@ -144,6 +145,18 @@ Onyx.connect({
     },
 });
 
+let reportMetadata = {};
+Onyx.connect({
+    key: reportsMetadata,
+    callback: (value) => {
+        if (!value) {
+            return;
+        }
+
+        reportMetadata = value;
+    },
+});
+
 function compareStringDates(a: string, b: string): 0 | 1 | -1 {
     if (a < b) {
         return -1;
@@ -198,7 +211,7 @@ function getOrderedReportIDs(
             return;
         }
         const parentReportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
-        const doesReportHaveViolations = shouldDisplayViolationsRBRInLHN(report, transactionViolations);
+        const doesReportHaveViolations = reportMetadata[report?.reportID]?.doesReportHaveViolations ?? false;
         const isHidden = isHiddenForCurrentUser(report);
         const isFocused = report.reportID === currentReportId;
         const hasErrorsOtherThanFailedReceipt = hasReportErrorsOtherThanFailedReceipt(report, doesReportHaveViolations, transactionViolations);

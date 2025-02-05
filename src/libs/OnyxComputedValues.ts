@@ -1,7 +1,9 @@
 import type {OnyxCollection} from 'react-native-onyx';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report, TransactionViolation} from '@src/types/onyx';
-import {shouldDisplayViolationsRBRInLHN} from './ReportUtils';
+import {hasValidDraftComment} from './DraftCommentUtils';
+import {getReportAction} from './ReportActionsUtils';
+import {hasReportErrorsOtherThanFailedReceipt, isHiddenForCurrentUser, requiresAttentionFromCurrentUser, shouldDisplayViolationsRBRInLHN} from './ReportUtils';
 
 const reportsMetadata = {
     cacheKey: 'reportsMetadata',
@@ -14,10 +16,21 @@ const reportsMetadata = {
                 return;
             }
 
+            const doesHaveViolations = shouldDisplayViolationsRBRInLHN(report, transactionViolations);
+            const isHidden = isHiddenForCurrentUser(report);
+            const hasErrorsOtherThanFailedReceipt = hasReportErrorsOtherThanFailedReceipt(report, doesHaveViolations, transactionViolations);
+            const hasValidDraft = hasValidDraftComment(report.reportID);
+            const parentReportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
+            const requiresAttention = requiresAttentionFromCurrentUser(report, parentReportAction);
             metadata[report.reportID] = {
-                doesReportHaveViolations: shouldDisplayViolationsRBRInLHN(report, transactionViolations),
+                doesReportHaveViolations: doesHaveViolations,
+                isHiddenForCurrentUser: isHidden,
+                hasErrorsOtherThanFailedReceipt,
+                hasValidDraft,
+                requiresAttention,
             };
         });
+        // console.log('metadata', metadata);
         return metadata;
     },
 

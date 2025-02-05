@@ -8624,6 +8624,10 @@ function isAdminOwnerApproverOrReportOwner(report: OnyxEntry<Report>, policy: On
  * Whether the user can join a report
  */
 function canJoinChat(report: OnyxEntry<Report>, parentReportAction: OnyxInputOrEntry<ReportAction>, policy: OnyxInputOrEntry<Policy>): boolean {
+    // workaround bc sometimes this fails
+    if (!report) {
+        return false;
+    }
     // We disabled thread functions for whisper action
     // So we should not show join option for existing thread on whisper message that has already been left, or manually leave it
     if (isWhisperAction(parentReportAction)) {

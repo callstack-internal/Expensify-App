@@ -1,6 +1,8 @@
 import {deepEqual} from 'fast-equals';
 import React, {useMemo, useRef} from 'react';
+import {useOnyx} from 'react-native-onyx';
 import useCurrentReportID from '@hooks/useCurrentReportID';
+import {reportsMetadata} from '@libs/OnyxComputedValues';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
 import type {OptionData} from '@src/libs/ReportUtils';
@@ -37,8 +39,8 @@ function OptionRowLHNData({
     const isReportFocused = isFocused && currentReportIDValue?.currentReportID === reportID;
 
     const optionItemRef = useRef<OptionData>();
-
-    const shouldDisplayViolations = shouldDisplayViolationsRBRInLHN(fullReport, transactionViolations);
+    const [metadata] = useOnyx(reportsMetadata);
+    const shouldDisplayViolations = metadata[fullReport?.reportID]?.doesReportHaveViolations;
     const isReportSettled = isSettled(fullReport);
     const shouldDisplayReportViolations = !isReportSettled && isReportOwner(fullReport) && hasReportViolations(reportID);
 

@@ -1,16 +1,19 @@
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {View} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
 import Button from '@components/Button';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import * as Expensicons from '@components/Icon/Expensicons';
+import LoadingBar from '@components/LoadingBar';
 import ScreenWrapper from '@components/ScreenWrapper';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
+import useNetwork from '@hooks/useNetwork';
+import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {navigateToConciergeChatAndDeleteReport} from '@libs/actions/Report';
+import {getOlderActions, navigateToConciergeChatAndDeleteReport, openReport} from '@libs/actions/Report';
 import DebugUtils from '@libs/DebugUtils';
 import * as DeviceCapabilities from '@libs/DeviceCapabilities';
 import type {DebugTabNavigatorRoutes} from '@libs/Navigation/DebugTabNavigator';
@@ -18,6 +21,7 @@ import DebugTabNavigator from '@libs/Navigation/DebugTabNavigator';
 import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {DebugParamList} from '@libs/Navigation/types';
+import * as ReportActionsUtils from '@libs/ReportActionsUtils';
 import * as ReportUtils from '@libs/ReportUtils';
 import DebugDetails from '@pages/Debug/DebugDetails';
 import DebugJSON from '@pages/Debug/DebugJSON';
@@ -52,8 +56,11 @@ function DebugReportPage({
     const theme = useTheme();
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`);
+    const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`);
     const [transactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
     const transactionID = DebugUtils.getTransactionID(report, reportActions);
+    const {hasOlderActions} = usePaginatedReportActions(reportID);
+    const {isOffline} = useNetwork();
 
     const metadata = useMemo<Metadata[]>(() => {
         if (!report) {
@@ -205,9 +212,54 @@ function DebugReportPage({
         [DebugDetailsTab, DebugJSONTab, DebugReportActionsTab],
     );
 
+    const lastLoadedReportActionRef = useRef<string | null>(null);
+
+    const loadAllActions = useCallback(() => {
+        if (reportMetadata?.isLoadingOlderReportActions) {
+            return;
+        }
+
+        const sortedActions = ReportActionsUtils.getSortedReportActionsForDisplay(reportActions, true, true);
+        const oldestAction = sortedActions.at(sortedActions.length - 1);
+
+        if (!oldestAction || !hasOlderActions) {
+            return;
+        }
+
+        // Only continue loading if we have a different oldest action than last time
+        if (lastLoadedReportActionRef.current === oldestAction.reportActionID) {
+            // If we get the same action twice, assume we've reached the end
+            return;
+        }
+
+        lastLoadedReportActionRef.current = oldestAction.reportActionID;
+        getOlderActions(reportID, oldestAction.reportActionID);
+    }, [reportID, reportMetadata?.isLoadingOlderReportActions, hasOlderActions, reportActions]);
+
+    useEffect(() => {
+        if (isOffline || !hasOlderActions || reportMetadata?.isLoadingOlderReportActions) {
+            return;
+        }
+
+        // Schedule next load with a reasonable delay
+        const timeoutId = setTimeout(loadAllActions, 1000);
+        return () => clearTimeout(timeoutId);
+    }, [reportMetadata?.isLoadingOlderReportActions, hasOlderActions, loadAllActions, isOffline]);
+
+    useEffect(() => {
+        if (isOffline) {
+            return;
+        }
+
+        openReport(reportID);
+    }, [reportID, isOffline]);
+
     if (!report) {
         return <NotFoundPage />;
     }
+
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const shouldShowLoadingBar = isOffline ? false : reportMetadata?.isLoadingOlderReportActions || reportMetadata?.isLoadingInitialReportActions;
 
     return (
         <ScreenWrapper
@@ -222,6 +274,10 @@ function DebugReportPage({
                         title={`${translate('debug.debug')} - ${translate('debug.report')}`}
                         onBackButtonPress={Navigation.goBack}
                     />
+                    <View style={styles.pv4}>
+                        <LoadingBar shouldShow={!!shouldShowLoadingBar} />
+                    </View>
+
                     <DebugTabNavigator
                         id={CONST.DEBUG.FORMS.REPORT}
                         routes={routes}

@@ -20,7 +20,7 @@ function ReportActionsSkeletonView({shouldAnimate = true, possibleVisibleContent
             case 2:
                 skeletonViewLines.push(
                     <SkeletonViewLines
-                        shouldAnimate={shouldAnimate}
+                        shouldAnimate={false}
                         numberOfRows={2}
                         key={`skeletonViewLines${index}`}
                     />,
@@ -29,7 +29,7 @@ function ReportActionsSkeletonView({shouldAnimate = true, possibleVisibleContent
             case 0:
                 skeletonViewLines.push(
                     <SkeletonViewLines
-                        shouldAnimate={shouldAnimate}
+                        shouldAnimate={false}
                         numberOfRows={3}
                         key={`skeletonViewLines${index}`}
                     />,
@@ -38,7 +38,7 @@ function ReportActionsSkeletonView({shouldAnimate = true, possibleVisibleContent
             default:
                 skeletonViewLines.push(
                     <SkeletonViewLines
-                        shouldAnimate={shouldAnimate}
+                        shouldAnimate={false}
                         numberOfRows={1}
                         key={`skeletonViewLines${index}`}
                     />,

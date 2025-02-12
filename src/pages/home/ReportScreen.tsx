@@ -312,6 +312,7 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
     const isTopMostReportId = currentReportIDValue?.currentReportID === reportIDFromRoute;
     const didSubscribeToReportLeavingEvents = useRef(false);
     const [showSoftInputOnFocus, setShowSoftInputOnFocus] = useState(false);
+    const [shouldSkeleton, setShouldSkeleton] = useState(false)
 
     useEffect(() => {
         if (!report?.reportID || shouldHideReport) {
@@ -802,6 +803,14 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
         return null;
     }
 
+    useEffect(() => {
+        if(shouldSkeleton === false && shouldShowSkeleton === true){
+            setTimeout(()=> {
+                setShouldSkeleton(true)
+            }, 200)
+        }
+    }, [shouldShowSkeleton, shouldSkeleton])
+
     return (
         <ActionListContext.Provider value={actionListValue}>
             <ReactionListContext.Provider value={reactionListRef}>
@@ -868,7 +877,7 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
                                     we'll unnecessarily unmount the ReportActionsView which will clear the new marker lines initial state. */}
                                 {shouldShowSkeleton && (
                                     <>
-                                        <ReportActionsSkeletonView />
+                                        {shouldSkeleton &&<ReportActionsSkeletonView /> }
                                         {shouldShowMostRecentReportAction && (
                                             <ReportActionsListItemRenderer
                                                 reportAction={mostRecentReportAction}

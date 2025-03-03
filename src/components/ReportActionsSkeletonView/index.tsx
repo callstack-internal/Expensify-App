@@ -14,6 +14,7 @@ type ReportActionsSkeletonViewProps = {
 function ReportActionsSkeletonView({shouldAnimate = true, possibleVisibleContentItems = 0}: ReportActionsSkeletonViewProps) {
     const contentItems = possibleVisibleContentItems || Math.ceil(Dimensions.get('window').height / CONST.CHAT_SKELETON_VIEW.AVERAGE_ROW_HEIGHT);
     const skeletonViewLines: React.ReactNode[] = [];
+    // console.log('contentItems', contentItems);
     for (let index = 0; index < contentItems; index++) {
         const iconIndex = (index + 1) % 4;
         switch (iconIndex) {

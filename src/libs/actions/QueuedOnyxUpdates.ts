@@ -45,7 +45,7 @@ function flushQueue(): Promise<void> {
 
         queuedOnyxUpdates = queuedOnyxUpdates.filter((update) => preservedKeys.includes(update.key as OnyxKey));
     }
-
+console.log('queuedOnyxUpdates', queuedOnyxUpdates);
     return Onyx.update(queuedOnyxUpdates).then(() => {
         queuedOnyxUpdates = [];
     });

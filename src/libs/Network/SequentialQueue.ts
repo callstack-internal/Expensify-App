@@ -104,6 +104,9 @@ function process(): Promise<void> {
             if (response?.shouldPauseQueue) {
                 Log.info("[SequentialQueue] Handled 'shouldPauseQueue' in response. Pausing the queue.");
                 pause();
+            } else {
+                // Flush Onyx updates after each successful request
+                flushOnyxUpdatesQueue();
             }
 
             Log.info('[SequentialQueue] Removing persisted request because it was processed successfully.', false, {request: requestToProcess});

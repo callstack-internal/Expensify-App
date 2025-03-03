@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import {useOnyx} from 'react-native-onyx';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import PaginationUtils from '@libs/PaginationUtils';
-import * as ReportActionsUtils from '@libs/ReportActionsUtils';
-import * as ReportUtils from '@libs/ReportUtils';
+import {getSortedReportActionsForDisplay} from '@libs/ReportActionsUtils';
+import {canUserPerformWriteAction as canUserPerformWriteActionReportUtils} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 
 /**
@@ -12,14 +12,16 @@ import ONYXKEYS from '@src/ONYXKEYS';
 function usePaginatedReportActions(reportID: string | undefined, reportActionID?: string) {
     const nonEmptyStringReportID = getNonEmptyStringOnyxID(reportID);
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${nonEmptyStringReportID}`);
-    const canUserPerformWriteAction = ReportUtils.canUserPerformWriteAction(report);
+    const canUserPerformWriteAction = canUserPerformWriteActionReportUtils(report);
 
+    // console.log('usePaginatedReportActions', nonEmptyStringReportID, report);
     const [sortedAllReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${nonEmptyStringReportID}`, {
         canEvict: false,
-        selector: (allReportActions) => ReportActionsUtils.getSortedReportActionsForDisplay(allReportActions, canUserPerformWriteAction, true),
+        selector: (allReportActions) => getSortedReportActionsForDisplay(allReportActions, canUserPerformWriteAction, true),
     });
     const [reportActionPages] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_PAGES}${nonEmptyStringReportID}`);
 
+    // console.log('sortedAllReportActions', sortedAllReportActions);
     const {
         data: reportActions,
         hasNextPage,

@@ -119,8 +119,9 @@ function processNextRequest(): Request | null {
         throw new Error('No requests to process');
     }
 
-    ongoingRequest = persistedRequests.shift() ?? null;
+    ongoingRequest = persistedRequests.pop() ?? null;
 
+    // console.log('PersistedRequests', 'processNextRequest', ongoingRequest);
     if (ongoingRequest && ongoingRequest.persistWhenOngoing) {
         Onyx.set(ONYXKEYS.PERSISTED_ONGOING_REQUESTS, ongoingRequest);
     }

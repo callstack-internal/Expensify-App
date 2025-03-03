@@ -351,10 +351,17 @@ function ReportActionsView({
         };
     }, [isTheFirstReportActionIsLinked]);
 
+    // console.log('ReportActionsSkeletonView', {
+    //     isLoadingInitialReportActions,
+    //     visibleReportActions,
+    //     isOffline,
+    //     isShowing: isLoadingInitialReportActions && visibleReportActions.length === 0 && !isOffline,
+    // });
     if (isLoadingInitialReportActions && visibleReportActions.length === 0 && !isOffline) {
         return <ReportActionsSkeletonView />;
     }
 
+    // console.log('EmptyStateComponent', {isShowing: visibleReportActions.length === 0});
     if (visibleReportActions.length === 0) {
         return (
             <EmptyStateComponent

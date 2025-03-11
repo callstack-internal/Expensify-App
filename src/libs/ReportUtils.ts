@@ -7348,6 +7348,9 @@ function getPolicyExpenseChat(ownerAccountID: number | undefined, policyID: stri
     if (!ownerAccountID || !policyID) {
         return;
     }
+    
+    console.log('POLICY ID', policyID);
+    console.log('ALL REPORTS', allReports);
 
     return Object.values(allReports ?? {}).find((report: OnyxEntry<Report>) => {
         // If the report has been deleted, then skip it
@@ -7355,6 +7358,10 @@ function getPolicyExpenseChat(ownerAccountID: number | undefined, policyID: stri
             return false;
         }
 
+        if(report.policyID === policyID) {
+            console.log('*** POLICY IS HERE')
+        }
+        
         return report.policyID === policyID && isPolicyExpenseChat(report) && report.ownerAccountID === ownerAccountID;
     });
 }

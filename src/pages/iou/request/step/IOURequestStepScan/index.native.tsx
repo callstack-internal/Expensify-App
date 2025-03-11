@@ -293,17 +293,37 @@ function IOURequestStepScan({
     const navigateToConfirmationStep = useCallback(
         (file: FileObject, source: string, locationPermissionGranted = false) => {
             if (backTo) {
+                console.log('1 DEBUG')
                 Navigation.goBack(backTo);
                 return;
             }
-
+            
             // If the transaction was created from the global create, the person needs to select participants, so take them there.
             // If the user started this flow using the Create expense option (combined submit/track flow), they should be redirected to the participants page.
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
             if ((transaction?.isFromGlobalCreate && iouType !== CONST.IOU.TYPE.TRACK && !report?.reportID) || iouType === CONST.IOU.TYPE.CREATE) {
+                console.log('2 DEBUG')
                 if (isPaidGroupPolicy(activePolicy)) {
+                    console.log('ACTIVE POLICY EXPENSE CHAT PARAMS', {
+                        currentUserPersonalDetails,
+                        accountID: currentUserPersonalDetails.accountID,
+                        activePolicyID: activePolicy?.id,
+                    })
                     const activePolicyExpenseChat = getPolicyExpenseChat(currentUserPersonalDetails.accountID, activePolicy?.id);
+                    console.log('ACTIVE POLICY EXPENSE CHAT', activePolicyExpenseChat)
                     setMoneyRequestParticipantsFromReport(transactionID, activePolicyExpenseChat);
+                    console.log('3 DEBUG PARAMS', {
+                        action: CONST.IOU.ACTION.CREATE,
+                        iouType: iouType === CONST.IOU.TYPE.CREATE ? CONST.IOU.TYPE.SUBMIT : iouType,
+                        transactionID,
+                        reportID: activePolicyExpenseChat?.reportID,
+                    })
+                    console.log('3 DEBUG', ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(
+                        CONST.IOU.ACTION.CREATE,
+                        iouType === CONST.IOU.TYPE.CREATE ? CONST.IOU.TYPE.SUBMIT : iouType,
+                        transactionID,
+                        activePolicyExpenseChat?.reportID,
+                    ))
                     Navigation.navigate(
                         ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(
                             CONST.IOU.ACTION.CREATE,
@@ -313,11 +333,13 @@ function IOURequestStepScan({
                         ),
                     );
                 } else {
+                    console.log('4 DEBUG')
                     navigateToParticipantPage();
                 }
+                console.log('5 DEBUG')
                 return;
             }
-
+            
             // If the transaction was created from the + menu from the composer inside of a chat, the participants can automatically
             // be added to the transaction (taken from the chat report participants) and then the person is taken to the confirmation step.
             const selectedParticipants = setMoneyRequestParticipantsFromReport(transactionID, report);
@@ -325,12 +347,15 @@ function IOURequestStepScan({
                 const participantAccountID = participant?.accountID ?? CONST.DEFAULT_NUMBER_ID;
                 return participantAccountID ? getParticipantsOption(participant, personalDetails) : getReportOption(participant);
             });
-
+            console.log('6 DEBUG')
+            
             if (shouldSkipConfirmation) {
+                console.log('7 DEBUG')
                 const receipt: Receipt = file;
                 receipt.source = source;
                 receipt.state = CONST.IOU.RECEIPT_STATE.SCANREADY;
                 if (iouType === CONST.IOU.TYPE.SPLIT) {
+                    console.log('8 DEBUG')
                     playSound(SOUNDS.DONE);
                     startSplitBill({
                         participants,
@@ -350,13 +375,16 @@ function IOURequestStepScan({
                 }
                 const participant = participants.at(0);
                 if (!participant) {
+                    console.log('9 DEBUG')
                     return;
                 }
                 if (locationPermissionGranted) {
+                    console.log('10 DEBUG')
                     getCurrentPosition(
                         (successData) => {
                             playSound(SOUNDS.DONE);
                             if (iouType === CONST.IOU.TYPE.TRACK && report) {
+                                console.log('11 DEBUG')
                                 trackExpense({
                                     report,
                                     isDraftPolicy: false,
@@ -381,6 +409,7 @@ function IOURequestStepScan({
                                     },
                                 });
                             } else {
+                                console.log('12 DEBUG')
                                 requestMoney({
                                     report,
                                     participantParams: {
@@ -408,6 +437,7 @@ function IOURequestStepScan({
                             }
                         },
                         (errorData) => {
+                            console.log('13 DEBUG')
                             Log.info('[IOURequestStepScan] getCurrentPosition failed', false, errorData);
                             // When there is an error, the money can still be requested, it just won't include the GPS coordinates
                             playSound(SOUNDS.DONE);
@@ -420,10 +450,12 @@ function IOURequestStepScan({
                     );
                     return;
                 }
+                console.log('14 DEBUG')
                 playSound(SOUNDS.DONE);
                 createTransaction(receipt, participant);
                 return;
             }
+            console.log('15 DEBUG')
             navigateToConfirmationPage();
         },
         [
@@ -506,7 +538,9 @@ function IOURequestStepScan({
     };
 
     const capturePhoto = useCallback(() => {
+        console.log('*** CAPTURE PHOTO')
         if (!camera.current && (cameraPermissionStatus === RESULTS.DENIED || cameraPermissionStatus === RESULTS.BLOCKED)) {
+            console.log('DEBUG 1')
             askForPermissions();
             return;
         }
@@ -516,66 +550,84 @@ function IOURequestStepScan({
         };
 
         if (!camera.current) {
+            console.log('DEBUG 2')
             showCameraAlert();
         }
-
+        
         if (didCapturePhoto) {
+            console.log('DEBUG 3')
             return;
         }
-
+        
+        console.log('DEBUG 4')
         setDidCapturePhoto(true);
-
+        
         const path = getReceiptsUploadFolderPath();
-
+        
         ReactNativeBlobUtil.fs
-            .isDir(path)
-            .then((isDir) => {
-                if (isDir) {
+        .isDir(path)
+        .then((isDir) => {
+            if (isDir) {
+                    console.log('DEBUG 5')
                     return;
                 }
-
+                
+                console.log('DEBUG 6')
                 ReactNativeBlobUtil.fs.mkdir(path).catch((error: string) => {
+                    console.log('DEBUG 7')
                     Log.warn('Error creating the directory', error);
                 });
             })
             .catch((error: string) => {
+                console.log('DEBUG 8')
                 Log.warn('Error checking if the directory exists', error);
             })
             .then(() => {
                 camera?.current
-                    ?.takePhoto({
-                        flash: flash && hasFlash ? 'on' : 'off',
-                        enableShutterSound: !isPlatformMuted,
-                        path,
-                    })
-                    .then((photo: PhotoFile) => {
+                ?.takePhoto({
+                    flash: flash && hasFlash ? 'on' : 'off',
+                    enableShutterSound: !isPlatformMuted,
+                    path,
+                })
+                .then((photo: PhotoFile) => {
+                        console.log('DEBUG 9')
                         // Store the receipt on the transaction object in Onyx
                         const source = getPhotoSource(photo.path);
                         setMoneyRequestReceipt(transactionID, source, photo.path, !isEditing);
-
+                        
                         readFileAsync(
                             source,
                             photo.path,
                             (file) => {
                                 if (isEditing) {
+                                    console.log('DEBUG 10')
                                     updateScanAndNavigate(file, source);
                                     return;
                                 }
+                                console.log('DEBUG 11')
                                 if (shouldSkipConfirmation) {
+                                    console.log('DEBUG 12')
                                     setFileResize(file);
                                     setFileSource(source);
                                     const gpsRequired = transaction?.amount === 0 && iouType !== CONST.IOU.TYPE.SPLIT && file;
                                     if (gpsRequired) {
+                                        console.log('DEBUG 13')
                                         const beginLocationPermissionFlow = shouldStartLocationPermissionFlow();
                                         if (beginLocationPermissionFlow) {
+                                            console.log('DEBUG 14')
                                             setStartLocationPermissionFlow(true);
                                             return;
                                         }
                                     }
                                 }
+                                console.log('DEBUG 15', {
+                                    file,
+                                    source
+                                })
                                 navigateToConfirmationStep(file, source, false);
                             },
                             () => {
+                                console.log('DEBUG 16')
                                 setDidCapturePhoto(false);
                                 showCameraAlert();
                                 Log.warn('Error reading photo');
@@ -583,6 +635,7 @@ function IOURequestStepScan({
                         );
                     })
                     .catch((error: string) => {
+                        console.log('DEBUG 17')
                         setDidCapturePhoto(false);
                         showCameraAlert();
                         Log.warn('Error taking photo', error);

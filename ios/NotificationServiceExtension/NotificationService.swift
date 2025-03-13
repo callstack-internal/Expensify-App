@@ -15,7 +15,7 @@ class NotificationService: UANotificationServiceExtension {
   
   var contentHandler: ((UNNotificationContent) -> Void)?
   var bestAttemptContent: UNMutableNotificationContent?
-  let log = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "com.expensify.chat.dev.NotificationServiceExtension", category: "NotificationService")
+  let log = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "com.expensify.chat.dev.my.NotificationServiceExtension", category: "NotificationService")
   let appLogs: AppLogs = .init()
 
   deinit {

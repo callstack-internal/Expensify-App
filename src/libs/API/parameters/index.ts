@@ -382,4 +382,5 @@ export type {SaveCorpayOnboardingCompanyDetailsParams} from './SaveCorpayOnboard
 export type {default as AcceptSpotnanaTermsParams} from './AcceptSpotnanaTermsParams';
 export type {default as SaveCorpayOnboardingBeneficialOwnerParams} from './SaveCorpayOnboardingBeneficialOwnerParams';
 export type {default as SaveCorpayOnboardingDirectorInformationParams} from './SaveCorpayOnboardingDirectorInformationParams';
+export type {default as AskForCorpaySignerInformationParams} from './AskForCorpaySignerInformationParams';
 export type {default as ChangeReportPolicyParams} from './ChangeReportPolicyParams';

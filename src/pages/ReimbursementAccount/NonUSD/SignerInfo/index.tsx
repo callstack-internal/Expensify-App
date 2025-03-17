@@ -1,6 +1,6 @@
 import { Str } from 'expensify-common';
-import type { ComponentType } from 'react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type {ComponentType} from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import { useOnyx } from 'react-native-onyx';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import YesNoStep from '@components/SubStepForms/YesNoStep';
@@ -95,6 +95,17 @@ function SignerInfo({onBackButtonPress, onSubmit}: SignerInfoProps) {
             clearReimbursementAccoungSaveCorplayOnboardingDirectorInformation();
         };
     }, [reimbursementAccount, onSubmit]);
+
+    useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        if (reimbursementAccount?.errors || reimbursementAccount?.isAskingForCorpaySignerInformation || !reimbursementAccount?.isAskingForCorpaySignerInformationSuccess) {
+            return;
+        }
+
+        if (reimbursementAccount?.isAskingForCorpaySignerInformationSuccess) {
+            setCurrentSubStep(SUBSTEP.HANG_TIGHT);
+        }
+    }, [reimbursementAccount]);
 
     const submitSignerDetailsForm = () => {
         setCurrentSubStep(SUBSTEP.ARE_YOU_DIRECTOR);
@@ -226,8 +237,6 @@ function SignerInfo({onBackButtonPress, onSubmit}: SignerInfoProps) {
             policyID: String(policyID),
             bankAccountID,
         });
-
-        setCurrentSubStep(SUBSTEP.HANG_TIGHT);
     }, [bankAccountID, policyID]);
 
     return (

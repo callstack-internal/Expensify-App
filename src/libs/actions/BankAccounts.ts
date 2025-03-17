@@ -601,7 +601,7 @@ function askForCorpaySignerInformation(parameters: AskForCorpaySignerInformation
                 key: ONYXKEYS.REIMBURSEMENT_ACCOUNT,
                 value: {
                     isAskingForCorpaySignerInformation: false,
-                    isSuccess: true,
+                    isAskingForCorpaySignerInformationSuccess: true,
                 },
             },
         ],
@@ -611,7 +611,7 @@ function askForCorpaySignerInformation(parameters: AskForCorpaySignerInformation
                 key: ONYXKEYS.REIMBURSEMENT_ACCOUNT,
                 value: {
                     isAskingForCorpaySignerInformation: false,
-                    isSuccess: false,
+                    isAskingForCorpaySignerInformationSuccess: false,
                     errors: getMicroSecondOnyxErrorWithTranslationKey('common.genericErrorMessage'),
                 },
             },

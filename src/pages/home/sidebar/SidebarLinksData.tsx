@@ -4,7 +4,9 @@ import {View} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
 import type {EdgeInsets} from 'react-native-safe-area-context';
 import useActiveWorkspace from '@hooks/useActiveWorkspace';
+import useCurrentReportID from '@hooks/useCurrentReportID';
 import useLocalize from '@hooks/useLocalize';
+import usePinnedReports from '@hooks/usePinnedReports';
 import {useReportIDs} from '@hooks/useReportIDs';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as Policy from '@userActions/Policy/Policy';
@@ -24,8 +26,11 @@ function SidebarLinksData({insets}: SidebarLinksDataProps) {
     const {translate} = useLocalize();
     const [isLoadingApp] = useOnyx(ONYXKEYS.IS_LOADING_APP, {initialValue: true});
     const [priorityMode] = useOnyx(ONYXKEYS.NVP_PRIORITY_MODE, {initialValue: CONST.PRIORITY_MODE.DEFAULT});
+    const currentReportIDValue = useCurrentReportID();
 
+    const pinnedReports = usePinnedReports(currentReportIDValue?.currentReportID);
     const {orderedReportIDs, currentReportID, policyMemberAccountIDs} = useReportIDs();
+    console.log('[pinnedReports]', pinnedReports.length, orderedReportIDs.length);
 
     useEffect(() => {
         if (!activeWorkspaceID) {

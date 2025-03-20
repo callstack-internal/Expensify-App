@@ -334,6 +334,38 @@ type ReasonAndReportActionThatHasRedBrickRoad = {
     reason: ValueOf<typeof CONST.RBR_REASONS>;
     reportAction?: OnyxEntry<ReportAction>;
 };
+function getPinnedReports(
+    currentReportId: string | undefined,
+    betas: OnyxEntry<Beta[]>,
+    policies: OnyxCollection<PolicySelector>,
+    priorityMode: OnyxEntry<PriorityMode>,
+    transactionViolations: OnyxCollection<TransactionViolation[]>,
+) {
+    const isInFocusMode = priorityMode === CONST.PRIORITY_MODE.GSD;
+    const reports = Object.values(allReports ?? {})
+        .filter((report) => report?.isPinned)
+        .map((report) => ({
+            displayName: getReportName(report),
+            ...report,
+        }))
+        .sort((a, b) => (a?.displayName && b?.displayName ? localeCompare(a.displayName, b.displayName) : 0))
+        .filter((report) => {
+            const doesReportHaveViolations = shouldDisplayViolationsRBRInLHN(report, transactionViolations);
+            return shouldReportBeInOptionList({
+                report,
+                currentReportId,
+                isInFocusMode,
+                betas,
+                policies: policies as OnyxCollection<Policy>,
+                excludeEmptyChats: true,
+                doesReportHaveViolations,
+                includeSelfDM: true,
+            });
+        })
+        .map((report) => report.reportID);
+
+    return reports;
+}
 
 function getReasonAndReportActionThatHasRedBrickRoad(
     report: Report,
@@ -797,4 +829,5 @@ export default {
     getWelcomeMessage,
     getReasonAndReportActionThatHasRedBrickRoad,
     shouldShowRedBrickRoad,
+    getPinnedReports,
 };

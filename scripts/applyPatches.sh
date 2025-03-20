@@ -60,7 +60,14 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     exit 0
   fi
 else
-  # patch-package failed
-  error "patch-package failed to apply a patch"
-  exit "$EXIT_CODE"
+  echo "patch-package failed to apply a patch, cleaning node_modules and trying once again."
+
+  rm -rf "node_modules"
+
+  echo "Node_modules removed successfully."
+
+  echo "Reinstalling..."
+
+  npm install
+
 fi

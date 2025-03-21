@@ -1,7 +1,7 @@
+import HybridAppModule from '@expensify/react-native-hybrid-app';
 import {Str} from 'expensify-common';
-import React, {useCallback, useContext, useState} from 'react';
 import type {ReactElement} from 'react';
-import {NativeModules} from 'react-native';
+import React, {useCallback, useContext, useState} from 'react';
 import {useOnyx} from 'react-native-onyx';
 import useLocalize from '@hooks/useLocalize';
 import usePermissions from '@hooks/usePermissions';
@@ -14,6 +14,7 @@ import Log from '@libs/Log';
 import Navigation from '@libs/Navigation/Navigation';
 import {getAdminsPrivateEmailDomains, isPaidGroupPolicy} from '@libs/PolicyUtils';
 import colors from '@styles/theme/colors';
+import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
@@ -69,14 +70,14 @@ function BookTravelButton({text}: BookTravelButtonProps) {
         if (!primaryContactMethod || Str.isSMSLogin(primaryContactMethod)) {
             setErrorMessage(
                 <Text style={[styles.flexRow, StyleUtils.getDotIndicatorTextStyles(true)]}>
-                    <Text style={[StyleUtils.getDotIndicatorTextStyles(true)]}>{translate('travel.phoneErrorIntro')}</Text>{' '}
+                    <Text style={[StyleUtils.getDotIndicatorTextStyles(true)]}>{translate('travel.phoneError.phrase1')}</Text>{' '}
                     <TextLink
                         style={[StyleUtils.getDotIndicatorTextStyles(true), styles.link]}
-                        onPress={() => Navigation.navigate(ROUTES.SETTINGS_CONTACT_METHODS.getRoute())}
+                        onPress={() => Navigation.navigate(ROUTES.SETTINGS_CONTACT_METHODS.getRoute(Navigation.getActiveRoute()))}
                     >
-                        {translate('travel.phoneErrorLink')}
+                        {translate('travel.phoneError.link')}
                     </TextLink>
-                    .
+                    <Text style={[StyleUtils.getDotIndicatorTextStyles(true)]}>{translate('travel.phoneError.phrase2')}</Text>
                 </Text>,
             );
             return;
@@ -93,13 +94,13 @@ function BookTravelButton({text}: BookTravelButtonProps) {
                 ?.then(() => {
                     // When a user selects "Trips" in the Expensify Classic menu, the HybridApp opens the ManageTrips page in NewDot.
                     // The wasNewDotLaunchedJustForTravel flag indicates if NewDot was launched solely for this purpose.
-                    if (!NativeModules.HybridAppModule || !wasNewDotLaunchedJustForTravel) {
+                    if (!CONFIG.IS_HYBRID_APP || !wasNewDotLaunchedJustForTravel) {
                         return;
                     }
 
                     // Close NewDot if it was opened only for Travel, as its purpose is now fulfilled.
                     Log.info('[HybridApp] Returning to OldDot after opening TravelDot');
-                    NativeModules.HybridAppModule.closeReactNativeApp({shouldSignOut: false, shouldSetNVP: false});
+                    HybridAppModule.closeReactNativeApp({shouldSignOut: false, shouldSetNVP: false});
                     setRootStatusBarEnabled(false);
                 })
                 ?.catch(() => {
@@ -115,11 +116,14 @@ function BookTravelButton({text}: BookTravelButtonProps) {
             const adminDomains = getAdminsPrivateEmailDomains(policy);
             if (adminDomains.length === 0) {
                 Navigation.navigate(ROUTES.TRAVEL_PUBLIC_DOMAIN_ERROR);
-            } else if (isEmptyObject(policy?.address)) {
-                // Spotnana requires an address anytime an entity is created for a policy
-                Navigation.navigate(ROUTES.WORKSPACE_OVERVIEW_ADDRESS.getRoute(policy?.id, Navigation.getActiveRoute()));
             } else if (adminDomains.length === 1) {
-                navigateToAcceptTerms(adminDomains.at(0) ?? CONST.TRAVEL.DEFAULT_DOMAIN);
+                const domain = adminDomains.at(0) ?? CONST.TRAVEL.DEFAULT_DOMAIN;
+                if (isEmptyObject(policy?.address)) {
+                    // Spotnana requires an address anytime an entity is created for a policy
+                    Navigation.navigate(ROUTES.TRAVEL_WORKSPACE_ADDRESS.getRoute(domain));
+                } else {
+                    navigateToAcceptTerms(domain);
+                }
             } else {
                 Navigation.navigate(ROUTES.TRAVEL_DOMAIN_SELECTOR);
             }

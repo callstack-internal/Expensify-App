@@ -7,6 +7,16 @@
 SCRIPTS_DIR=$(dirname "${BASH_SOURCE[0]}")
 source "$SCRIPTS_DIR/shellUtils.sh"
 
+# Set a flag file to track if we've already retried once
+FLAG_FILE="./flag_file.txt"
+
+# Read the flag value from the file, default to "no" if the file does not exist
+if [[ -f "$FLAG_FILE" ]]; then
+  DID_REINSTALL_ON_NPM_FAIL=$(<"$FLAG_FILE")
+else
+  DID_REINSTALL_ON_NPM_FAIL="no"
+fi
+
 # Wrapper to run patch-package.
 function patchPackage {
   # See if we're in the HybridApp repo
@@ -60,14 +70,22 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     exit 0
   fi
 else
-  echo "patch-package failed to apply a patch, cleaning node_modules and trying once again."
+  if [[ "$DID_REINSTALL_ON_NPM_FAIL" == "no" ]]; then
+    echo "yes" > "$FLAG_FILE"
 
-  rm -rf "node_modules"
+    echo "patch-package failed to apply a patch, cleaning node_modules and trying once again."
 
-  echo "Node_modules removed successfully."
+    rm -rf "node_modules"
+    echo "Node_modules removed successfully."
 
-  echo "Reinstalling..."
-
-  npm install
-
+    echo "Reinstalling..."
+    npm install
+  else
+    # patch-package failed
+    error "patch-package failed to apply a patch"
+    exit "$EXIT_CODE"
+  fi
 fi
+
+# Clean up the flag file
+rm -f "$FLAG_FILE"

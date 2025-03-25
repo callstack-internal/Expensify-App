@@ -278,7 +278,6 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                 shouldAddTopSafeAreaPadding = true;
                 break;
             default:
-                modalStyle = {};
                 modalContainerStyle = {};
                 swipeDirection = 'down';
                 animationIn = 'slideInUp';

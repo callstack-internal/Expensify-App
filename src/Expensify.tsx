@@ -11,6 +11,7 @@ import FocusModeNotification from './components/FocusModeNotification';
 import GrowlNotification from './components/GrowlNotification';
 import AppleAuthWrapper from './components/SignInButtons/AppleAuthWrapper';
 import SplashScreenHider from './components/SplashScreenHider';
+import TestDrive from './components/TestDrive';
 import TestToolsModal from './components/TestToolsModal';
 import UpdateAppModal from './components/UpdateAppModal';
 import CONFIG from './CONFIG';
@@ -291,6 +292,7 @@ function Expensify() {
             )}
             {shouldHideSplash && <SplashScreenHider onHide={onSplashHide} />}
             <TestToolsModal />
+            <TestDrive />
         </DeeplinkWrapper>
     );
 }

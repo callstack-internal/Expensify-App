@@ -1870,6 +1870,10 @@ const translations = {
             title: 'Welcome to Expensify',
             description: 'One app to handle all your business and personal spend in a chat. Built for your business, your team, and your friends.',
         },
+        testDriveModal: {
+            title: 'Want to take us for a test drive?',
+            description: 'If you’re new to Expensify, take a quick product tour to get up to speed fast. No pit stops required!',
+        },
         getStarted: 'Get started',
         whatsYourName: "What's your name?",
         peopleYouMayKnow: 'People you may know are already here! Verify your email to join them.',

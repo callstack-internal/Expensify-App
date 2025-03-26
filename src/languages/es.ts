@@ -1872,6 +1872,10 @@ const translations = {
             title: 'Bienvenido a Expensify',
             description: 'Una aplicación para gestionar todos tus gastos de empresa y personales en un chat. Pensada para tu empresa, tu equipo y tus amigos.',
         },
+        testDriveModal: {
+            title: 'Want to take us for a test drive?',
+            description: 'If you’re new to Expensify, take a quick product tour to get up to speed fast. No pit stops required!',
+        },
         getStarted: 'Comenzar',
         whatsYourName: '¿Cómo te llamas?',
         peopleYouMayKnow: 'Las personas que tal vez conozcas ya están aquí. Verifica tu correo electrónico para unirte a ellos.',

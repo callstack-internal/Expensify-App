@@ -2,14 +2,16 @@ import React from 'react';
 import {View} from 'react-native';
 import Button from '@components/Button';
 import Text from '@components/Text';
+import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
 import type TestDriveBannerProps from './types';
 
 function TestDriveBanner({onPress}: TestDriveBannerProps) {
     const styles = useThemeStyles();
+    const {shouldUseNarrowLayout} = useResponsiveLayout();
     return (
-        <View style={[{height: 40}, styles.gap2, styles.alignItemsCenter, styles.flexRow, styles.justifyContentCenter]}>
-            <Text>Currently Test Driving Expensify. Ready to try out the real thing?</Text>
+        <View style={[styles.highlightBG, styles.gap2, styles.alignItemsCenter, styles.flexRow, styles.justifyContentCenter, {height: 40}]}>
+            <Text>{shouldUseNarrowLayout ? "You're currently test driving Expensify" : 'Currently Test Driving Expensify. Ready to try out the real thing?'}</Text>
             <Button
                 text="Get started"
                 small

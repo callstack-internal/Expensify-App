@@ -10,6 +10,9 @@ source "$SCRIPTS_DIR/shellUtils.sh"
 # Set a flag file to track if we've already retried once
 FLAG_FILE="./flag_file.txt"
 
+# Ensure FLAG_FILE is removed when the script exits
+trap '[[ -f "$FLAG_FILE" ]] && rm -f "$FLAG_FILE"' EXIT
+
 # Read the flag value from the file, default to "no" if the file does not exist
 if [[ -f "$FLAG_FILE" ]]; then
   DID_REINSTALL_ON_NPM_FAIL=$(<"$FLAG_FILE")
@@ -17,12 +20,13 @@ else
   DID_REINSTALL_ON_NPM_FAIL="no"
 fi
 
+  # See if we're in the HybridApp repo
+IS_HYBRID_APP_REPO=$(scripts/is-hybrid-app.sh)
+ # See if we should force standalone NewDot build
+NEW_DOT_FLAG="${STANDALONE_NEW_DOT:-false}"
+
 # Wrapper to run patch-package.
 function patchPackage {
-  # See if we're in the HybridApp repo
-  IS_HYBRID_APP_REPO=$(scripts/is-hybrid-app.sh)
-  NEW_DOT_FLAG="${STANDALONE_NEW_DOT:-false}"
-
   OS="$(uname)"
   if [[ "$OS" == "Darwin" || "$OS" == "Linux" ]]; then
     if [[ "$IS_HYBRID_APP_REPO" == "true" && "$NEW_DOT_FLAG" == "false" ]]; then
@@ -78,6 +82,13 @@ else
     rm -rf "node_modules"
     echo "Node_modules removed successfully."
 
+    if [[ "$IS_HYBRID_APP_REPO" == "true" && "$NEW_DOT_FLAG" == "false" ]]; then
+      echo "Removing node_modules from Mobile-Expensify..."
+
+      rm -rf "Mobile-Expensify/node_modules"
+      echo "Node_modules removed successfully from Mobile-Expensify."
+    fi
+
     echo "Reinstalling..."
     npm install
   else
@@ -86,6 +97,3 @@ else
     exit "$EXIT_CODE"
   fi
 fi
-
-# Clean up the flag file
-rm -f "$FLAG_FILE"

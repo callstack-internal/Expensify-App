@@ -1873,6 +1873,7 @@ const translations = {
         testDriveModal: {
             title: 'Want to take us for a test drive?',
             description: 'If you’re new to Expensify, take a quick product tour to get up to speed fast. No pit stops required!',
+            confirmText: 'Start test drive',
         },
         getStarted: 'Get started',
         whatsYourName: "What's your name?",

@@ -1,17 +1,23 @@
 import React from 'react';
 import useLocalize from '@hooks/useLocalize';
-import * as Welcome from '@userActions/Welcome';
+import useThemeStyles from '@hooks/useThemeStyles';
+import CONST from '@src/CONST';
 import FeatureTrainingModal from './FeatureTrainingModal';
 
 function TestDriveModal() {
+    const styles = useThemeStyles();
     const {translate} = useLocalize();
 
     return (
         <FeatureTrainingModal
+            illustrationOuterContainerStyle={styles.p0}
+            videoURL={CONST.WELCOME_VIDEO_URL}
             title={translate('onboarding.testDriveModal.title')}
             description={translate('onboarding.testDriveModal.description')}
-            confirmText={translate('footer.getStarted')}
-            onClose={Welcome.completeHybridAppOnboarding}
+            helpText={translate('common.skip')}
+            confirmText={translate('onboarding.testDriveModal.confirmText')}
+            onHelp={() => {}}
+            onConfirm={() => {}}
         />
     );
 }

@@ -9,7 +9,6 @@ function TestDriveRenderer() {
             }}
             style={{
                 flex: 1,
-                marginTop: 50,
             }}
         />
     );

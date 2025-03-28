@@ -19,6 +19,7 @@ const createDownloadLink = (href: string, fileName: string) => {
     document.body.appendChild(link);
 
     // Start download
+    console.log('BEFORE START DOWNLOAD');
     link.click();
 
     // Clean up and remove the link
@@ -31,7 +32,9 @@ const createDownloadLink = (href: string, fileName: string) => {
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const fetchFileDownload: FileDownload = (url, fileName, successMessage = '', shouldOpenExternalLink = false, formData = undefined, requestType = 'get', onDownloadFailed?: () => void) => {
+    console.log('fetchFileDownload');
     const resolvedUrl = tryResolveUrlFromApiRoot(url);
+    console.log('resolvedUrl: ', resolvedUrl);
 
     const isApiUrl = resolvedUrl.startsWith(ApiUtils.getApiRoot());
     const isAttachmentUrl = CONST.ATTACHMENT_LOCAL_URL_PREFIX.some((prefix) => resolvedUrl.startsWith(prefix));
@@ -43,6 +46,8 @@ const fetchFileDownload: FileDownload = (url, fileName, successMessage = '', sho
     ) {
         // Different origin URLs might pose a CORS issue during direct downloads.
         // Opening in a new tab avoids this limitation, letting the browser handle the download.
+
+        console.log('PYK HERE: ');
         Link.openExternalLink(url);
         return Promise.resolve();
     }
@@ -57,8 +62,11 @@ const fetchFileDownload: FileDownload = (url, fileName, successMessage = '', sho
         .then((response) => {
             const contentType = response.headers.get('content-type');
             if (contentType === 'application/json' && fileName?.includes('.csv')) {
+                console.log('HERE ERROR: ');
                 throw new Error();
             }
+            console.log('HERE RETURN: ');
+
             return response.blob();
         })
         .then((blob) => {
@@ -66,12 +74,19 @@ const fetchFileDownload: FileDownload = (url, fileName, successMessage = '', sho
             const href = URL.createObjectURL(new Blob([blob]));
             const completeFileName = appendTimeToFileName(fileName ?? getFileName(url));
             createDownloadLink(href, completeFileName);
+
+            console.log('completeFileName: ', completeFileName);
+            console.log('href: ', href);
         })
         .catch(() => {
             if (onDownloadFailed) {
+                console.log('Download failed: ', completeFileName);
+
                 onDownloadFailed();
             } else {
                 // file could not be downloaded, open sourceURL in new tab
+                console.log('file could not be downloaded, open sourceURL in new tab: ', url);
+
                 Link.openExternalLink(url);
             }
         });

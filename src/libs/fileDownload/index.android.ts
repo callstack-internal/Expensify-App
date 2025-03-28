@@ -13,15 +13,20 @@ function hasAndroidPermission(): Promise<boolean> {
     // On Android API Level 33 and above, these permissions do nothing and always return 'never_ask_again'
     // More info here: https://stackoverflow.com/a/74296799
     if (Number(Platform.Version) >= 33) {
+        console.log('PYK IN hasAndroidPermission above =>33 ');
         return Promise.resolve(true);
     }
 
     // Read and write permission
+
     const writePromise = PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
     const readPromise = PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
 
     return Promise.all([writePromise, readPromise]).then(([hasWritePermission, hasReadPermission]) => {
         if (hasWritePermission && hasReadPermission) {
+            console.log('hasWritePermission: ', hasWritePermission);
+            console.log('hasReadPermission: ', hasReadPermission);
+
             return true; // Return true if permission is already given
         }
 
@@ -39,10 +44,18 @@ function handleDownload(url: string, fileName?: string, successMessage?: string)
     return new Promise((resolve) => {
         const dirs = RNFetchBlob.fs.dirs;
 
+        console.log('dirs: ', dirs);
+
         // Android files will download to Download directory
         const path = dirs.DownloadDir;
+        console.log('path: ', path);
+
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Disabling this line for safeness as nullish coalescing works only if the value is undefined or null, and since fileName can be an empty string we want to default to `FileUtils.getFileName(url)`
         const attachmentName = FileUtils.appendTimeToFileName(fileName || FileUtils.getFileName(url));
+
+        console.log('attachmentName: ', attachmentName);
+        // const encodedAttackmentNames = encodeURI(attachmentName);
+        // console.log('encodedAttackmentsName: ', encodedAttackmentNames);
 
         const isLocalFile = url.startsWith('file://');
 
@@ -51,21 +64,36 @@ function handleDownload(url: string, fileName?: string, successMessage?: string)
 
         if (!isLocalFile) {
             // Fetching the attachment
+            console.log('isLocalFile: ', isLocalFile);
+            const encodedUrl = encodeURI(url);
+            const encodedattachmentName = encodeURI(attachmentName);
+            // const encodedUrl = url;
+
+            console.log('encodedUrl: ', encodedUrl);
             fetchedAttachment = RNFetchBlob.config({
                 fileCache: true,
-                path: `${path}/${attachmentName}`,
+                path: `${path}/${encodedattachmentName}`,
                 addAndroidDownloads: {
                     useDownloadManager: true,
                     notification: false,
-                    path: `${path}/Expensify/${attachmentName}`,
+                    path: `${path}/Expensify/${encodedattachmentName}`,
                 },
-            }).fetch('GET', url);
+            }).fetch('GET', encodedUrl);
         }
 
         // Resolving the fetched attachment
+        console.log('before fetchedAttachment: ', fetchedAttachment);
+        // console.log('console.log: encodedUrl ', encodedUrl);
+
+        console.log('url ', url);
+
         fetchedAttachment
             .then((attachment) => {
+                console.log('AFTER FETCH: ', attachment);
+
                 if (!isLocalFile && (!attachment || !attachment.info())) {
+                    console.log('IN first in reject: ', attachment);
+
                     return Promise.reject();
                 }
 
@@ -73,9 +101,10 @@ function handleDownload(url: string, fileName?: string, successMessage?: string)
                     attachmentPath = (attachment as FetchBlobResponse).path();
                 }
 
+                console.log('BEFORE COPY TO MEDIA STORE: ');
                 return RNFetchBlob.MediaCollection.copyToMediaStore(
                     {
-                        name: attachmentName,
+                        name: encodeURI(attachmentName),
                         parentFolder: 'Expensify',
                         mimeType: null,
                     },
@@ -148,15 +177,21 @@ const fileDownload: FileDownload = (url, fileName, successMessage, _, formData, 
     new Promise((resolve) => {
         hasAndroidPermission()
             .then((hasPermission) => {
+                console.log('In hasPermission: ', hasPermission);
+
                 if (hasPermission) {
+                    console.log('hasPermission: ', hasPermission);
+
                     if (requestType === CONST.NETWORK.METHOD.POST) {
                         return postDownloadFile(url, fileName, formData, onDownloadFailed);
                     }
+                    console.log('In before file downloadL ', url);
                     return handleDownload(url, fileName, successMessage);
                 }
                 FileUtils.showPermissionErrorAlert();
             })
-            .catch(() => {
+            .catch((error) => {
+                console.log('SHOWING PERMISSION ERROR', error);
                 FileUtils.showPermissionErrorAlert();
             })
             .finally(() => resolve());

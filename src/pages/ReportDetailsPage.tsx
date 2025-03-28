@@ -160,7 +160,9 @@ type CaseID = ValueOf<typeof CASES>;
 function ReportDetailsPage({policies, report, route, reportMetadata}: ReportDetailsPageProps) {
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
-    const {canUsePDFExport} = usePermissions();
+    // const {canUsePDFExport} = usePermissions();
+    const canUsePDFExport = true;
+    console.log('In ReportDetailsPage: canUsePDFExport: ', canUsePDFExport);
     const theme = useTheme();
     const styles = useThemeStyles();
     const backTo = route.params.backTo;
@@ -406,6 +408,7 @@ function ReportDetailsPage({policies, report, route, reportMetadata}: ReportDeta
 
     const beginPDFExport = useCallback(() => {
         setIsPDFModalVisible(true);
+        console.log('In beginPDFExport');
         exportReportToPDF({reportID: report.reportID});
     }, [report]);
 
@@ -565,7 +568,9 @@ function ReportDetailsPage({policies, report, route, reportMetadata}: ReportDeta
                     });
                 },
             });
+            console.log('canUsePDFExport: ', canUsePDFExport);
             if (canUsePDFExport) {
+                console.log('ADDING TO THE ITEMS');
                 items.push({
                     key: CONST.REPORT_DETAILS_MENU_ITEM.DOWNLOAD_PDF,
                     translationKey: 'common.downloadAsPDF',

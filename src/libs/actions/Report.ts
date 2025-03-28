@@ -4861,16 +4861,26 @@ function exportReportToPDF({reportID}: ExportReportPDFParams) {
         reportID,
     } satisfies ExportReportPDFParams;
 
+    console.log('BEFORE API WRITE:');
+    console.log('params:', params);
+    console.log('optimisticData: ', optimisticData);
+    console.log('failureData: ', failureData);
+
     API.write(WRITE_COMMANDS.EXPORT_REPORT_TO_PDF, params, {optimisticData, failureData});
 }
 
 function downloadReportPDF(fileName: string, reportName: string) {
-    const baseURL = addTrailingForwardSlash(getOldDotURLFromEnvironment(environment));
+    // const baseURL = addTrailingForwardSlash(getOldDotURLFromEnvironment(environment));
+    // const baseURL = 'https://www.expensify.com.dev/';
+    const baseURL = 'https://staging.expensify.com/';
+
+    console.log('baseURL: ', baseURL);
     const downloadFileName = `${reportName}.pdf`;
     setDownload(fileName, true);
     const pdfURL = `${baseURL}secure?secureType=pdfreport&filename=${encodeURIComponent(fileName)}&downloadName=${encodeURIComponent(downloadFileName)}&email=${encodeURIComponent(
         currentUserEmail ?? '',
     )}`;
+    console.log('pdfURL: ', pdfURL);
     fileDownload(addEncryptedAuthTokenToURL(pdfURL, true), downloadFileName, '', Browser.isMobileSafari()).then(() => setDownload(fileName, false));
 }
 

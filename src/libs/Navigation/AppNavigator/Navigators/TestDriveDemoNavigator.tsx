@@ -1,7 +1,7 @@
 import React from 'react';
 import {View} from 'react-native';
 import NoDropZone from '@components/DragAndDrop/NoDropZone';
-import TestDriveModal from '@components/TestDriveModal';
+import TestDriveDemo from '@components/TestDrive/TestDriveDemo';
 import createPlatformStackNavigator from '@libs/Navigation/PlatformStackNavigation/createPlatformStackNavigator';
 import Animations from '@libs/Navigation/PlatformStackNavigation/navigationOptions/animation';
 import type {TestDriveDemoNavigatorParamList} from '@libs/Navigation/types';
@@ -16,7 +16,7 @@ function TestDriveDemoNavigator() {
                 <Stack.Navigator screenOptions={{headerShown: false, animation: Animations.SLIDE_FROM_RIGHT}}>
                     <Stack.Screen
                         name={SCREENS.TEST_DRIVE_DEMO.ROOT}
-                        component={TestDriveModal}
+                        component={TestDriveDemo}
                     />
                 </Stack.Navigator>
             </View>

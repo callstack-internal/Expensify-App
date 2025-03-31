@@ -152,7 +152,7 @@ import {addTrailingForwardSlash} from '@libs/Url';
 import {generateAccountID} from '@libs/UserUtils';
 import Visibility from '@libs/Visibility';
 import CONFIG from '@src/CONFIG';
-import type {OnboardingAccounting, OnboardingCompanySize} from '@src/CONST';
+import type {OnboardingAccounting, OnboardingCompanySize, OnboardingTaskLinks} from '@src/CONST';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Route} from '@src/ROUTES';
@@ -3936,13 +3936,14 @@ function prepareOnboardingOnyxData(
         reportComment: textComment.commentText,
     };
 
-    const onboardingTaskParams = {
+    const onboardingTaskParams: OnboardingTaskLinks = {
         integrationName,
         workspaceSettingsLink: `${environmentURL}/${ROUTES.WORKSPACE_INITIAL.getRoute(onboardingPolicyID)}`,
         workspaceCategoriesLink: `${environmentURL}/${ROUTES.WORKSPACE_CATEGORIES.getRoute(onboardingPolicyID)}`,
         workspaceMembersLink: `${environmentURL}/${ROUTES.WORKSPACE_MEMBERS.getRoute(onboardingPolicyID)}`,
         workspaceMoreFeaturesLink: `${environmentURL}/${ROUTES.WORKSPACE_MORE_FEATURES.getRoute(onboardingPolicyID)}`,
         navatticURL: getNavatticURL(environment, engagementChoice),
+        testDriveURL: `${environmentURL}/${ROUTES.TEST_DRIVE_MODAL_ROOT}`,
         workspaceAccountingLink: `${environmentURL}/${ROUTES.POLICY_ACCOUNTING.getRoute(onboardingPolicyID)}`,
     };
 

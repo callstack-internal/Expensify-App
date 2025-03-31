@@ -125,6 +125,14 @@ const selfGuidedTourTask: OnboardingTask = {
     description: ({navatticURL}) => `[Take a self-guided product tour](${navatticURL}) and learn about everything Expensify has to offer.`,
 };
 
+const testDriveTask: OnboardingTask = {
+    type: 'viewTour',
+    autoCompleted: false,
+    mediaAttributes: {},
+    title: ({testDriveURL}) => `Take a [test drive](${testDriveURL})`,
+    description: ({testDriveURL}) => `[Take a quick product tour](${testDriveURL}) to see why Expensify is the fastest way to do your expenses.`,
+};
+
 const createWorkspaceTask: OnboardingTask = {
     type: 'createWorkspace',
     autoCompleted: true,
@@ -293,6 +301,7 @@ type OnboardingTaskLinks = Partial<{
     workspaceMembersLink: string;
     workspaceAccountingLink: string;
     navatticURL: string;
+    testDriveURL: string;
 }>;
 
 type OnboardingTask = {
@@ -5359,7 +5368,7 @@ const CONST = {
             message: 'Here are some important tasks to help get your team’s expenses under control.',
             tasks: [
                 createWorkspaceTask,
-                selfGuidedTourTask,
+                testDriveTask,
                 {
                     type: 'setupCategoriesAndTags',
                     autoCompleted: false,
@@ -6981,6 +6990,7 @@ export type {
     IOUType,
     OnboardingPurpose,
     OnboardingCompanySize,
+    OnboardingTaskLinks,
     IOURequestType,
     SubscriptionType,
     FeedbackSurveyOptionID,

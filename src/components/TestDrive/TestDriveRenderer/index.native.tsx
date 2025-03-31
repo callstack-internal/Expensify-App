@@ -5,8 +5,9 @@ function TestDriveRenderer() {
     return (
         <WebView
             source={{
-                uri: 'https://capture.navattic.com/clzt21qk0000109l46k8tbtce',
+                uri: 'https://app.storylane.io/demo/jiletmctlfcs?embed=inline',
             }}
+            originWhitelist={['http://', 'https://', 'about:']}
             style={{
                 flex: 1,
             }}

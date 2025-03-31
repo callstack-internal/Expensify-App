@@ -1,9 +1,10 @@
 import {Audio} from 'expo-av';
 import React, {useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {NativeEventSubscription} from 'react-native';
-import {AppState, Linking, Platform} from 'react-native';
+import {AppState, InteractionManager, Linking, Platform} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import Onyx, {useOnyx} from 'react-native-onyx';
+import OnboardingModal from '@components/OnboardingModal';
 import ConfirmModal from './components/ConfirmModal';
 import DeeplinkWrapper from './components/DeeplinkWrapper';
 import EmojiPicker from './components/EmojiPicker/EmojiPicker';
@@ -101,6 +102,8 @@ function Expensify() {
     useDebugShortcut();
 
     const [initialUrl, setInitialUrl] = useState<string | null>(null);
+    const [isTestDriveActive, setIsTestDriveActive] = useState<boolean>(false);
+    const [isOnboardingModalVisible, setIsOnboardingModalVisible] = useState<boolean>(true);
 
     useEffect(() => {
         if (isCheckingPublicRoom) {
@@ -292,7 +295,18 @@ function Expensify() {
             )}
             {shouldHideSplash && <SplashScreenHider onHide={onSplashHide} />}
             <TestToolsModal />
-            <TestDrive />
+            <TestDrive
+                isVisible={isTestDriveActive}
+                onFinish={() => setIsTestDriveActive(false)}
+            />
+            <OnboardingModal
+                isVisible={isOnboardingModalVisible}
+                onSkip={() => setIsOnboardingModalVisible(false)}
+                onStart={() => {
+                    setIsOnboardingModalVisible(false);
+                    setTimeout(() => setIsTestDriveActive(true), 500);
+                }}
+            />
         </DeeplinkWrapper>
     );
 }

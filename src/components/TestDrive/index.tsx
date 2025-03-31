@@ -1,27 +1,22 @@
-import React, {useCallback, useState} from 'react';
+import React from 'react';
 import Modal from '@components/Modal';
 import SafeAreaConsumer from '@components/SafeAreaConsumer';
 import TestDriveBanner from './TestDriveBanner';
 import TestDriveRenderer from './TestDriveRenderer';
+import type TestDriveProps from './types';
 
-function TestDrive() {
-    const [isVisible, setIsVisible] = useState(true);
-
-    const finishTestDrive = useCallback(() => {
-        setIsVisible(false);
-    }, []);
-
+function TestDrive({isVisible, onFinish}: TestDriveProps) {
     return (
         <SafeAreaConsumer>
-            {({paddingTop}) => (
+            {({paddingTop, paddingBottom}) => (
                 <Modal
                     isVisible={isVisible}
                     fullscreen
                     onClose={() => {}}
                     style={{backgroundColor: 'white'}}
-                    innerContainerStyle={{flex: 1, marginTop: paddingTop}}
+                    innerContainerStyle={{flex: 1, marginTop: paddingTop, marginBottom: paddingBottom}}
                 >
-                    <TestDriveBanner onPress={finishTestDrive} />
+                    <TestDriveBanner onPress={onFinish} />
                     <TestDriveRenderer />
                 </Modal>
             )}

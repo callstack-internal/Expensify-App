@@ -57,6 +57,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>venmo</string>
+		<string>about</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

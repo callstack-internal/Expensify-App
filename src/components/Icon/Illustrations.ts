@@ -153,6 +153,7 @@ import Workflows from '@assets/images/simple-illustrations/simple-illustration__
 import ExpensifyApprovedLogoLight from '@assets/images/subscription-details__approvedlogo--light.svg';
 import ExpensifyApprovedLogo from '@assets/images/subscription-details__approvedlogo.svg';
 import TurtleInShell from '@assets/images/turtle-in-shell.svg';
+import FastTrack from '@assets/images/Fast-Track-R3-02 1.svg';
 
 export {
     Abracadabra,
@@ -310,4 +311,5 @@ export {
     Flash,
     ExpensifyMobileApp,
     ReportReceipt,
+    FastTrack,
 };

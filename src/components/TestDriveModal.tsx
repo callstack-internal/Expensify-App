@@ -1,8 +1,8 @@
 import React from 'react';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
-import CONST from '@src/CONST';
 import FeatureTrainingModal from './FeatureTrainingModal';
+import * as Illustrations from './Icon/Illustrations';
 
 function TestDriveModal() {
     const styles = useThemeStyles();
@@ -10,8 +10,8 @@ function TestDriveModal() {
 
     return (
         <FeatureTrainingModal
+            image={Illustrations.FastTrack}
             illustrationOuterContainerStyle={styles.p0}
-            videoURL={CONST.WELCOME_VIDEO_URL}
             title={translate('onboarding.testDriveModal.title')}
             description={translate('onboarding.testDriveModal.description')}
             helpText={translate('common.skip')}

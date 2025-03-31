@@ -64,9 +64,10 @@ import LeftModalNavigator from './Navigators/LeftModalNavigator';
 import MigratedUserWelcomeModalNavigator from './Navigators/MigratedUserWelcomeModalNavigator';
 import OnboardingModalNavigator from './Navigators/OnboardingModalNavigator';
 import RightModalNavigator from './Navigators/RightModalNavigator';
+import TestDriveDemoNavigator from './Navigators/TestDriveDemoNavigator';
+import TestDriveModalNavigator from './Navigators/TestDriveModalNavigator';
 import WelcomeVideoModalNavigator from './Navigators/WelcomeVideoModalNavigator';
 import useRootNavigatorScreenOptions from './useRootNavigatorScreenOptions';
-import TestDriveModalNavigator from './Navigators/TestDriveModalNavigator';
 
 type AuthScreensProps = {
     /** Session of currently logged in user */
@@ -601,6 +602,11 @@ function AuthScreens({session, lastOpenedPublicRoomID, initialLastUpdateIDApplie
                     name={NAVIGATORS.TEST_DRIVE_MODAL_NAVIGATOR}
                     options={rootNavigatorScreenOptions.basicModalNavigator}
                     component={TestDriveModalNavigator}
+                />
+                <RootStack.Screen
+                    name={NAVIGATORS.TEST_DRIVE_DEMO_NAVIGATOR}
+                    options={rootNavigatorScreenOptions.basicModalNavigator}
+                    component={TestDriveDemoNavigator}
                 />
                 <RootStack.Screen
                     name={NAVIGATORS.FEATURE_TRANING_MODAL_NAVIGATOR}

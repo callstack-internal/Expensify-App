@@ -3943,7 +3943,7 @@ function prepareOnboardingOnyxData(
         workspaceMembersLink: `${environmentURL}/${ROUTES.WORKSPACE_MEMBERS.getRoute(onboardingPolicyID)}`,
         workspaceMoreFeaturesLink: `${environmentURL}/${ROUTES.WORKSPACE_MORE_FEATURES.getRoute(onboardingPolicyID)}`,
         navatticURL: getNavatticURL(environment, engagementChoice),
-        testDriveURL: `${environmentURL}/${ROUTES.TEST_DRIVE_MODAL_ROOT}`,
+        testDriveURL: `${environmentURL}/${ROUTES.TEST_DRIVE_DEMO_ROOT}`,
         workspaceAccountingLink: `${environmentURL}/${ROUTES.POLICY_ACCOUNTING.getRoute(onboardingPolicyID)}`,
     };
 

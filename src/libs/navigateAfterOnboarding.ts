@@ -1,9 +1,12 @@
+import type {OnboardingPurpose} from '@src/CONST';
+import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
 import shouldOpenOnAdminRoom from './Navigation/helpers/shouldOpenOnAdminRoom';
 import Navigation from './Navigation/Navigation';
 import {findLastAccessedReport, isConciergeChatReport} from './ReportUtils';
 
 const navigateAfterOnboarding = (
+    onboardingPurposeSelected: OnboardingPurpose,
     isSmallScreenWidth: boolean,
     canUseDefaultRooms: boolean | undefined,
     onboardingPolicyID?: string,
@@ -12,6 +15,12 @@ const navigateAfterOnboarding = (
     shouldPreventOpenAdminRoom = false,
 ) => {
     Navigation.dismissModal();
+
+    if (onboardingPurposeSelected === CONST.ONBOARDING_CHOICES.MANAGE_TEAM) {
+        setTimeout(() => {
+            Navigation.navigate(ROUTES.TEST_DRIVE_MODAL_ROOT);
+        }, 1000);
+    }
 
     // When hasCompletedGuidedSetupFlow is true, OnboardingModalNavigator in AuthScreen is removed from the navigation stack.
     // On small screens, this removal redirects navigation to HOME. Dismissing the modal doesn't work properly,

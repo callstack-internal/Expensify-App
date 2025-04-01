@@ -6,6 +6,7 @@ import Modal from '@components/Modal';
 import SafeAreaConsumer from '@components/SafeAreaConsumer';
 import useEnvironment from '@hooks/useEnvironment';
 import Navigation from '@libs/Navigation/Navigation';
+import CONST from '@src/CONST';
 import {getTestDriveURL} from '@libs/TourUtils';
 import TestDriveBanner from './TestDriveBanner';
 
@@ -31,8 +32,8 @@ function TestDriveDemo() {
             {({paddingTop, paddingBottom}) => (
                 <Modal
                     isVisible={isVisible}
-                    fullscreen
                     onClose={closeModal}
+                    type={CONST.MODAL.MODAL_TYPE.FULLSCREEN}
                     style={{backgroundColor: 'white'}}
                     innerContainerStyle={{flex: 1, marginTop: paddingTop, marginBottom: paddingBottom}}
                 >

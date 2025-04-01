@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {InteractionManager} from 'react-native';
+import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
 import EmbeddedDemo from '@components/EmbeddedDemo';
 import Modal from '@components/Modal';
 import SafeAreaConsumer from '@components/SafeAreaConsumer';
@@ -35,12 +36,14 @@ function TestDriveDemo({}: TestDriveProps) {
                     innerContainerStyle={{flex: 1, marginTop: paddingTop, marginBottom: paddingBottom}}
                 >
                     <TestDriveBanner onPress={closeModal} />
-                    <EmbeddedDemo
-                        url="https://app.storylane.io/demo/jiletmctlfcs?embed=inline"
-                        iframeTitle="Test Drive"
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        iframeProps={{'data-navattic-demo-id': 'clzt21qk0000109l46k8tbtce'}}
-                    />
+                    <FullPageOfflineBlockingView>
+                        <EmbeddedDemo
+                            url="https://app.storylane.io/demo/jiletmctlfcs?embed=inline"
+                            iframeTitle="Test Drive"
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            iframeProps={{'data-navattic-demo-id': 'clzt21qk0000109l46k8tbtce'}}
+                        />
+                    </FullPageOfflineBlockingView>
                 </Modal>
             )}
         </SafeAreaConsumer>

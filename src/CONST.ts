@@ -129,7 +129,7 @@ const testDriveTask: OnboardingTask = {
     type: 'viewTour',
     autoCompleted: false,
     mediaAttributes: {},
-    title: ({testDriveURL}) => `Take a [test drive](${testDriveURL})`,
+    title: 'Take a test drive',
     description: ({testDriveURL}) => `[Take a quick product tour](${testDriveURL}) to see why Expensify is the fastest way to do your expenses.`,
 };
 

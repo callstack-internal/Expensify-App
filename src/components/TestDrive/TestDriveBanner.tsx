@@ -2,6 +2,7 @@ import React from 'react';
 import {View} from 'react-native';
 import Button from '@components/Button';
 import Text from '@components/Text';
+import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -12,12 +13,17 @@ type TestDriveBannerProps = {
 function TestDriveBanner({onPress}: TestDriveBannerProps) {
     const styles = useThemeStyles();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const {translate} = useLocalize();
 
     return (
         <View style={[styles.highlightBG, styles.gap2, styles.alignItemsCenter, styles.flexRow, styles.justifyContentCenter, {height: 40}]}>
-            <Text>{shouldUseNarrowLayout ? "You're currently test driving Expensify" : 'Currently Test Driving Expensify. Ready to try out the real thing?'}</Text>
+            <Text>
+                {shouldUseNarrowLayout
+                    ? translate('onboarding.currentlyTestDrivingExpensify')
+                    : `${translate('onboarding.currentlyTestDrivingExpensify')}. ${translate('onboarding.readyForTheRealThing')}`}
+            </Text>
             <Button
-                text="Get started"
+                text={translate('onboarding.getStarted')}
                 small
                 success
                 onPress={onPress}

@@ -1877,6 +1877,8 @@ const translations = {
             description: 'If you’re new to Expensify, take a quick product tour to get up to speed fast. No pit stops required!',
             confirmText: 'Start test drive',
         },
+        currentlyTestDrivingExpensify: "You're currently test driving Expensify",
+        readyForTheRealThing: 'Ready for the real thing?',
         getStarted: 'Get started',
         whatsYourName: "What's your name?",
         peopleYouMayKnow: 'People you may know are already here! Verify your email to join them.',

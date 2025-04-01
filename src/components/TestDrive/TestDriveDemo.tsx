@@ -4,12 +4,13 @@ import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOffli
 import EmbeddedDemo from '@components/EmbeddedDemo';
 import Modal from '@components/Modal';
 import SafeAreaConsumer from '@components/SafeAreaConsumer';
+import useEnvironment from '@hooks/useEnvironment';
 import Navigation from '@libs/Navigation/Navigation';
+import {getTestDriveURL} from '@libs/TourUtils';
 import TestDriveBanner from './TestDriveBanner';
 
-type TestDriveProps = {};
-
-function TestDriveDemo({}: TestDriveProps) {
+function TestDriveDemo() {
+    const {environment} = useEnvironment();
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -31,17 +32,17 @@ function TestDriveDemo({}: TestDriveProps) {
                 <Modal
                     isVisible={isVisible}
                     fullscreen
-                    onClose={() => {}}
+                    onClose={closeModal}
                     style={{backgroundColor: 'white'}}
                     innerContainerStyle={{flex: 1, marginTop: paddingTop, marginBottom: paddingBottom}}
                 >
                     <TestDriveBanner onPress={closeModal} />
                     <FullPageOfflineBlockingView>
                         <EmbeddedDemo
-                            url="https://app.storylane.io/demo/jiletmctlfcs?embed=inline"
+                            url={getTestDriveURL(environment)}
                             iframeTitle="Test Drive"
                             // eslint-disable-next-line @typescript-eslint/naming-convention
-                            iframeProps={{'data-navattic-demo-id': 'clzt21qk0000109l46k8tbtce'}}
+                            // iframeProps={{'data-navattic-demo-id': 'clzt21qk0000109l46k8tbtce'}}
                         />
                     </FullPageOfflineBlockingView>
                 </Modal>

@@ -1083,6 +1083,10 @@ const CONST = {
         EMPLOYEE_TOUR_STAGING: 'https://expensify.navattic.com/cf15002s',
         COMPLETED: 'completed',
     },
+    STORYLANE: {
+        ADMIN_TOUR_PRODUCTION: 'https://app.storylane.io/demo/jiletmctlfcs?embed=inline',
+        ADMIN_TOUR_STAGING: 'https://app.storylane.io/demo/jiletmctlfcs?embed=inline',
+    },
     OLD_DOT_PUBLIC_URLS: {
         TERMS_URL: `${EXPENSIFY_URL}/terms`,
         PRIVACY_URL: `${EXPENSIFY_URL}/privacy`,

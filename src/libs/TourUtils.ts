@@ -8,7 +8,12 @@ function getNavatticURL(environment: ValueOf<typeof CONST.ENVIRONMENT>, introSel
     return introSelected === CONST.SELECTABLE_ONBOARDING_CHOICES.MANAGE_TEAM ? adminTourURL : employeeTourURL;
 }
 
+function getTestDriveURL(environment: ValueOf<typeof CONST.ENVIRONMENT>) {
+    return environment === CONST.ENVIRONMENT.PRODUCTION ? CONST.NAVATTIC.ADMIN_TOUR_PRODUCTION : CONST.NAVATTIC.ADMIN_TOUR_STAGING;
+}
+
 export {
     // eslint-disable-next-line import/prefer-default-export
     getNavatticURL,
+    getTestDriveURL,
 };

@@ -121,11 +121,12 @@ const selfGuidedTourTask: OnboardingTask = {
     description: ({navatticURL}) => `[Take a self-guided product tour](${navatticURL}) and learn about everything Expensify has to offer.`,
 };
 
+const testDriveTaskName = 'Take a test drive';
 const testDriveTask: OnboardingTask = {
     type: 'viewTour',
     autoCompleted: false,
     mediaAttributes: {},
-    title: 'Take a test drive',
+    title: testDriveTaskName,
     description: ({testDriveURL}) => `[Take a quick product tour](${testDriveURL}) to see why Expensify is the fastest way to do your expenses.`,
 };
 
@@ -6936,6 +6937,10 @@ const CONST = {
     ILLUSTRATION_ASPECT_RATIO: 39 / 22,
 
     OFFLINE_INDICATOR_HEIGHT: 25,
+
+    TEST_DRIVE: {
+        ONBOARDING_TASK_NAME: testDriveTaskName,
+    },
 } as const;
 
 type Country = keyof typeof CONST.ALL_COUNTRIES;

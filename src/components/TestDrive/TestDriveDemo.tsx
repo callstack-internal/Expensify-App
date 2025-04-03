@@ -5,9 +5,10 @@ import EmbeddedDemo from '@components/EmbeddedDemo';
 import Modal from '@components/Modal';
 import SafeAreaConsumer from '@components/SafeAreaConsumer';
 import useEnvironment from '@hooks/useEnvironment';
+import {completeTestDriveTask} from '@libs/actions/Task';
 import Navigation from '@libs/Navigation/Navigation';
-import CONST from '@src/CONST';
 import {getTestDriveURL} from '@libs/TourUtils';
+import CONST from '@src/CONST';
 import TestDriveBanner from './TestDriveBanner';
 
 function TestDriveDemo() {
@@ -17,6 +18,7 @@ function TestDriveDemo() {
     useEffect(() => {
         InteractionManager.runAfterInteractions(() => {
             setIsVisible(true);
+            completeTestDriveTask();
         });
     }, []);
 

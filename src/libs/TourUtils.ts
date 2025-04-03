@@ -12,6 +12,15 @@ function getTestDriveURL(environment: ValueOf<typeof CONST.ENVIRONMENT>) {
     return environment === CONST.ENVIRONMENT.PRODUCTION ? CONST.NAVATTIC.ADMIN_TOUR_PRODUCTION : CONST.NAVATTIC.ADMIN_TOUR_STAGING;
 }
 
+// Storylane
+// function getTestDriveURL(environment: ValueOf<typeof CONST.ENVIRONMENT>, shouldUseNarrowLayout: boolean) {
+//     if (shouldUseNarrowLayout) {
+//         return environment === CONST.ENVIRONMENT.PRODUCTION ? CONST.STORYLANE.ADMIN_TOUR_MOBILE_PRODUCTION : CONST.STORYLANE.ADMIN_TOUR_MOBILE_STAGING;
+//     }
+
+//     return environment === CONST.ENVIRONMENT.PRODUCTION ? CONST.STORYLANE.ADMIN_TOUR_PRODUCTION : CONST.STORYLANE.ADMIN_TOUR_STAGING;
+// }
+
 export {
     // eslint-disable-next-line import/prefer-default-export
     getNavatticURL,

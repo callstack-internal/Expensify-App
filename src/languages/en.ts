@@ -1874,14 +1874,6 @@ const translations = {
             title: 'Welcome to Expensify',
             description: 'One app to handle all your business and personal spend in a chat. Built for your business, your team, and your friends.',
         },
-        testDriveModal: {
-            title: 'Want to take us for a test drive?',
-            description: 'If you’re new to Expensify, take a quick product tour to get up to speed fast. No pit stops required!',
-            confirmText: 'Start test drive',
-        },
-        currentlyTestDrivingExpensify: "You're currently test driving Expensify",
-        readyForTheRealThing: 'Ready for the real thing?',
-        getStarted: 'Get started',
         whatsYourName: "What's your name?",
         peopleYouMayKnow: 'People you may know are already here! Verify your email to join them.',
         workspaceYouMayJoin: ({domain, email}: WorkspaceYouMayJoin) => `Someone from ${domain} has already created a workspace. Please enter the magic code sent to ${email}.`,
@@ -6005,6 +5997,18 @@ const translations = {
     aiSales: {
         talkWithSales: 'Talk with sales',
         hangUp: 'Hang up',
+    },
+    testDrive: {
+        modal: {
+            title: 'Want to take us for a test drive?',
+            description: 'If you’re new to Expensify, take a quick product tour to get up to speed fast. No pit stops required!',
+            confirmText: 'Start test drive',
+        },
+        banner: {
+            currentlyTestDrivingExpensify: "You're currently test driving Expensify",
+            readyForTheRealThing: 'Ready for the real thing?',
+            getStarted: 'Get started',
+        },
     },
 };
 

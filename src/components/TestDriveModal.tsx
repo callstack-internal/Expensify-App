@@ -25,10 +25,10 @@ function TestDriveModal() {
             image={Illustrations.FastTrack}
             illustrationOuterContainerStyle={styles.p0}
             illustrationAspectRatio={500 / 300}
-            title={translate('onboarding.testDriveModal.title')}
-            description={translate('onboarding.testDriveModal.description')}
+            title={translate('testDrive.modal.title')}
+            description={translate('testDrive.modal.description')}
             helpText={translate('common.skip')}
-            confirmText={translate('onboarding.testDriveModal.confirmText')}
+            confirmText={translate('testDrive.modal.confirmText')}
             onHelp={closeModal}
             onConfirm={navigateTestDriveDemo}
         />

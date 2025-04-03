@@ -19,11 +19,11 @@ function TestDriveBanner({onPress}: TestDriveBannerProps) {
         <View style={[styles.highlightBG, styles.gap2, styles.alignItemsCenter, styles.flexRow, styles.justifyContentCenter, {height: 40}]}>
             <Text>
                 {shouldUseNarrowLayout
-                    ? translate('onboarding.currentlyTestDrivingExpensify')
-                    : `${translate('onboarding.currentlyTestDrivingExpensify')}. ${translate('onboarding.readyForTheRealThing')}`}
+                    ? translate('testDrive.banner.currentlyTestDrivingExpensify')
+                    : `${translate('testDrive.banner.currentlyTestDrivingExpensify')}. ${translate('testDrive.banner.readyForTheRealThing')}`}
             </Text>
             <Button
-                text={translate('onboarding.getStarted')}
+                text={translate('testDrive.banner.getStarted')}
                 small
                 success
                 onPress={onPress}

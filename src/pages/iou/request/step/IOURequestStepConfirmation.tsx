@@ -2,7 +2,7 @@ import {Str} from 'expensify-common';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {FileObject} from '@components/AttachmentModal';
 import ConfirmModal from '@components/ConfirmModal';
 import DragAndDropProvider from '@components/DragAndDrop/Provider';

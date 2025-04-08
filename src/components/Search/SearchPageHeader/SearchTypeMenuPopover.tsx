@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {TextStyle, ViewStyle} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import type {MenuItemWithLink} from '@components/MenuItemList';
 import {usePersonalDetails} from '@components/OnyxProvider';

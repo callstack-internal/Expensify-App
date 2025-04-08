@@ -2,7 +2,7 @@ import type {StackScreenProps} from '@react-navigation/stack';
 import React, {useCallback, useEffect, useState} from 'react';
 import {Linking, View} from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import CheckboxWithLabel from '@components/CheckboxWithLabel';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';

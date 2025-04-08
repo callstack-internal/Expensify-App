@@ -3,7 +3,7 @@ import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import type {RefObject} from 'react';
 import {Dimensions, View} from 'react-native';
 import type {GestureResponderEvent} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ConfirmModal from '@components/ConfirmModal';
 import DelegateNoAccessModal from '@components/DelegateNoAccessModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';

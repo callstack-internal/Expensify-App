@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import AddPlaidBankAccount from '@components/AddPlaidBankAccount';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import ConfirmationPage from '@components/ConfirmationPage';

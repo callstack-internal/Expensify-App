@@ -1,6 +1,6 @@
 import React from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import * as Illustrations from '@components/Icon/Illustrations';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';

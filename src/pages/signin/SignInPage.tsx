@@ -2,7 +2,7 @@ import {Str} from 'expensify-common';
 import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} from 'react';
 import type {ForwardedRef} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ColorSchemeWrapper from '@components/ColorSchemeWrapper';
 import CustomStatusBarAndBackground from '@components/CustomStatusBarAndBackground';
 import ScreenWrapper from '@components/ScreenWrapper';

@@ -1,5 +1,5 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import withPolicyConnections from '@pages/workspace/withPolicyConnections';
 import type {WithPolicyConnectionsProps} from '@pages/workspace/withPolicyConnections';

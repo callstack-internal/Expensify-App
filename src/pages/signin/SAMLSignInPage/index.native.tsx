@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import WebView from 'react-native-webview';
 import type {WebViewNativeEvent} from 'react-native-webview/lib/WebViewTypes';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';

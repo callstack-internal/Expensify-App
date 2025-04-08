@@ -2,7 +2,7 @@ import type {ForwardedRef} from 'react';
 import React, {forwardRef, useEffect, useRef} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import type {GestureResponderEvent, Role, Text, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Animated, {Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import Svg, {Path} from 'react-native-svg';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';

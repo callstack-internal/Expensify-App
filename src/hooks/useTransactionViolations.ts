@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {isViolationDismissed} from '@libs/TransactionUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {TransactionViolations} from '@src/types/onyx';

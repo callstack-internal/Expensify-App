@@ -1,6 +1,6 @@
 import React, {useMemo, useState} from 'react';
 import {InteractionManager, Keyboard, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import CategorySelectorModal from '@components/CategorySelector/CategorySelectorModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';

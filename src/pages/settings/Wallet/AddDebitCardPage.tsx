@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import PaymentCardForm from '@components/AddPaymentCard/PaymentCardForm';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import type {AnimatedTextInputRef} from '@components/RNTextInput';

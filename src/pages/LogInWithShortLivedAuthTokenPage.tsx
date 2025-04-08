@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import Log from '@libs/Log';
 import Navigation from '@libs/Navigation/Navigation';

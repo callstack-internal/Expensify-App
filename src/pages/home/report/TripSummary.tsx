@@ -1,5 +1,5 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import TripDetailsView from '@components/ReportActionItem/TripDetailsView';
 import useTripTransactions from '@hooks/useTripTransactions';

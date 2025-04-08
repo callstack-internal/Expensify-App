@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import useLocalize from '@hooks/useLocalize';
 import {getCurrentAddress, getDefaultCountry} from '@libs/PersonalDetailsUtils';
 import AddressPage from '@pages/AddressPage';

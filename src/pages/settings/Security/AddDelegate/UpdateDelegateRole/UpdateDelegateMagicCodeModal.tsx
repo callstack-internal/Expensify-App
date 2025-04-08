@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import ValidateCodeActionModal from '@components/ValidateCodeActionModal';
 import useLocalize from '@hooks/useLocalize';

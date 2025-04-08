@@ -2,7 +2,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import React, {useCallback, useState} from 'react';
 import type {ImageStyle, StyleProp} from 'react-native';
 import {Image, StyleSheet, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Avatar from '@components/Avatar';
 import AvatarWithImagePicker from '@components/AvatarWithImagePicker';
 import Button from '@components/Button';

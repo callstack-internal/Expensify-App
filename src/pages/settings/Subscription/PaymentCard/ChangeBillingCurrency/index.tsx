@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import PaymentCardChangeCurrencyForm from '@components/AddPaymentCard/PaymentCardChangeCurrencyForm';
 import type {FormOnyxValues} from '@components/Form/types';

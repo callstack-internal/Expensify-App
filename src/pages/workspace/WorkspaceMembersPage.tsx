@@ -4,7 +4,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {TextInput} from 'react-native';
 import {InteractionManager, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import Badge from '@components/Badge';
 import Button from '@components/Button';

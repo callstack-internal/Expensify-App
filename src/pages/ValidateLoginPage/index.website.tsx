@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import ExpiredValidateCodeModal from '@components/ValidateCode/ExpiredValidateCodeModal';
 import JustSignedInModal from '@components/ValidateCode/JustSignedInModal';

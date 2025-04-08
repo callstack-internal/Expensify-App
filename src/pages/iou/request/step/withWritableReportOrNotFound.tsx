@@ -1,7 +1,7 @@
 import type {ComponentType, ForwardedRef, RefAttributes} from 'react';
 import React, {forwardRef, useEffect} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import getComponentDisplayName from '@libs/getComponentDisplayName';

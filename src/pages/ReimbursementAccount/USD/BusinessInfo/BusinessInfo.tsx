@@ -1,7 +1,7 @@
 import {Str} from 'expensify-common';
 import lodashPick from 'lodash/pick';
 import React, {useCallback, useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import useLocalize from '@hooks/useLocalize';
 import useSubStep from '@hooks/useSubStep';

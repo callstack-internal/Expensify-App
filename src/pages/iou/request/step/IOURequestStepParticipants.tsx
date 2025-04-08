@@ -1,6 +1,6 @@
 import {useIsFocused} from '@react-navigation/core';
 import React, {useCallback, useEffect, useMemo, useRef} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FormHelpMessage from '@components/FormHelpMessage';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';

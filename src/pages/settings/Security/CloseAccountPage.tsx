@@ -1,7 +1,7 @@
 import {Str} from 'expensify-common';
 import React, {useEffect, useLayoutEffect, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ConfirmModal from '@components/ConfirmModal';
 import DelegateNoAccessWrapper from '@components/DelegateNoAccessWrapper';
 import FormProvider from '@components/Form/FormProvider';

@@ -1,6 +1,6 @@
 import HybridAppModule from '@expensify/react-native-hybrid-app';
 import React, {useContext, useMemo, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import CustomStatusBarAndBackgroundContext from '@components/CustomStatusBarAndBackground/CustomStatusBarAndBackgroundContext';
 import FormHelpMessage from '@components/FormHelpMessage';

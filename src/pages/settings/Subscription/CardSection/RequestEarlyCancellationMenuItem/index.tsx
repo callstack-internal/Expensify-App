@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import DelegateNoAccessModal from '@components/DelegateNoAccessModal';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';

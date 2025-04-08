@@ -1,6 +1,6 @@
 import {Str} from 'expensify-common';
 import React, {useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import YesNoStep from '@components/SubStepForms/YesNoStep';
 import useLocalize from '@hooks/useLocalize';

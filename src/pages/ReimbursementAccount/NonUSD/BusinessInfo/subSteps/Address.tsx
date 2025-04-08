@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import AddressStep from '@components/SubStepForms/AddressStep';
 import useLocalize from '@hooks/useLocalize';
 import useReimbursementAccountStepFormSubmit from '@hooks/useReimbursementAccountStepFormSubmit';

@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import AmountForm from '@components/AmountForm';
 import ConfirmModal from '@components/ConfirmModal';
 import FormProvider from '@components/Form/FormProvider';

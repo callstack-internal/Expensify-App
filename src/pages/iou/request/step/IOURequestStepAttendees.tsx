@@ -1,6 +1,6 @@
 import lodashIsEqual from 'lodash/isEqual';
 import React, {useCallback, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import useLocalize from '@hooks/useLocalize';
 import usePrevious from '@hooks/usePrevious';

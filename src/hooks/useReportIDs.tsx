@@ -1,6 +1,6 @@
 import React, {createContext, useCallback, useContext, useMemo} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {getPolicyEmployeeListByIdWithoutCurrentUser} from '@libs/PolicyUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';

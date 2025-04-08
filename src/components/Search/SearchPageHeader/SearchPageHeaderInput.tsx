@@ -2,7 +2,7 @@ import {useIsFocused} from '@react-navigation/native';
 import isEqual from 'lodash/isEqual';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Animated, {FadeInRight, FadeOutRight} from 'react-native-reanimated';
 import * as Expensicons from '@components/Icon/Expensicons';
 import {usePersonalDetails} from '@components/OnyxProvider';

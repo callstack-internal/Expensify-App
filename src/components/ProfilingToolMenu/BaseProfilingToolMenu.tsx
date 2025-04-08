@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import DeviceInfo from 'react-native-device-info';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {startProfiling, stopProfiling} from 'react-native-release-profiler';
 import Button from '@components/Button';
 import Switch from '@components/Switch';

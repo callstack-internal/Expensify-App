@@ -1,7 +1,7 @@
 import {format, getMonth, getYear} from 'date-fns';
 import {Str} from 'expensify-common';
 import React, {useCallback, useEffect, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';

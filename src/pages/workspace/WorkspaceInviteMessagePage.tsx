@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {InteractionManager, Keyboard, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {GestureResponderEvent} from 'react-native/Libraries/Types/CoreEventTypes';
 import type {ValueOf} from 'type-fest';
 import FormProvider from '@components/Form/FormProvider';

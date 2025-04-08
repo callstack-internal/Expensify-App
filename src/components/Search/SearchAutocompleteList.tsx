@@ -1,7 +1,7 @@
 import {Str} from 'expensify-common';
 import React, {forwardRef, useCallback, useEffect, useMemo, useState} from 'react';
 import type {ForwardedRef} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import * as Expensicons from '@components/Icon/Expensicons';
 import {usePersonalDetails} from '@components/OnyxProvider';
 import {useOptionsList} from '@components/OptionListContextProvider';

@@ -1,6 +1,6 @@
 import React from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ConfirmModal from '@components/ConfirmModal';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';

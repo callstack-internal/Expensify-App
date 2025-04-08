@@ -1,6 +1,6 @@
 import React, {useMemo} from 'react';
 import {ActivityIndicator, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FormProvider from '@components/Form/FormProvider';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import Text from '@components/Text';

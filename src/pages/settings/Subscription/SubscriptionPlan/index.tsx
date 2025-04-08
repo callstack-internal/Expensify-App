@@ -1,6 +1,6 @@
 import React, {useMemo} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Icon from '@components/Icon';
 import * as Illustrations from '@components/Icon/Illustrations';
 import Section from '@components/Section';

@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import ScrollView from '@components/ScrollView';
 import SelectionList from '@components/SelectionList';

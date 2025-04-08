@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import type {StyleProp, TextStyle} from 'react-native';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import DelegateNoAccessModal from '@components/DelegateNoAccessModal';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Section from '@components/Section';

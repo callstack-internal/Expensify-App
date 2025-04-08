@@ -1,7 +1,7 @@
 import {CardStyleInterpolators} from '@react-navigation/stack';
 import React, {useCallback, useEffect} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import NoDropZone from '@components/DragAndDrop/NoDropZone';
 import FocusTrapForScreens from '@components/FocusTrap/FocusTrapForScreen';
 import useKeyboardShortcut from '@hooks/useKeyboardShortcut';

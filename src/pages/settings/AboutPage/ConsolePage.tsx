@@ -3,7 +3,7 @@ import {format} from 'date-fns';
 import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
 import type {ListRenderItem, ListRenderItemInfo} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import Button from '@components/Button';
 import ConfirmModal from '@components/ConfirmModal';

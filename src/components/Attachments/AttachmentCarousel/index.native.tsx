@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Keyboard, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {Attachment, AttachmentSource} from '@components/Attachments/types';
 import BlockingView from '@components/BlockingViews/BlockingView';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';

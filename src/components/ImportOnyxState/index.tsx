@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {FileObject} from '@components/AttachmentModal';
 import {setIsUsingImportedState, setPreservedUserSession} from '@libs/actions/App';
 import {setShouldForceOffline} from '@libs/actions/Network';

@@ -1,5 +1,5 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import ScrollView from '@components/ScrollView';
 import ReportActionItem from '@pages/home/report/ReportActionItem';

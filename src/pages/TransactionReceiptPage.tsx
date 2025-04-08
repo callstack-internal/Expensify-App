@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import AttachmentModal from '@components/AttachmentModal';
 import {navigateToStartStepIfScanFileCannotBeRead} from '@libs/actions/IOU';
 import {openReport} from '@libs/actions/Report';

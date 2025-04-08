@@ -4,7 +4,7 @@ import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, AppState, Image, InteractionManager, View} from 'react-native';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {RESULTS} from 'react-native-permissions';
 import Animated, {runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming} from 'react-native-reanimated';
 import type {Camera, PhotoFile, Point} from 'react-native-vision-camera';

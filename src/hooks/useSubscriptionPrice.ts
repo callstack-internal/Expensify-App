@@ -1,4 +1,4 @@
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import usePreferredCurrency from './usePreferredCurrency';

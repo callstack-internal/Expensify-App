@@ -1,6 +1,6 @@
 import React, {forwardRef, useCallback, useImperativeHandle, useRef, useState} from 'react';
 import type {ForwardedRef} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {AutoCompleteVariant, MagicCodeInputHandle} from '@components/MagicCodeInput';
 import MagicCodeInput from '@components/MagicCodeInput';
 import useLocalize from '@hooks/useLocalize';

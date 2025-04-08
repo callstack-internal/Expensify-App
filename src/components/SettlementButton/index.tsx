@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useRef} from 'react';
 import type {GestureResponderEvent} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {PaymentType} from '@components/ButtonWithDropdownMenu/types';
 import * as Expensicons from '@components/Icon/Expensicons';

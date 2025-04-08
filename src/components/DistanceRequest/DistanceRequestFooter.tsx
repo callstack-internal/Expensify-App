@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import Button from '@components/Button';
 import DistanceMapView from '@components/DistanceMapView';

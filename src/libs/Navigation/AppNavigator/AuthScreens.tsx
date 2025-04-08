@@ -2,7 +2,7 @@ import type {RouteProp} from '@react-navigation/native';
 import {findFocusedRoute, useNavigation} from '@react-navigation/native';
 import React, {memo, useEffect, useMemo, useRef, useState} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import Onyx, {useOnyx, withOnyx} from 'react-native-onyx';
+import Onyx, {withOnyx} from 'react-native-onyx';
 import ActiveWorkspaceContextProvider from '@components/ActiveWorkspaceProvider';
 import ComposeProviders from '@components/ComposeProviders';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
@@ -12,6 +12,7 @@ import {useSearchRouterContext} from '@components/Search/SearchRouter/SearchRout
 import SearchRouterModal from '@components/Search/SearchRouter/SearchRouterModal';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useOnboardingFlowRouter from '@hooks/useOnboardingFlow';
+import useOnyx from '@hooks/useOnyx';
 import {ReportIDsContextProvider} from '@hooks/useReportIDs';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';

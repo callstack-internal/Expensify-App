@@ -1,5 +1,5 @@
 import React, {useRef} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ContextMenuItem from '@components/ContextMenuItem';
 import HeaderPageLayout from '@components/HeaderPageLayout';
 import Icon from '@components/Icon';

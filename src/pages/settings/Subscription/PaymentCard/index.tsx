@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import PaymentCardForm from '@components/AddPaymentCard/PaymentCardForm';
 import DelegateNoAccessWrapper from '@components/DelegateNoAccessWrapper';
 import type {FormOnyxValues} from '@components/Form/types';

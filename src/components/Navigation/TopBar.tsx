@@ -1,6 +1,6 @@
 import React from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Breadcrumbs from '@components/Breadcrumbs';
 import LoadingBar from '@components/LoadingBar';
 import {PressableWithoutFeedback} from '@components/Pressable';

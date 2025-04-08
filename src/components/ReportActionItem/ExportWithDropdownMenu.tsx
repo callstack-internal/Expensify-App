@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {StyleSheet} from 'react-native';
 import type {StyleProp, ViewStyle} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {DropdownOption, ReportExportType} from '@components/ButtonWithDropdownMenu/types';

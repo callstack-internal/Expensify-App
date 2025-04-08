@@ -1,7 +1,7 @@
 import isBoolean from 'lodash/isBoolean';
 import React, {useEffect, useState} from 'react';
 import type {ComponentType} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import useNetwork from '@hooks/useNetwork';
 import usePrevious from '@hooks/usePrevious';

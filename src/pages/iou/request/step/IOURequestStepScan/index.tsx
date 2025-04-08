@@ -2,7 +2,7 @@ import {useIsFocused} from '@react-navigation/native';
 import {Str} from 'expensify-common';
 import React, {useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {ActivityIndicator, PanResponder, PixelRatio, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {RESULTS} from 'react-native-permissions';
 import type Webcam from 'react-webcam';
 import TestReceipt from '@assets/images/fake-receipt.png';

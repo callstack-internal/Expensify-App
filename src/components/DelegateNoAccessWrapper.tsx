@@ -1,5 +1,5 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import AccountUtils from '@libs/AccountUtils';

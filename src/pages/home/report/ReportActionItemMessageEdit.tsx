@@ -4,7 +4,7 @@ import React, {forwardRef, useCallback, useEffect, useMemo, useRef, useState} fr
 import {findNodeHandle, InteractionManager, Keyboard, View} from 'react-native';
 import type {MeasureInWindowOnSuccessCallback, NativeSyntheticEvent, TextInput, TextInputFocusEventData, TextInputKeyPressEventData, TextInputScrollEventData} from 'react-native';
 import {useFocusedInputHandler} from 'react-native-keyboard-controller';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {useSharedValue} from 'react-native-reanimated';
 import type {Emoji} from '@assets/emojis/types';
 import type {MeasureParentContainerAndCursorCallback} from '@components/AutoCompleteSuggestions/types';

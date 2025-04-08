@@ -1,4 +1,4 @@
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import AccountUtils from '@libs/AccountUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';

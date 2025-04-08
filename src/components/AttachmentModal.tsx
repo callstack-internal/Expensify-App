@@ -2,7 +2,7 @@ import {Str} from 'expensify-common';
 import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {InteractionManager, Keyboard, View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import Animated, {FadeIn, LayoutAnimationConfig, useSharedValue} from 'react-native-reanimated';
 import type {ValueOf} from 'type-fest';

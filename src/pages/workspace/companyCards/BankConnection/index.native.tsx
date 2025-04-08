@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {WebViewNavigation} from 'react-native-webview';
 import {WebView} from 'react-native-webview';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';

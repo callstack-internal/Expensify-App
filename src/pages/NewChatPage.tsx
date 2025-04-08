@@ -2,7 +2,7 @@ import isEmpty from 'lodash/isEmpty';
 import reject from 'lodash/reject';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Keyboard} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import ImportedStateIndicator from '@components/ImportedStateIndicator';
 import KeyboardAvoidingView from '@components/KeyboardAvoidingView';

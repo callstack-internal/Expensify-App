@@ -1,7 +1,7 @@
 import {format} from 'date-fns';
 import React, {useEffect, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import Button from '@components/Button';
 import FixedFooter from '@components/FixedFooter';

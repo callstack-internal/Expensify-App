@@ -2,7 +2,7 @@ import {useFocusEffect, useRoute} from '@react-navigation/native';
 import {Str} from 'expensify-common';
 import React, {useCallback, useRef, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import CheckboxWithLabel from '@components/CheckboxWithLabel';
 import FormProvider from '@components/Form/FormProvider';

@@ -3,7 +3,7 @@ import lodashPick from 'lodash/pick';
 import lodashReject from 'lodash/reject';
 import React, {memo, useCallback, useEffect, useMemo} from 'react';
 import type {GestureResponderEvent} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import EmptySelectionListContent from '@components/EmptySelectionListContent';
 import FormHelpMessage from '@components/FormHelpMessage';

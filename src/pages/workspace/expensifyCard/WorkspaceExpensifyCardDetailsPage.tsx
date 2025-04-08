@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {InteractionManager, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ExpensifyCardImage from '@assets/images/expensify-card.svg';
 import Badge from '@components/Badge';
 import ConfirmModal from '@components/ConfirmModal';

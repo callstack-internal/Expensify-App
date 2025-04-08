@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import RequireTwoFactorAuthenticationModal from '@components/RequireTwoFactorAuthenticationModal';
 import useEnvironment from '@hooks/useEnvironment';
 import useLocalize from '@hooks/useLocalize';

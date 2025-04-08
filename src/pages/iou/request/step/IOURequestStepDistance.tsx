@@ -6,7 +6,7 @@ import {View} from 'react-native';
 import type {ScrollView as RNScrollView} from 'react-native';
 import type {RenderItemParams} from 'react-native-draggable-flatlist/lib/typescript/types';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import DistanceRequestFooter from '@components/DistanceRequest/DistanceRequestFooter';
 import DistanceRequestRenderItem from '@components/DistanceRequest/DistanceRequestRenderItem';

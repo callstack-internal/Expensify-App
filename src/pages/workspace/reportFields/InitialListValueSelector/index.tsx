@@ -1,7 +1,7 @@
 import type {ForwardedRef} from 'react';
 import React, {forwardRef, useEffect, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {MenuItemBaseProps} from '@components/MenuItem';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import CONST from '@src/CONST';

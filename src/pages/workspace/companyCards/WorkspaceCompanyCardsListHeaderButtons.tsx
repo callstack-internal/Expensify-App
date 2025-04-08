@@ -1,6 +1,6 @@
 import React from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import CaretWrapper from '@components/CaretWrapper';
 import Icon from '@components/Icon';

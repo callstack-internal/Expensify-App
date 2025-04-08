@@ -3,7 +3,7 @@ import {Str} from 'expensify-common';
 import type {ForwardedRef} from 'react';
 import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState} from 'react';
 import {InteractionManager, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import DotIndicatorMessage from '@components/DotIndicatorMessage';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';
 import AppleSignIn from '@components/SignInButtons/AppleSignIn';

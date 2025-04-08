@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import SAMLLoadingIndicator from '@components/SAMLLoadingIndicator';
 import useLocalize from '@hooks/useLocalize';
 import {handleSAMLLoginError, postSAMLLogin} from '@libs/LoginUtils';

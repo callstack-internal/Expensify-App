@@ -1,7 +1,7 @@
 import lodashIsEmpty from 'lodash/isEmpty';
 import React, {useEffect} from 'react';
 import {ActivityIndicator, InteractionManager, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
 import Button from '@components/Button';
 import CategoryPicker from '@components/CategoryPicker';

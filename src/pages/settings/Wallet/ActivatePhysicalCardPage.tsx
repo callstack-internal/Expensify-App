@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import BigNumberPad from '@components/BigNumberPad';
 import Button from '@components/Button';
 import IllustratedHeaderPageLayout from '@components/IllustratedHeaderPageLayout';

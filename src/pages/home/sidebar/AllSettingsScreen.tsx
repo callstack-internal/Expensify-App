@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Breadcrumbs from '@components/Breadcrumbs';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItemList from '@components/MenuItemList';

@@ -2,7 +2,7 @@ import HybridAppModule from '@expensify/react-native-hybrid-app';
 import {Str} from 'expensify-common';
 import type {ReactElement} from 'react';
 import React, {useCallback, useContext, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useLocalize from '@hooks/useLocalize';
 import usePermissions from '@hooks/usePermissions';

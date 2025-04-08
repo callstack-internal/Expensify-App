@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import PaginationUtils from '@libs/PaginationUtils';
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';

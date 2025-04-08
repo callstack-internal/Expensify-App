@@ -1,6 +1,6 @@
 import React, {useCallback, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import ConfirmModal from '@components/ConfirmModal';
 import DelegateNoAccessModal from '@components/DelegateNoAccessModal';
 import FeatureList from '@components/FeatureList';

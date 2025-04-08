@@ -1,6 +1,6 @@
 import {subYears} from 'date-fns';
 import React, {useCallback} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import DatePicker from '@components/DatePicker';
 import DelegateNoAccessWrapper from '@components/DelegateNoAccessWrapper';
 import FormProvider from '@components/Form/FormProvider';

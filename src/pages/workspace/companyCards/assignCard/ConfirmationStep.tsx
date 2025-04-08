@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import {InteractionManager, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';

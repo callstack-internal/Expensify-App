@@ -1,6 +1,6 @@
 import React, {useMemo, useState} from 'react';
 import type {LayoutChangeEvent, ListRenderItem} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import TransactionPreview from '@components/ReportActionItem/TransactionPreview';
 import useDelegateUserDetails from '@hooks/useDelegateUserDetails';
 import usePolicy from '@hooks/usePolicy';

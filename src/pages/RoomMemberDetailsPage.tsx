@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Avatar from '@components/Avatar';
 import Button from '@components/Button';
 import ConfirmModal from '@components/ConfirmModal';

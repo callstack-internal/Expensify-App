@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import DecisionModal from '@components/DecisionModal';
 import DelegateNoAccessModal from '@components/DelegateNoAccessModal';
 import * as Illustrations from '@components/Icon/Illustrations';

@@ -2,7 +2,7 @@ import {useRoute} from '@react-navigation/native';
 import React, {useCallback, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import AddressSearch from '@components/AddressSearch';
 import CheckboxWithLabel from '@components/CheckboxWithLabel';

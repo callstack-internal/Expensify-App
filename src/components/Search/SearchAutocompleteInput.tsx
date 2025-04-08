@@ -3,7 +3,7 @@ import type {ForwardedRef, ReactNode, RefObject} from 'react';
 import React, {forwardRef, useCallback, useEffect, useLayoutEffect, useMemo} from 'react';
 import {View} from 'react-native';
 import type {StyleProp, TextInputProps, ViewStyle} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Animated, {LinearTransition, useAnimatedStyle, useSharedValue} from 'react-native-reanimated';
 import FormHelpMessage from '@components/FormHelpMessage';
 import type {SelectionListHandle} from '@components/SelectionList/types';

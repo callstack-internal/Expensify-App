@@ -2,7 +2,7 @@ import isEmpty from 'lodash/isEmpty';
 import type {ComponentType, ForwardedRef, RefAttributes} from 'react';
 import React, {forwardRef} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetailsList} from '@src/types/onyx';

@@ -1,6 +1,6 @@
 import React, {useEffect, useRef} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import expensifyLogo from '@assets/images/expensify-logo-round-transparent.png';
 import Button from '@components/Button';
 import FixedFooter from '@components/FixedFooter';

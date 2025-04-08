@@ -1,7 +1,7 @@
 import {Str} from 'expensify-common';
 import React, {useEffect, useMemo} from 'react';
 import {Keyboard, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Button from '@components/Button';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';
 import Text from '@components/Text';

@@ -3,7 +3,7 @@ import {createMaterialTopTabNavigator} from '@react-navigation/material-top-tabs
 import type {EventMapCore, NavigationState, ScreenListeners} from '@react-navigation/native';
 import {useRoute} from '@react-navigation/native';
 import React, {useCallback, useContext, useEffect, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FocusTrapContainerElement from '@components/FocusTrap/FocusTrapContainerElement';
 import type {TabSelectorProps} from '@components/TabSelector/TabSelector';
 import useThemeStyles from '@hooks/useThemeStyles';

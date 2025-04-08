@@ -2,7 +2,7 @@ import {PortalHost} from '@gorhom/portal';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import type {FlatList} from 'react-native';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import DragAndDropProvider from '@components/DragAndDrop/Provider';
 import HeaderGap from '@components/HeaderGap';

@@ -1,5 +1,5 @@
 import React, {useContext, useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import {InitialURLContext} from '@components/InitialURLContextProvider';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';

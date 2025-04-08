@@ -1,5 +1,5 @@
 import React, {useCallback} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import Onfido from '@components/Onfido';

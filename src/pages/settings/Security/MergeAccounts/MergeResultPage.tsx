@@ -1,7 +1,7 @@
 import HybridAppModule from '@expensify/react-native-hybrid-app';
 import {useRoute} from '@react-navigation/native';
 import React, {useContext, useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {ValueOf} from 'type-fest';
 import ConfirmationPage from '@components/ConfirmationPage';
 import type {ConfirmationPageProps} from '@components/ConfirmationPage';

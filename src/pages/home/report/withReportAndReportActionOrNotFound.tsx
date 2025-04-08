@@ -2,7 +2,7 @@
 import type {ComponentType, ForwardedRef, RefAttributes} from 'react';
 import React, {useEffect, useMemo} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import {openReport} from '@libs/actions/Report';

@@ -1,6 +1,6 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import BlockingView from '@components/BlockingViews/BlockingView';
 import {TeleScope} from '@components/Icon/Illustrations';
 import RadioListItem from '@components/SelectionList/RadioListItem';

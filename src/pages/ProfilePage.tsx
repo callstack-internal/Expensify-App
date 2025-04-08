@@ -2,7 +2,7 @@ import {Str} from 'expensify-common';
 import React, {useEffect, useMemo} from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import AutoUpdateTime from '@components/AutoUpdateTime';
 import Avatar from '@components/Avatar';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';

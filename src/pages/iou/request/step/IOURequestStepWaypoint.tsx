@@ -2,7 +2,7 @@ import {useNavigation} from '@react-navigation/native';
 import React, {useMemo, useRef, useState} from 'react';
 import type {TextInput} from 'react-native';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import AddressSearch from '@components/AddressSearch';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';

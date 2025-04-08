@@ -4,7 +4,7 @@ import isEmpty from 'lodash/isEmpty';
 import React from 'react';
 import {StyleSheet} from 'react-native';
 import type {TextStyle} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import type {CustomRendererProps, TPhrasing, TText} from 'react-native-render-html';
 import {TNodeChildrenRenderer} from 'react-native-render-html';
 import {ShowContextMenuContext, showContextMenuForReport} from '@components/ShowContextMenuContext';

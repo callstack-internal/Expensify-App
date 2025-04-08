@@ -1,7 +1,7 @@
 import type {NavigationState} from '@react-navigation/native';
 import {DarkTheme, DefaultTheme, findFocusedRoute, NavigationContainer} from '@react-navigation/native';
 import React, {useContext, useEffect, useMemo, useRef} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {ScrollOffsetContext} from '@components/ScrollOffsetContextProvider';
 import {usePlaybackContext} from '@components/VideoPlayerContexts/PlaybackContext';
 import useCurrentReportID from '@hooks/useCurrentReportID';

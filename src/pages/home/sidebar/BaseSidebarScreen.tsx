@@ -1,7 +1,7 @@
 import {useRoute} from '@react-navigation/native';
 import React, {useEffect} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import BottomTabBar from '@components/Navigation/BottomTabBar';
 import BOTTOM_TABS from '@components/Navigation/BottomTabBar/BOTTOM_TABS';
 import TopBar from '@components/Navigation/TopBar';

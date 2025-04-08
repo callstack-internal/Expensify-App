@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {turnOffMobileSelectionMode} from '@libs/actions/MobileSelectionMode';
 import ONYXKEYS from '@src/ONYXKEYS';
 

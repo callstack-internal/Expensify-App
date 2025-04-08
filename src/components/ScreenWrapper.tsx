@@ -4,7 +4,7 @@ import type {ForwardedRef, ReactNode} from 'react';
 import React, {createContext, forwardRef, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
 import {Keyboard, PanResponder, View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import {PickerAvoidingView} from 'react-native-picker-select';
 import type {EdgeInsets} from 'react-native-safe-area-context';
 import useBottomSafeSafeAreaPaddingStyle from '@hooks/useBottomSafeSafeAreaPaddingStyle';

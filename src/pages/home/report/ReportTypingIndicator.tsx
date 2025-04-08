@@ -1,5 +1,5 @@
 import React, {memo, useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import useOnyx from '@hooks/useOnyx';
 import Text from '@components/Text';
 import TextWithEllipsis from '@components/TextWithEllipsis';
 import useLocalize from '@hooks/useLocalize';

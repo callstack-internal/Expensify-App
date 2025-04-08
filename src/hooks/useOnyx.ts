@@ -50,15 +50,17 @@ const useOnyx: OriginalUseOnyx = (key, options, dependencies) => {
     const {selector: selectorProp, ...optionsWithoutSelector} = useOnyxOptions ?? {};
 
     // Determine if we should use snapshot data based on search state and key
-    const shouldUseSnapshot =
-        isOnSearch && !key.startsWith(ONYXKEYS.COLLECTION.SNAPSHOT) && CONST.SEARCH.SNAPSHOT_ONYX_KEYS.some((snapshotKey) => key.startsWith(snapshotKey)) && !!currentSearchHash;
+    const shouldUseSnapshot = useMemo(() => {
+        return isOnSearch && !!currentSearchHash && !key.startsWith(ONYXKEYS.COLLECTION.SNAPSHOT) && CONST.SEARCH.SNAPSHOT_ONYX_KEYS.some((snapshotKey) => key.startsWith(snapshotKey));
+    }, [isOnSearch, currentSearchHash, key]);
 
     // Create selector function that handles both regular and snapshot data
     const selector = useMemo(() => {
-        if (!selectorProp) {
-            return undefined;
+        if (!selectorProp || !shouldUseSnapshot) {
+            return selectorProp;
         }
-        return (data: OnyxValue<OnyxKey> | undefined) => selectorProp(shouldUseSnapshot ? getKeyData(data as SearchResults, key) : data);
+
+        return (data: OnyxValue<OnyxKey> | undefined) => selectorProp(getKeyData(data as SearchResults, key));
     }, [selectorProp, shouldUseSnapshot, key]);
 
     const onyxOptions: UseOnyxOptions<OnyxKey, OnyxValue<OnyxKey>> = {...optionsWithoutSelector, selector, allowDynamicKey: true};
@@ -68,14 +70,14 @@ const useOnyx: OriginalUseOnyx = (key, options, dependencies) => {
 
     // Extract and memoize the specific key data from snapshot if in search mode
     const result = useMemo((): OriginalUseOnyxReturnType => {
-        // if it has selector, we wouldn't need to use snapshot here
+        // if it has selector, we don't need to use snapshot here
         if (!shouldUseSnapshot || selector) {
             return originalResult as OriginalUseOnyxReturnType;
         }
 
-        const keyData = getKeyData(originalResult[0] as SearchResults, key, useOnyxOptions?.initialValue);
+        const keyData = getKeyData(originalResult[0] as SearchResults, key, onyxOptions?.initialValue);
         return [keyData, originalResult[1]] as OriginalUseOnyxReturnType;
-    }, [shouldUseSnapshot, originalResult, key, useOnyxOptions?.initialValue, selector]);
+    }, [shouldUseSnapshot, originalResult, key, onyxOptions?.initialValue, selector]);
 
     return result;
 };

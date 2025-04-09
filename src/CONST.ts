@@ -9,6 +9,7 @@ import type {Video} from './libs/actions/Report';
 import type {MileageRate} from './libs/DistanceRequestUtils';
 import BankAccount from './libs/models/BankAccount';
 import {addTrailingForwardSlash} from './libs/Url';
+import ONYXKEYS from './ONYXKEYS';
 import SCREENS from './SCREENS';
 import type PlaidBankAccount from './types/onyx/PlaidBankAccount';
 
@@ -997,6 +998,7 @@ const CONST = {
     EMPTY_ARRAY,
     EMPTY_OBJECT,
     DEFAULT_NUMBER_ID,
+    FAKE_REPORT_ID: 'FAKE_REPORT_ID',
     USE_EXPENSIFY_URL,
     EXPENSIFY_URL,
     GOOGLE_MEET_URL_ANDROID: 'https://meet.google.com',
@@ -1670,6 +1672,10 @@ const CONST = {
         },
     },
     OPEN_AI_REALTIME_API: 'https://api.openai.com/v1/realtime',
+    OPEN_AI_TOOL_NAMES: {
+        END_CALL: 'EndCall',
+        SEND_RECAP_IN_ADMINS_ROOM: 'SendRecapInAdminsRoom',
+    },
     // The number of milliseconds for an idle session to expire
     SESSION_EXPIRATION_TIME_MS: 2 * 3600 * 1000, // 2 hours
     WEEK_STARTS_ON: 1, // Monday
@@ -6513,6 +6519,15 @@ const CONST = {
             BEFORE: 'Before',
             AFTER: 'After',
         },
+        SNAPSHOT_ONYX_KEYS: [
+            ONYXKEYS.COLLECTION.REPORT,
+            ONYXKEYS.COLLECTION.POLICY,
+            ONYXKEYS.COLLECTION.TRANSACTION,
+            ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS,
+            ONYXKEYS.COLLECTION.REPORT_ACTIONS,
+            ONYXKEYS.PERSONAL_DETAILS_LIST,
+            ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
+        ],
     },
 
     EXPENSE: {

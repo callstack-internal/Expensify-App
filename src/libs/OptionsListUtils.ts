@@ -2272,9 +2272,13 @@ function shouldUseBoldText(report: OptionData): boolean {
     return report.isUnread === true && notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.MUTE && !isHiddenForCurrentUser(notificationPreference);
 }
 
+function getParticipantByLogin(login: string): Participant | undefined {
+    const participantPersonalDetails = Object.values(allPersonalDetails ?? {}).find((personalDetails) => personalDetails?.login === login);
+    return participantPersonalDetails ? getParticipantsOption(participantPersonalDetails, allPersonalDetails) : undefined;
+}
+
 function getManagerMcTestParticipant(): Participant | undefined {
-    const managerMcTestPersonalDetails = Object.values(allPersonalDetails ?? {}).find((personalDetails) => personalDetails?.login === CONST.EMAIL.MANAGER_MCTEST);
-    return managerMcTestPersonalDetails ? getParticipantsOption(managerMcTestPersonalDetails, allPersonalDetails) : undefined;
+    return getParticipantByLogin(CONST.EMAIL.MANAGER_MCTEST);
 }
 
 export {
@@ -2336,6 +2340,7 @@ export {
     getManagerMcTestParticipant,
     isSelectedManagerMcTest,
     shouldShowLastActorDisplayName,
+    getParticipantByLogin,
 };
 
 export type {Section, SectionBase, MemberForList, Options, OptionList, SearchOption, PayeePersonalDetails, Option, OptionTree, ReportAndPersonalDetailOptions, GetUserToInviteConfig};

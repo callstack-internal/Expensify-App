@@ -93,6 +93,7 @@ const backendOnboardingChoices = {
     ADMIN: 'newDotAdmin',
     SUBMIT: 'newDotSubmit',
     TRACK_WORKSPACE: 'newDotTrackWorkspace',
+    TEST_DRIVE_RECEIVER: 'newDotTestDriveReceiver',
 } as const;
 
 const onboardingChoices = {
@@ -120,12 +121,13 @@ const selfGuidedTourTask: OnboardingTask = {
     description: ({navatticURL}) => `[Take a self-guided product tour](${navatticURL}) and learn about everything Expensify has to offer.`,
 };
 
-const testDriveTaskName = 'Take a test drive';
+// TODO: I'm not sure if this will work
+const getTestDriveTaskName = (testDriveURL?: string) => (testDriveURL ? `Take a [test drive](${testDriveURL})` : 'Take a test drive');
 const testDriveTask: OnboardingTask = {
     type: 'viewTour',
     autoCompleted: false,
     mediaAttributes: {},
-    title: testDriveTaskName,
+    title: ({testDriveURL}) => getTestDriveTaskName(testDriveURL),
     description: ({testDriveURL}) => `[Take a quick product tour](${testDriveURL}) to see why Expensify is the fastest way to do your expenses.`,
 };
 
@@ -5579,6 +5581,10 @@ const CONST = {
                 "Expensify is best known for expense and corporate card management, but we do a lot more than that. Let me know what you're interested in and I'll help get you started.",
             tasks: [],
         },
+        [onboardingChoices.TEST_DRIVE_RECEIVER]: {
+            message: "You've got 3 months free! Get started below.",
+            tasks: [testDriveTask, createWorkspaceTask],
+        },
     } satisfies Record<OnboardingPurpose, OnboardingMessage>,
 
     CREATE_EXPENSE_ONBOARDING_MESSAGES: {
@@ -6954,7 +6960,7 @@ const CONST = {
     },
 
     TEST_DRIVE: {
-        ONBOARDING_TASK_NAME: testDriveTaskName,
+        ONBOARDING_TASK_NAME: getTestDriveTaskName(),
     },
 } as const;
 

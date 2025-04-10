@@ -68,7 +68,7 @@ type BaseFeatureTrainingModalProps = {
     confirmText: string;
 
     /** A callback to call when user confirms the tutorial */
-    onConfirm?: () => void;
+    onConfirm?: (canConfirm: boolean) => void;
 
     /** A callback to call when modal closes */
     onClose?: () => void;
@@ -96,6 +96,9 @@ type BaseFeatureTrainingModalProps = {
 
     /** Whether to disable the modal */
     isModalDisabled?: boolean;
+
+    /** Whether the user can confirm the modal */
+    canConfirm?: boolean;
 };
 
 type FeatureTrainingModalVideoProps = {
@@ -152,6 +155,7 @@ function FeatureTrainingModal({
     imageWidth,
     imageHeight,
     isModalDisabled = true,
+    canConfirm = true,
 }: FeatureTrainingModalProps) {
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
@@ -283,9 +287,11 @@ function FeatureTrainingModal({
     }, [onClose, willShowAgain]);
 
     const closeAndConfirmModal = useCallback(() => {
-        closeModal();
-        onConfirm?.();
-    }, [onConfirm, closeModal]);
+        if (canConfirm) {
+            closeModal();
+        }
+        onConfirm(canConfirm);
+    }, [canConfirm, onConfirm, closeModal]);
 
     /**
      * Extracts values from the non-scraped attribute WEB_PROP_ATTR at build time

@@ -5,10 +5,12 @@ import ReactNativeModal from 'react-native-modal';
 import type {ValueOf} from 'type-fest';
 import ColorSchemeWrapper from '@components/ColorSchemeWrapper';
 import FocusTrapForModal from '@components/FocusTrap/FocusTrapForModal';
+import NavigationBar from '@components/NavigationBar';
 import useKeyboardState from '@hooks/useKeyboardState';
 import usePrevious from '@hooks/usePrevious';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSafeAreaInsets from '@hooks/useSafeAreaInsets';
+import useSidePanel from '@hooks/useSidePanel';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -76,6 +78,8 @@ function BaseModal(
         swipeThreshold = 150,
         swipeDirection,
         shouldPreventScrollOnFocus = false,
+        enableEdgeToEdgeBottomSafeAreaPadding = false,
+        shouldApplySidePanelOffset = type === CONST.MODAL.MODAL_TYPE.RIGHT_DOCKED,
     }: BaseModalProps,
     ref: React.ForwardedRef<View>,
 ) {
@@ -86,11 +90,15 @@ function BaseModal(
     // We need to use isSmallScreenWidth instead of shouldUseNarrowLayout to apply correct modal width
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
+    const {sidePanelOffset} = useSidePanel();
+    const sidePanelStyle = shouldApplySidePanelOffset && !isSmallScreenWidth ? {paddingRight: sidePanelOffset.current} : undefined;
     const keyboardStateContextValue = useKeyboardState();
 
-    const safeAreaInsets = useSafeAreaInsets();
+    const insets = useSafeAreaInsets();
 
     const isVisibleRef = useRef(isVisible);
+    const hideModalCallbackRef = useRef<(callHideCallback: boolean) => void>();
+
     const wasVisible = usePrevious(isVisible);
 
     const uniqueModalId = useMemo(() => modalId ?? ComposerFocusManager.getId(), [modalId]);
@@ -138,13 +146,17 @@ function BaseModal(
         };
     }, [isVisible, wasVisible, onClose, type]);
 
+    useEffect(() => {
+        hideModalCallbackRef.current = hideModal;
+    }, [hideModal]);
+
     useEffect(
         () => () => {
             // Only trigger onClose and setModalVisibility if the modal is unmounting while visible.
             if (!isVisibleRef.current) {
                 return;
             }
-            hideModal(true);
+            hideModalCallbackRef.current?.(true);
         },
         // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
         [],
@@ -152,10 +164,10 @@ function BaseModal(
 
     const handleShowModal = useCallback(() => {
         if (shouldSetModalVisibility) {
-            setModalVisibility(true);
+            setModalVisibility(true, type);
         }
         onModalShow();
-    }, [onModalShow, shouldSetModalVisibility]);
+    }, [onModalShow, shouldSetModalVisibility, type]);
 
     const handleBackdropPress = (e?: KeyboardEvent) => {
         if (e?.key === CONST.KEYBOARD_SHORTCUTS.ENTER.shortcutKey) {
@@ -199,33 +211,30 @@ function BaseModal(
         [StyleUtils, type, windowWidth, windowHeight, isSmallScreenWidth, popoverAnchorPosition, innerContainerStyle, outerStyle],
     );
 
-    const {
-        paddingTop: safeAreaPaddingTop,
-        paddingBottom: safeAreaPaddingBottom,
-        paddingLeft: safeAreaPaddingLeft,
-        paddingRight: safeAreaPaddingRight,
-    } = StyleUtils.getSafeAreaPadding(safeAreaInsets);
-
-    const modalPaddingStyles = shouldUseModalPaddingStyle
-        ? StyleUtils.getModalPaddingStyles({
-              safeAreaPaddingTop,
-              safeAreaPaddingBottom,
-              safeAreaPaddingLeft,
-              safeAreaPaddingRight,
-              shouldAddBottomSafeAreaMargin,
-              shouldAddTopSafeAreaMargin,
-              shouldAddBottomSafeAreaPadding: (!avoidKeyboard || !keyboardStateContextValue?.isKeyboardShown) && shouldAddBottomSafeAreaPadding,
-              shouldAddTopSafeAreaPadding,
-              modalContainerStyleMarginTop: modalContainerStyle.marginTop,
-              modalContainerStyleMarginBottom: modalContainerStyle.marginBottom,
-              modalContainerStylePaddingTop: modalContainerStyle.paddingTop,
-              modalContainerStylePaddingBottom: modalContainerStyle.paddingBottom,
-              insets: safeAreaInsets,
-          })
-        : {
-              paddingLeft: safeAreaPaddingLeft ?? 0,
-              paddingRight: safeAreaPaddingRight ?? 0,
-          };
+    const modalPaddingStyles = useMemo(() => {
+        const paddings = StyleUtils.getModalPaddingStyles({
+            shouldAddBottomSafeAreaMargin,
+            shouldAddTopSafeAreaMargin,
+            // enableEdgeToEdgeBottomSafeAreaPadding is used as a temporary solution to disable safe area bottom spacing on modals, to allow edge-to-edge content
+            shouldAddBottomSafeAreaPadding: !enableEdgeToEdgeBottomSafeAreaPadding && (!avoidKeyboard || !keyboardStateContextValue.isKeyboardActive) && shouldAddBottomSafeAreaPadding,
+            shouldAddTopSafeAreaPadding,
+            modalContainerStyle,
+            insets,
+        });
+        return shouldUseModalPaddingStyle ? paddings : {paddingLeft: paddings.paddingLeft, paddingRight: paddings.paddingRight};
+    }, [
+        StyleUtils,
+        avoidKeyboard,
+        enableEdgeToEdgeBottomSafeAreaPadding,
+        insets,
+        keyboardStateContextValue.isKeyboardActive,
+        modalContainerStyle,
+        shouldAddBottomSafeAreaMargin,
+        shouldAddBottomSafeAreaPadding,
+        shouldAddTopSafeAreaMargin,
+        shouldAddTopSafeAreaPadding,
+        shouldUseModalPaddingStyle,
+    ]);
 
     const modalContextValue = useMemo(
         () => ({
@@ -266,7 +275,7 @@ function BaseModal(
                     backdropTransitionOutTiming={0}
                     hasBackdrop={fullscreen}
                     coverScreen={fullscreen}
-                    style={modalStyle}
+                    style={[modalStyle, sidePanelStyle]}
                     deviceHeight={windowHeight}
                     deviceWidth={windowWidth}
                     animationIn={animationIn ?? modalStyleAnimationIn}
@@ -302,6 +311,7 @@ function BaseModal(
                             </View>
                         </FocusTrapForModal>
                     </ModalContent>
+                    {!keyboardStateContextValue?.isKeyboardActive && <NavigationBar />}
                 </ModalComponent>
             </View>
         </ModalContext.Provider>

@@ -4,6 +4,7 @@ import type * as Illustrations from '@src/components/Icon/Illustrations';
 import CONST from '@src/CONST';
 import {
     checkIfFeedConnectionIsBroken,
+    filterInactiveCards,
     flatAllCardsList,
     formatCardExpiration,
     getBankCardDetailsImage,
@@ -19,9 +20,10 @@ import {
     hasIssuedExpensifyCard,
     isCustomFeed as isCustomFeedCardUtils,
     isExpensifyCardFullySetUp,
+    lastFourNumbersFromCardName,
     maskCardNumber,
 } from '@src/libs/CardUtils';
-import type {CardFeeds, CompanyCardFeed, ExpensifyCardSettings, Policy, WorkspaceCardsList} from '@src/types/onyx';
+import type {CardFeeds, CardList, CompanyCardFeed, ExpensifyCardSettings, Policy, WorkspaceCardsList} from '@src/types/onyx';
 import type {CompanyCardFeedWithNumber} from '@src/types/onyx/CardFeeds';
 
 const shortDate = '0924';
@@ -458,6 +460,23 @@ describe('CardUtils', () => {
         });
     });
 
+    describe('lastFourNumbersFromCardName', () => {
+        it('Should return last 4 numbers from the card name', () => {
+            const lastFour = lastFourNumbersFromCardName('Business Card Cash - 3001');
+            expect(lastFour).toBe('3001');
+        });
+
+        it('Should return empty string if card number does not have space', () => {
+            const lastFour = lastFourNumbersFromCardName('480801XXXXXX2554');
+            expect(lastFour).toBe('');
+        });
+
+        it('Should return empty string if card number does not have number in the end with dash', () => {
+            const lastFour = lastFourNumbersFromCardName('Business Card Cash - Business');
+            expect(lastFour).toBe('');
+        });
+    });
+
     describe('maskCardNumber', () => {
         it("Should return the card number divided into chunks of 4, with 'X' replaced by '•' if it's provided in the '480801XXXXXX2554' format", () => {
             const cardNumber = '480801XXXXXX2554';
@@ -492,6 +511,11 @@ describe('CardUtils', () => {
         it('Should return empty string if invalid card name was provided', () => {
             const maskedCardNumber = maskCardNumber('', CONST.COMPANY_CARD.FEED_BANK_NAME.MASTER_CARD);
             expect(maskedCardNumber).toBe('');
+        });
+
+        it('Should return card name without last 4 numbers', () => {
+            const maskedCardNumber = maskCardNumber('Business Card Cash - 3001', undefined);
+            expect(maskedCardNumber).toBe('Business Card Cash');
         });
     });
 
@@ -707,6 +731,25 @@ describe('CardUtils', () => {
         it('should return false when both policy and cardSettings are undefined', () => {
             const result = isExpensifyCardFullySetUp(undefined, undefined);
             expect(result).toBe(false);
+        });
+    });
+
+    describe('filterInactiveCards', () => {
+        it('should filter out closed, deactivated and suspended cards', () => {
+            const activeCards = {card1: {cardID: 1, state: CONST.EXPENSIFY_CARD.STATE.OPEN}};
+            const closedCards = {
+                card2: {cardID: 2, state: CONST.EXPENSIFY_CARD.STATE.CLOSED},
+                card3: {cardID: 3, state: CONST.EXPENSIFY_CARD.STATE.STATE_DEACTIVATED},
+                card4: {cardID: 4, state: CONST.EXPENSIFY_CARD.STATE.STATE_SUSPENDED},
+            };
+            const cardList = {...activeCards, ...closedCards} as unknown as CardList;
+            const filteredList = filterInactiveCards(cardList);
+            expect(filteredList).toEqual(activeCards);
+        });
+
+        it('should return an empty object if undefined card list is passed', () => {
+            const cards = filterInactiveCards(undefined);
+            expect(cards).toEqual({});
         });
     });
 });

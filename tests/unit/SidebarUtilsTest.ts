@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
+import DateUtils from '@libs/DateUtils';
 import {getReportActionMessageText} from '@libs/ReportActionsUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
@@ -13,6 +14,8 @@ import createRandomReportAction from '../utils/collections/reportActions';
 import createRandomReport from '../utils/collections/reports';
 import * as LHNTestUtils from '../utils/LHNTestUtils';
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
+
+jest.mock('@components/ConfirmedRoute.tsx');
 
 describe('SidebarUtils', () => {
     beforeAll(() =>
@@ -59,6 +62,7 @@ describe('SidebarUtils', () => {
                     {
                         type: CONST.VIOLATION_TYPES.VIOLATION,
                         name: CONST.VIOLATIONS.MISSING_CATEGORY,
+                        showInReview: true,
                     },
                 ],
             };
@@ -232,6 +236,45 @@ describe('SidebarUtils', () => {
             expect(optionDataPinned?.isPinned).toBe(true);
             expect(optionDataUnpinned?.isPinned).toBe(false);
         });
+
+        it('returns null when report is archived', async () => {
+            const MOCK_REPORT: Report = {
+                reportID: '5',
+            };
+
+            const reportNameValuePairs = {
+                private_isArchived: DateUtils.getDBTime(),
+            };
+
+            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${MOCK_REPORT.reportID}`, reportNameValuePairs);
+
+            await waitForBatchedUpdates();
+
+            const MOCK_REPORT_ACTION = {
+                reportActionID: '1',
+                actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                actorAccountID: 12345,
+                created: '2024-08-08 18:20:44.171',
+                message: [
+                    {
+                        type: '',
+                        text: '',
+                    },
+                ],
+                errors: {
+                    someError: 'Some error occurred',
+                },
+            };
+            const MOCK_REPORT_ACTIONS: OnyxEntry<ReportActions> = {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                '1': MOCK_REPORT_ACTION,
+            };
+            const MOCK_TRANSACTION_VIOLATIONS: OnyxCollection<TransactionViolation[]> = {};
+
+            const result = SidebarUtils.getReasonAndReportActionThatHasRedBrickRoad(MOCK_REPORT, MOCK_REPORT_ACTIONS, false, MOCK_TRANSACTION_VIOLATIONS);
+
+            expect(result).toBeNull();
+        });
     });
 
     describe('shouldShowRedBrickRoad', () => {
@@ -271,6 +314,63 @@ describe('SidebarUtils', () => {
                     {
                         type: CONST.VIOLATION_TYPES.VIOLATION,
                         name: CONST.VIOLATIONS.MISSING_CATEGORY,
+                        showInReview: true,
+                    },
+                ],
+            };
+
+            await Onyx.multiSet({
+                ...MOCK_REPORTS,
+                ...MOCK_TRANSACTION_VIOLATIONS,
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${MOCK_REPORT.reportID}` as const]: MOCK_REPORT_ACTIONS,
+                [ONYXKEYS.SESSION]: {
+                    accountID: 12345,
+                },
+                [`${ONYXKEYS.COLLECTION.TRANSACTION}${MOCK_TRANSACTION.transactionID}` as const]: MOCK_TRANSACTION,
+            });
+
+            const result = SidebarUtils.shouldShowRedBrickRoad(MOCK_REPORT, MOCK_REPORT_ACTIONS, false, MOCK_TRANSACTION_VIOLATIONS as OnyxCollection<TransactionViolations>);
+
+            expect(result).toBe(true);
+        });
+
+        it('returns true when report has transaction thread notice type violation', async () => {
+            const MOCK_REPORT: Report = {
+                reportID: '1',
+                ownerAccountID: 12345,
+                chatType: CONST.REPORT.CHAT_TYPE.POLICY_EXPENSE_CHAT,
+                stateNum: CONST.REPORT.STATE_NUM.OPEN,
+                statusNum: CONST.REPORT.STATUS_NUM.OPEN,
+                policyID: '6',
+            };
+
+            const MOCK_REPORTS: ReportCollectionDataSet = {
+                [`${ONYXKEYS.COLLECTION.REPORT}${MOCK_REPORT.reportID}` as const]: MOCK_REPORT,
+            };
+
+            const MOCK_REPORT_ACTIONS: ReportActions = {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                '1': {
+                    reportActionID: '1',
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    actorAccountID: 12345,
+                    created: '2024-08-08 18:20:44.171',
+                },
+            };
+
+            const MOCK_TRANSACTION = {
+                transactionID: '1',
+                amount: 10,
+                modifiedAmount: 10,
+                reportID: MOCK_REPORT.reportID,
+            };
+
+            const MOCK_TRANSACTION_VIOLATIONS: TransactionViolationsCollectionDataSet = {
+                [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${MOCK_TRANSACTION.transactionID}` as const]: [
+                    {
+                        type: CONST.VIOLATION_TYPES.NOTICE,
+                        name: CONST.VIOLATIONS.MODIFIED_AMOUNT,
+                        showInReview: true,
                     },
                 ],
             };
@@ -369,6 +469,25 @@ describe('SidebarUtils', () => {
             const MOCK_REPORT: Report = {
                 reportID: '1',
             };
+            const MOCK_REPORT_ACTIONS: OnyxEntry<ReportActions> = {};
+            const MOCK_TRANSACTION_VIOLATIONS: OnyxCollection<TransactionViolation[]> = {};
+
+            const result = SidebarUtils.shouldShowRedBrickRoad(MOCK_REPORT, MOCK_REPORT_ACTIONS, false, MOCK_TRANSACTION_VIOLATIONS);
+
+            expect(result).toBe(false);
+        });
+
+        it('returns false when report is archived', () => {
+            const MOCK_REPORT: Report = {
+                reportID: '5',
+                errorFields: {
+                    export: {
+                        error: 'Some error occurred',
+                    },
+                },
+            };
+            // This report with reportID 5 is already archived from previous tests
+            // where we set reportNameValuePairs with private_isArchived
             const MOCK_REPORT_ACTIONS: OnyxEntry<ReportActions> = {};
             const MOCK_TRANSACTION_VIOLATIONS: OnyxCollection<TransactionViolation[]> = {};
 

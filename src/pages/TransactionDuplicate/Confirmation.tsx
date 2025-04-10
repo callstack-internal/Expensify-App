@@ -53,15 +53,19 @@ function Confirmation() {
     const isReportOwner = iouReport?.ownerAccountID === currentUserPersonalDetails?.accountID;
 
     const mergeDuplicates = useCallback(() => {
-        if (!reportAction?.childReportID) {
-            return;
-        }
         IOU.mergeDuplicates(transactionsMergeParams);
         if (!reportAction?.childReportID) {
+            const optimisticReportID = ReportUtils.generateReportID();
+            Navigation.dismissModalWithReport({
+                reportID: optimisticReportID,
+                moneyRequestReportActionID: reportAction?.reportActionID,
+                transactionID: reviewDuplicates?.transactionID,
+                iouReportID: iouReport?.reportID,
+            });
             return;
         }
         Navigation.dismissModalWithReport({reportID: reportAction.childReportID});
-    }, [reportAction?.childReportID, transactionsMergeParams]);
+    }, [reportAction, iouReport, reviewDuplicates?.transactionID]);
 
     const resolveDuplicates = useCallback(() => {
         IOU.resolveDuplicates(transactionsMergeParams);

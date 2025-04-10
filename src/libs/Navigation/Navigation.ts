@@ -475,20 +475,29 @@ type NavigateToReportWithPolicyCheckPayload = MergeExclusive<{report: OnyxEntry<
     reportActionID?: string;
     referrer?: string;
     policyIDToCheck?: string;
+    moneyRequestReportActionID?: string;
+    transactionID?: string;
+    iouReportID?: string;
 };
 
 /**
  * Navigates to a report passed as a param (as an id or report object) and checks whether the target object belongs to the currently selected workspace.
  * If not, the current workspace is set to global.
  */
-function navigateToReportWithPolicyCheck({report, reportID, reportActionID, referrer, policyIDToCheck}: NavigateToReportWithPolicyCheckPayload, forceReplace = false, ref = navigationRef) {
+function navigateToReportWithPolicyCheck(
+    {report, reportID, reportActionID, referrer, policyIDToCheck, moneyRequestReportActionID, transactionID, iouReportID}: NavigateToReportWithPolicyCheckPayload,
+    forceReplace = false,
+    ref = navigationRef,
+) {
     const targetReport = reportID ? {reportID, ...allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`]} : report;
     const policyID = policyIDToCheck ?? getPolicyIDFromState(navigationRef.getRootState() as State<RootNavigatorParamList>);
     const policyMemberAccountIDs = getPolicyEmployeeAccountIDs(policyID);
     const shouldOpenAllWorkspace = isEmptyObject(targetReport) ? true : !doesReportBelongToWorkspace(targetReport, policyMemberAccountIDs, policyID);
 
     if ((shouldOpenAllWorkspace && !policyID) || !shouldOpenAllWorkspace) {
-        linkTo(ref.current, ROUTES.REPORT_WITH_ID.getRoute(targetReport?.reportID, reportActionID, referrer), {forceReplace: !!forceReplace});
+        linkTo(ref.current, ROUTES.REPORT_WITH_ID.getRoute(targetReport?.reportID, reportActionID, referrer, moneyRequestReportActionID, transactionID, iouReportID), {
+            forceReplace: !!forceReplace,
+        });
         return;
     }
 
@@ -502,6 +511,18 @@ function navigateToReportWithPolicyCheck({report, reportID, reportActionID, refe
 
     if (referrer) {
         params.referrer = referrer;
+    }
+
+    if (moneyRequestReportActionID) {
+        params.moneyRequestReportActionID = moneyRequestReportActionID;
+    }
+
+    if (transactionID) {
+        params.transactionID = transactionID;
+    }
+
+    if (iouReportID) {
+        params.iouReportID = iouReportID;
     }
 
     if (forceReplace) {

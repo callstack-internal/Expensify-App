@@ -1,6 +1,5 @@
 import {InteractionManager} from 'react-native';
 import type {OnboardingPurpose} from '@src/CONST';
-import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
 import shouldOpenOnAdminRoom from './Navigation/helpers/shouldOpenOnAdminRoom';
 import Navigation from './Navigation/Navigation';
@@ -17,11 +16,9 @@ const navigateAfterOnboarding = (
 ) => {
     Navigation.dismissModal();
 
-    if (onboardingPurposeSelected === CONST.ONBOARDING_CHOICES.MANAGE_TEAM) {
-        InteractionManager.runAfterInteractions(() => {
-            Navigation.navigate(ROUTES.TEST_DRIVE_MODAL_ROOT);
-        });
-    }
+    InteractionManager.runAfterInteractions(() => {
+        Navigation.navigate(ROUTES.TEST_DRIVE_MODAL_ROOT);
+    });
 
     // When hasCompletedGuidedSetupFlow is true, OnboardingModalNavigator in AuthScreen is removed from the navigation stack.
     // On small screens, this removal redirects navigation to HOME. Dismissing the modal doesn't work properly,

@@ -6956,6 +6956,10 @@ const CONST = {
 
     TEST_DRIVE: {
         ONBOARDING_TASK_NAME: getTestDriveTaskName(),
+        EMPLOYEE_FAKE_RECEIPT: {
+            FILENAME: 'test_receipt',
+            FILE_TYPE: 'image/jpg',
+        },
     },
 } as const;
 

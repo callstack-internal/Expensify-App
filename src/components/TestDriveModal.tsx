@@ -2,15 +2,11 @@ import {Str} from 'expensify-common';
 import React, {useCallback, useRef, useState} from 'react';
 import {InteractionManager} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
-import TestReceipt from '@assets/images/fake-receipt.png';
 import useLocalize from '@hooks/useLocalize';
 import useSearchTermAndSearch from '@hooks/useSearchTermAndSearch';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {initMoneyRequest, setMoneyRequestParticipants, setMoneyRequestReceipt} from '@libs/actions/IOU';
-import {readFileAsync} from '@libs/fileDownload/FileUtils';
+import {setTestDriveReceiptAndNavigate} from '@libs/actions/TestDrive';
 import Navigation from '@libs/Navigation/Navigation';
-import {getParticipantByLogin} from '@libs/OptionsListUtils';
-import {generateReportID} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -86,41 +82,7 @@ function TestDriveModal() {
                 break;
             }
             case 'navigate_iou': {
-                try {
-                    const filename = `${CONST.TEST_RECEIPT.FILENAME}_${Date.now()}.png`;
-
-                    readFileAsync(
-                        TestReceipt as string,
-                        filename,
-                        (file) => {
-                            const reportID = generateReportID();
-                            initMoneyRequest(reportID, undefined, false, CONST.IOU.REQUEST_TYPE.SCAN, CONST.IOU.REQUEST_TYPE.SCAN);
-
-                            const source = URL.createObjectURL(file);
-                            setMoneyRequestReceipt(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, source, filename, true, CONST.TEST_RECEIPT.FILE_TYPE, false);
-
-                            const participant = getParticipantByLogin(bossEmail);
-                            setMoneyRequestParticipants(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, [
-                                {
-                                    ...participant,
-                                    selected: true,
-                                },
-                            ]);
-
-                            InteractionManager.runAfterInteractions(() => {
-                                Navigation.navigate(
-                                    ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(CONST.IOU.ACTION.CREATE, CONST.IOU.TYPE.SUBMIT, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, reportID),
-                                );
-                            });
-                        },
-                        (error) => {
-                            console.error('Error reading test receipt:', error);
-                        },
-                        CONST.TEST_RECEIPT.FILE_TYPE,
-                    );
-                } catch (error) {
-                    console.error('Error in navigate:', error);
-                }
+                setTestDriveReceiptAndNavigate(bossEmail);
                 break;
             }
             default: {

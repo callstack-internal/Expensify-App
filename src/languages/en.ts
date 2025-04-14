@@ -6091,6 +6091,10 @@ const translations = {
             tryItOut: 'Try it out',
             noThanks: 'No thanks',
         },
+        scanTestDriveTooltip: {
+            part1: 'Send this receipt to\n',
+            part2: 'complete the test drive!',
+        },
     },
     discardChangesConfirmation: {
         title: 'Discard changes?',

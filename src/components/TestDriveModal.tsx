@@ -4,6 +4,7 @@ import {InteractionManager} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
 import TestReceipt from '@assets/images/fake-receipt.png';
 import useLocalize from '@hooks/useLocalize';
+import useSearchTermAndSearch from '@hooks/useSearchTermAndSearch';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {initMoneyRequest, setMoneyRequestParticipants, setMoneyRequestReceipt} from '@libs/actions/IOU';
 import {readFileAsync} from '@libs/fileDownload/FileUtils';
@@ -23,9 +24,10 @@ function TestDriveModal() {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
-    const [bossEmail, setBossEmail] = useState('fabio.henriques+1@callstack.com');
+    const [bossEmail, setBossEmail] = useState('');
     const [formError, setFormError] = useState<TranslationPaths | undefined>();
     const actionToPerformRef = useRef<'dismiss' | 'navigate_demo' | 'navigate_iou'>('dismiss');
+    const setBossEmailAndSearch = useSearchTermAndSearch(setBossEmail, false);
 
     const isAdmin = introSelected?.choice === CONST.ONBOARDING_CHOICES.MANAGE_TEAM;
     const modalDescription: string | React.ReactNode = isAdmin ? (
@@ -146,7 +148,7 @@ function TestDriveModal() {
                     placeholder={translate('testDrive.modal.employee.email')}
                     accessibilityLabel={translate('testDrive.modal.employee.email')}
                     value={bossEmail}
-                    onChangeText={setBossEmail}
+                    onChangeText={setBossEmailAndSearch}
                     errorText={formError ? translate(formError) : undefined}
                 />
             ) : null}

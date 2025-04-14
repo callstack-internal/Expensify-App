@@ -56,7 +56,7 @@ type BaseFeatureTrainingModalProps = {
     title?: string | React.ReactNode;
 
     /** Describe what is showing */
-    description?: string;
+    description?: string | React.ReactNode;
 
     /** Secondary description rendered with additional space */
     secondaryDescription?: string;
@@ -68,7 +68,7 @@ type BaseFeatureTrainingModalProps = {
     confirmText: string;
 
     /** A callback to call when user confirms the tutorial */
-    onConfirm?: (canConfirm: boolean) => void;
+    onConfirm?: (closeModal: () => void) => void;
 
     /** A callback to call when modal closes */
     onClose?: () => void;
@@ -77,7 +77,7 @@ type BaseFeatureTrainingModalProps = {
     helpText?: string;
 
     /** Link to navigate to when user wants to learn more */
-    onHelp?: () => void;
+    onHelp?: (closeModal: () => void) => void;
 
     /** Styles for the content container */
     contentInnerContainerStyles?: StyleProp<ViewStyle>;
@@ -97,8 +97,8 @@ type BaseFeatureTrainingModalProps = {
     /** Whether to disable the modal */
     isModalDisabled?: boolean;
 
-    /** Whether the user can confirm the modal */
-    canConfirm?: boolean;
+    /** Whether the modal will be closed on confirm */
+    shouldCloseOnConfirm?: boolean;
 };
 
 type FeatureTrainingModalVideoProps = {
@@ -155,7 +155,7 @@ function FeatureTrainingModal({
     imageWidth,
     imageHeight,
     isModalDisabled = true,
-    canConfirm = true,
+    shouldCloseOnConfirm = true,
 }: FeatureTrainingModalProps) {
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
@@ -287,11 +287,15 @@ function FeatureTrainingModal({
     }, [onClose, willShowAgain]);
 
     const closeAndConfirmModal = useCallback(() => {
-        if (canConfirm) {
+        if (shouldCloseOnConfirm) {
             closeModal();
         }
-        onConfirm(canConfirm);
-    }, [canConfirm, onConfirm, closeModal]);
+        onConfirm?.(closeModal);
+    }, [shouldCloseOnConfirm, onConfirm, closeModal]);
+
+    const onHelpPress = () => {
+        onHelp?.(closeModal);
+    };
 
     /**
      * Extracts values from the non-scraped attribute WEB_PROP_ATTR at build time
@@ -353,7 +357,7 @@ function FeatureTrainingModal({
                                 <Button
                                     large
                                     style={[styles.mb3]}
-                                    onPress={onHelp}
+                                    onPress={onHelpPress}
                                     text={helpText}
                                 />
                             )}

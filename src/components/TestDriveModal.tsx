@@ -1,78 +1,130 @@
-import React, {useEffect, useState} from 'react';
+import {Str} from 'expensify-common';
+import React, {useCallback, useRef, useState} from 'react';
+import {InteractionManager} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
-import useDebouncedState from '@hooks/useDebouncedState';
+import TestReceipt from '@assets/images/fake-receipt.png';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {initMoneyRequest, setMoneyRequestParticipants} from '@libs/actions/IOU';
-import {searchInServer} from '@libs/actions/Report';
+import {initMoneyRequest, setMoneyRequestParticipants, setMoneyRequestReceipt} from '@libs/actions/IOU';
+import {readFileAsync} from '@libs/fileDownload/FileUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import {getParticipantByLogin} from '@libs/OptionsListUtils';
 import {generateReportID} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
+import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import FeatureTrainingModal from './FeatureTrainingModal';
 import * as Illustrations from './Icon/Illustrations';
+import Text from './Text';
 import TextInput from './TextInput';
 
 function TestDriveModal() {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
-    const [canStartTestDrive, setCanStartTestDrive] = useState(true);
-    const [showEmailError, setShowEmailError] = useState(false);
-    const [bossEmail, debouncedBossEmail, setBossEmail] = useDebouncedState('');
+    const [bossEmail, setBossEmail] = useState('fabio.henriques+1@callstack.com');
+    const [formError, setFormError] = useState<TranslationPaths | undefined>();
+    const actionToPerformRef = useRef<'dismiss' | 'navigate_demo' | 'navigate_iou'>('dismiss');
 
-    // TODO: Create an util for this check
-    const isEmployee = introSelected?.choice !== CONST.ONBOARDING_CHOICES.MANAGE_TEAM;
+    const isAdmin = introSelected?.choice === CONST.ONBOARDING_CHOICES.MANAGE_TEAM;
+    const modalDescription: string | React.ReactNode = isAdmin ? (
+        translate('testDrive.modal.description')
+    ) : (
+        <>
+            {translate('testDrive.modal.employee.description1')}
+            <Text style={styles.textBold}>{translate('testDrive.modal.employee.description2')}</Text>
+            {translate('testDrive.modal.employee.description3')}
+        </>
+    );
 
-    // TODO: Write this better
-    useEffect(() => {
-        if (!introSelected) {
-            return;
-        }
-        setCanStartTestDrive(!isEmployee);
-    }, [introSelected, isEmployee]);
+    const validate = useCallback(
+        (value: string) => {
+            const loginTrim = value.trim();
 
-    useEffect(() => {
-        // This updates the personal details list with the boss data
-        searchInServer(debouncedBossEmail.trim());
-    }, [debouncedBossEmail]);
+            if (!loginTrim || !Str.isValidEmail(loginTrim)) {
+                setFormError('common.error.email');
+                return false;
+            }
 
-    const closeModal = () => {
-        Navigation.dismissModal();
+            setFormError(undefined);
+            return true;
+        },
+        [setFormError],
+    );
+
+    const dismiss = (closeModal: () => void) => {
+        actionToPerformRef.current = 'dismiss';
+        closeModal();
     };
 
-    const navigateTestDriveDemo = (canConfirm: boolean) => {
-        if (!canConfirm) {
-            setShowEmailError(true);
+    const confirm = (closeModal: () => void) => {
+        if (isAdmin) {
+            actionToPerformRef.current = 'navigate_demo';
+            closeModal();
             return;
         }
 
-        if (isEmployee) {
-            const reportID = generateReportID();
-            initMoneyRequest(reportID, undefined, false, CONST.IOU.REQUEST_TYPE.SCAN, CONST.IOU.REQUEST_TYPE.SCAN);
+        if (!isAdmin) {
+            if (!validate(bossEmail)) {
+                return;
+            }
 
-            // TODO: Set test receipt
-
-            // TODO: Set boss as a participant
-
-            const participant = getParticipantByLogin(bossEmail);
-
-            setMoneyRequestParticipants(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, [
-                {
-                    ...participant,
-                    selected: true,
-                },
-            ]);
-
-            Navigation.navigate(ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(CONST.IOU.ACTION.CREATE, CONST.IOU.TYPE.SUBMIT, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, reportID));
-            return;
+            actionToPerformRef.current = 'navigate_iou';
+            closeModal();
         }
+    };
 
-        setTimeout(() => {
-            Navigation.navigate(ROUTES.TEST_DRIVE_DEMO_ROOT);
-        }, 1000);
+    const navigate = () => {
+        switch (actionToPerformRef.current) {
+            case 'navigate_demo': {
+                InteractionManager.runAfterInteractions(() => {
+                    Navigation.navigate(ROUTES.TEST_DRIVE_DEMO_ROOT);
+                });
+                break;
+            }
+            case 'navigate_iou': {
+                try {
+                    const filename = `${CONST.TEST_RECEIPT.FILENAME}_${Date.now()}.png`;
+
+                    readFileAsync(
+                        TestReceipt as string,
+                        filename,
+                        (file) => {
+                            const reportID = generateReportID();
+                            initMoneyRequest(reportID, undefined, false, CONST.IOU.REQUEST_TYPE.SCAN, CONST.IOU.REQUEST_TYPE.SCAN);
+
+                            const source = URL.createObjectURL(file);
+                            setMoneyRequestReceipt(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, source, filename, true, CONST.TEST_RECEIPT.FILE_TYPE, false);
+
+                            const participant = getParticipantByLogin(bossEmail);
+                            setMoneyRequestParticipants(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, [
+                                {
+                                    ...participant,
+                                    selected: true,
+                                },
+                            ]);
+
+                            InteractionManager.runAfterInteractions(() => {
+                                Navigation.navigate(
+                                    ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(CONST.IOU.ACTION.CREATE, CONST.IOU.TYPE.SUBMIT, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, reportID),
+                                );
+                            });
+                        },
+                        (error) => {
+                            console.error('Error reading test receipt:', error);
+                        },
+                        CONST.TEST_RECEIPT.FILE_TYPE,
+                    );
+                } catch (error) {
+                    console.error('Error in navigate:', error);
+                }
+                break;
+            }
+            default: {
+                // do nothing
+            }
+        }
     };
 
     return (
@@ -81,21 +133,21 @@ function TestDriveModal() {
             illustrationOuterContainerStyle={styles.p0}
             illustrationAspectRatio={500 / 300}
             title={translate('testDrive.modal.title')}
-            description={translate('testDrive.modal.description')}
+            description={modalDescription}
             helpText={translate('common.skip')}
             confirmText={translate('testDrive.modal.confirmText')}
-            onHelp={closeModal}
-            onConfirm={navigateTestDriveDemo}
-            canConfirm={canStartTestDrive}
+            onHelp={dismiss}
+            onConfirm={confirm}
+            onClose={navigate}
+            shouldCloseOnConfirm={false}
         >
-            {isEmployee ? (
+            {!isAdmin ? (
                 <TextInput
-                    // TODO: Create translations
-                    placeholder="Enter your boss's email"
-                    accessibilityLabel="Enter your boss's email"
+                    placeholder={translate('testDrive.modal.employee.email')}
+                    accessibilityLabel={translate('testDrive.modal.employee.email')}
                     value={bossEmail}
                     onChangeText={setBossEmail}
-                    errorText={showEmailError ? 'Please enter a valid email' : undefined}
+                    errorText={formError ? translate(formError) : undefined}
                 />
             ) : null}
         </FeatureTrainingModal>

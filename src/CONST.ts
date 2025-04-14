@@ -5565,7 +5565,7 @@ const CONST = {
             tasks: [],
         },
         [onboardingChoices.TEST_DRIVE_RECEIVER]: {
-            message: "You've got 3 months free! Get started below.",
+            message: "*You've got 3 months free! Get started below.*",
             tasks: [testDriveTask, createWorkspaceTask],
         },
     } satisfies Record<OnboardingPurpose, OnboardingMessage>,

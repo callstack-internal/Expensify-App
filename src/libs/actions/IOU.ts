@@ -189,7 +189,7 @@ import {
     removeSettledAndApprovedTransactions,
 } from '@libs/TransactionUtils';
 import ViolationsUtils from '@libs/Violations/ViolationsUtils';
-import type {IOUAction, IOUActionParams, IOUType} from '@src/CONST';
+import type {IOUAction, IOUActionParams, IOUType, OnboardingMessage} from '@src/CONST';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
@@ -356,6 +356,8 @@ type RequestMoneyTransactionParams = Omit<BaseTransactionParams, 'comment'> & {
     receipt?: Receipt;
     waypoints?: WaypointCollection;
     comment?: string;
+    isTestDrive?: boolean;
+    guidedSetupData?: OnboardingMessage;
 };
 
 type PerDiemExpenseTransactionParams = Omit<BaseTransactionParams, 'amount' | 'merchant' | 'customUnitRateID' | 'taxAmount' | 'taxCode' | 'comment'> & {
@@ -1361,6 +1363,48 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
             key: `${ONYXKEYS.COLLECTION.POLICY_RECENTLY_USED_DESTINATIONS}${iou.report.policyID}`,
             value: policyRecentlyUsed.destinations,
         });
+    }
+
+    if (transaction.isTestDrive) {
+        const optimisticIOUReportAction = buildOptimisticIOUReportAction({
+            type: CONST.IOU.REPORT_ACTION_TYPE.PAY,
+            amount: transaction.amount,
+            currency: transaction.currency,
+            comment: '',
+            participants: transaction.participants ?? [],
+            paymentType: CONST.IOU.PAYMENT_TYPE.ELSEWHERE,
+            iouReportID: iou.report.reportID,
+            transactionID: transaction.transactionID,
+        });
+
+        optimisticData.push(
+            {
+                onyxMethod: Onyx.METHOD.MERGE,
+                key: `${ONYXKEYS.COLLECTION.REPORT}${iou.report.reportID}`,
+                value: {
+                    ...iou.report,
+                    ...{lastActionType: CONST.REPORT.ACTIONS.TYPE.MARKED_REIMBURSED, statusNum: CONST.REPORT.STATUS_NUM.REIMBURSED},
+                    hasOutstandingChildRequest: false,
+                    lastActorAccountID: currentUserPersonalDetails?.accountID,
+                },
+            },
+            {
+                onyxMethod: Onyx.METHOD.MERGE,
+                key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${iou.report.reportID}`,
+                value: {
+                    [iou.action.reportActionID]: {
+                        ...(optimisticIOUReportAction as OnyxTypes.ReportAction),
+                    },
+                },
+            },
+            {
+                onyxMethod: Onyx.METHOD.MERGE,
+                key: `${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`,
+                value: {
+                    ...transaction,
+                },
+            },
+        );
     }
 
     if (isMoneyRequestToManagerMcTest) {
@@ -2971,7 +3015,7 @@ function getMoneyRequestInformation(moneyRequestInformation: MoneyRequestInforma
     } = moneyRequestInformation;
     const {payeeAccountID = userAccountID, payeeEmail = currentUserEmail, participant} = participantParams;
     const {policy, policyCategories, policyTagList} = policyParams;
-    const {attendees, amount, comment = '', currency, created, merchant, receipt, category, tag, taxCode, taxAmount, billable, linkedTrackedExpenseReportAction} = transactionParams;
+    const {attendees, amount, comment = '', currency, created, merchant, receipt, category, tag, taxCode, taxAmount, billable, linkedTrackedExpenseReportAction,isTestDrive} = transactionParams;
 
     const payerEmail = addSMSDomainIfPhoneNumber(participant.login ?? '');
     const payerAccountID = Number(participant.accountID);
@@ -3051,6 +3095,7 @@ function getMoneyRequestInformation(moneyRequestInformation: MoneyRequestInforma
             taxAmount: isExpenseReport(iouReport) ? -(taxAmount ?? 0) : taxAmount,
             billable,
             pendingFields: isDistanceRequest ? {waypoints: CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD} : undefined,
+            isTestDrive,
         },
     });
 
@@ -3084,7 +3129,7 @@ function getMoneyRequestInformation(moneyRequestInformation: MoneyRequestInforma
             payeeEmail,
             participants: [participant],
             transactionID: optimisticTransaction.transactionID,
-            paymentType: isSelectedManagerMcTest(participant.login) ? CONST.IOU.PAYMENT_TYPE.ELSEWHERE : undefined,
+            paymentType: isSelectedManagerMcTest(participant.login) || transactionParams.isTestDrive ? CONST.IOU.PAYMENT_TYPE.ELSEWHERE : undefined,
 
             existingTransactionThreadReportID: linkedTrackedExpenseReportAction?.childReportID,
             linkedTrackedExpenseReportAction,
@@ -4855,6 +4900,8 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation) {
         linkedTrackedExpenseReportID,
         waypoints,
         customUnitRateID,
+        isTestDrive,
+        guidedSetupData,
     } = transactionParams;
 
     const sanitizedWaypoints = waypoints ? JSON.stringify(sanitizeRecentWaypoints(waypoints)) : undefined;
@@ -4992,6 +5039,8 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation) {
                 reimbursible,
                 description: parsedComment,
                 attendees: attendees ? JSON.stringify(attendees) : undefined,
+                isTestDrive,
+                guidedSetupData: guidedSetupData ? JSON.stringify(guidedSetupData) : undefined,
             };
             // eslint-disable-next-line rulesdir/no-multiple-api-calls
             API.write(WRITE_COMMANDS.REQUEST_MONEY, parameters, onyxData);

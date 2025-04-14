@@ -362,6 +362,9 @@ function IOURequestStepConfirmation({
             if (transaction?.receipt?.isTestReceipt) {
                 receipt.isTestReceipt = true;
                 receipt.state = CONST.IOU.RECEIPT_STATE.SCANCOMPLETE;
+            } else if (transaction?.receipt?.isTestDriveReceipt) {
+                receipt.isTestDriveReceipt = true;
+                receipt.state = CONST.IOU.RECEIPT_STATE.SCANCOMPLETE;
             } else {
                 receipt.state = file && requestType === CONST.IOU.REQUEST_TYPE.MANUAL ? CONST.IOU.RECEIPT_STATE.OPEN : CONST.IOU.RECEIPT_STATE.SCANREADY;
             }
@@ -415,6 +418,8 @@ function IOURequestStepConfirmation({
                     linkedTrackedExpenseReportID: transaction.linkedTrackedExpenseReportID,
                     waypoints: Object.keys(transaction.comment?.waypoints ?? {}).length ? getValidWaypoints(transaction.comment?.waypoints, true) : undefined,
                     customUnitRateID,
+                    isTestDrive: transaction?.receipt?.isTestDriveReceipt,
+                    guidedSetupData: transaction?.receipt?.isTestDriveReceipt ? CONST.ONBOARDING_MESSAGES[CONST.ONBOARDING_CHOICES.TEST_DRIVE_RECEIVER] : undefined,
                 },
             });
         },

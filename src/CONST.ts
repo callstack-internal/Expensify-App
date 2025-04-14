@@ -6994,6 +6994,7 @@ export type {
     OnboardingInvite,
     OnboardingAccounting,
     IOUActionParams,
+    OnboardingMessage,
 };
 
 export default CONST;

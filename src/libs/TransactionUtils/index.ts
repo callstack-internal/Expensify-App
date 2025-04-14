@@ -69,6 +69,7 @@ type TransactionParams = {
     source?: string;
     filename?: string;
     customUnit?: TransactionCustomUnit;
+    isTestDrive?: boolean;
 };
 
 type BuildOptimisticTransactionParams = {
@@ -251,6 +252,7 @@ function buildOptimisticTransaction(params: BuildOptimisticTransactionParams): T
         source = '',
         filename = '',
         customUnit,
+        isTestDrive,
     } = transactionParams;
     // transactionIDs are random, positive, 64-bit numeric strings.
     // Because JS can only handle 53-bit numbers, transactionIDs are strings in the front-end (just like reportActionID)
@@ -295,6 +297,7 @@ function buildOptimisticTransaction(params: BuildOptimisticTransactionParams): T
         billable,
         reimbursable,
         inserted: DateUtils.getDBTime(),
+        isTestDrive,
     };
 }
 

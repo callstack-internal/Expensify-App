@@ -551,6 +551,8 @@ type Transaction = OnyxCommon.OnyxValueWithOfflineFeedback<
 
         /** The inserted time of the transaction */
         inserted?: string;
+
+        isTestDrive?: boolean;
     },
     keyof Comment | keyof TransactionCustomUnit | 'attendees'
 >;

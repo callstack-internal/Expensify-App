@@ -5,7 +5,15 @@ import Log from '@libs/Log';
 import Navigation from '@libs/Navigation/Navigation';
 import {getParticipantByLogin} from '@libs/OptionsListUtils';
 import {generateReportID} from '@libs/ReportUtils';
-import {initMoneyRequest, setMoneyRequestParticipants, setMoneyRequestReceipt} from '@userActions/IOU';
+import {
+    initMoneyRequest,
+    setMoneyRequestAmount,
+    setMoneyRequestCreated,
+    setMoneyRequestDescription,
+    setMoneyRequestMerchant,
+    setMoneyRequestParticipants,
+    setMoneyRequestReceipt,
+} from '@userActions/IOU';
 import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
 import type {SetTestDriveReceiptAndNavigate} from './types';
@@ -18,22 +26,28 @@ const setTestDriveReceiptAndNavigate: SetTestDriveReceiptAndNavigate = (email: s
             TestReceipt as string,
             filename,
             (file) => {
+                const transactionID = CONST.IOU.OPTIMISTIC_TRANSACTION_ID;
                 const reportID = generateReportID();
                 initMoneyRequest(reportID, undefined, false, CONST.IOU.REQUEST_TYPE.SCAN, CONST.IOU.REQUEST_TYPE.SCAN);
 
                 const source = URL.createObjectURL(file);
-                setMoneyRequestReceipt(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, source, filename, true, CONST.TEST_RECEIPT.FILE_TYPE, false);
+                setMoneyRequestReceipt(transactionID, source, filename, true, CONST.TEST_RECEIPT.FILE_TYPE, false, true);
 
                 const participant = getParticipantByLogin(email);
-                setMoneyRequestParticipants(CONST.IOU.OPTIMISTIC_TRANSACTION_ID, [
+                setMoneyRequestParticipants(transactionID, [
                     {
                         ...participant,
                         selected: true,
                     },
                 ]);
 
+                setMoneyRequestAmount(transactionID, CONST.TEST_DRIVE.EMPLOYEE_FAKE_RECEIPT.AMOUNT, CONST.TEST_DRIVE.EMPLOYEE_FAKE_RECEIPT.CURRENCY);
+                setMoneyRequestDescription(transactionID, CONST.TEST_DRIVE.EMPLOYEE_FAKE_RECEIPT.DESCRIPTION, true);
+                setMoneyRequestMerchant(transactionID, CONST.TEST_DRIVE.EMPLOYEE_FAKE_RECEIPT.MERCHANT, true);
+                setMoneyRequestCreated(transactionID, CONST.TEST_DRIVE.EMPLOYEE_FAKE_RECEIPT.CREATED, true);
+
                 InteractionManager.runAfterInteractions(() => {
-                    Navigation.navigate(ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(CONST.IOU.ACTION.CREATE, CONST.IOU.TYPE.SUBMIT, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, reportID));
+                    Navigation.navigate(ROUTES.MONEY_REQUEST_STEP_CONFIRMATION.getRoute(CONST.IOU.ACTION.CREATE, CONST.IOU.TYPE.SUBMIT, transactionID, reportID));
                 });
             },
             (error) => {

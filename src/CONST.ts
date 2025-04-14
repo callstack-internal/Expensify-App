@@ -6957,6 +6957,11 @@ const CONST = {
     TEST_DRIVE: {
         ONBOARDING_TASK_NAME: getTestDriveTaskName(),
         EMPLOYEE_FAKE_RECEIPT: {
+            AMOUNT: 2000,
+            CURRENCY: 'USD',
+            DESCRIPTION: 'My test drive receipt!',
+            MERCHANT: "Tommy's Tires",
+            CREATED: '2025-04-02',
             FILENAME: 'test_receipt',
             FILE_TYPE: 'image/jpg',
         },

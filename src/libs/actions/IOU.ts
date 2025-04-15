@@ -1365,7 +1365,7 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
         });
     }
 
-    if (transaction.isTestDrive) {
+    if (transaction.receipt?.isTestDriveReceipt) {
         const optimisticIOUReportAction = buildOptimisticIOUReportAction({
             type: CONST.IOU.REPORT_ACTION_TYPE.PAY,
             amount: transaction.amount,
@@ -3015,7 +3015,7 @@ function getMoneyRequestInformation(moneyRequestInformation: MoneyRequestInforma
     } = moneyRequestInformation;
     const {payeeAccountID = userAccountID, payeeEmail = currentUserEmail, participant} = participantParams;
     const {policy, policyCategories, policyTagList} = policyParams;
-    const {attendees, amount, comment = '', currency, created, merchant, receipt, category, tag, taxCode, taxAmount, billable, linkedTrackedExpenseReportAction,isTestDrive} = transactionParams;
+    const {attendees, amount, comment = '', currency, created, merchant, receipt, category, tag, taxCode, taxAmount, billable, linkedTrackedExpenseReportAction} = transactionParams;
 
     const payerEmail = addSMSDomainIfPhoneNumber(participant.login ?? '');
     const payerAccountID = Number(participant.accountID);
@@ -3095,7 +3095,6 @@ function getMoneyRequestInformation(moneyRequestInformation: MoneyRequestInforma
             taxAmount: isExpenseReport(iouReport) ? -(taxAmount ?? 0) : taxAmount,
             billable,
             pendingFields: isDistanceRequest ? {waypoints: CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD} : undefined,
-            isTestDrive,
         },
     });
 
@@ -3129,7 +3128,7 @@ function getMoneyRequestInformation(moneyRequestInformation: MoneyRequestInforma
             payeeEmail,
             participants: [participant],
             transactionID: optimisticTransaction.transactionID,
-            paymentType: isSelectedManagerMcTest(participant.login) || transactionParams.isTestDrive ? CONST.IOU.PAYMENT_TYPE.ELSEWHERE : undefined,
+            paymentType: isSelectedManagerMcTest(participant.login) || transactionParams.receipt?.isTestDriveReceipt ? CONST.IOU.PAYMENT_TYPE.ELSEWHERE : undefined,
 
             existingTransactionThreadReportID: linkedTrackedExpenseReportAction?.childReportID,
             linkedTrackedExpenseReportAction,

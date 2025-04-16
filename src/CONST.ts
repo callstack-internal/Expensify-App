@@ -1351,7 +1351,7 @@ const CONST = {
                 },
             },
             THREAD_DISABLED: ['CREATED'],
-            // Used when displaying reportActions list to handle of unread messages icon/button
+            // Used when displaying reportActions list to handle unread messages icon/button
             SCROLL_VERTICAL_OFFSET_THRESHOLD: 200,
             ACTION_VISIBLE_THRESHOLD: 250,
         },
@@ -5285,6 +5285,7 @@ const CONST = {
         TAX_RATE_CHANGED: 'taxRateChanged',
         TAX_REQUIRED: 'taxRequired',
         HOLD: 'hold',
+        RECEIPT_GENERATED_WITH_AI: 'receiptGeneratedWithAI',
     },
     RTER_VIOLATION_TYPES: {
         BROKEN_CARD_CONNECTION: 'brokenCardConnection',

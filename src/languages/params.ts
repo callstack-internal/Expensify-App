@@ -683,6 +683,10 @@ type ReviewParams = {
     amount: string;
 };
 
+type EmployeeInviteMessageParams = {
+    name: string;
+};
+
 export type {
     AuthenticationErrorParams,
     ImportMembersSuccessfullDescriptionParams,
@@ -926,4 +930,5 @@ export type {
     NeedCategoryForExportToIntegrationParams,
     SubscriptionSettingsSummaryParams,
     ReviewParams,
+    EmployeeInviteMessageParams,
 };

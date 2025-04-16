@@ -69,6 +69,7 @@ import type {
     EditActionParams,
     EditDestinationSubtitleParams,
     ElectronicFundsParams,
+    EmployeeInviteMessageParams,
     EnterMagicCodeParams,
     ExportAgainModalDescriptionParams,
     ExportedToIntegrationParams,
@@ -6719,6 +6720,8 @@ const translations = {
             readyForTheRealThing: 'Ready for the real thing?',
             getStarted: 'Get started',
         },
+        employeeInviteMessage: ({name}: EmployeeInviteMessageParams) =>
+            `<h1>${name} invited you to test drive Expensify</h1><br/>Hey! I just got us 3 months free to test drive Expensify, the fastest way to do expenses.<br/><br/>Here’s a test receipt to show you how it works:`,
     },
 };
 

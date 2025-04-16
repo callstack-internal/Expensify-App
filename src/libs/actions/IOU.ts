@@ -1,4 +1,4 @@
-import {format} from 'date-fns';
+import {format, parse, subMilliseconds} from 'date-fns';
 import {fastMerge, Str} from 'expensify-common';
 import {InteractionManager} from 'react-native';
 import type {NullishDeep, OnyxCollection, OnyxEntry, OnyxInputValue, OnyxUpdate} from 'react-native-onyx';
@@ -56,9 +56,10 @@ import Navigation from '@libs/Navigation/Navigation';
 import {buildNextStep} from '@libs/NextStepUtils';
 import {rand64} from '@libs/NumberUtils';
 import {getManagerMcTestParticipant, getPersonalDetailsForAccountIDs} from '@libs/OptionsListUtils';
+import Parser from '@libs/Parser';
 import {getCustomUnitID} from '@libs/PerDiemRequestUtils';
 import Performance from '@libs/Performance';
-import {getAccountIDsByLogins} from '@libs/PersonalDetailsUtils';
+import {getAccountIDsByLogins, getDisplayNameOrDefault} from '@libs/PersonalDetailsUtils';
 import {addSMSDomainIfPhoneNumber} from '@libs/PhoneNumber';
 import {
     getPerDiemCustomUnit,
@@ -91,6 +92,7 @@ import {
 import type {OptimisticChatReport, OptimisticCreatedReportAction, OptimisticIOUReportAction, OptionData, TransactionDetails} from '@libs/ReportUtils';
 import {
     buildOptimisticActionableTrackExpenseWhisper,
+    buildOptimisticAddCommentReportAction,
     buildOptimisticApprovedReportAction,
     buildOptimisticCancelPaymentReportAction,
     buildOptimisticChatReport,
@@ -1377,7 +1379,20 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
             transactionID: transaction.transactionID,
         });
 
+        const text = Localize.translateLocal('testDrive.employeeInviteMessage', {name: getDisplayNameOrDefault(personalDetailsList?.[userAccountID])});
+        const textComment = buildOptimisticAddCommentReportAction(Parser.htmlToMarkdown(text), undefined, userAccountID);
+        const iouCreatedActionDate = parse(iou.createdAction.created, CONST.DATE.FNS_DB_FORMAT_STRING, new Date());
+        const commentReportActionDate = subMilliseconds(iouCreatedActionDate, 1);
+        textComment.reportAction.created = format(commentReportActionDate, CONST.DATE.FNS_DB_FORMAT_STRING);
+
         optimisticData.push(
+            {
+                onyxMethod: Onyx.METHOD.MERGE,
+                key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${chat.report?.reportID}`,
+                value: {
+                    [textComment.reportAction.reportActionID]: textComment.reportAction as ReportAction,
+                },
+            },
             {
                 onyxMethod: Onyx.METHOD.MERGE,
                 key: `${ONYXKEYS.COLLECTION.REPORT}${iou.report.reportID}`,

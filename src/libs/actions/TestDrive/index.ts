@@ -3,8 +3,8 @@ import TestReceipt from '@assets/images/fake-test-drive-employee-receipt.jpg';
 import {readFileAsync} from '@libs/fileDownload/FileUtils';
 import Log from '@libs/Log';
 import Navigation from '@libs/Navigation/Navigation';
-import {getParticipantByLogin} from '@libs/OptionsListUtils';
 import {generateReportID} from '@libs/ReportUtils';
+import {generateAccountID} from '@libs/UserUtils';
 import {
     initMoneyRequest,
     setMoneyRequestAmount,
@@ -33,10 +33,11 @@ const setTestDriveReceiptAndNavigate: SetTestDriveReceiptAndNavigate = (email: s
                 const source = URL.createObjectURL(file);
                 setMoneyRequestReceipt(transactionID, source, filename, true, CONST.TEST_RECEIPT.FILE_TYPE, false, true);
 
-                const participant = getParticipantByLogin(email);
                 setMoneyRequestParticipants(transactionID, [
                     {
-                        ...participant,
+                        accountID: generateAccountID(email),
+                        login: email,
+                        displayName: email,
                         selected: true,
                     },
                 ]);

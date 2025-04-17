@@ -3,7 +3,6 @@ import React, {useCallback, useRef, useState} from 'react';
 import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import useLocalize from '@hooks/useLocalize';
-import useSearchTermAndSearch from '@hooks/useSearchTermAndSearch';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {setTestDriveReceiptAndNavigate} from '@libs/actions/TestDrive';
 import type {TranslationPaths} from '@src/languages/types';
@@ -15,7 +14,6 @@ function EmployeeTestDriveModal() {
     const [bossEmail, setBossEmail] = useState('');
     const [formError, setFormError] = useState<TranslationPaths | undefined>();
     const actionToPerformRef = useRef<'dismiss' | 'navigate_iou'>('dismiss');
-    const setBossEmailAndSearch = useSearchTermAndSearch(setBossEmail, false);
 
     const validate = useCallback(
         (value: string) => {
@@ -75,7 +73,7 @@ function EmployeeTestDriveModal() {
                 placeholder={translate('testDrive.modal.employee.email')}
                 accessibilityLabel={translate('testDrive.modal.employee.email')}
                 value={bossEmail}
-                onChangeText={setBossEmailAndSearch}
+                onChangeText={setBossEmail}
                 errorText={formError ? translate(formError) : undefined}
             />
         </BaseTestDriveModal>

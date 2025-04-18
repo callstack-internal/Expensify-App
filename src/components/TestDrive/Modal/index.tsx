@@ -7,9 +7,9 @@ import EmployeeTestDriveModal from './EmployeeTestDriveModal';
 
 function TestDriveModal() {
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
-    const isAdmin = introSelected?.choice === CONST.ONBOARDING_CHOICES.MANAGE_TEAM;
+    const isAdminTester = introSelected?.choice === CONST.ONBOARDING_CHOICES.MANAGE_TEAM;
 
-    return isAdmin ? <AdminTestDriveModal /> : <EmployeeTestDriveModal />;
+    return isAdminTester ? <AdminTestDriveModal /> : <EmployeeTestDriveModal />;
 }
 
 TestDriveModal.displayName = 'TestDriveModal';

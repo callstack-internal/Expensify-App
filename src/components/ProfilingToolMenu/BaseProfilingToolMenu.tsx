@@ -265,6 +265,11 @@ function BaseProfilingToolMenu({showShareButton = false, pathToBeUsed, displayPa
         });
     };
 
+    const set1PerformanceTest = () => {
+        const reportAction = createRandomReportAction(1);
+        Onyx.set(`${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`, reportAction);
+    };
+
     return (
         <>
             <TestToolRow title={translate('initialSettingsPage.troubleshoot.useProfiling')}>
@@ -312,6 +317,13 @@ function BaseProfilingToolMenu({showShareButton = false, pathToBeUsed, displayPa
                     small
                     text="merge 10 records"
                     onPress={merge10PerformanceTest}
+                />
+            </TestToolRow>
+            <TestToolRow title="PERFORMANCE_TEST">
+                <Button
+                    small
+                    text="set 1 record"
+                    onPress={set1PerformanceTest}
                 />
             </TestToolRow>
         </>

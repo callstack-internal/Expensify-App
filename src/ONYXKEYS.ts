@@ -518,6 +518,7 @@ const ONYXKEYS = {
 
     /** Collection Keys */
     COLLECTION: {
+        PERFORMANCE_TEST: 'performanceTest_',
         DOWNLOAD: 'download_',
         POLICY: 'policy_',
         POLICY_DRAFTS: 'policyDrafts_',
@@ -916,6 +917,7 @@ type OnyxFormDraftValuesMapping = {
 };
 
 type OnyxCollectionValuesMapping = {
+    [ONYXKEYS.COLLECTION.PERFORMANCE_TEST]: OnyxTypes.ReportAction;
     [ONYXKEYS.COLLECTION.DOWNLOAD]: OnyxTypes.Download;
     [ONYXKEYS.COLLECTION.POLICY]: OnyxTypes.Policy;
     [ONYXKEYS.COLLECTION.POLICY_DRAFTS]: OnyxTypes.Policy;

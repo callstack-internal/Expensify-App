@@ -45,6 +45,7 @@ export default function () {
             [ONYXKEYS.TALK_TO_AI_SALES]: {isLoading: false, isTalkingToAISales: false},
         },
         skippableCollectionMemberIDs: CONST.SKIPPABLE_COLLECTION_MEMBER_IDS,
+        enablePerformanceMetrics: true,
     });
 
     initOnyxDerivedValues();

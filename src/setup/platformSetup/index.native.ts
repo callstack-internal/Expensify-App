@@ -2,6 +2,9 @@ import crashlytics from '@react-native-firebase/crashlytics';
 import canCapturePerformanceMetrics from '@libs/Metrics';
 import Performance from '@libs/Performance';
 import CONFIG from '@src/CONFIG';
+import { Memoize } from '@libs/memoize';
+import { startProfiling } from 'react-native-release-profiler';
+import toggleProfileTool from '@libs/actions/ProfilingTool';
 
 export default function () {
     // We do not want to send crash reports if we are on a locally built release version of the app.
@@ -11,7 +14,12 @@ export default function () {
         crashlytics().setCrashlyticsCollectionEnabled(false);
     }
 
+    // Memoize.startMonitoring();
+    // Performance.enableMonitoring();
+    // startProfiling();
+    // toggleProfileTool();
+
     if (canCapturePerformanceMetrics()) {
-        Performance.enableMonitoring();
+        // Performance.enableMonitoring();
     }
 }

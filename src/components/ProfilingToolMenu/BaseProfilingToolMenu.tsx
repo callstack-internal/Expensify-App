@@ -1,6 +1,8 @@
+/* eslint-disable rulesdir/prefer-actions-set-data */
+import {format} from 'date-fns';
 import React, {useCallback, useEffect, useState} from 'react';
 import DeviceInfo from 'react-native-device-info';
-import {useOnyx} from 'react-native-onyx';
+import Onyx, {useOnyx} from 'react-native-onyx';
 import {startProfiling, stopProfiling} from 'react-native-release-profiler';
 import Button from '@components/Button';
 import Switch from '@components/Switch';
@@ -16,9 +18,75 @@ import Performance from '@libs/Performance';
 import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+import type {ReportAction} from '@src/types/onyx';
 import pkg from '../../../package.json';
 import RNFS from './RNFS';
 import Share from './Share';
+
+function createCollection<T>(createKey: (item: T, index: number) => string | number, createItem: (index: number) => T, length = 1000): Record<string, T> {
+    const map: Record<string, T> = {};
+
+    for (let i = 0; i < length; i++) {
+        const item = createItem(i);
+        const itemKey = createKey(item, i);
+        map[itemKey] = item;
+    }
+
+    return map;
+}
+
+const getRandomDate = (): string => {
+    const randomTimestamp = Math.random() * new Date().getTime();
+    const randomDate = new Date(randomTimestamp);
+
+    const formattedDate = format(randomDate, CONST.DATE.FNS_DB_FORMAT_STRING);
+
+    return formattedDate;
+};
+
+function createRandomReportAction(index: number): ReportAction {
+    const randWord = (str: string) => `${str}_${Math.random()}`;
+    const randBoolean = () => Math.random() > 0.5;
+
+    return {
+        // We need to assert the type of actionName so that rest of the properties are inferred correctly
+        actionName: CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT,
+        reportActionID: index.toString(),
+        actorAccountID: index,
+        person: [
+            {
+                type: randWord('personType'),
+                style: randWord('personStyle'),
+                text: randWord('personText'),
+            },
+        ],
+        created: getRandomDate(),
+        message: [
+            {
+                type: randWord('messageType'),
+                html: randWord('messageHtml'),
+                style: randWord('messageStyle'),
+                text: randWord('messageText'),
+                isEdited: randBoolean(),
+                isDeletedParentAction: randBoolean(),
+                whisperedTo: [Math.random(), Math.random(), Math.random()],
+            },
+        ],
+        originalMessage: {
+            html: randWord('originalMessageHtml'),
+            lastModified: getRandomDate(),
+            whisperedTo: [Math.random(), Math.random(), Math.random()],
+        },
+        avatar: randWord('avatar'),
+        automatic: randBoolean(),
+        shouldShow: randBoolean(),
+        lastModified: getRandomDate(),
+        pendingAction: CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD,
+        delegateAccountID: index,
+        errors: {},
+        isAttachmentOnly: randBoolean(),
+    };
+}
 
 type BaseProfilingToolMenuProps = {
     /** Path used to save the file */
@@ -156,6 +224,47 @@ function BaseProfilingToolMenu({showShareButton = false, pathToBeUsed, displayPa
         shareFiles();
     }, [getAppInfo, sharePath]);
 
+    const setCollection1000PerformanceTest = () => {
+        const reportActions = createCollection<ReportAction>(
+            (item) => `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${item.reportActionID}`,
+            (index) => createRandomReportAction(index),
+        ) as Record<`${typeof ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${string}`, ReportAction>;
+
+        Onyx.setCollection(ONYXKEYS.COLLECTION.PERFORMANCE_TEST, reportActions);
+    };
+
+    const mergeCollection1000PerformanceTest = () => {
+        const reportActions = createCollection<ReportAction>(
+            (item) => `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${item.reportActionID}`,
+            (index) => createRandomReportAction(index),
+        ) as Record<`${typeof ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${string}`, ReportAction>;
+
+        Onyx.mergeCollection(ONYXKEYS.COLLECTION.PERFORMANCE_TEST, reportActions);
+    };
+
+    const mergeCollection1PerformanceTest = () => {
+        const reportActions = createCollection<ReportAction>(
+            (item) => `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${item.reportActionID}`,
+            (index) => createRandomReportAction(index + 1),
+            1,
+        ) as Record<`${typeof ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${string}`, ReportAction>;
+
+        Onyx.mergeCollection(ONYXKEYS.COLLECTION.PERFORMANCE_TEST, reportActions);
+    };
+
+    const merge10PerformanceTest = () => {
+        const reportActions = createCollection<ReportAction>(
+            (item) => `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${item.reportActionID}`,
+            (index) => createRandomReportAction(index),
+            10,
+        ) as Record<`${typeof ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${string}`, ReportAction>;
+
+        const randomIndex = Math.floor(Math.random() * 1001);
+        Object.entries(reportActions).forEach(([key, value]) => {
+            Onyx.merge(`${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${randomIndex}`, value);
+        });
+    };
+
     return (
         <>
             <TestToolRow title={translate('initialSettingsPage.troubleshoot.useProfiling')}>
@@ -177,6 +286,34 @@ function BaseProfilingToolMenu({showShareButton = false, pathToBeUsed, displayPa
                     </TestToolRow>
                 </>
             )}
+            <TestToolRow title="PERFORMANCE_TEST">
+                <Button
+                    small
+                    text="setCollection 1000 records"
+                    onPress={setCollection1000PerformanceTest}
+                />
+            </TestToolRow>
+            <TestToolRow title="PERFORMANCE_TEST">
+                <Button
+                    small
+                    text="mergeCollection 1000 records"
+                    onPress={mergeCollection1000PerformanceTest}
+                />
+            </TestToolRow>
+            <TestToolRow title="PERFORMANCE_TEST">
+                <Button
+                    small
+                    text="mergeCollection 1 record"
+                    onPress={mergeCollection1PerformanceTest}
+                />
+            </TestToolRow>
+            <TestToolRow title="PERFORMANCE_TEST">
+                <Button
+                    small
+                    text="merge 10 records"
+                    onPress={merge10PerformanceTest}
+                />
+            </TestToolRow>
         </>
     );
 }

@@ -1178,6 +1178,71 @@ function getFieldViolationsOnyxData(iouReport: OnyxTypes.Report): SetRequired<On
     };
 }
 
+function buildOnyxDataForTestDriveIOU(
+    transaction: OnyxTypes.Transaction,
+    iouOptimisticParams: MoneyRequestOptimisticParams['iou'],
+    chatOptimisticParams: MoneyRequestOptimisticParams['chat'],
+): [OnyxUpdate[], OnyxUpdate[], OnyxUpdate[]] {
+    const optimisticData: OnyxUpdate[] = [];
+    const successData: OnyxUpdate[] = [];
+    const failureData: OnyxUpdate[] = [];
+
+    const optimisticIOUReportAction = buildOptimisticIOUReportAction({
+        type: CONST.IOU.REPORT_ACTION_TYPE.PAY,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        comment: '',
+        participants: transaction.participants ?? [],
+        paymentType: CONST.IOU.PAYMENT_TYPE.ELSEWHERE,
+        iouReportID: iouOptimisticParams.report.reportID,
+        transactionID: transaction.transactionID,
+    });
+
+    const text = Localize.translateLocal('testDrive.employeeInviteMessage', {name: getDisplayNameOrDefault(personalDetailsList?.[userAccountID])});
+    const textComment = buildOptimisticAddCommentReportAction(Parser.htmlToMarkdown(text), undefined, userAccountID);
+    const iouCreatedActionDate = parse(iouOptimisticParams.createdAction.created, CONST.DATE.FNS_DB_FORMAT_STRING, new Date());
+    const commentReportActionDate = subMilliseconds(iouCreatedActionDate, 1);
+    textComment.reportAction.created = format(commentReportActionDate, CONST.DATE.FNS_DB_FORMAT_STRING);
+
+    optimisticData.push(
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${chatOptimisticParams.report?.reportID}`,
+            value: {
+                [textComment.reportAction.reportActionID]: textComment.reportAction as ReportAction,
+            },
+        },
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.REPORT}${iouOptimisticParams.report.reportID}`,
+            value: {
+                ...iouOptimisticParams.report,
+                ...{lastActionType: CONST.REPORT.ACTIONS.TYPE.MARKED_REIMBURSED, statusNum: CONST.REPORT.STATUS_NUM.REIMBURSED},
+                hasOutstandingChildRequest: false,
+                lastActorAccountID: currentUserPersonalDetails?.accountID,
+            },
+        },
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${iouOptimisticParams.report.reportID}`,
+            value: {
+                [iouOptimisticParams.action.reportActionID]: {
+                    ...(optimisticIOUReportAction as OnyxTypes.ReportAction),
+                },
+            },
+        },
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`,
+            value: {
+                ...transaction,
+            },
+        },
+    );
+
+    return [optimisticData, successData, failureData];
+}
+
 /** Builds the Onyx data for an expense */
 function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyRequestParams): [OnyxUpdate[], OnyxUpdate[], OnyxUpdate[]] {
     const {
@@ -1206,6 +1271,7 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
     const isMoneyRequestToManagerMcTest = isTestTransactionReport(iou.report);
     const optimisticData: OnyxUpdate[] = [];
     const successData: OnyxUpdate[] = [];
+    const failureData: OnyxUpdate[] = [];
     let newQuickAction: ValueOf<typeof CONST.QUICK_ACTIONS>;
     if (isScanRequest) {
         newQuickAction = CONST.QUICK_ACTIONS.REQUEST_SCAN;
@@ -1367,58 +1433,10 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
     }
 
     if (transaction.receipt?.isTestDriveReceipt) {
-        const optimisticIOUReportAction = buildOptimisticIOUReportAction({
-            type: CONST.IOU.REPORT_ACTION_TYPE.PAY,
-            amount: transaction.amount,
-            currency: transaction.currency,
-            comment: '',
-            participants: transaction.participants ?? [],
-            paymentType: CONST.IOU.PAYMENT_TYPE.ELSEWHERE,
-            iouReportID: iou.report.reportID,
-            transactionID: transaction.transactionID,
-        });
-
-        const text = Localize.translateLocal('testDrive.employeeInviteMessage', {name: getDisplayNameOrDefault(personalDetailsList?.[userAccountID])});
-        const textComment = buildOptimisticAddCommentReportAction(Parser.htmlToMarkdown(text), undefined, userAccountID);
-        const iouCreatedActionDate = parse(iou.createdAction.created, CONST.DATE.FNS_DB_FORMAT_STRING, new Date());
-        const commentReportActionDate = subMilliseconds(iouCreatedActionDate, 1);
-        textComment.reportAction.created = format(commentReportActionDate, CONST.DATE.FNS_DB_FORMAT_STRING);
-
-        optimisticData.push(
-            {
-                onyxMethod: Onyx.METHOD.MERGE,
-                key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${chat.report?.reportID}`,
-                value: {
-                    [textComment.reportAction.reportActionID]: textComment.reportAction as ReportAction,
-                },
-            },
-            {
-                onyxMethod: Onyx.METHOD.MERGE,
-                key: `${ONYXKEYS.COLLECTION.REPORT}${iou.report.reportID}`,
-                value: {
-                    ...iou.report,
-                    ...{lastActionType: CONST.REPORT.ACTIONS.TYPE.MARKED_REIMBURSED, statusNum: CONST.REPORT.STATUS_NUM.REIMBURSED},
-                    hasOutstandingChildRequest: false,
-                    lastActorAccountID: currentUserPersonalDetails?.accountID,
-                },
-            },
-            {
-                onyxMethod: Onyx.METHOD.MERGE,
-                key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${iou.report.reportID}`,
-                value: {
-                    [iou.action.reportActionID]: {
-                        ...(optimisticIOUReportAction as OnyxTypes.ReportAction),
-                    },
-                },
-            },
-            {
-                onyxMethod: Onyx.METHOD.MERGE,
-                key: `${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`,
-                value: {
-                    ...transaction,
-                },
-            },
-        );
+        const [testDriveOptimisticData, testDriveSuccessData, testDriveFailureData] = buildOnyxDataForTestDriveIOU(transaction, iou, chat);
+        optimisticData.push(...testDriveOptimisticData);
+        successData.push(...testDriveSuccessData);
+        failureData.push(...testDriveFailureData);
     }
 
     if (isMoneyRequestToManagerMcTest) {
@@ -1621,7 +1639,7 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
 
     const errorKey = DateUtils.getMicroseconds();
 
-    const failureData: OnyxUpdate[] = [
+    failureData.push(
         {
             onyxMethod: Onyx.METHOD.MERGE,
             key: `${ONYXKEYS.COLLECTION.REPORT}${chat.report?.reportID}`,
@@ -1717,7 +1735,7 @@ function buildOnyxDataForMoneyRequest(moneyRequestParams: BuildOnyxDataForMoneyR
                       }),
             },
         },
-    ];
+    );
 
     if (!isOneOnOneSplit) {
         optimisticData.push({

@@ -17,7 +17,6 @@ function getTestDriveURL(environment: ValueOf<typeof CONST.ENVIRONMENT>, shouldU
 }
 
 export {
-    // eslint-disable-next-line import/prefer-default-export
     getNavatticURL,
     getTestDriveURL,
 };

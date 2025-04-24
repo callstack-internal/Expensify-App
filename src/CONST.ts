@@ -94,6 +94,7 @@ const backendOnboardingChoices = {
     ADMIN: 'newDotAdmin',
     SUBMIT: 'newDotSubmit',
     TRACK_WORKSPACE: 'newDotTrackWorkspace',
+    TEST_DRIVE_RECEIVER: 'newDotTestDriveReceiver',
 } as const;
 
 const onboardingChoices = {
@@ -5617,6 +5618,10 @@ const CONST = {
                 "Expensify is best known for expense and corporate card management, but we do a lot more than that. Let me know what you're interested in and I'll help get you started.",
             tasks: [],
         },
+        [onboardingChoices.TEST_DRIVE_RECEIVER]: {
+            message: "*You've got 3 months free! Get started below.*",
+            tasks: [testDriveTask, createWorkspaceTask],
+        },
     } satisfies Record<OnboardingPurpose, OnboardingMessage>,
 
     CREATE_EXPENSE_ONBOARDING_MESSAGES: {
@@ -7076,6 +7081,7 @@ export type {
     OnboardingInvite,
     OnboardingAccounting,
     IOUActionParams,
+    OnboardingMessage,
 };
 
 export {getTestDriveTaskName};

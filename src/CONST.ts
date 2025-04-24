@@ -7038,6 +7038,15 @@ const CONST = {
         ONBOARDING_TASK_NAME: getTestDriveTaskName(),
         EMBEDDED_DEMO_WHITELIST: ['http://', 'https://', 'about:'] as string[],
         EMBEDDED_DEMO_IFRAME_TITLE: 'Test Drive',
+        EMPLOYEE_FAKE_RECEIPT: {
+            AMOUNT: 2000,
+            CURRENCY: 'USD',
+            DESCRIPTION: 'My test drive receipt!',
+            MERCHANT: "Tommy's Tires",
+            CREATED: '2025-04-02',
+            FILENAME: 'test_receipt',
+            FILE_TYPE: 'image/jpg',
+        },
     },
 } as const;
 

@@ -881,6 +881,10 @@ function IOURequestStepConfirmation({
     const shouldShowThreeDotsButton =
         requestType === CONST.IOU.REQUEST_TYPE.MANUAL && (iouType === CONST.IOU.TYPE.SUBMIT || iouType === CONST.IOU.TYPE.TRACK) && !isMovingTransactionFromTrackExpense;
 
+    const shouldShowSmartScanFields =
+        !!transaction?.receipt?.isTestDriveReceipt || (isMovingTransactionFromTrackExpense ? transaction?.amount !== 0 : requestType !== CONST.IOU.REQUEST_TYPE.SCAN);
+
+    // TODO: Adjust the code to make the back button go straight back to the Test Drive Modal (by reopening it).
     return (
         <ScreenWrapper
             shouldEnableMaxHeight={canUseTouchScreen()}
@@ -969,7 +973,7 @@ function IOURequestStepConfirmation({
                         iouCreated={transaction?.created}
                         isDistanceRequest={isDistanceRequest}
                         isPerDiemRequest={isPerDiemRequest}
-                        shouldShowSmartScanFields={isMovingTransactionFromTrackExpense ? transaction?.amount !== 0 : requestType !== CONST.IOU.REQUEST_TYPE.SCAN}
+                        shouldShowSmartScanFields={shouldShowSmartScanFields}
                         action={action}
                         payeePersonalDetails={payeePersonalDetails}
                         shouldPlaySound={iouType === CONST.IOU.TYPE.PAY}

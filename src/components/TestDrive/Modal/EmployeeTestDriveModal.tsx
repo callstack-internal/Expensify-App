@@ -4,6 +4,7 @@ import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
+import {setTestDriveReceiptAndNavigate} from '@libs/actions/TestDrive';
 import type {TranslationPaths} from '@src/languages/types';
 import BaseTestDriveModal from './BaseTestDriveModal';
 
@@ -46,7 +47,7 @@ function EmployeeTestDriveModal() {
     const navigate = () => {
         switch (actionToPerformRef.current) {
             case 'navigate_iou': {
-                // setTestDriveReceiptAndNavigate
+                setTestDriveReceiptAndNavigate(bossEmail);
                 break;
             }
             default: {

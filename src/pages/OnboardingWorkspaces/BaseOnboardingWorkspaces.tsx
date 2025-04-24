@@ -69,7 +69,6 @@ function BaseOnboardingWorkspaces({route, shouldUseNativeStyles}: BaseOnboarding
             setOnboardingPolicyID(policy.policyID);
 
             navigateAfterOnboarding(
-                CONST.ONBOARDING_CHOICES.LOOKING_AROUND,
                 isSmallScreenWidth,
                 canUseDefaultRooms,
                 policy.automaticJoiningEnabled ? policy.policyID : undefined,

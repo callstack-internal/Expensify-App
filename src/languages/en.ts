@@ -6261,6 +6261,12 @@ const translations = {
             description: 'Take a quick product tour to get up to speed fast. No pit stops required!',
             confirmText: 'Start test drive',
             helpText: 'Skip',
+            employee: {
+                description1: 'Get your team ',
+                description2: '3 free months of Expensify!',
+                description3: ' Just enter your boss’s email below and we’ll walk you through sending them a scanned test expense — no more manual entry.',
+                email: "Enter your boss's email",
+            },
         },
         banner: {
             currentlyTestDrivingExpensify: "You're currently test driving Expensify",

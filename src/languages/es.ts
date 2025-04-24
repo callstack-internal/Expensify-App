@@ -6786,6 +6786,12 @@ const translations = {
             description: 'Haz un recorrido rápido por el producto para ponerte al día rápidamente. ¡No se requieren paradas!',
             confirmText: 'Iniciar prueba',
             helpText: 'Omitir',
+            employee: {
+                description1: 'Get your team ',
+                description2: '3 free months of Expensify!',
+                description3: ' Just enter your boss’s email below and we’ll walk you through sending them a scanned test expense — no more manual entry.',
+                email: "Enter your boss's email",
+            },
         },
         banner: {
             currentlyTestDrivingExpensify: 'Actualmente estás probando Expensify',

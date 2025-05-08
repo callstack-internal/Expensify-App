@@ -1,8 +1,12 @@
 /* eslint-disable rulesdir/prefer-actions-set-data */
 import {format} from 'date-fns';
+import {deepEqual} from 'fast-equals';
+import lodashCloneDeep from 'lodash/cloneDeep';
 import React, {useCallback, useEffect, useState} from 'react';
 import DeviceInfo from 'react-native-device-info';
+import type {OnyxUpdate} from 'react-native-onyx';
 import Onyx, {useOnyx} from 'react-native-onyx';
+import OnyxStorage from 'react-native-onyx/dist/storage';
 import {startProfiling, stopProfiling} from 'react-native-release-profiler';
 import Button from '@components/Button';
 import Switch from '@components/Switch';
@@ -35,7 +39,10 @@ function createCollection<T>(createKey: (item: T, index: number) => string | num
     return map;
 }
 
-const getRandomDate = (): string => {
+const randWord = (str: string) => `${str}_${Math.random()}`;
+const randBoolean = () => Math.random() > 0.5;
+const randNumber = () => Math.random();
+const randDate = (): string => {
     const randomTimestamp = Math.random() * new Date().getTime();
     const randomDate = new Date(randomTimestamp);
 
@@ -45,9 +52,6 @@ const getRandomDate = (): string => {
 };
 
 function createRandomReportAction(index: number): ReportAction {
-    const randWord = (str: string) => `${str}_${Math.random()}`;
-    const randBoolean = () => Math.random() > 0.5;
-
     return {
         // We need to assert the type of actionName so that rest of the properties are inferred correctly
         actionName: CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT,
@@ -60,7 +64,7 @@ function createRandomReportAction(index: number): ReportAction {
                 text: randWord('personText'),
             },
         ],
-        created: getRandomDate(),
+        created: randDate(),
         message: [
             {
                 type: randWord('messageType'),
@@ -74,13 +78,13 @@ function createRandomReportAction(index: number): ReportAction {
         ],
         originalMessage: {
             html: randWord('originalMessageHtml'),
-            lastModified: getRandomDate(),
+            lastModified: randDate(),
             whisperedTo: [Math.random(), Math.random(), Math.random()],
         },
         avatar: randWord('avatar'),
         automatic: randBoolean(),
         shouldShow: randBoolean(),
-        lastModified: getRandomDate(),
+        lastModified: randDate(),
         pendingAction: CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD,
         delegateAccountID: index,
         errors: {},
@@ -270,6 +274,78 @@ function BaseProfilingToolMenu({showShareButton = false, pathToBeUsed, displayPa
         Onyx.set(`${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`, reportAction);
     };
 
+    // eslint-disable-next-line @lwc/lwc/no-async-await
+    const replaceAfterNullLogicTest = async () => {
+        const reportAction = createRandomReportAction(8010);
+        reportAction.receipt = {
+            receiptID: randNumber(),
+            nestedObject: {
+                nestedKey1: randWord('receiptNestedObjectNestedKey1'),
+                nestedKey2: randWord('receiptNestedObjectNestedKey2'),
+            },
+        };
+
+        await Onyx.set(`${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`, reportAction);
+
+        const reportActionExpectedResult = lodashCloneDeep(reportAction);
+        const queuedUpdates: OnyxUpdate[] = [];
+
+        queuedUpdates.push({
+            key: `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`,
+            onyxMethod: 'merge',
+            value: {
+                // Removing the "originalMessage" object in this update.
+                // Any subsequent changes to this object should completely replace the existing object in store.
+                originalMessage: null,
+            },
+        });
+        delete reportActionExpectedResult.originalMessage;
+
+        queuedUpdates.push({
+            key: `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`,
+            onyxMethod: 'merge',
+            value: {
+                // This change should completely replace "originalMessage" existing object in store.
+                originalMessage: {
+                    errorMessage: 'newErrorMessage',
+                },
+                receipt: {
+                    // Removing the "nestedObject" object in this update.
+                    // Any subsequent changes to this object should completely replace the existing object in store.
+                    nestedObject: null,
+                },
+            },
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        reportActionExpectedResult.originalMessage = {errorMessage: 'newErrorMessage'} as any;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        delete reportActionExpectedResult.receipt!.nestedObject;
+
+        queuedUpdates.push({
+            key: `${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`,
+            onyxMethod: 'merge',
+            value: {
+                receipt: {
+                    receiptID: null,
+                    filename: 'newFilename',
+                    // This change should completely replace "receipt" existing object in store.
+                    nestedObject: {
+                        nestedKey2: 'newNestedKey2',
+                    },
+                },
+            },
+        });
+        reportActionExpectedResult.receipt = {filename: 'newFilename', nestedObject: {nestedKey2: 'newNestedKey2'}};
+
+        await Onyx.update(queuedUpdates);
+
+        OnyxStorage.getItem(`${ONYXKEYS.COLLECTION.PERFORMANCE_TEST}${reportAction.reportActionID}`).then((result) => {
+            console.log(`[fabio] replaceAfterNullLogicTest expected`, JSON.stringify(reportActionExpectedResult));
+            console.log(`[fabio] replaceAfterNullLogicTest result`, JSON.stringify(result));
+            console.log(`[fabio] replaceAfterNullLogicTest isEqual`, deepEqual(result, reportActionExpectedResult));
+        });
+    };
+
     return (
         <>
             <TestToolRow title={translate('initialSettingsPage.troubleshoot.useProfiling')}>
@@ -324,6 +400,14 @@ function BaseProfilingToolMenu({showShareButton = false, pathToBeUsed, displayPa
                     small
                     text="set 1 record"
                     onPress={set1PerformanceTest}
+                />
+            </TestToolRow>
+            <TestToolRow title="LOGIC_TEST">
+                <Button
+                    small
+                    text="Replace after null"
+                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                    onPress={replaceAfterNullLogicTest}
                 />
             </TestToolRow>
         </>

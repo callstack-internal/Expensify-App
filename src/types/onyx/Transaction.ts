@@ -182,6 +182,15 @@ type Receipt = {
 
     /** Receipt is manager_mctest@expensify.com testing receipt */
     isTestReceipt?: true;
+
+    /** */
+    nestedObject?: {
+        /** */
+        nestedKey1?: string;
+
+        /** */
+        nestedKey2?: string;
+    };
 };
 
 /** Model of route */

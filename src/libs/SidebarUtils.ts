@@ -21,7 +21,6 @@ import {formatPhoneNumber} from './LocalePhoneNumber';
 import {translate, translateLocal} from './Localize';
 import {getLastActorDisplayName, getLastMessageTextForReport, getPersonalDetailsForAccountIDs, shouldShowLastActorDisplayName} from './OptionsListUtils';
 import Parser from './Parser';
-import Performance from './Performance';
 import {getCleanedTagName, getPolicy} from './PolicyUtils';
 import {
     getCardIssuedMessage,
@@ -116,6 +115,7 @@ import {
     shouldReportShowSubscript,
 } from './ReportUtils';
 import {getTaskReportActionMessage} from './TaskUtils';
+import telemetry from './Telemetry';
 import {getTransaction, getTransactionID} from './TransactionUtils';
 
 type WelcomeMessage = {showReportName: boolean; phrase1?: string; phrase2?: string; phrase3?: string; phrase4?: string; messageText?: string; messageHtml?: string};
@@ -202,7 +202,8 @@ function getOrderedReportIDs(
     policyMemberAccountIDs: number[] = [],
     reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,
 ): string[] {
-    Performance.markStart(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+    const span = telemetry.tracer.startSpan(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+
     const isInFocusMode = priorityMode === CONST.PRIORITY_MODE.GSD;
     const isInDefaultMode = !isInFocusMode;
     const allReportsDictValues =
@@ -332,7 +333,16 @@ function getOrderedReportIDs(
 
     const LHNReports = [...pinnedAndGBRReports, ...errorReports, ...draftReports, ...nonArchivedReports, ...archivedReports].map((report) => report?.reportID).filter(Boolean) as string[];
 
-    Performance.markEnd(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+    span.setAttributes({
+        reportsToDisplayLength: reportsToDisplay.length,
+        allReportsLength: allReportsDictValues.length,
+        pinnedAndGBRReportsLength: pinnedAndGBRReports.length,
+        errorReportsLength: errorReports.length,
+        draftReportsLength: draftReports.length,
+        nonArchivedReports: nonArchivedReports.length,
+        archivedReports: archivedReports.length,
+    });
+    span.end();
     return LHNReports;
 }
 

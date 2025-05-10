@@ -203,14 +203,46 @@ function getOrderedReportIDs(
     reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,
 ): string[] {
     Performance.markStart(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+
     const isInFocusMode = priorityMode === CONST.PRIORITY_MODE.GSD;
     const isInDefaultMode = !isInFocusMode;
-    const allReportsDictValues =
-        currentPolicyID === ''
-            ? Object.values(reports ?? {})
-            : Object.values(reports ?? {}).filter((report) => report?.reportID === currentReportId || doesReportBelongToWorkspace(report, policyMemberAccountIDs, currentPolicyID));
+
+    const filteredReports = filterReportsByPolicy(reports, currentReportId, currentPolicyID ?? '', policyMemberAccountIDs ?? []);
+    const reportsToDisplay = collectReportsToDisplay(filteredReports, betas, policies, isInFocusMode, transactionViolations, currentReportId, reportNameValuePairs);
+
+    const sortedReports = sortReportGroups(reportsToDisplay, isInDefaultMode, reportNameValuePairs);
+
+    // Now that we have all the reports grouped and sorted, they must be flattened into an array and only return the reportID.
+    const sortedReportIDs = sortedReports.map((report) => report?.reportID).filter(Boolean) as string[];
+
+    Performance.markEnd(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+    return sortedReportIDs;
+}
+
+/**
+ * Filters reports based on policy criteria
+ */
+function filterReportsByPolicy(reports: OnyxCollection<Report>, currentReportId: string | undefined, currentPolicyID: string, policyMemberAccountIDs: number[]): Array<Report | undefined> {
+    return currentPolicyID === ''
+        ? Object.values(reports ?? {})
+        : Object.values(reports ?? {}).filter((report) => report?.reportID === currentReportId || doesReportBelongToWorkspace(report, policyMemberAccountIDs, currentPolicyID));
+}
+
+/**
+ * Collects reports that should be displayed in the sidebar
+ */
+function collectReportsToDisplay(
+    allReportsDictValues: Array<Report | undefined>,
+    betas: OnyxEntry<Beta[]>,
+    policies: OnyxCollection<PartialPolicyForSidebar>,
+    isInFocusMode: boolean,
+    transactionViolations: OnyxCollection<TransactionViolation[]>,
+    currentReportId: string | undefined,
+    reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,
+): Array<Report & {hasErrorsOtherThanFailedReceipt?: boolean}> {
     // Filter out all the reports that shouldn't be displayed
     const reportsToDisplay: Array<Report & {hasErrorsOtherThanFailedReceipt?: boolean}> = [];
+
     allReportsDictValues.forEach((report) => {
         if (!report) {
             return;
@@ -264,6 +296,17 @@ function getOrderedReportIDs(
         }
     });
 
+    return reportsToDisplay;
+}
+
+/**
+ * Groups and sorts reports for display in the sidebar
+ */
+function sortReportGroups(
+    reportsToDisplay: Array<Report & {hasErrorsOtherThanFailedReceipt?: boolean}>,
+    isInDefaultMode: boolean,
+    reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,
+): MiniReport[] {
     // The LHN is split into five distinct groups, and each group is sorted a little differently. The groups will ALWAYS be in this order:
     // 1. Pinned/GBR - Always sorted by reportDisplayName
     // 2. Error reports - Always sorted by reportDisplayName
@@ -327,13 +370,8 @@ function getOrderedReportIDs(
         archivedReports.sort((a, b) => (a?.displayName && b?.displayName ? localeCompare(a.displayName, b.displayName) : 0));
     }
 
-    // Now that we have all the reports grouped and sorted, they must be flattened into an array and only return the reportID.
-    // The order the arrays are concatenated in matters and will determine the order that the groups are displayed in the sidebar.
-
-    const LHNReports = [...pinnedAndGBRReports, ...errorReports, ...draftReports, ...nonArchivedReports, ...archivedReports].map((report) => report?.reportID).filter(Boolean) as string[];
-
-    Performance.markEnd(CONST.TIMING.GET_ORDERED_REPORT_IDS);
-    return LHNReports;
+    // Combine all report groups in the correct order
+    return [...pinnedAndGBRReports, ...errorReports, ...draftReports, ...nonArchivedReports, ...archivedReports];
 }
 
 type ReasonAndReportActionThatHasRedBrickRoad = {

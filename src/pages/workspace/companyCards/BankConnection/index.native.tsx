@@ -26,6 +26,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
 import type {CompanyCardFeed} from '@src/types/onyx';
+import usePermissions from '@hooks/usePermissions';
 
 type BankConnectionProps = {
     /** ID of the policy */
@@ -58,6 +59,7 @@ function BankConnection({policyID: policyIDFromProps, feed, route}: BankConnecti
     const {isNewFeedConnected, newFeed} = useMemo(() => checkIfNewFeedConnected(prevFeedsData ?? {}, cardFeeds?.settings?.oAuthAccountDetails ?? {}), [cardFeeds, prevFeedsData]);
     const headerTitleAddCards = !backTo ? translate('workspace.companyCards.addCards') : undefined;
     const headerTitle = feed ? translate('workspace.companyCards.assignCard') : headerTitleAddCards;
+    const {canUsePlaidCompanyCards} = usePermissions();
 
     const renderLoading = () => <FullScreenLoadingIndicator />;
 
@@ -73,7 +75,7 @@ function BankConnection({policyID: policyIDFromProps, feed, route}: BankConnecti
             Navigation.goBack(backTo);
             return;
         }
-        if (bankName === CONST.COMPANY_CARDS.BANKS.BREX) {
+        if (bankName === CONST.COMPANY_CARDS.BANKS.BREX || canUsePlaidCompanyCards) {
             setAddNewCompanyCardStepAndData({step: CONST.COMPANY_CARDS.STEP.SELECT_BANK});
             return;
         }

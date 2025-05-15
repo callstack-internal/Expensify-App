@@ -5,6 +5,7 @@ import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import ScreenWrapper from '@components/ScreenWrapper';
 import usePermissions from '@hooks/usePermissions';
 import useWorkspaceAccountID from '@hooks/useWorkspaceAccountID';
+import PlaidConnectionStep from '@pages/workspace/companyCards/addNew/PlaidConnectionStep';
 import BankConnection from '@pages/workspace/companyCards/BankConnection';
 import withPolicyAndFullscreenLoading from '@pages/workspace/withPolicyAndFullscreenLoading';
 import type {WithPolicyAndFullscreenLoadingProps} from '@pages/workspace/withPolicyAndFullscreenLoading';
@@ -74,6 +75,8 @@ function AddNewCardPage({policy}: WithPolicyAndFullscreenLoadingProps) {
             return <DetailsStep policyID={policyID} />;
         case CONST.COMPANY_CARDS.STEP.AMEX_CUSTOM_FEED:
             return <AmexCustomFeed />;
+        case CONST.COMPANY_CARDS.STEP.PLAID_CONNECTION:
+            return <PlaidConnectionStep />;
         default:
             return canUsePlaidCompanyCards ? <SelectCountryStep policyID={policyID} /> : <SelectBankStep />;
     }

@@ -202,10 +202,13 @@ function getOrderedReportIDs(
     policyMemberAccountIDs: number[] = [],
     reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,
 ): string[] {
-    const span = telemetry.tracer.startSpan(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+    const parentSpan = telemetry.tracer.startSpan(CONST.TIMING.GET_ORDERED_REPORT_IDS);
+    const ctx = telemetry.sdk.trace.setSpan(telemetry.sdk.context.active(), parentSpan);
 
+    const filterSpan = telemetry.tracer.startSpan("filter", undefined, ctx);
     const isInFocusMode = priorityMode === CONST.PRIORITY_MODE.GSD;
     const isInDefaultMode = !isInFocusMode;
+    filterSpan.setAttribute("focusMode", isInFocusMode)
     const allReportsDictValues =
         currentPolicyID === ''
             ? Object.values(reports ?? {})
@@ -264,6 +267,7 @@ function getOrderedReportIDs(
             reportsToDisplay.push(report);
         }
     });
+    filterSpan.end();
 
     // The LHN is split into five distinct groups, and each group is sorted a little differently. The groups will ALWAYS be in this order:
     // 1. Pinned/GBR - Always sorted by reportDisplayName
@@ -282,6 +286,7 @@ function getOrderedReportIDs(
     const nonArchivedReports: MiniReport[] = [];
     const archivedReports: MiniReport[] = [];
 
+    const groupSpan = telemetry.tracer.startSpan("group", undefined, ctx);
     // There are a few properties that need to be calculated for the report which are used when sorting reports.
     reportsToDisplay.forEach((reportToDisplay) => {
         const report = reportToDisplay;
@@ -306,7 +311,9 @@ function getOrderedReportIDs(
             nonArchivedReports.push(miniReport);
         }
     });
+    groupSpan.end();
 
+    const sortSpan = telemetry.tracer.startSpan("sort", undefined, ctx);
     // Sort each group of reports accordingly
     pinnedAndGBRReports.sort((a, b) => (a?.displayName && b?.displayName ? localeCompare(a.displayName, b.displayName) : 0));
     errorReports.sort((a, b) => (a?.displayName && b?.displayName ? localeCompare(a.displayName, b.displayName) : 0));
@@ -327,22 +334,23 @@ function getOrderedReportIDs(
         nonArchivedReports.sort((a, b) => (a?.displayName && b?.displayName ? localeCompare(a.displayName, b.displayName) : 0));
         archivedReports.sort((a, b) => (a?.displayName && b?.displayName ? localeCompare(a.displayName, b.displayName) : 0));
     }
+    sortSpan.end();
 
     // Now that we have all the reports grouped and sorted, they must be flattened into an array and only return the reportID.
     // The order the arrays are concatenated in matters and will determine the order that the groups are displayed in the sidebar.
 
     const LHNReports = [...pinnedAndGBRReports, ...errorReports, ...draftReports, ...nonArchivedReports, ...archivedReports].map((report) => report?.reportID).filter(Boolean) as string[];
 
-    span.setAttributes({
-        reportsToDisplayLength: reportsToDisplay.length,
-        allReportsLength: allReportsDictValues.length,
-        pinnedAndGBRReportsLength: pinnedAndGBRReports.length,
-        errorReportsLength: errorReports.length,
-        draftReportsLength: draftReports.length,
-        nonArchivedReports: nonArchivedReports.length,
-        archivedReports: archivedReports.length,
+    parentSpan.setAttributes({
+      reportsToDisplayLength: reportsToDisplay.length,
+      allReportsLength: allReportsDictValues.length,
+      pinnedAndGBRReportsLength: pinnedAndGBRReports.length,
+      errorReportsLength: errorReports.length,
+      draftReportsLength: draftReports.length,
+      nonArchivedReports: nonArchivedReports.length,
+      archivedReports: archivedReports.length,
     });
-    span.end();
+    parentSpan.end();
     return LHNReports;
 }
 

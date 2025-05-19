@@ -1,0 +1,353 @@
+diff --git a/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.mm b/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.mm
+index 6c815d2..5c8bbbc 100644
+--- a/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.mm
++++ b/node_modules/react-native/Libraries/Text/Text/RCTTextShadowView.mm
+@@ -14,6 +14,11 @@
+ 
+ #import <React/RCTTextView.h>
+ #import "NSTextStorage+FontScaling.h"
++#import <React/RCTUIManagerUtils.h>
++#import <React/RCTUtils.h>
++
++// Empirical vertical offset for inline views/attachments to achieve better visual centering.
++static const CGFloat kAttachmentVerticalOffsetPoints = 2.0;
+ 
+ @implementation RCTTextShadowView {
+   __weak RCTBridge *_bridge;
+@@ -123,25 +128,33 @@ - (void)uiManagerWillPerformMounting
+ 
+ - (void)postprocessAttributedText:(NSMutableAttributedString *)attributedText
+ {
+-  __block CGFloat maximumLineHeight = 0;
++    // First, determine if any explicit lineHeight is set on any part of the attributed string.
++  // This comes from the `lineHeight` style in JavaScript.
++  __block CGFloat overallMaximumLineHeight = 0;
++  __block BOOL hasExplicitLineHeight = NO;
+ 
+   [attributedText enumerateAttribute:NSParagraphStyleAttributeName
+                              inRange:NSMakeRange(0, attributedText.length)
+-                             options:NSAttributedStringEnumerationLongestEffectiveRangeNotRequired
+-                          usingBlock:^(NSParagraphStyle *paragraphStyle, __unused NSRange range, __unused BOOL *stop) {
+-                            if (!paragraphStyle) {
+-                              return;
++                             options:0 // Check all ranges, not just the longest effective one initially
++                          usingBlock:^(NSParagraphStyle *_Nullable paragraphStyle, NSRange range, BOOL *_Nonnull stop) {
++                            if (paragraphStyle && paragraphStyle.maximumLineHeight > 0) {
++                              hasExplicitLineHeight = YES;
++                              // Use the maximum of any specified lineHeights
++                              overallMaximumLineHeight = MAX(paragraphStyle.maximumLineHeight, overallMaximumLineHeight);
+                             }
+ 
+-                            maximumLineHeight = MAX(paragraphStyle.maximumLineHeight, maximumLineHeight);
+                           }];
+ 
+-  if (maximumLineHeight == 0) {
+-    // `lineHeight` was not specified, nothing to do.
++  if (!hasExplicitLineHeight) {
++    // No explicit 'lineHeight' was found in any part of the attributed string.
++    // Return early to preserve any existing complex attributed string styling.
+     return;
+   }
+ 
+-  __block CGFloat maximumFontLineHeight = 0;
++  // An explicit lineHeight was specified. Proceed to calculate natural text metrics
++  // and apply consistent paragraph style and baseline offset for vertical centering.
++  __block CGFloat maximumAscender = -CGFLOAT_MAX;
++  __block CGFloat maximumDescender = CGFLOAT_MAX;
+ 
+   [attributedText enumerateAttribute:NSFontAttributeName
+                              inRange:NSMakeRange(0, attributedText.length)
+@@ -151,19 +164,35 @@ - (void)postprocessAttributedText:(NSMutableAttributedString *)attributedText
+                               return;
+                             }
+ 
+-                            if (maximumFontLineHeight <= font.lineHeight) {
+-                              maximumFontLineHeight = font.lineHeight;
+-                            }
++                            maximumAscender = MAX(font.ascender, maximumAscender);
++                            maximumDescender = MIN(font.descender, maximumDescender);
+                           }];
+ 
+-  if (maximumLineHeight < maximumFontLineHeight) {
++  CGFloat naturalLineHeight = maximumAscender - maximumDescender;
++
++  if (naturalLineHeight <= 0 || overallMaximumLineHeight <= 0) {
++    // Avoid division by zero or invalid calculations if heights are zero/negative.
++    // If overallMaximumLineHeight is 0 here, it means it was set to 0 explicitly,
++    // which might imply hiding text or specific layout; let system handle default.
+     return;
+   }
+ 
+-  CGFloat baseLineOffset = maximumLineHeight / 2.0 - maximumFontLineHeight / 2.0;
++  // Create a new paragraph style to apply consistently.
++  NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
++  paragraphStyle.minimumLineHeight = overallMaximumLineHeight;
++  paragraphStyle.maximumLineHeight = overallMaximumLineHeight;
++
++  // Calculate baseline offset to center text (naturalLineHeight) vertically within overallMaximumLineHeight.
++  CGFloat baselineOffset = (overallMaximumLineHeight - naturalLineHeight) / 2.0;
+ 
+   [attributedText addAttribute:NSBaselineOffsetAttributeName
+-                         value:@(baseLineOffset)
++                                                  value:@(baselineOffset)
++                         range:NSMakeRange(0, attributedText.length)];
++
++  // Apply the new paragraph style to the entire string.
++  // This ensures consistent line height as specified by the maximum 'lineHeight' prop found.
++  [attributedText addAttribute:NSParagraphStyleAttributeName
++                         value:paragraphStyle
+                          range:NSMakeRange(0, attributedText.length)];
+ }
+ 
+@@ -333,10 +362,14 @@ - (void)layoutSubviewsWithContext:(RCTLayoutContext)layoutContext
+ 
+                 UIFont *font = [textStorage attribute:NSFontAttributeName atIndex:range.location effectiveRange:nil];
+ 
++                                // Calculate the center of the text line
++                CGFloat textLineCenter = glyphRect.origin.y + (glyphRect.size.height / 2.0);
++                // Calculate the center of the attachment, then apply a small empirical vertical offset for better visual balance.
++                CGFloat attachmentCenter = textLineCenter - (attachmentSize.height / 2.0) + kAttachmentVerticalOffsetPoints;
++
+                 CGRect frame = {
+                     {RCTRoundPixelValue(glyphRect.origin.x),
+-                     RCTRoundPixelValue(
+-                         glyphRect.origin.y + glyphRect.size.height - attachmentSize.height + font.descender)},
++                     RCTRoundPixelValue(attachmentCenter)},
+                     {RCTRoundPixelValue(attachmentSize.width), RCTRoundPixelValue(attachmentSize.height)}};
+ 
+                 NSRange truncatedGlyphRange =
+@@ -398,20 +431,63 @@ - (void)layoutSubviewsWithContext:(RCTLayoutContext)layoutContext
+ 
+ - (CGFloat)lastBaselineForSize:(CGSize)size
+ {
+-  NSAttributedString *attributedText = [self textStorageAndLayoutManagerThatFitsSize:size exclusiveOwnership:NO];
++  NSTextStorage *textStorage = [self textStorageAndLayoutManagerThatFitsSize:size exclusiveOwnership:NO];
++  if (textStorage.length == 0) {
++    return 0; // No text, no baseline.
++  }
+ 
+-  __block CGFloat maximumDescender = 0.0;
++  NSLayoutManager *layoutManager = textStorage.layoutManagers.firstObject;
++  NSTextContainer *textContainer = layoutManager.textContainers.firstObject;
+ 
+-  [attributedText enumerateAttribute:NSFontAttributeName
+-                             inRange:NSMakeRange(0, attributedText.length)
+-                             options:NSAttributedStringEnumerationLongestEffectiveRangeNotRequired
+-                          usingBlock:^(UIFont *font, NSRange range, __unused BOOL *stop) {
+-                            if (maximumDescender > font.descender) {
+-                              maximumDescender = font.descender;
+-                            }
+-                          }];
++  [layoutManager ensureLayoutForTextContainer:textContainer];
++  NSRange glyphRange = [layoutManager glyphRangeForTextContainer:textContainer];
++
++  if (glyphRange.location == NSNotFound || glyphRange.length == 0) {
++    return 0; // No glyphs laid out.
++  }
+ 
+-  return size.height + maximumDescender;
++    __block CGFloat lastLineMinY = 0.0;
++  __block CGFloat lastAscender = 0.0;
++
++  // Enumerate line fragments. The block is called for each line.
++  // We stop after the first call because it enumerates from the end of the text backwards
++  // when determining the last line for baseline purposes.
++  // However, standard enumeration is from start to end. We need the *last* line.
++  // The most reliable way to get the last line's metrics is to get the full range of lines
++  // and then query the last one. Or, iterate and keep the last values.
++
++  NSRange lastLineGlyphRange = [layoutManager glyphRangeForCharacterRange:NSMakeRange(textStorage.length - 1, 1) actualCharacterRange:NULL];
++  if (lastLineGlyphRange.location == NSNotFound) { // Should not happen if textStorage.length > 0
++      lastLineGlyphRange = glyphRange; // Fallback to overall glyph range if last char range fails
++  }
++
++  // Find the line fragment rect for the last line
++  CGRect lastLineUsedRect = [layoutManager lineFragmentUsedRectForGlyphAtIndex:lastLineGlyphRange.location effectiveRange:NULL];
++  lastLineMinY = CGRectGetMinY(lastLineUsedRect);
++
++  // Get the font for the last line to find its ascender
++  NSRange lastCharacterRange = [layoutManager characterRangeForGlyphRange:lastLineGlyphRange actualGlyphRange:nil];
++  if (lastCharacterRange.location != NSNotFound && lastCharacterRange.length > 0) {
++      UIFont *font = [textStorage attribute:NSFontAttributeName atIndex:lastCharacterRange.location effectiveRange:nil];
++      if (font) {
++        lastAscender = font.ascender;
++      }
++  }
++
++  // The baseline for Yoga is the distance from the top of the view to the typographic baseline of the last line.
++  // This is lastLineMinY (top of the last line's usedRect) + lastAscender (font's ascent from its baseline).
++  CGFloat calculatedBaseline = lastLineMinY + lastAscender;
++
++  // Ensure baseline is not negative, and not outside the view's bounds (size.height) if size is non-zero.
++  // Yoga expects the baseline relative to the component's top edge.
++  calculatedBaseline = MAX(0, calculatedBaseline);
++  if (size.height > 0) {
++      // While the baseline can be theoretically anywhere, practically it should be within or near the view height.
++      // This check might be too restrictive if text is aligned strangely, but often a safeguard.
++      // For now, let's rely on the raw calculation unless it's negative.
++      // calculatedBaseline = MIN(calculatedBaseline, size.height);
++  }
++  return calculatedBaseline;
+ }
+ 
+ static YGSize RCTTextShadowViewMeasure(
+@@ -460,7 +536,8 @@ static float RCTTextShadowViewBaseline(YGNodeConstRef node, const float width, c
+ 
+   CGFloat lastBaseline = [shadowTextView lastBaselineForSize:size];
+ 
+-  return RCTYogaFloatFromCoreGraphicsFloat(lastBaseline);
++  // Yoga expects the baseline value as a float, positive, from the top of the component.
++  return RCTYogaFloatFromCoreGraphicsFloat(MAX(0, lastBaseline));
+ }
+ 
+ @end
+diff --git a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/TextLayoutManager.java b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/TextLayoutManager.java
+index 3d420f8..bcdfa03 100644
+--- a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/TextLayoutManager.java
++++ b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/TextLayoutManager.java
+@@ -110,6 +110,16 @@ public class TextLayoutManager {
+   private static final ConcurrentHashMap<Integer, Spannable> sTagToSpannableCache =
+       new ConcurrentHashMap<>();
+ 
++        // Factor for adjusting the vertical middle of text for inline view alignment.
++  // Empirically chosen for better visual balance.
++  private static final float TEXT_MIDDLE_ADJUSTMENT_FACTOR = 0.07f;
++  // In fallback scenarios where text metrics might be unreliable for inline view alignment,
++  // this ratio determines how much of the placeholder is placed above the baseline.
++  private static final float FALLBACK_ABOVE_BASELINE_RATIO = 0.6f;
++  // In fallback scenarios, this is an additional upward adjustment factor for the placeholder,
++  // based on the placeholder's height. Empirically chosen.
++  private static final float FALLBACK_UPWARD_ADJUSTMENT_FACTOR = 0.1f;
++
+   public static void setCachedSpannableForTag(int reactTag, @NonNull Spannable sp) {
+     if (ENABLE_MEASURE_LOGGING) {
+       FLog.e(TAG, "Set cached spannable for tag[" + reactTag + "]: " + sp.toString());
+@@ -808,7 +818,33 @@ public class TextLayoutManager {
+             }
+           }
+           // Vertically align the inline view to the baseline of the line of text.
+-          float placeholderTopPosition = layout.getLineBaseline(line) - placeholderHeight;
++                // Match the adjustment in TextInlineViewPlaceholderSpan for consistent positioning
++      TextPaint currentTextPaint = layout.getPaint();
++      float placeholderTopPosition;
++
++      if (currentTextPaint.getFontMetricsInt().ascent < 0 && currentTextPaint.getFontMetricsInt().descent > 0) {
++        // Calculate the text height
++        float textHeight = -currentTextPaint.getFontMetricsInt().ascent + currentTextPaint.getFontMetricsInt().descent;
++
++        // Find the vertical center of the text
++        float textMiddle = currentTextPaint.getFontMetricsInt().ascent + textHeight / 2;
++
++        // Apply a moderate upward adjustment
++        float adjustment = textHeight * TEXT_MIDDLE_ADJUSTMENT_FACTOR;
++        float adjustedMiddle = textMiddle - adjustment;
++
++        // Center the view on the adjusted middle point
++        float halfViewHeight = placeholderHeight / 2;
++
++        // Position the view so its center is at the adjusted position
++        placeholderTopPosition = layout.getLineBaseline(line) + adjustedMiddle - halfViewHeight;
++      } else {
++        // Fallback to improved vertical centering if metrics aren't valid
++        // Use defined ratios and adjustment factors
++        float upwardAdjustment = placeholderHeight * FALLBACK_UPWARD_ADJUSTMENT_FACTOR;
++
++        placeholderTopPosition = layout.getLineBaseline(line) - (placeholderHeight * FALLBACK_ABOVE_BASELINE_RATIO + upwardAdjustment);
++      }
+           int attachmentPosition = attachmentIndex * 2;
+ 
+           // The attachment array returns the positions of each of the attachments as
+diff --git a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/internal/span/TextInlineViewPlaceholderSpan.kt b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/internal/span/TextInlineViewPlaceholderSpan.kt
+index e1a960b..54f026a 100644
+--- a/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/internal/span/TextInlineViewPlaceholderSpan.kt
++++ b/node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/internal/span/TextInlineViewPlaceholderSpan.kt
+@@ -30,10 +30,40 @@ public class TextInlineViewPlaceholderSpan(
+   ): Int {
+     // NOTE: This getSize code is copied from DynamicDrawableSpan and modified to not use a Drawable
+     if (fm != null) {
+-      fm.ascent = -height
+-      fm.descent = 0
+-      fm.top = fm.ascent
+-      fm.bottom = 0
++      // Get the parent text's font metrics
++      val metrics = paint.fontMetricsInt
++
++      if (metrics.ascent < 0 && metrics.descent > 0) {
++        // Calculate the text height
++        val textHeight = -metrics.ascent + metrics.descent
++
++        // Find the vertical center of the text
++        val textMiddle = metrics.ascent + textHeight / 2
++
++        // Apply a moderate upward adjustment
++        val adjustment = (textHeight * TEXT_MIDDLE_ADJUSTMENT_FACTOR).toInt()
++        val adjustedMiddle = textMiddle - adjustment
++
++        // Center the view on the adjusted middle point
++        val halfViewHeight = height / 2
++
++        fm.ascent = adjustedMiddle - halfViewHeight
++        fm.descent = adjustedMiddle + halfViewHeight
++
++        // Make sure top/bottom match ascent/descent
++        fm.top = fm.ascent
++        fm.bottom = fm.descent
++      } 
++      // Fallback to improved vertical centering if metrics aren't valid
++      else {
++        // Use defined ratios and adjustment factors
++        val upwardAdjustment = height * FALLBACK_UPWARD_ADJUSTMENT_FACTOR
++
++        fm.ascent = -(height * FALLBACK_ABOVE_BASELINE_RATIO + upwardAdjustment).toInt()
++        fm.descent = (height * (1 - FALLBACK_ABOVE_BASELINE_RATIO)).toInt() // Or a new FALLBACK_BELOW_BASELINE_RATIO
++        fm.top = fm.ascent
++        fm.bottom = fm.descent
++      }
+     }
+     return width
+   }
+@@ -49,4 +79,10 @@ public class TextInlineViewPlaceholderSpan(
+       bottom: Int,
+       paint: Paint
+   ): Unit = Unit
++
++  private companion object {
++    private const val TEXT_MIDDLE_ADJUSTMENT_FACTOR = 0.15f
++    private const val FALLBACK_UPWARD_ADJUSTMENT_FACTOR = 0.1f
++    private const val FALLBACK_ABOVE_BASELINE_RATIO = 0.75f
++  }
+ }
+diff --git a/node_modules/react-native/ReactCommon/react/renderer/textlayoutmanager/platform/ios/react/renderer/textlayoutmanager/RCTTextLayoutManager.mm b/node_modules/react-native/ReactCommon/react/renderer/textlayoutmanager/platform/ios/react/renderer/textlayoutmanager/RCTTextLayoutManager.mm
+index cc080f5..917bf23 100644
+--- a/node_modules/react-native/ReactCommon/react/renderer/textlayoutmanager/platform/ios/react/renderer/textlayoutmanager/RCTTextLayoutManager.mm
++++ b/node_modules/react-native/ReactCommon/react/renderer/textlayoutmanager/platform/ios/react/renderer/textlayoutmanager/RCTTextLayoutManager.mm
+@@ -14,6 +14,13 @@
+ #import <react/featureflags/ReactNativeFeatureFlags.h>
+ #import <react/utils/ManagedObjectWrapper.h>
+ #import <react/utils/SimpleThreadSafeCache.h>
++#import <react/renderer/attributedstring/TextAttributes.h>
++#import <react/renderer/core/LayoutConstraints.h>
++#import <react/renderer/textlayoutmanager/TextLayoutManager.h>
++
++// Empirical vertical offset for inline views/attachments to achieve better visual centering.
++// Same as defined in RCTTextShadowView.mm for consistency in Paper and Fabric.
++static const CGFloat kAttachmentVerticalOffsetPoints = 2.0;
+ 
+ using namespace facebook::react;
+ 
+@@ -392,9 +399,13 @@ - (TextMeasurement)_measureTextStorage:(NSTextStorage *)textStorage
+ 
+                 CGRect frame;
+                 if (ReactNativeFeatureFlags::enableAlignItemsBaselineOnFabricIOS()) {
+-                  CGFloat baseline = [layoutManager locationForGlyphAtIndex:range.location].y;
++                  // Calculate the center of the text line using the glyph rect from the layout manager.
++                  CGFloat textLineCenter = glyphRect.origin.y + (glyphRect.size.height / 2.0);
++                  // Position the attachment so its center aligns with the text line center, 
++                  // then apply a small empirical vertical offset for better visual balance.
++                  CGFloat attachmentY = textLineCenter - (attachmentSize.height / 2.0) + kAttachmentVerticalOffsetPoints;
+ 
+-                  frame = {{glyphRect.origin.x, glyphRect.origin.y + baseline - attachmentSize.height}, attachmentSize};
++                 frame = {{glyphRect.origin.x, attachmentY}, attachmentSize};
+                 } else {
+                   UIFont *font = [textStorage attribute:NSFontAttributeName atIndex:range.location effectiveRange:nil];
+ 

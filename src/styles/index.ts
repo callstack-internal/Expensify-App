@@ -20,6 +20,7 @@ import type {ThemeColors} from './theme/types';
 import addOutlineWidth from './utils/addOutlineWidth';
 import borders from './utils/borders';
 import chatContentScrollViewPlatformStyles from './utils/chatContentScrollViewPlatformStyles';
+import codeStyles from './utils/codeStyles';
 import cursor from './utils/cursor';
 import display from './utils/display';
 import editedLabelStyles from './utils/editedLabelStyles';
@@ -191,6 +192,7 @@ const webViewStyles = (theme: ThemeColors) =>
 
             code: {
                 ...baseCodeTagStyles(theme),
+                ...(codeStyles.codeTextStyle as MixedStyleDeclaration),
                 paddingLeft: 5,
                 paddingRight: 5,
                 fontFamily: FontUtils.fontFamily.platform.MONOSPACE.fontFamily,
@@ -3466,6 +3468,10 @@ const styles = (theme: ThemeColors) =>
             alignSelf: 'center',
         },
 
+        codeWordWrapper: {
+            ...codeStyles.codeWordWrapper,
+        },
+
         codeWordStyle: {
             borderLeftWidth: 0,
             borderRightWidth: 0,
@@ -3476,6 +3482,7 @@ const styles = (theme: ThemeColors) =>
             paddingLeft: 0,
             paddingRight: 0,
             justifyContent: 'center',
+            ...codeStyles.codeWordStyle,
         },
 
         codeFirstWordStyle: {
@@ -3490,6 +3497,10 @@ const styles = (theme: ThemeColors) =>
             borderTopRightRadius: 4,
             borderBottomRightRadius: 4,
             paddingRight: 5,
+        },
+
+        codePlainTextStyle: {
+            ...codeStyles.codePlainTextStyle,
         },
 
         fullScreenLoading: {

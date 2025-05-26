@@ -1,22 +1,33 @@
 import type {FlashList} from '@shopify/flash-list';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useOnyx} from 'react-native-onyx';
 import emojis from '@assets/emojis';
-import {useFrequentlyUsedEmojis} from '@components/OnyxProvider';
 import useKeyboardState from '@hooks/useKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import usePreferredEmojiSkinTone from '@hooks/usePreferredEmojiSkinTone';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 import * as EmojiUtils from '@libs/EmojiUtils';
+import ONYXKEYS from '@src/ONYXKEYS';
 
 const useEmojiPickerMenu = () => {
     const emojiListRef = useRef<FlashList<EmojiUtils.EmojiPickerListItem>>(null);
-    const frequentlyUsedEmojis = useFrequentlyUsedEmojis();
+    const [frequentlyUsedEmojis] = useOnyx(ONYXKEYS.FREQUENTLY_USED_EMOJIS);
     // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
     const allEmojis = useMemo(() => EmojiUtils.mergeEmojisWithFrequentlyUsedEmojis(emojis), [frequentlyUsedEmojis]);
-    const headerEmojis = useMemo(() => EmojiUtils.getHeaderEmojis(allEmojis), [allEmojis]);
-    const headerRowIndices = useMemo(() => headerEmojis.map((headerEmoji) => headerEmoji.index), [headerEmojis]);
-    const spacersIndexes = useMemo(() => EmojiUtils.getSpacersIndexes(allEmojis), [allEmojis]);
+
+    const emojiData = useMemo(() => {
+        const headerEmojis = EmojiUtils.getHeaderEmojis(allEmojis);
+        const headerRowIndices = headerEmojis.map((headerEmoji) => headerEmoji.index);
+        const spacersIndexes = EmojiUtils.getSpacersIndexes(allEmojis);
+
+        return {
+            headerEmojis,
+            headerRowIndices,
+            spacersIndexes,
+        };
+    }, [allEmojis]);
+    const {headerEmojis, headerRowIndices, spacersIndexes} = emojiData;
     const [filteredEmojis, setFilteredEmojis] = useState<EmojiUtils.EmojiPickerList>(allEmojis);
     const [headerIndices, setHeaderIndices] = useState(headerRowIndices);
     const isListFiltered = allEmojis.length !== filteredEmojis.length;

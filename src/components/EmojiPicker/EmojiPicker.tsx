@@ -27,21 +27,23 @@ type EmojiPickerProps = {
     viewportOffsetTop: number;
 };
 
+const DEFAULT_EMOJI_ANCHOR_DIMENSION = {
+    width: 0,
+    height: 0,
+};
+
 function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<EmojiPickerRef>) {
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState(false);
-    const [emojiPopoverAnchorPosition, setEmojiPopoverAnchorPosition] = useState({
+    const [emojiPopoverAnchorPosition, setEmojiPopoverAnchorPosition] = useState(() => ({
         horizontal: 0,
         vertical: 0,
-    });
+    }));
     const [emojiPopoverAnchorOrigin, setEmojiPopoverAnchorOrigin] = useState<AnchorOrigin>(DEFAULT_ANCHOR_ORIGIN);
     const [activeID, setActiveID] = useState<string | null>();
     const emojiPopoverAnchorRef = useRef<EmojiPopoverAnchor | null>(null);
-    const emojiAnchorDimension = useRef({
-        width: 0,
-        height: 0,
-    });
+    const emojiAnchorDimension = useRef(DEFAULT_EMOJI_ANCHOR_DIMENSION);
     const onModalHide = useRef<OnModalHideValue>(() => {});
     const onEmojiSelected = useRef<OnEmojiSelected>(() => {});
     const activeEmoji = useRef<string | undefined>(undefined);

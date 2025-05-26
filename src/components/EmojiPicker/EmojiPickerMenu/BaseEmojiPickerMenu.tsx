@@ -93,6 +93,27 @@ function BaseEmojiPickerMenu(
 
     const flattenListWrapperStyle = useMemo(() => StyleSheet.flatten(listWrapperStyle), [listWrapperStyle]);
 
+    const optimizedEstimatedListSize = useMemo(() => {
+        const height = flattenListWrapperStyle.height as number;
+        // Ensure height is reasonable and not too large to avoid over-rendering
+        const clampedHeight = Math.min(height || 400, 600);
+        return {
+            height: clampedHeight,
+            width: listWidth,
+        };
+    }, [flattenListWrapperStyle.height, listWidth]);
+
+    const overrideProps = useMemo(
+        () => ({
+            style: {
+                minHeight: 1,
+                minWidth: 1,
+                scrollPaddingTop: isFiltered ? 0 : CONST.EMOJI_PICKER_ITEM_HEIGHT,
+            },
+        }),
+        [isFiltered],
+    );
+
     return (
         <>
             {!isFiltered && (
@@ -114,18 +135,11 @@ function BaseEmojiPickerMenu(
                     ListEmptyComponent={ListEmptyComponent}
                     alwaysBounceVertical={alwaysBounceVertical}
                     estimatedItemSize={CONST.EMOJI_PICKER_ITEM_HEIGHT}
-                    estimatedListSize={{height: flattenListWrapperStyle.height as number, width: listWidth}}
+                    estimatedListSize={optimizedEstimatedListSize}
                     contentContainerStyle={styles.ph4}
                     extraData={extraData}
                     getItemType={getItemType}
-                    overrideProps={{
-                        // scrollPaddingTop set to consider sticky header while scrolling, https://github.com/Expensify/App/issues/36883
-                        style: {
-                            minHeight: 1,
-                            minWidth: 1,
-                            scrollPaddingTop: isFiltered ? 0 : CONST.EMOJI_PICKER_ITEM_HEIGHT,
-                        },
-                    }}
+                    overrideProps={overrideProps}
                 />
             </View>
             <EmojiSkinToneList />

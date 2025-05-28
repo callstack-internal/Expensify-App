@@ -1,5 +1,5 @@
 import React, {memo} from 'react';
-import type {StyleProp, TextStyle} from 'react-native';
+import {View, type StyleProp, type TextStyle} from 'react-native';
 import RenderHTML from '@components/RenderHTML';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
@@ -129,6 +129,7 @@ function ReportActionItemFragment({
                 );
             }
 
+            console.log('COMMENT', fragment);
             return (
                 <TextCommentFragment
                     reportActionID={reportActionID}

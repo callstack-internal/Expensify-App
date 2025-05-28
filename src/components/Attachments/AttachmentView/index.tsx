@@ -271,6 +271,8 @@ function AttachmentView({
 
         if (isHighResolution) {
             if (!isUploaded) {
+                console.log('dupa');
+
                 return (
                     <>
                         <View style={styles.imageModalImageCenterContainer}>

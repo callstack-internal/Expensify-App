@@ -1,6 +1,7 @@
 import React from 'react';
 import {RenderHTMLSource} from 'react-native-render-html';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import {View} from "react-native";
 
 type RenderHTMLProps = {
     /** HTML string to render */
@@ -13,11 +14,16 @@ type RenderHTMLProps = {
 // The provider is available at src/components/HTMLEngineProvider/
 function RenderHTML({html}: RenderHTMLProps) {
     const {windowWidth} = useWindowDimensions();
+
+    console.log('content', html);
     return (
-        <RenderHTMLSource
-            contentWidth={windowWidth * 0.8}
-            source={{html}}
-        />
+        <View style={{overflow: 'hidden', backgroundColor: 'yellow', flexShrink: 1}}>
+            <RenderHTMLSource
+                contentWidth={windowWidth * 0.8}
+                source={{html}}
+                fsClass="test-class"
+            />
+        </View>
     );
 }
 

@@ -59,7 +59,7 @@ function ReportActionItemMessage({action, displayAsGroup, reportID, style, isHid
         const fragment = getMemberChangeMessageFragment(action, getReportName);
 
         return (
-            <View style={[styles.chatItemMessage, style]}>
+            <View style={[styles.chatItemMessage, style, {background: 'red'}]}>
                 <TextCommentFragment
                     fragment={fragment}
                     displayAsGroup={displayAsGroup}
@@ -148,7 +148,7 @@ function ReportActionItemMessage({action, displayAsGroup, reportID, style, isHid
     const shouldShowAddBankAccountButton = action.actionName === CONST.REPORT.ACTIONS.TYPE.IOU && hasMissingInvoiceBankAccount(reportID) && !isSettled(reportID);
 
     return (
-        <View style={[styles.chatItemMessage, style]}>
+        <View style={[styles.chatItemMessage, style, {backgroundColor: 'blue'}]}>
             {!isHidden ? (
                 <>
                     {renderReportActionItemFragments(isApprovedOrSubmittedReportAction)}

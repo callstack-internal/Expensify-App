@@ -94,6 +94,7 @@ function TextCommentFragment({fragment, styleAsDeleted, reportActionID, styleAsM
 
         htmlWithTag = getHtmlWithAttachmentID(htmlWithTag, reportActionID);
 
+        console.log('render as html', htmlWithTag);
         return (
             <RenderCommentHTML
                 containsOnlyEmojis={containsOnlyEmojis}
@@ -103,6 +104,7 @@ function TextCommentFragment({fragment, styleAsDeleted, reportActionID, styleAsM
         );
     }
 
+    console.log('render as text', text);
     return (
         <Text style={[containsOnlyEmojis && styles.onlyEmojisText, styles.ltr, style]}>
             <ZeroWidthView

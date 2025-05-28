@@ -33,11 +33,13 @@ function BaseAnchorForAttachmentsOnly({style, source = '', displayName = '', onP
 
     const isDownloading = download?.isDownloading ?? false;
 
+    console.log('dupa', style);
+
     return (
         <ShowContextMenuContext.Consumer>
             {({anchor, report, reportNameValuePairs, action, checkIfContextMenuActive, isDisabled, shouldDisplayContextMenu}) => (
                 <PressableWithoutFeedback
-                    style={[style, (isOffline || !sourceID) && styles.cursorDefault]}
+                    style={[{minHeight: '100%'}, style, (isOffline || !sourceID) && styles.cursorDefault]}
                     onPress={() => {
                         if (isDownloading || isOffline || !sourceID) {
                             return;

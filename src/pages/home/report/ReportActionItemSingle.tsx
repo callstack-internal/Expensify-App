@@ -306,7 +306,7 @@ function ReportActionItemSingle({
                 {showHeader ? (
                     <View style={[styles.chatItemMessageHeader]}>
                         <PressableWithoutFeedback
-                            style={[styles.flexShrink1, styles.mr1]}
+                            style={[styles.flexShrink1, styles.mr1, {background: 'red'}]}
                             onPressIn={ControlSelection.block}
                             onPressOut={ControlSelection.unblock}
                             onPress={showActorDetails}

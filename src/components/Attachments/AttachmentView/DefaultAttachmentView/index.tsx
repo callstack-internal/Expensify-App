@@ -9,6 +9,7 @@ import useLocalize from '@hooks/useLocalize';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import type IconAsset from '@src/types/utils/IconAsset';
+import FontUtils from "@styles/utils/FontUtils";
 
 type DefaultAttachmentViewProps = {
     /** The name of the file */
@@ -37,8 +38,11 @@ function DefaultAttachmentView({fileName = '', shouldShowLoadingSpinnerIcon = fa
     const styles = useThemeStyles();
     const {translate} = useLocalize();
 
+    console.log('style view', styles.defaultAttachmentView, containerStyles);
+    console.log('style text', styles.textStrong, styles.flexShrink1, styles.breakAll, styles.flexWrap, styles.mw100, isDeleted && styles.lineThrough);
+
     return (
-        <View style={[styles.defaultAttachmentView, containerStyles]}>
+        <View style={[{flexGrow: 1, position: 'relative', alignItems: 'center', flexDirection: 'row', backgroundColor: 'white', padding: 20, whiteSpace: 'nowrap'}, /*styles.defaultAttachmentView,*/ containerStyles, {marginBottom: 0, fontFamily: FontUtils.fontFamily.platform.SYSTEM.fontFamily}]}>
             <View style={styles.mr2}>
                 <Icon
                     fill={theme.icon}
@@ -46,7 +50,7 @@ function DefaultAttachmentView({fileName = '', shouldShowLoadingSpinnerIcon = fa
                 />
             </View>
 
-            <Text style={[styles.textStrong, styles.flexShrink1, styles.breakAll, styles.flexWrap, styles.mw100, isDeleted && styles.lineThrough]}>{fileName}</Text>
+            <Text style={[{wordWrap: 'break-word'}, styles.textStrong, styles.flexShrink1, styles.breakAll, styles.flexWrap, styles.mw100, {alignSelf: 'stretch', textAlign: 'center'}, isDeleted && styles.lineThrough]}>{fileName}</Text>
             {!shouldShowLoadingSpinnerIcon && !!shouldShowDownloadIcon && (
                 <Tooltip text={translate('common.download')}>
                     <View style={styles.ml2}>

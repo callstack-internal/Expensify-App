@@ -25,7 +25,7 @@ import ImageSVG from './ImageSVG';
 import ScreenWrapper from './ScreenWrapper';
 import Text from './Text';
 
-type ImportSpreedsheetProps = {
+type ImportSpreadsheetProps = {
     // The route to navigate to when the back button is pressed.
     backTo?: Routes;
 
@@ -33,7 +33,7 @@ type ImportSpreedsheetProps = {
     goTo: Routes;
 };
 
-function ImportSpreadsheet({backTo, goTo}: ImportSpreedsheetProps) {
+function ImportSpreadsheet({backTo, goTo}: ImportSpreadsheetProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const [isReadingFile, setIsReadingFIle] = useState(false);
@@ -84,14 +84,26 @@ function ImportSpreadsheet({backTo, goTo}: ImportSpreedsheetProps) {
         if (Platform.OS === 'ios') {
             fileURI = fileURI.replace(/^.*\/Documents\//, `${RNFetchBlob.fs.dirs.DocumentDir}/`);
         }
-
-        fetch(fileURI)
-            .then((data) => {
-                setIsReadingFIle(true);
-                return data.arrayBuffer();
-            })
-            .then((arrayBuffer) => {
-                const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'buffer'});
+        const {fileExtension} = splitExtensionFromFileName(file?.name ?? '');
+        const shouldReadAsText = CONST.TEXT_SPREADSHEET_EXTENSIONS.includes(fileExtension as TupleToUnion<typeof CONST.TEXT_SPREADSHEET_EXTENSIONS>);
+        const readWorkbook = () => {
+            if (shouldReadAsText) {
+                return fetch(fileURI)
+                    .then((data) => {
+                        setIsReadingFIle(true);
+                        return data.text();
+                    })
+                    .then((text) => XLSX.read(text, {type: 'string'}));
+            }
+            return fetch(fileURI)
+                .then((data) => {
+                    setIsReadingFIle(true);
+                    return data.arrayBuffer();
+                })
+                .then((arrayBuffer) => XLSX.read(new Uint8Array(arrayBuffer), {type: 'buffer'}));
+        };
+        readWorkbook()
+            .then((workbook) => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const data = XLSX.utils.sheet_to_json(worksheet, {header: 1, blankrows: false}) as string[][] | unknown[][];
                 const formattedSpreadsheetData = data.map((row) => row.map((cell) => String(cell)));

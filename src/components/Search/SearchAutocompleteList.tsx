@@ -18,7 +18,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import {getCardFeedKey, getCardFeedNamesWithType} from '@libs/CardFeedUtils';
 import {getCardDescription, isCard, isCardHiddenFromSearch, mergeCardListWithWorkspaceFeeds} from '@libs/CardUtils';
 import memoize from '@libs/memoize';
-import type {Options, SearchOption} from '@libs/OptionsListUtils';
+import {getMostRecentOptions, Options, recentReportComparator, SearchOption} from '@libs/OptionsListUtils';
 import {combineOrderingOfReportsAndPersonalDetails, getSearchOptions, getValidPersonalDetailOptions, orderReportOptions} from '@libs/OptionsListUtils';
 import Performance from '@libs/Performance';
 import {getAllTaxRates, getCleanedTagName, shouldShowPolicy} from '@libs/PolicyUtils';
@@ -353,10 +353,9 @@ function SearchAutocompleteList(
                 }));
             }
             case CONST.SEARCH.SYNTAX_FILTER_KEYS.IN: {
-                const orderedReportOptions = orderReportOptions(searchOptions.recentReports);
-                const filteredChats = orderedReportOptions
-                    .filter((chat) => chat.text?.toLowerCase()?.includes(autocompleteValue.toLowerCase()) && !alreadyAutocompletedKeys.includes(chat.text.toLowerCase()))
-                    .slice(0, 10);
+                // const orderedReportOptions = orderReportOptions(searchOptions.recentReports);
+                const filterChats = (chat: OptionData) => chat.text?.toLowerCase()?.includes(autocompleteValue.toLowerCase()) && !alreadyAutocompletedKeys.includes(chat.text.toLowerCase());
+                const filteredChats = getMostRecentOptions(searchOptions.recentReports, 10, recentReportComparator, filterChats);
 
                 return filteredChats.map((chat) => ({
                     filterKey: CONST.SEARCH.SEARCH_USER_FRIENDLY_KEYS.IN,
@@ -498,12 +497,13 @@ function SearchAutocompleteList(
     const {search: filterOptions, isInitialized: isFastSearchInitialized} = useFastSearchFromOptions(searchOptions, {includeUserToInvite: true});
 
     const recentReportsOptions = useMemo(() => {
+        Timing.start(CONST.TIMING.SEARCH_FILTER_OPTIONS);
         if (autocompleteQueryValue.trim() === '' || !isFastSearchInitialized) {
-            const orderedReportOptions = orderReportOptions(searchOptions.recentReports);
-            return orderedReportOptions.slice(0, 20);
+            const orderedReportOptions = getMostRecentOptions(searchOptions.recentReports, 20, recentReportComparator);
+            Timing.end(CONST.TIMING.SEARCH_FILTER_OPTIONS);
+            return orderedReportOptions;
         }
 
-        Timing.start(CONST.TIMING.SEARCH_FILTER_OPTIONS);
         const filteredOptions = filterOptions(autocompleteQueryValue);
         const orderedOptions = combineOrderingOfReportsAndPersonalDetails(filteredOptions, autocompleteQueryValue, {
             sortByReportTypeInSearch: true,

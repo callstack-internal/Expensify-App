@@ -630,4 +630,4 @@ function Search({queryJSON, currentSearchResults, lastNonEmptySearchResults, onS
 Search.displayName = 'Search';
 
 export type {SearchProps};
-export default Search;
+export default React.memo(Search);

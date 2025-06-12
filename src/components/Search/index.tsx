@@ -141,7 +141,7 @@ function Search({queryJSON, currentSearchResults, lastNonEmptySearchResults, onS
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth, isLargeScreenWidth} = useResponsiveLayout();
     const navigation = useNavigation<PlatformStackNavigationProp<SearchFullscreenNavigatorParamList>>();
-    const isFocused = useIsFocused();
+    const isFocused = false; // useIsFocused();
     const {
         setCurrentSearchHash,
         setSelectedTransactions,

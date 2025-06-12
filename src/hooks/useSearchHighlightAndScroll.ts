@@ -25,7 +25,7 @@ type UseSearchHighlightAndScroll = {
  * Hook used to trigger a search when a new transaction or report action is added and handle highlighting and scrolling.
  */
 function useSearchHighlightAndScroll({searchResults, transactions, previousTransactions, reportActions, previousReportActions, queryJSON, offset}: UseSearchHighlightAndScroll) {
-    const isFocused = useIsFocused();
+    const isFocused = false; // useIsFocused();
     // Ref to track if the search was triggered by this hook
     const triggeredByHookRef = useRef(false);
     const searchTriggeredRef = useRef(false);

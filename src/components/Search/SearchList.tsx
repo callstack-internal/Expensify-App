@@ -115,7 +115,7 @@ function SearchList(
         return item?.isSelected ? acc + 1 : acc;
     }, 0);
     const {translate} = useLocalize();
-    const isFocused = useIsFocused();
+    const isFocused = false; // useIsFocused();
     const listRef = useRef<FlatList<SearchListItem>>(null);
     const hasKeyBeenPressed = useRef(false);
     const [itemsToHighlight, setItemsToHighlight] = useState<Set<string> | null>(null);

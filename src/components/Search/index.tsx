@@ -159,9 +159,9 @@ function Search({queryJSON, currentSearchResults, lastNonEmptySearchResults, onS
 
     const {type, status, sortBy, sortOrder, hash, groupBy} = queryJSON;
 
-    const [transactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {canBeMissing: true});
+    const [transactions] = [{}]; // useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {canBeMissing: true});
     const previousTransactions = usePrevious(transactions);
-    const [reportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {canBeMissing: true});
+    const [reportActions] = [{}]; // useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {canBeMissing: true});
     const previousReportActions = usePrevious(reportActions);
     const reportActionsArray = useMemo(
         () =>

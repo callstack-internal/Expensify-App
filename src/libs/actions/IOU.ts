@@ -4296,24 +4296,24 @@ function getUpdateMoneyRequestParams(
             value: currentTransactionViolations,
         });
         if (hash) {
-            optimisticData.push({
-                onyxMethod: Onyx.METHOD.MERGE,
-                key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
-                value: {
-                    data: {
-                        [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${transactionID}`]: violationsOnyxData.value,
-                    },
-                },
-            });
-            failureData.push({
-                onyxMethod: Onyx.METHOD.MERGE,
-                key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
-                value: {
-                    data: {
-                        [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${transactionID}`]: currentTransactionViolations,
-                    },
-                },
-            });
+            // optimisticData.push({
+            //     onyxMethod: Onyx.METHOD.MERGE,
+            //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
+            //     value: {
+            //         data: {
+            //             [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${transactionID}`]: violationsOnyxData.value,
+            //         },
+            //     },
+            // });
+            // failureData.push({
+            //     onyxMethod: Onyx.METHOD.MERGE,
+            //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
+            //     value: {
+            //         data: {
+            //             [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${transactionID}`]: currentTransactionViolations,
+            //         },
+            //     },
+            // });
         }
         if (violationsOnyxData && (iouReport?.statusNum ?? CONST.REPORT.STATUS_NUM.OPEN) === CONST.REPORT.STATUS_NUM.OPEN) {
             const currentNextStep = allNextSteps[`${ONYXKEYS.COLLECTION.NEXT_STEP}${iouReport?.reportID}`] ?? {};
@@ -10431,31 +10431,30 @@ function replaceReceipt({transactionID, file, source}: ReplaceReceipt) {
         });
     }
     if (currentSearchQueryJSON?.hash) {
-        optimisticData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}`,
-            value: {
-                data: {
-                    [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
-                        receipt: receiptOptimistic,
-                        filename: file.name,
-                    },
-                },
-            },
-        });
-
-        failureData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}`,
-            value: {
-                data: {
-                    [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
-                        receipt: !isEmptyObject(oldReceipt) ? oldReceipt : null,
-                        filename: transaction?.filename,
-                    },
-                },
-            },
-        });
+        // optimisticData.push({
+        //     onyxMethod: Onyx.METHOD.MERGE,
+        //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}`,
+        //     value: {
+        //         data: {
+        //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
+        //                 receipt: receiptOptimistic,
+        //                 filename: file.name,
+        //             },
+        //         },
+        //     },
+        // });
+        // failureData.push({
+        //     onyxMethod: Onyx.METHOD.MERGE,
+        //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}`,
+        //     value: {
+        //         data: {
+        //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
+        //                 receipt: !isEmptyObject(oldReceipt) ? oldReceipt : null,
+        //                 filename: transaction?.filename,
+        //             },
+        //         },
+        //     },
+        // });
     }
 
     const parameters: ReplaceReceiptParams = {
@@ -10740,30 +10739,30 @@ function putOnHold(transactionID: string, comment: string, reportID: string, sea
 
     // If we are holding from the search page, we optimistically update the snapshot data that search uses so that it is kept in sync
     if (searchHash) {
-        optimisticData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${searchHash}`,
-            value: {
-                data: {
-                    [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
-                        canHold: false,
-                        canUnhold: true,
-                    },
-                },
-            } as Record<string, Record<string, Partial<SearchTransaction>>>,
-        });
-        failureData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${searchHash}`,
-            value: {
-                data: {
-                    [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
-                        canHold: true,
-                        canUnhold: false,
-                    },
-                },
-            } as Record<string, Record<string, Partial<SearchTransaction>>>,
-        });
+        // optimisticData.push({
+        //     onyxMethod: Onyx.METHOD.MERGE,
+        //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${searchHash}`,
+        //     value: {
+        //         data: {
+        //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
+        //                 canHold: false,
+        //                 canUnhold: true,
+        //             },
+        //         },
+        //     } as Record<string, Record<string, Partial<SearchTransaction>>>,
+        // });
+        // failureData.push({
+        //     onyxMethod: Onyx.METHOD.MERGE,
+        //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${searchHash}`,
+        //     value: {
+        //         data: {
+        //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: {
+        //                 canHold: true,
+        //                 canUnhold: false,
+        //             },
+        //         },
+        //     } as Record<string, Record<string, Partial<SearchTransaction>>>,
+        // });
     }
 
     API.write(
@@ -11316,51 +11315,51 @@ function getSearchOnyxUpdate({participant, transaction, iouReport}: GetSearchOny
                 // So we need to add the optimistic personal detail back to the snapshot in success data to prevent the flickering.
                 // After that, it will be cleared via Search API.
                 // See https://github.com/Expensify/App/issues/61310 for more information.
-                successData.push({
-                    onyxMethod: Onyx.METHOD.MERGE,
-                    key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}` as const,
-                    value: {
-                        data: {
-                            [ONYXKEYS.PERSONAL_DETAILS_LIST]: {
-                                [toAccountID]: {
-                                    accountID: toAccountID,
-                                    displayName: participant?.displayName,
-                                    login: participant?.login,
-                                },
-                            },
-                        },
-                        ...(iouReport ? {[`${ONYXKEYS.COLLECTION.REPORT}${iouReport.reportID}`]: iouReport} : {}),
-                    },
-                });
+                // successData.push({
+                //     onyxMethod: Onyx.METHOD.MERGE,
+                //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}` as const,
+                //     value: {
+                //         data: {
+                //             [ONYXKEYS.PERSONAL_DETAILS_LIST]: {
+                //                 [toAccountID]: {
+                //                     accountID: toAccountID,
+                //                     displayName: participant?.displayName,
+                //                     login: participant?.login,
+                //                 },
+                //             },
+                //         },
+                //         ...(iouReport ? {[`${ONYXKEYS.COLLECTION.REPORT}${iouReport.reportID}`]: iouReport} : {}),
+                //     },
+                // });
             }
             return {
                 optimisticData: [
-                    {
-                        onyxMethod: Onyx.METHOD.MERGE,
-                        key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}` as const,
-                        value: {
-                            data: {
-                                [ONYXKEYS.PERSONAL_DETAILS_LIST]: {
-                                    [toAccountID]: {
-                                        accountID: toAccountID,
-                                        displayName: participant?.displayName,
-                                        login: participant?.login,
-                                    },
-                                    [fromAccountID]: {
-                                        accountID: fromAccountID,
-                                        avatar: currentUserPersonalDetails?.avatar,
-                                        displayName: currentUserPersonalDetails?.displayName,
-                                        login: currentUserPersonalDetails?.login,
-                                    },
-                                },
-                                [`${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`]: {
-                                    accountID: fromAccountID,
-                                    managerID: toAccountID,
-                                    ...transaction,
-                                },
-                            },
-                        },
-                    },
+                    // {
+                    //     onyxMethod: Onyx.METHOD.MERGE,
+                    //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchQueryJSON.hash}` as const,
+                    //     value: {
+                    //         data: {
+                    //             [ONYXKEYS.PERSONAL_DETAILS_LIST]: {
+                    //                 [toAccountID]: {
+                    //                     accountID: toAccountID,
+                    //                     displayName: participant?.displayName,
+                    //                     login: participant?.login,
+                    //                 },
+                    //                 [fromAccountID]: {
+                    //                     accountID: fromAccountID,
+                    //                     avatar: currentUserPersonalDetails?.avatar,
+                    //                     displayName: currentUserPersonalDetails?.displayName,
+                    //                     login: currentUserPersonalDetails?.login,
+                    //                 },
+                    //             },
+                    //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`]: {
+                    //                 accountID: fromAccountID,
+                    //                 managerID: toAccountID,
+                    //                 ...transaction,
+                    //             },
+                    //         },
+                    //     },
+                    // },
                 ],
                 successData,
             };
@@ -11726,28 +11725,28 @@ function saveSplitTransactions(draftTransaction: OnyxEntry<OnyxTypes.Transaction
         value: originalTransaction,
     });
 
-    optimisticData.push({
-        onyxMethod: Onyx.METHOD.MERGE,
-        key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
-        value: {
-            data: {
-                [`${ONYXKEYS.COLLECTION.TRANSACTION}${originalTransactionID}`]: {
-                    ...originalTransactionViolations,
-                    reportID: CONST.REPORT.SPLIT_REPORT_ID,
-                },
-            },
-        },
-    });
+    // optimisticData.push({
+    //     onyxMethod: Onyx.METHOD.MERGE,
+    //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
+    //     value: {
+    //         data: {
+    //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${originalTransactionID}`]: {
+    //                 ...originalTransactionViolations,
+    //                 reportID: CONST.REPORT.SPLIT_REPORT_ID,
+    //             },
+    //         },
+    //     },
+    // });
 
-    failureData.push({
-        onyxMethod: Onyx.METHOD.MERGE,
-        key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
-        value: {
-            data: {
-                [`${ONYXKEYS.COLLECTION.TRANSACTION}${originalTransactionID}`]: originalTransactionViolations,
-            },
-        },
-    });
+    // failureData.push({
+    //     onyxMethod: Onyx.METHOD.MERGE,
+    //     key: `${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`,
+    //     value: {
+    //         data: {
+    //             [`${ONYXKEYS.COLLECTION.TRANSACTION}${originalTransactionID}`]: originalTransactionViolations,
+    //         },
+    //     },
+    // });
 
     // Prepare splitApiParams for the Transaction_Split API call which requires a specific format for the splits
     // The format is: splits[0][amount], splits[0][category], splits[0][tag], etc.

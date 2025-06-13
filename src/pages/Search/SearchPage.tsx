@@ -92,6 +92,7 @@ function SearchPage({route}: SearchPageProps) {
 
     const queryJSON = useMemo(() => buildSearchQueryJSON(q), [q]);
 
+    // Something updates ONYXKEYS.COLLECTION.SNAPSHOT and I need to figure out why
     // eslint-disable-next-line rulesdir/no-default-id-values
     const [currentSearchResults] = useOnyx(`${ONYXKEYS.COLLECTION.SNAPSHOT}${queryJSON?.hash ?? CONST.DEFAULT_NUMBER_ID}`, {canBeMissing: true});
     const [lastNonEmptySearchResults, setLastNonEmptySearchResults] = useState<SearchResults | undefined>(undefined);
@@ -587,13 +588,18 @@ function SearchPage({route}: SearchPageProps) {
                                     queryJSON={queryJSON}
                                     headerButtonsOptions={headerButtonsOptions}
                                 />
-                                <Search
-                                    key={queryJSON.hash}
-                                    queryJSON={queryJSON}
-                                    currentSearchResults={currentSearchResults}
-                                    lastNonEmptySearchResults={lastNonEmptySearchResults}
-                                    handleSearch={handleSearchAction}
-                                />
+                                <React.Profiler
+                                    id="XCD Search"
+                                    onRender={(i, p, t) => console.log(i, p, t)}
+                                >
+                                    <Search
+                                        key={queryJSON.hash}
+                                        queryJSON={queryJSON}
+                                        currentSearchResults={currentSearchResults}
+                                        lastNonEmptySearchResults={lastNonEmptySearchResults}
+                                        handleSearch={handleSearchAction}
+                                    />
+                                </React.Profiler>
                                 <DragAndDropConsumer onDrop={initScanRequest}>
                                     <DropZoneUI
                                         icon={Expensicons.SmartScan}

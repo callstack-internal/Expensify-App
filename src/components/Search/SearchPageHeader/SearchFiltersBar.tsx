@@ -1,5 +1,5 @@
-import React, {useCallback, useMemo, useRef} from 'react';
-import {View} from 'react-native';
+import React, {useCallback, useMemo, useRef, useState, useEffect} from 'react';
+import {View, InteractionManager} from 'react-native';
 // eslint-disable-next-line no-restricted-imports
 import type {ScrollView as RNScrollView} from 'react-native';
 import {useOnyx} from 'react-native-onyx';
@@ -112,15 +112,26 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
     const {hash, type, groupBy, status} = queryJSON;
     const scrollRef = useRef<RNScrollView>(null);
 
+    const [isFiltersLoaded, setIsFiltersLoaded] = useState(false);
+
     const theme = useTheme();
     const styles = useThemeStyles();
     const {translate} = useLocalize();
 
     const {isOffline} = useNetwork();
-    const personalDetails = usePersonalDetails();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const {selectedTransactions, setExportMode, isExportMode, shouldShowExportModeOption, shouldShowFiltersBarLoading} = useSearchContext();
 
+    useEffect(() => {
+        if (isFiltersLoaded) {
+            return;
+        }
+        InteractionManager.runAfterInteractions(() => {
+            setIsFiltersLoaded(true);
+        });
+    }, [isFiltersLoaded]);
+
+    const personalDetails = usePersonalDetails();
     const [session] = useOnyx(ONYXKEYS.SESSION, {canBeMissing: true});
     const [userCardList] = useOnyx(ONYXKEYS.CARD_LIST, {canBeMissing: true});
     const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: false});
@@ -132,21 +143,24 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
     const [selectionMode] = useOnyx(ONYXKEYS.MOBILE_SELECTION_MODE, {canBeMissing: true});
     const [currentSearchResults] = useOnyx(`${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`, {canBeMissing: true});
 
-    const taxRates = getAllTaxRates();
-    const allCards = useMemo(() => mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, userCardList), [userCardList, workspaceCardFeeds]);
-    const selectedTransactionsKeys = useMemo(() => Object.keys(selectedTransactions ?? {}), [selectedTransactions]);
-
+    // Basic state for determining dropdown vs filters view - always computed
     const hasErrors = Object.keys(currentSearchResults?.errors ?? {}).length > 0 && !isOffline;
     const shouldShowSelectedDropdown = headerButtonsOptions.length > 0 && (!shouldUseNarrowLayout || (!!selectionMode && selectionMode.isEnabled));
+    const selectedTransactionsKeys = useMemo(() => Object.keys(selectedTransactions ?? {}), [selectedTransactions]);
+
+    // Heavy computations - only run when filters are actually loaded
+    const taxRates = isFiltersLoaded ? getAllTaxRates() : {};
+    const allCards = useMemo(() => {
+        if (!isFiltersLoaded) {return {};}
+        return mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, userCardList);
+    }, [isFiltersLoaded, userCardList, workspaceCardFeeds]);
 
     const filterFormValues = useMemo(() => {
+        if (!isFiltersLoaded) {return {};}
         return buildFilterFormValuesFromQuery(queryJSON, policyCategories, policyTagsLists, currencyList, personalDetails, allCards, reports, taxRates);
-    }, [allCards, currencyList, personalDetails, policyCategories, policyTagsLists, queryJSON, reports, taxRates]);
+    }, [isFiltersLoaded, allCards, currencyList, personalDetails, policyCategories, policyTagsLists, queryJSON, reports, taxRates]);
 
-    // We need to create a stable key for filterFormValues so that we don't infinitely
-    // re-render components that access all of the filterFormValues. This is due to the way
-    // that react calculates diffs (it doesn't know how to compare objects).
-    const filterFormValuesKey = JSON.stringify(filterFormValues);
+    const filterFormValuesKey = isFiltersLoaded ? JSON.stringify(filterFormValues) : '';
 
     const openAdvancedFilters = useCallback(() => {
         updateAdvancedFilters(filterFormValues);
@@ -159,6 +173,8 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
 
     const typeComponent = useCallback(
         ({closeOverlay}: PopoverComponentProps) => {
+            if (!isFiltersLoaded) {return null;}
+
             const value = typeOptions.find((option) => option.value === type) ?? null;
 
             const onChange = (item: SingleSelectItem<SearchDataTypes> | null) => {
@@ -187,11 +203,13 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
                 />
             );
         },
-        [allPolicies, groupBy, queryJSON, session?.email, status, translate, type],
+        [isFiltersLoaded, allPolicies, groupBy, queryJSON, session?.email, status, translate, type],
     );
 
     const statusComponent = useCallback(
         ({closeOverlay}: PopoverComponentProps) => {
+            if (!isFiltersLoaded) {return null;}
+
             const items = getStatusOptions(type, groupBy);
             const selected = Array.isArray(status) ? items.filter((option) => status.includes(option.value)) : (items.find((option) => option.value === status) ?? []);
             const value = [selected].flat();
@@ -212,11 +230,13 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
                 />
             );
         },
-        [groupBy, queryJSON, status, translate, type],
+        [isFiltersLoaded, groupBy, queryJSON, status, translate, type],
     );
 
     const datePickerComponent = useCallback(
         ({closeOverlay}: PopoverComponentProps) => {
+            if (!isFiltersLoaded) {return null;}
+
             const value: DateSelectPopupValue = {
                 [CONST.SEARCH.DATE_MODIFIERS.AFTER]: filterFormValues.dateAfter ?? null,
                 [CONST.SEARCH.DATE_MODIFIERS.BEFORE]: filterFormValues.dateBefore ?? null,
@@ -247,14 +267,13 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
                 />
             );
         },
-        // Disable exhaustive deps because we use filterFormValuesKey as the dependency, which is a stable key based on filterFormValues
-        // eslint-disable-next-line react-compiler/react-compiler
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [filterFormValuesKey, queryJSON],
+        [isFiltersLoaded, filterFormValuesKey, queryJSON],
     );
 
     const userPickerComponent = useCallback(
         ({closeOverlay}: PopoverComponentProps) => {
+            if (!isFiltersLoaded) {return null;}
+
             const value = filterFormValues.from ?? [];
 
             return (
@@ -269,17 +288,16 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
                 />
             );
         },
-        // Disable exhaustive deps because we use filterFormValuesKey as the dependency, which is a stable key based on filterFormValues
-        // eslint-disable-next-line react-compiler/react-compiler
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [filterFormValuesKey],
+        [isFiltersLoaded, filterFormValuesKey],
     );
 
     /**
      * Builds the list of all filter chips to be displayed in the
-     * filter bar
+     * filter bar - only when filters are loaded
      */
     const filters = useMemo(() => {
+        if (!isFiltersLoaded) {return [];}
+
         const typeValue = typeOptions.find((option) => option.value === type) ?? null;
         const statusValue = getStatusOptions(type, groupBy).filter((option) => status.includes(option.value));
         const dateValue = [
@@ -314,6 +332,7 @@ function SearchFiltersBar({queryJSON, headerButtonsOptions}: SearchFiltersBarPro
 
         return filterList;
     }, [
+        isFiltersLoaded,
         type,
         groupBy,
         filterFormValues.from,

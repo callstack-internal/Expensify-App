@@ -1,4 +1,4 @@
-import React, {useMemo, useRef, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import type {View} from 'react-native';
 import Button from '@components/Button';
 import CaretWrapper from '@components/CaretWrapper';
@@ -46,6 +46,7 @@ function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: Dro
     const {windowHeight} = useWindowDimensions();
     const triggerRef = useRef<View | null>(null);
     const [isOverlayVisible, setIsOverlayVisible] = useState(false);
+    const [hasBeenOpened, setHasBeenOpened] = useState(false);
     const [popoverTriggerPosition, setPopoverTriggerPosition] = useState({
         horizontal: 0,
         vertical: 0,
@@ -57,6 +58,11 @@ function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: Dro
      */
     const toggleOverlay = () => {
         setIsOverlayVisible((previousValue) => {
+            // Mark as opened on first open for lazy loading
+            if (!previousValue && !hasBeenOpened) {
+                setHasBeenOpened(true);
+            }
+
             triggerRef.current?.measureInWindow((x, y, _, height) => {
                 setPopoverTriggerPosition({
                     horizontal: x,
@@ -67,6 +73,20 @@ function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: Dro
             return !previousValue;
         });
     };
+
+    /**
+     * Lazy wrapper for PopoverComponent that only renders after first interaction
+     * This prevents heavy filter components from rendering during initial screen load
+     */
+    const LazyPopoverComponent = useCallback(
+        ({closeOverlay}: PopoverComponentProps) => {
+            if (!hasBeenOpened) {
+                return null;
+            }
+            return <PopoverComponent closeOverlay={closeOverlay} />;
+        },
+        [hasBeenOpened, PopoverComponent],
+    );
 
     /**
      * When no items are selected, render the label, otherwise, render the
@@ -128,7 +148,7 @@ function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: Dro
                     height: CONST.POPOVER_DROPDOWN_MIN_HEIGHT,
                 }}
             >
-                <PopoverComponent closeOverlay={toggleOverlay} />
+                <LazyPopoverComponent closeOverlay={toggleOverlay} />
             </PopoverWithMeasuredContent>
         </>
     );

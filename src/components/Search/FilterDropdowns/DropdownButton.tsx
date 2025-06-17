@@ -9,7 +9,14 @@ import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import type {SearchQueryJSON} from '@components/Search/types';
 import CONST from '@src/CONST';
+
+// Lazy load filter components
+const LazyTypeFilter = React.lazy(() => import('./LazyTypeFilter'));
+const LazyStatusFilter = React.lazy(() => import('./LazyStatusFilter'));
+const LazyDateFilter = React.lazy(() => import('./LazyDateFilter'));
+const LazyFromFilter = React.lazy(() => import('./LazyFromFilter'));
 
 type PopoverComponentProps = {
     closeOverlay: () => void;
@@ -25,8 +32,14 @@ type DropdownButtonProps = {
     /** The viewport's offset */
     viewportOffsetTop: number;
 
-    /** The component to render in the popover */
-    PopoverComponent: React.FC<PopoverComponentProps>;
+    /** The component to render in the popover - optional for lazy loading */
+    PopoverComponent?: React.FC<PopoverComponentProps>;
+
+    /** The type of filter for lazy loading */
+    filterType?: 'type' | 'status' | 'date' | 'from';
+
+    /** Query JSON for lazy filter components */
+    queryJSON?: SearchQueryJSON;
 };
 
 const PADDING_MODAL = 8;
@@ -36,7 +49,7 @@ const ANCHOR_ORIGIN = {
     vertical: CONST.MODAL.ANCHOR_ORIGIN_VERTICAL.TOP,
 };
 
-function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: DropdownButtonProps) {
+function DropdownButton({label, value, viewportOffsetTop, PopoverComponent, filterType, queryJSON}: DropdownButtonProps) {
     // We need to use isSmallScreenWidth instead of shouldUseNarrowLayout to distinguish RHL and narrow layout
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
@@ -75,7 +88,7 @@ function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: Dro
     };
 
     /**
-     * Lazy wrapper for PopoverComponent that only renders after first interaction
+     * Lazy wrapper for PopoverComponent that only renders and loads data after first interaction
      * This prevents heavy filter components from rendering during initial screen load
      */
     const LazyPopoverComponent = useCallback(
@@ -83,9 +96,41 @@ function DropdownButton({label, value, viewportOffsetTop, PopoverComponent}: Dro
             if (!hasBeenOpened) {
                 return null;
             }
-            return <PopoverComponent closeOverlay={closeOverlay} />;
+
+            // Use lazy filter components when filterType is specified
+            if (filterType && queryJSON) {
+                const LazyComponent = (() => {
+                    switch (filterType) {
+                        case 'type':
+                            return LazyTypeFilter;
+                        case 'status':
+                            return LazyStatusFilter;
+                        case 'date':
+                            return LazyDateFilter;
+                        case 'from':
+                            return LazyFromFilter;
+                        default:
+                            return null;
+                    }
+                })();
+
+                if (LazyComponent) {
+                    return (
+                        <React.Suspense fallback={null}>
+                            <LazyComponent closeOverlay={closeOverlay} queryJSON={queryJSON} />
+                        </React.Suspense>
+                    );
+                }
+            }
+
+            // Fallback to provided PopoverComponent for backward compatibility
+            if (PopoverComponent) {
+                return <PopoverComponent closeOverlay={closeOverlay} />;
+            }
+
+            return null;
         },
-        [hasBeenOpened, PopoverComponent],
+        [hasBeenOpened, PopoverComponent, filterType, queryJSON],
     );
 
     /**

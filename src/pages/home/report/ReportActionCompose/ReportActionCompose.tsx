@@ -40,20 +40,13 @@ import {getFileValidationErrorText} from '@libs/fileDownload/FileUtils';
 import getModalState from '@libs/getModalState';
 import Performance from '@libs/Performance';
 import {
-    canRequestMoney,
     canShowReportRecipientLocalTime,
     chatIncludesChronos,
     chatIncludesConcierge,
     getParentReport,
     getReportRecipientAccountIDs,
-    isAdminRoom,
-    isAnnounceRoom,
-    isClosedReport,
-    isConciergeChatReport,
-    isInvoiceReport,
     isReportTransactionThread,
-    isSettled,
-    isUserCreatedPolicyRoom,
+    temporary_getMoneyRequestOptions,
 } from '@libs/ReportUtils';
 import {getTransactionID, hasReceipt as hasReceiptTransactionUtils} from '@libs/TransactionUtils';
 import willBlurTextInputOnTapOutsideFunc from '@libs/willBlurTextInputOnTapOutside';
@@ -221,21 +214,11 @@ function ReportActionCompose({
     const includesConcierge = useMemo(() => chatIncludesConcierge({participants: report?.participants}), [report?.participants]);
     const userBlockedFromConcierge = useMemo(() => isBlockedFromConciergeUserAction(blockedFromConcierge), [blockedFromConcierge]);
     const isBlockedFromConcierge = useMemo(() => includesConcierge && userBlockedFromConcierge, [includesConcierge, userBlockedFromConcierge]);
-    const parentReport = useMemo(() => getParentReport(report), [report]);
-    const shouldDisplayDualDropZone = useMemo(
-        () =>
-            !isUserCreatedPolicyRoom(report) &&
-            !isAnnounceRoom(report) &&
-            !isAdminRoom(report) &&
-            !isConciergeChatReport(report) &&
-            !isInvoiceReport(report) &&
-            !isSettled(parentReport) &&
-            !isSettled(report) &&
-            !isClosedReport(parentReport) &&
-            !isClosedReport(report) &&
-            canRequestMoney(report, policy, reportParticipantIDs),
-        [report, parentReport, policy, reportParticipantIDs],
-    );
+
+    const shouldDisplayDualDropZone = useMemo(() => {
+        return !!temporary_getMoneyRequestOptions(report, policy, reportParticipantIDs).length;
+    }, [report, policy, reportParticipantIDs]);
+
     const isTransactionThreadView = useMemo(() => isReportTransactionThread(report), [report]);
     const transactionID = useMemo(() => getTransactionID(reportID), [reportID]);
 

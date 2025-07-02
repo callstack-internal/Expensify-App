@@ -40,6 +40,7 @@ import {getConfirmModalPrompt} from '@libs/fileDownload/FileUtils';
 import getModalState from '@libs/getModalState';
 import Performance from '@libs/Performance';
 import {
+    canRequestMoney,
     canShowReportRecipientLocalTime,
     chatIncludesChronos,
     chatIncludesConcierge,
@@ -47,9 +48,8 @@ import {
     getReportRecipientAccountIDs,
     isAdminRoom,
     isAnnounceRoom,
-    isChatRoom,
+    isClosedReport,
     isConciergeChatReport,
-    isGroupChat,
     isInvoiceReport,
     isReportTransactionThread,
     isSettled,
@@ -147,6 +147,7 @@ function ReportActionCompose({
     const personalDetails = usePersonalDetails();
     const [blockedFromConcierge] = useOnyx(ONYXKEYS.NVP_BLOCKED_FROM_CONCIERGE, {canBeMissing: true});
     const [shouldShowComposeInput = true] = useOnyx(ONYXKEYS.SHOULD_SHOW_COMPOSE_INPUT, {canBeMissing: true});
+    const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`, {canBeMissing: true});
 
     // TODO: remove beta check after the feature is enabled
     const {isBetaEnabled} = usePermissions();
@@ -223,16 +224,17 @@ function ReportActionCompose({
     const parentReport = useMemo(() => getParentReport(report), [report]);
     const shouldDisplayDualDropZone = useMemo(
         () =>
-            !isChatRoom(report) &&
             !isUserCreatedPolicyRoom(report) &&
             !isAnnounceRoom(report) &&
             !isAdminRoom(report) &&
             !isConciergeChatReport(report) &&
             !isInvoiceReport(report) &&
-            !isGroupChat(report) &&
             !isSettled(parentReport) &&
-            !isSettled(report),
-        [report, parentReport],
+            !isSettled(report) &&
+            !isClosedReport(parentReport) &&
+            !isClosedReport(report) &&
+            canRequestMoney(report, policy, reportParticipantIDs),
+        [report, parentReport, policy, reportParticipantIDs],
     );
     const isTransactionThreadView = useMemo(() => isReportTransactionThread(report), [report]);
     const transactionID = useMemo(() => getTransactionID(reportID), [reportID]);

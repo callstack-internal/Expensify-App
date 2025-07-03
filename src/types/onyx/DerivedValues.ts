@@ -1,4 +1,3 @@
-import type {OnyxCollection} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import type CONST from '@src/CONST';
 import type {Errors} from './OnyxCommon';
@@ -45,22 +44,27 @@ type ReportAttributesDerivedValue = {
 };
 
 /**
- * The derived value containing last and sorted report actions for each report.
+ * The metadata for a single report's actions.
  */
-type ReportActionsMetadataDerivedValue = {
+type ReportActionsMetadata = {
     /**
-     * The most recent report action for each report.
+     * The most recent report action for the report.
      */
-    lastReportActions: ReportActions;
+    lastReportAction?: ReportActions[string];
     /**
-     * Sorted arrays of report actions for each report.
+     * Sorted array of report actions for the report.
      */
-    allSortedReportActions: OnyxCollection<ReportActions>;
+    allSortedReportActions?: Array<ReportActions[string]>;
     /**
-     * The most recent visible report action for each report.
+     * The most recent visible report action for the report.
      */
-    lastVisibleReportActions: ReportActions;
+    lastVisibleReportAction?: ReportActions[string];
 };
 
+/**
+ * The derived value containing metadata for each report's actions.
+ */
+type ReportActionsMetadataDerivedValue = Record<string, ReportActionsMetadata>;
+
 export default ReportAttributesDerivedValue;
-export type {ReportAttributes, ReportActionsMetadataDerivedValue};
+export type {ReportAttributes, ReportAttributesDerivedValue, ReportActionsMetadata, ReportActionsMetadataDerivedValue};

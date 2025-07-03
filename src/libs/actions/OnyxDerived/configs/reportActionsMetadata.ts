@@ -5,6 +5,7 @@ import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDer
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportActions} from '@src/types/onyx';
+import type {ReportActionsMetadataDerivedValue} from '@src/types/onyx/DerivedValues';
 
 let previousReportActions: OnyxCollection<ReportActions> = {};
 
@@ -43,12 +44,13 @@ export default createOnyxDerivedValueConfig({
             return currentValue ?? {};
         }
 
-        const result = currentValue ?? {};
+        const result: ReportActionsMetadataDerivedValue = currentValue ?? {};
 
         // Process each report actions collection
         for (const reportActionsKey of reportActionsToProcess) {
             const reportID = reportActionsKey.split('_').at(1);
             if (!reportID) {
+                // eslint-disable-next-line no-continue
                 continue;
             }
 
@@ -58,11 +60,13 @@ export default createOnyxDerivedValueConfig({
             // If report actions are deleted/null, clean up
             if (!currentReportActions) {
                 delete result[reportID];
+                // eslint-disable-next-line no-continue
                 continue;
             }
 
             // Skip processing if the report actions haven't actually changed
             if (currentReportActions === previousReportActionsForReport) {
+                // eslint-disable-next-line no-continue
                 continue;
             }
 
@@ -89,7 +93,9 @@ export default createOnyxDerivedValueConfig({
 
             const firstReportAction = sortedReportActions.at(0);
             if (!firstReportAction) {
-                delete result[reportID]?.lastReportAction;
+                if (result[reportID]) {
+                    delete result[reportID].lastReportAction;
+                }
             } else {
                 result[reportID].lastReportAction = firstReportAction;
             }
@@ -107,7 +113,9 @@ export default createOnyxDerivedValueConfig({
             );
             const reportActionForDisplay = reportActionsForDisplay.at(0);
             if (!reportActionForDisplay) {
-                delete result[reportID]?.lastVisibleReportAction;
+                if (result[reportID]) {
+                    delete result[reportID].lastVisibleReportAction;
+                }
             } else {
                 result[reportID].lastVisibleReportAction = reportActionForDisplay;
             }

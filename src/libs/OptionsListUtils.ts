@@ -895,7 +895,7 @@ function createOption(accountIDs: number[], personalDetails: OnyxInputOrEntry<Pe
         result.ownerAccountID = report.ownerAccountID;
         result.reportID = report.reportID;
         const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${report.chatReportID}`];
-        const oneTransactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`]);
+        const oneTransactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, reportActionsMetadata?.[report.reportID]?.allSortedReportActions);
         const oneTransactionThreadReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${oneTransactionThreadReportID}`];
         result.isUnread = isUnread(report, oneTransactionThreadReport);
         result.isPinned = report.isPinned;

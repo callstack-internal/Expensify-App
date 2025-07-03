@@ -1203,7 +1203,7 @@ type OnyxValuesMapping = {
 
 type OnyxDerivedValuesMapping = {
     [ONYXKEYS.DERIVED.REPORT_ATTRIBUTES]: OnyxTypes.ReportAttributesDerivedValue;
-    [ONYXKEYS.DERIVED.REPORT_ACTIONS_METADATA]: OnyxTypes.LastReportActionsDerivedValue;
+    [ONYXKEYS.DERIVED.REPORT_ACTIONS_METADATA]: OnyxTypes.ReportActionsMetadataDerivedValue;
 };
 
 type OnyxValues = OnyxValuesMapping & OnyxCollectionValuesMapping & OnyxFormValuesMapping & OnyxFormDraftValuesMapping & OnyxDerivedValuesMapping;

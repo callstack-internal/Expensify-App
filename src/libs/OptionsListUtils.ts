@@ -31,6 +31,7 @@ import type {
     ReportNameValuePairs,
     TransactionViolation,
 } from '@src/types/onyx';
+import type {ReportActionsMetadataDerivedValue} from '@src/types/onyx/DerivedValues';
 import type {Attendee, Participant} from '@src/types/onyx/IOU';
 import type {Icon, PendingAction} from '@src/types/onyx/OnyxCommon';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
@@ -58,7 +59,6 @@ import {
     isUserInvitedToWorkspace,
 } from './PolicyUtils';
 import {
-    getCombinedReportActions,
     getExportIntegrationLastMessageText,
     getIOUReportIDFromReportActionPreview,
     getJoinRequestMessage,
@@ -72,7 +72,6 @@ import {
     getReportActionHtml,
     getReportActionMessageText,
     getRetractedMessage,
-    getSortedReportActions,
     getTravelUpdateMessage,
     getUpdateRoomDescriptionMessage,
     isActionableAddPaymentCard,
@@ -378,65 +377,15 @@ Onyx.connect({
     },
 });
 
-const lastReportActions: ReportActions = {};
-const allSortedReportActions: Record<string, ReportAction[]> = {};
-let allReportActions: OnyxCollection<ReportActions>;
-const lastVisibleReportActions: ReportActions = {};
+let reportActionsMetadata: OnyxEntry<ReportActionsMetadataDerivedValue>;
 Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT_ACTIONS,
-    waitForCollectionCallback: true,
-    callback: (actions) => {
-        if (!actions) {
+    key: ONYXKEYS.DERIVED.REPORT_ACTIONS_METADATA,
+    callback: (value) => {
+        if (!value) {
             return;
         }
 
-        allReportActions = actions ?? {};
-
-        // Iterate over the report actions to build the sorted and lastVisible report actions objects
-        Object.entries(allReportActions).forEach((reportActions) => {
-            const reportID = reportActions[0].split('_').at(1);
-            if (!reportID) {
-                return;
-            }
-
-            const reportActionsArray = Object.values(reportActions[1] ?? {});
-            let sortedReportActions = getSortedReportActions(reportActionsArray, true);
-            allSortedReportActions[reportID] = sortedReportActions;
-            const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
-            const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${report?.chatReportID}`];
-
-            // If the report is a one-transaction report and has , we need to return the combined reportActions so that the LHN can display modifications
-            // to the transaction thread or the report itself
-            const transactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, actions[reportActions[0]]);
-            if (transactionThreadReportID) {
-                const transactionThreadReportActionsArray = Object.values(actions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${transactionThreadReportID}`] ?? {});
-                sortedReportActions = getCombinedReportActions(sortedReportActions, transactionThreadReportID, transactionThreadReportActionsArray, reportID);
-            }
-
-            const firstReportAction = sortedReportActions.at(0);
-            if (!firstReportAction) {
-                delete lastReportActions[reportID];
-            } else {
-                lastReportActions[reportID] = firstReportAction;
-            }
-
-            const isWriteActionAllowed = canUserPerformWriteAction(report);
-
-            // The report is only visible if it is the last action not deleted that
-            // does not match a closed or created state.
-            const reportActionsForDisplay = sortedReportActions.filter(
-                (reportAction, actionKey) =>
-                    shouldReportActionBeVisible(reportAction, actionKey, isWriteActionAllowed) &&
-                    reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED &&
-                    reportAction.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
-            );
-            const reportActionForDisplay = reportActionsForDisplay.at(0);
-            if (!reportActionForDisplay) {
-                delete lastVisibleReportActions[reportID];
-                return;
-            }
-            lastVisibleReportActions[reportID] = reportActionForDisplay;
-        });
+        reportActionsMetadata = value;
     },
 });
 
@@ -700,7 +649,7 @@ function getIOUReportIDOfLastAction(report: OnyxEntry<Report>): string | undefin
     if (!report?.reportID) {
         return;
     }
-    const lastAction = lastVisibleReportActions[report.reportID];
+    const lastAction = reportActionsMetadata?.[report.reportID]?.lastVisibleReportAction;
     if (!isReportPreviewAction(lastAction)) {
         return;
     }
@@ -716,10 +665,10 @@ function hasHiddenDisplayNames(accountIDs: number[]) {
  */
 function getLastMessageTextForReport(report: OnyxEntry<Report>, lastActorDetails: Partial<PersonalDetails> | null, policy?: OnyxEntry<Policy>, isReportArchived = false): string {
     const reportID = report?.reportID;
-    const lastReportAction = reportID ? lastVisibleReportActions[reportID] : undefined;
+    const lastReportAction = reportID ? reportActionsMetadata?.[reportID]?.lastVisibleReportAction : undefined;
 
     // some types of actions are filtered out for lastReportAction, in some cases we need to check the actual last action
-    const lastOriginalReportAction = reportID ? lastReportActions[reportID] : undefined;
+    const lastOriginalReportAction = reportID ? reportActionsMetadata?.[reportID]?.lastReportAction : undefined;
     let lastMessageTextFromReport = '';
 
     if (isArchivedNonExpenseReport(report, isReportArchived)) {
@@ -750,7 +699,7 @@ function getLastMessageTextForReport(report: OnyxEntry<Report>, lastActorDetails
     } else if (isReportPreviewAction(lastReportAction)) {
         const iouReport = getReportOrDraftReport(getIOUReportIDFromReportActionPreview(lastReportAction));
         const lastIOUMoneyReportAction = iouReport?.reportID
-            ? allSortedReportActions[iouReport.reportID]?.find(
+            ? reportActionsMetadata?.[iouReport.reportID]?.allSortedReportActions?.find(
                   (reportAction, key): reportAction is ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.IOU> =>
                       shouldReportActionBeVisible(reportAction, key, canUserPerformWriteAction(report)) &&
                       reportAction.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE &&
@@ -868,7 +817,7 @@ function getLastMessageTextForReport(report: OnyxEntry<Report>, lastActorDetails
     if (reportID && !lastMessageTextFromReport && lastReportAction) {
         const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${report?.chatReportID}`];
         // If the report is a one-transaction report, get the last message text from combined report actions so the LHN can display modifications to the transaction thread or the report itself
-        const transactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, allSortedReportActions[reportID]);
+        const transactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, reportActionsMetadata?.[reportID]?.allSortedReportActions);
         if (transactionThreadReportID) {
             lastMessageTextFromReport = getReportActionMessageText(lastReportAction);
         }
@@ -966,7 +915,7 @@ function createOption(accountIDs: number[], personalDetails: OnyxInputOrEntry<Pe
         hasMultipleParticipants = personalDetailList.length > 1 || result.isChatRoom || result.isPolicyExpenseChat || reportUtilsIsGroupChat(report);
         subtitle = getChatRoomSubtitle(report, {isCreateExpenseFlow: true});
 
-        const lastAction = lastVisibleReportActions[report.reportID];
+        const lastAction = reportActionsMetadata?.[report.reportID]?.lastVisibleReportAction;
         // lastActorAccountID can be an empty string
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         const lastActorAccountID = lastAction?.actorAccountID || report.lastActorAccountID;
@@ -1741,11 +1690,13 @@ function getValidReports(reports: OptionList['reports'], config: GetValidReports
 
         // Add a field to sort the recent reports by the time of last IOU request for create actions
         if (preferRecentExpenseReports) {
-            const reportPreviewAction = allSortedReportActions[option.reportID]?.find((reportAction) => isActionOfType(reportAction, CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW));
+            const reportPreviewAction = reportActionsMetadata?.[option.reportID]?.allSortedReportActions?.find((reportAction) =>
+                isActionOfType(reportAction, CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW),
+            );
 
             if (reportPreviewAction) {
                 const iouReportID = getIOUReportIDFromReportActionPreview(reportPreviewAction);
-                const iouReportActions = iouReportID ? (allSortedReportActions[iouReportID] ?? []) : [];
+                const iouReportActions = iouReportID ? (reportActionsMetadata?.[iouReportID]?.allSortedReportActions ?? []) : [];
                 const lastIOUAction = iouReportActions.find((iouAction) => iouAction.actionName === CONST.REPORT.ACTIONS.TYPE.IOU);
                 if (lastIOUAction) {
                     lastIOUCreationDate = lastIOUAction.lastModified;

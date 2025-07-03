@@ -849,6 +849,7 @@ const ONYXKEYS = {
     },
     DERIVED: {
         REPORT_ATTRIBUTES: 'reportAttributes',
+        REPORT_ACTIONS_METADATA: 'reportActionsMetadata',
     },
 } as const;
 
@@ -1202,6 +1203,7 @@ type OnyxValuesMapping = {
 
 type OnyxDerivedValuesMapping = {
     [ONYXKEYS.DERIVED.REPORT_ATTRIBUTES]: OnyxTypes.ReportAttributesDerivedValue;
+    [ONYXKEYS.DERIVED.REPORT_ACTIONS_METADATA]: OnyxTypes.LastReportActionsDerivedValue;
 };
 
 type OnyxValues = OnyxValuesMapping & OnyxCollectionValuesMapping & OnyxFormValuesMapping & OnyxFormDraftValuesMapping & OnyxDerivedValuesMapping;

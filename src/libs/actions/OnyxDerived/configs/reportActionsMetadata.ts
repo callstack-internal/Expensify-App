@@ -1,4 +1,11 @@
-import {getCombinedReportActions, getOneTransactionThreadReportID, getSortedReportActions, isWhisperAction, shouldReportActionBeVisible} from '@libs/ReportActionsUtils';
+import {
+    getCombinedReportActions,
+    getOneTransactionThreadReportID,
+    getSortedReportActions,
+    isWhisperAction,
+    shouldReportActionBeVisible,
+    shouldReportActionBeVisibleAsLastAction,
+} from '@libs/ReportActionsUtils';
 import {canUserPerformWriteAction} from '@libs/ReportUtils';
 import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDerivedValueConfig';
 import CONST from '@src/CONST';
@@ -10,6 +17,7 @@ import type {ReportActionsMetadataDerivedValue} from '@src/types/onyx/DerivedVal
  * - lastReportAction: The most recent report action for the report
  * - allSortedReportActions: Sorted arrays of report actions for the report
  * - lastVisibleReportAction: The most recent visible report action for the report
+ * - lastVisibleReportActionForDisplay: The most recent visible report action suitable for display as the last action in sidebar/LHN
  */
 export default createOnyxDerivedValueConfig({
     key: ONYXKEYS.DERIVED.REPORT_ACTIONS_METADATA,
@@ -102,6 +110,21 @@ export default createOnyxDerivedValueConfig({
                 }
             } else {
                 result[reportID].lastVisibleReportAction = reportActionForDisplay;
+            }
+
+            // The report is only visible if it is the last action not deleted that
+            // does not match a closed or created state.
+            const reportActionsForSidebarDisplay = sortedReportActions.filter(
+                (reportAction) => shouldReportActionBeVisibleAsLastAction(reportAction, isWriteActionAllowed) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
+            );
+
+            const reportActionForSidebarDisplay = reportActionsForSidebarDisplay.at(0);
+            if (!reportActionForSidebarDisplay) {
+                if (result[reportID]) {
+                    delete result[reportID].lastVisibleReportActionForDisplay;
+                }
+            } else {
+                result[reportID].lastVisibleReportActionForDisplay = reportActionForSidebarDisplay;
             }
         }
 

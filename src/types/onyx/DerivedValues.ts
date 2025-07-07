@@ -59,6 +59,11 @@ type ReportActionsMetadata = {
      * The most recent visible report action for the report.
      */
     lastVisibleReportAction?: ReportActions[string];
+    /**
+     * The most recent visible report action suitable for display as the last action in sidebar/LHN.
+     * This is similar to lastVisibleReportAction but uses more restrictive filtering.
+     */
+    lastVisibleReportActionForDisplay?: ReportActions[string];
 };
 
 /**

@@ -7,14 +7,13 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetails, PersonalDetailsList, ReportActions, ReportAttributesDerivedValue, ReportNameValuePairs, Transaction, TransactionViolation} from '@src/types/onyx';
 import type Beta from '@src/types/onyx/Beta';
-import type {ReportAttributes} from '@src/types/onyx/DerivedValues';
+import type {ReportActionsMetadata, ReportAttributes} from '@src/types/onyx/DerivedValues';
 import type {Errors} from '@src/types/onyx/OnyxCommon';
 import type Policy from '@src/types/onyx/Policy';
 import type PriorityMode from '@src/types/onyx/PriorityMode';
 import type Report from '@src/types/onyx/Report';
 import type ReportAction from '@src/types/onyx/ReportAction';
 import {getExpensifyCardFromReportAction} from './CardMessageUtils';
-import {extractCollectionItemID} from './CollectionUtils';
 import {hasValidDraftComment} from './DraftCommentUtils';
 import localeCompare from './LocaleCompare';
 import {translateLocal} from './Localize';
@@ -46,7 +45,6 @@ import {
     getReportAction,
     getReportActionMessageText,
     getRetractedMessage,
-    getSortedReportActions,
     getTagListNameUpdatedMessage,
     getTravelUpdateMessage,
     getUpdatedApprovalRuleMessage,
@@ -74,7 +72,6 @@ import {
     isTagModificationAction,
     isTaskAction,
     isTransactionThread,
-    shouldReportActionBeVisibleAsLastAction,
 } from './ReportActionsUtils';
 import type {OptionData} from './ReportUtils';
 import {
@@ -130,7 +127,6 @@ import {getTransactionID} from './TransactionUtils';
 
 type WelcomeMessage = {showReportName: boolean; phrase1?: string; phrase2?: string; phrase3?: string; phrase4?: string; messageText?: string; messageHtml?: string};
 
-const visibleReportActionItems: ReportActions = {};
 let allPersonalDetails: OnyxEntry<PersonalDetailsList>;
 Onyx.connect({
     key: ONYXKEYS.PERSONAL_DETAILS_LIST,
@@ -145,32 +141,6 @@ Onyx.connect({
     waitForCollectionCallback: true,
     callback: (value) => {
         allReports = value;
-    },
-});
-
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT_ACTIONS,
-    callback: (actions, key) => {
-        if (!actions || !key) {
-            return;
-        }
-        const reportID = extractCollectionItemID(key);
-        const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
-        const canUserPerformWriteAction = canUserPerformWriteActionUtil(report);
-        const actionsArray: ReportAction[] = getSortedReportActions(Object.values(actions));
-
-        // The report is only visible if it is the last action not deleted that
-        // does not match a closed or created state.
-        const reportActionsForDisplay = actionsArray.filter(
-            (reportAction) => shouldReportActionBeVisibleAsLastAction(reportAction, canUserPerformWriteAction) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
-        );
-
-        const reportAction = reportActionsForDisplay.at(-1);
-        if (!reportAction) {
-            delete visibleReportActionItems[reportID];
-            return;
-        }
-        visibleReportActionItems[reportID] = reportAction;
     },
 });
 
@@ -510,6 +480,7 @@ function getOptionData({
     parentReportAction,
     lastMessageTextFromReport: lastMessageTextFromReportProp,
     invoiceReceiverPolicy,
+    reportActionsMetadata,
 }: {
     report: OnyxEntry<Report>;
     oneTransactionThreadReport: OnyxEntry<Report>;
@@ -520,6 +491,7 @@ function getOptionData({
     lastMessageTextFromReport?: string;
     invoiceReceiverPolicy?: OnyxEntry<Policy>;
     reportAttributes: OnyxEntry<ReportAttributes>;
+    reportActionsMetadata?: OnyxEntry<ReportActionsMetadata>;
 }): OptionData | undefined {
     // When a user signs out, Onyx is cleared. Due to the lazy rendering with a virtual list, it's possible for
     // this method to be called after the Onyx data has been cleared out. In that case, it's fine to do
@@ -615,7 +587,7 @@ function getOptionData({
     // We only create tooltips for the first 10 users or so since some reports have hundreds of users, causing performance to degrade.
     const displayNamesWithTooltips = getDisplayNamesWithTooltips((participantPersonalDetailList || []).slice(0, 10), hasMultipleParticipants, undefined, isSelfDM(report));
 
-    const lastAction = visibleReportActionItems[report.reportID];
+    const lastAction = reportActionsMetadata?.lastVisibleReportActionForDisplay;
     // lastActorAccountID can be an empty string
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const lastActorAccountID = lastAction?.actorAccountID || report.lastActorAccountID;
@@ -715,7 +687,7 @@ function getOptionData({
             result.alternateText = getWorkspaceCategoryUpdateMessage(lastAction);
         } else if (isActionOfType(lastAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_TAG_LIST_NAME)) {
             result.alternateText = getCleanedTagName(getTagListNameUpdatedMessage(lastAction) ?? '');
-        } else if (isTagModificationAction(lastAction?.actionName)) {
+        } else if (lastAction && isTagModificationAction(lastAction.actionName)) {
             result.alternateText = getCleanedTagName(getWorkspaceTagUpdateMessage(lastAction) ?? '');
         } else if (isActionOfType(lastAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CUSTOM_UNIT)) {
             result.alternateText = getWorkspaceCustomUnitUpdatedMessage(lastAction);
@@ -784,7 +756,7 @@ function getOptionData({
             result.alternateText =
                 lastMessageTextFromReport.length > 0
                     ? formatReportLastMessageText(Parser.htmlToText(lastMessageText))
-                    : getLastVisibleMessage(report.reportID, result.isAllowedToComment, {}, lastAction)?.lastMessageText;
+                    : getLastVisibleMessage(report.reportID, result.isAllowedToComment, {}, lastAction ?? undefined)?.lastMessageText;
 
             if (!result.alternateText) {
                 result.alternateText = formatReportLastMessageText(getWelcomeMessage(report, policy, !!result.private_isArchived).messageText ?? translateLocal('report.noActivityYet'));

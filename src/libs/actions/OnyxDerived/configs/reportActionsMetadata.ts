@@ -1,13 +1,9 @@
-import type {OnyxCollection} from 'react-native-onyx';
 import {getCombinedReportActions, getOneTransactionThreadReportID, getSortedReportActions, isWhisperAction, shouldReportActionBeVisible} from '@libs/ReportActionsUtils';
 import {canUserPerformWriteAction} from '@libs/ReportUtils';
 import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDerivedValueConfig';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ReportActions} from '@src/types/onyx';
 import type {ReportActionsMetadataDerivedValue} from '@src/types/onyx/DerivedValues';
-
-let previousReportActions: OnyxCollection<ReportActions> = {};
 
 /**
  * This derived value processes report actions to generate metadata for each report:
@@ -32,21 +28,17 @@ export default createOnyxDerivedValueConfig({
         if (reportActionsUpdates) {
             reportActionsToProcess = Object.keys(reportActionsUpdates);
         } else if (reportUpdates && !reportActionsUpdates) {
-            // If only reports updated, we might need to recompute for affected reports
+            // If only reports updated, we need to recompute report actions for affected reports
             reportActionsToProcess = Object.keys(reportUpdates)
                 .map((reportKey) => reportKey.replace(ONYXKEYS.COLLECTION.REPORT, ONYXKEYS.COLLECTION.REPORT_ACTIONS))
                 .filter((reportActionsKey) => reportActions[reportActionsKey]);
         } else if (!sourceValues) {
             // Initial computation - process all
             reportActionsToProcess = Object.keys(reportActions);
-        } else {
-            // No relevant updates, return current value
-            return currentValue ?? {};
         }
 
         const result: ReportActionsMetadataDerivedValue = currentValue ?? {};
 
-        // Process each report actions collection
         for (const reportActionsKey of reportActionsToProcess) {
             const reportID = reportActionsKey.split('_').at(1);
             if (!reportID) {
@@ -55,7 +47,6 @@ export default createOnyxDerivedValueConfig({
             }
 
             const currentReportActions = reportActions[reportActionsKey];
-            const previousReportActionsForReport = previousReportActions?.[reportActionsKey];
 
             // If report actions are deleted/null, clean up
             if (!currentReportActions) {
@@ -64,16 +55,9 @@ export default createOnyxDerivedValueConfig({
                 continue;
             }
 
-            // Skip processing if the report actions haven't actually changed
-            if (currentReportActions === previousReportActionsForReport) {
-                // eslint-disable-next-line no-continue
-                continue;
-            }
-
             const reportActionsArray = Object.values(currentReportActions);
             let sortedReportActions = getSortedReportActions(reportActionsArray, true);
 
-            // Initialize report metadata object if it doesn't exist
             if (!result[reportID]) {
                 result[reportID] = {};
             }
@@ -120,9 +104,6 @@ export default createOnyxDerivedValueConfig({
                 result[reportID].lastVisibleReportAction = reportActionForDisplay;
             }
         }
-
-        // Update the previous state for next computation
-        previousReportActions = reportActions;
 
         return result;
     },

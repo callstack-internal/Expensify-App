@@ -48,7 +48,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
 
     const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: false});
     const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: (attributes) => attributes?.reports, canBeMissing: false});
-    const [reportActionsMetadata] = useOnyx(ONYXKEYS.DERIVED.REPORT_ACTIONS_METADATA, {canBeMissing: true});
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {canBeMissing: true});
     const [reportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {canBeMissing: false});
     const [policy] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: false});
@@ -247,7 +246,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
                     isFullscreenVisible={isFullscreenVisible}
                     isReportsSplitNavigatorLast={isReportsSplitNavigatorLast}
                     isScreenFocused={isScreenFocused}
-                    reportActionsMetadata={reportActionsMetadata?.[reportID]}
                 />
             );
         },
@@ -273,7 +271,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
             isFullscreenVisible,
             isReportsSplitNavigatorLast,
             isScreenFocused,
-            reportActionsMetadata,
         ],
     );
 

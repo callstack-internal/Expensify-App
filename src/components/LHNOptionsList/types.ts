@@ -6,7 +6,7 @@ import type {ValueOf} from 'type-fest';
 import type CONST from '@src/CONST';
 import type {OptionData} from '@src/libs/ReportUtils';
 import type {Locale, OnboardingPurpose, PersonalDetailsList, Policy, Report, ReportAction, ReportActions, ReportNameValuePairs, Transaction, TransactionViolation} from '@src/types/onyx';
-import type {ReportAttributes, ReportActionsMetadata} from '@src/types/onyx/DerivedValues';
+import type {ReportAttributes} from '@src/types/onyx/DerivedValues';
 
 type OptionMode = ValueOf<typeof CONST.OPTION_MODE>;
 
@@ -118,9 +118,6 @@ type OptionRowLHNDataProps = {
 
     /** The report attributes for the report */
     reportAttributes: OnyxEntry<ReportAttributes>;
-
-    /** The report actions metadata for the report */
-    reportActionsMetadata?: OnyxEntry<ReportActionsMetadata>;
 
     /** Whether to show the educational tooltip for the GBR or RBR */
     shouldShowRBRorGBRTooltip: boolean;

@@ -1,7 +1,6 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
+import {useNetworkStatus} from '@components/OnyxProvider';
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
-import useOnyx from './useOnyx';
 
 type UseNetworkProps = {
     onReconnect?: () => void;
@@ -14,20 +13,19 @@ export default function useNetwork({onReconnect = () => {}}: UseNetworkProps = {
     // eslint-disable-next-line react-compiler/react-compiler
     callback.current = onReconnect;
 
-    const [network] = useOnyx(ONYXKEYS.NETWORK, {
-        selector: (networkData) => {
-            if (!networkData) {
-                return {...CONST.DEFAULT_NETWORK_DATA, networkStatus: CONST.NETWORK.NETWORK_STATUS.UNKNOWN};
-            }
+    const networkData = useNetworkStatus();
 
-            return {
-                isOffline: networkData.isOffline,
-                networkStatus: networkData.networkStatus,
-                lastOfflineAt: networkData.lastOfflineAt,
-            };
-        },
-        canBeMissing: true,
-    });
+    const network = useMemo(() => {
+        if (!networkData) {
+            return {...CONST.DEFAULT_NETWORK_DATA, networkStatus: CONST.NETWORK.NETWORK_STATUS.UNKNOWN};
+        }
+
+        return {
+            isOffline: networkData.isOffline,
+            networkStatus: networkData.networkStatus,
+            lastOfflineAt: networkData.lastOfflineAt,
+        };
+    }, [networkData]);
 
     // Extract values with proper defaults
     const isOffline = network?.isOffline ?? false;

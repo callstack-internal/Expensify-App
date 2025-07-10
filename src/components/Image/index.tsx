@@ -4,6 +4,7 @@ import {useSession} from '@components/OnyxProvider';
 import {isExpiredSession} from '@libs/actions/Session';
 import activateReauthenticator from '@libs/actions/Session/AttachmentImageReauthenticator';
 import CONST from '@src/CONST';
+import type {ImageErrorEventData, NativeSyntheticEvent} from 'react-native';
 import BaseImage from './BaseImage';
 import {ImageBehaviorContext} from './ImageBehaviorContextProvider';
 import type {ImageOnLoadEvent, ImageProps} from './types';
@@ -21,6 +22,7 @@ function Image({
     const [aspectRatio, setAspectRatio] = useState<string | number | null>(null);
     const isObjectPositionTop = objectPosition === CONST.IMAGE_OBJECT_POSITION.TOP;
     const session = useSession();
+    const [reAuthAttempts, setReAuthAttempts] = useState(0);
 
     const {shouldSetAspectRatioInStyle} = useContext(ImageBehaviorContext);
 
@@ -49,6 +51,16 @@ function Image({
         },
         [onLoad, updateAspectRatio],
     );
+
+    const handleError = useCallback((error: NativeSyntheticEvent<ImageErrorEventData>) => {
+        // if error try to re-authenticate
+        if (error && session && reAuthAttempts === 0) {
+            setReAuthAttempts(1);
+            activateReauthenticator(session);
+        }
+
+        return error;
+    }, [session]);
 
     // accepted sessions are sessions of a certain criteria that we think can necessitate a reload of the images
     // because images sources barely changes unless specific events occur like network issues (offline/online) per example.
@@ -128,6 +140,7 @@ function Image({
             return;
         }
         forwardedProps?.waitForSession?.();
+        setReAuthAttempts(0);
     }, [source, isAuthTokenRequired, forwardedProps]);
 
     /**
@@ -151,6 +164,7 @@ function Image({
             // eslint-disable-next-line react/jsx-props-no-spreading
             {...forwardedProps}
             onLoad={handleLoad}
+            onError={handleError}
             style={[style, shouldSetAspectRatioInStyle && aspectRatio ? {aspectRatio, height: 'auto'} : {}, shouldOpacityBeZero && {opacity: 0}]}
             source={source}
         />

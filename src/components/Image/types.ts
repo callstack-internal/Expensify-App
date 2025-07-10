@@ -1,5 +1,14 @@
 import type {ImagePrefetchOptions, ImageSource} from 'expo-image';
-import type {ImageRequireSource, ImageResizeMode, ImageStyle, ImageURISource, StyleProp, ViewStyle} from 'react-native';
+import type {
+    ImageErrorEventData,
+    ImageRequireSource,
+    ImageResizeMode,
+    ImageStyle,
+    ImageURISource,
+    NativeSyntheticEvent,
+    StyleProp,
+    ViewStyle,
+} from 'react-native';
 import type {ValueOf} from 'type-fest';
 import type {FullScreenLoadingIndicatorIconSize} from '@components/FullscreenLoadingIndicator';
 import type CONST from '@src/CONST';
@@ -21,6 +30,9 @@ type BaseImageProps = {
 
     /** Event for when the image is fully loaded and returns the natural dimensions of the image */
     onLoad?: (event: ImageOnLoadEvent) => void;
+
+    /** Error handler */
+    onError?: (error: NativeSyntheticEvent<ImageErrorEventData>) => void;
 
     /** Styles for the Image */
     style?: StyleProp<ImageStyle>;

@@ -1,5 +1,7 @@
+import {deepEqual} from 'fast-equals';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {InteractionManager, View} from 'react-native';
+import type {OnyxEntry} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import type {DropdownOption} from '@components/ButtonWithDropdownMenu/types';
 import ConfirmModal from '@components/ConfirmModal';
@@ -8,13 +10,14 @@ import DragAndDropConsumer from '@components/DragAndDrop/Consumer';
 import DragAndDropProvider from '@components/DragAndDrop/Provider';
 import DropZoneUI from '@components/DropZone/DropZoneUI';
 import * as Expensicons from '@components/Icon/Expensicons';
+import type {LocaleContextProps} from '@components/LocaleContextProvider';
 import ScreenWrapper from '@components/ScreenWrapper';
 import Search from '@components/Search';
 import {useSearchContext} from '@components/Search/SearchContext';
 import SearchFiltersBar from '@components/Search/SearchPageHeader/SearchFiltersBar';
 import type {SearchHeaderOptionValue} from '@components/Search/SearchPageHeader/SearchPageHeader';
 import SearchPageHeader from '@components/Search/SearchPageHeader/SearchPageHeader';
-import type {PaymentData, SearchParams} from '@components/Search/types';
+import type {PaymentData, SearchParams, SearchQueryJSON, SearchStatus, SelectedTransactions} from '@components/Search/types';
 import {usePlaybackContext} from '@components/VideoPlayerContexts/PlaybackContext';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useFilesValidation from '@hooks/useFilesValidation';
@@ -48,6 +51,8 @@ import {buildCannedSearchQuery, buildSearchQueryJSON} from '@libs/SearchQueryUti
 import {shouldRestrictUserBillableActions} from '@libs/SubscriptionUtils';
 import type {ReceiptFile} from '@pages/iou/request/step/IOURequestStepScan/types';
 import type {FileObject} from '@pages/media/AttachmentModalScreen/types';
+import type {ThemeStyles} from '@styles/index';
+import type {ThemeColors} from '@styles/theme/types';
 import variables from '@styles/variables';
 import {initMoneyRequest, setMoneyRequestParticipantsFromReport, setMoneyRequestReceipt} from '@userActions/IOU';
 import {buildOptimisticTransactionAndCreateDraft} from '@userActions/TransactionEdit';
@@ -55,10 +60,295 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
-import type {SearchResults, Transaction} from '@src/types/onyx';
+import type {LastPaymentMethod, SearchResults, Transaction} from '@src/types/onyx';
+import type {SearchReport} from '@src/types/onyx/SearchResults';
 import SearchPageNarrow from './SearchPageNarrow';
 
 type SearchPageProps = PlatformStackScreenProps<SearchFullscreenNavigatorParamList, typeof SCREENS.SEARCH.ROOT>;
+
+const EMPTY_OPTIONS: Array<DropdownOption<SearchHeaderOptionValue>> = [];
+
+function getHeaderButtonsOptions({
+    selectedTransactionsKeys,
+    status,
+    hash,
+    selectedTransactions,
+    selectedReports,
+    queryJSON,
+    isOffline,
+    isExportMode,
+    theme,
+    translate,
+    clearSelectedTransactions,
+    setIsOfflineModalVisible,
+    setIsDownloadExportModalVisible,
+    setIsDownloadErrorModalVisible,
+    setIsDeleteExpensesConfirmModalVisible,
+    lastPaymentMethods,
+    styles,
+}: {
+    selectedTransactionsKeys: string[];
+    status: SearchStatus | undefined;
+    hash: number | undefined;
+    selectedTransactions: SelectedTransactions;
+    selectedReports: SearchReport[];
+    queryJSON: SearchQueryJSON | undefined;
+    isOffline: boolean;
+    isExportMode: boolean;
+    theme: ThemeColors;
+    translate: LocaleContextProps['translate'];
+    clearSelectedTransactions: () => void;
+    setIsOfflineModalVisible: (visible: boolean) => void;
+    setIsDownloadExportModalVisible: (visible: boolean) => void;
+    setIsDownloadErrorModalVisible: (visible: boolean) => void;
+    setIsDeleteExpensesConfirmModalVisible: (visible: boolean) => void;
+    lastPaymentMethods: OnyxEntry<LastPaymentMethod> | undefined;
+    styles: ThemeStyles;
+}) {
+    if (selectedTransactionsKeys.length === 0 || status == null || !hash) {
+        return EMPTY_OPTIONS;
+    }
+    const options: Array<DropdownOption<SearchHeaderOptionValue>> = [];
+    const isAnyTransactionOnHold = Object.values(selectedTransactions).some((transaction) => transaction.isHeld);
+
+    const downloadButtonOption: DropdownOption<SearchHeaderOptionValue> = {
+        icon: Expensicons.Download,
+        text: translate('common.download'),
+        value: CONST.SEARCH.BULK_ACTION_TYPES.EXPORT,
+        shouldCloseModalOnSelect: true,
+        onSelected: () => {
+            if (isOffline) {
+                setIsOfflineModalVisible(true);
+                return;
+            }
+
+            if (isExportMode) {
+                setIsDownloadExportModalVisible(true);
+                return;
+            }
+
+            const reportIDList = selectedReports?.filter((report) => !!report).map((report) => report.reportID) ?? [];
+            exportSearchItemsToCSV(
+                {
+                    query: status,
+                    jsonQuery: JSON.stringify(queryJSON),
+                    reportIDList,
+                    transactionIDList: selectedTransactionsKeys,
+                },
+                () => {
+                    setIsDownloadErrorModalVisible(true);
+                },
+            );
+            clearSelectedTransactions();
+        },
+    };
+
+    if (isExportMode) {
+        return [downloadButtonOption];
+    }
+
+    const shouldShowApproveOption =
+        !isOffline &&
+        !isAnyTransactionOnHold &&
+        (selectedReports.length
+            ? selectedReports.every((report) => report.action === CONST.SEARCH.ACTION_TYPES.APPROVE)
+            : selectedTransactionsKeys.every((id) => selectedTransactions[id].action === CONST.SEARCH.ACTION_TYPES.APPROVE));
+
+    if (shouldShowApproveOption) {
+        options.push({
+            icon: Expensicons.ThumbsUp,
+            text: translate('search.bulkActions.approve'),
+            value: CONST.SEARCH.BULK_ACTION_TYPES.APPROVE,
+            shouldCloseModalOnSelect: true,
+            onSelected: () => {
+                if (isOffline) {
+                    setIsOfflineModalVisible(true);
+                    return;
+                }
+
+                const transactionIDList = selectedReports.length ? undefined : Object.keys(selectedTransactions);
+                const reportIDList = !selectedReports.length
+                    ? Object.values(selectedTransactions).map((transaction) => transaction.reportID)
+                    : (selectedReports?.filter((report) => !!report).map((report) => report.reportID) ?? []);
+                approveMoneyRequestOnSearch(hash, reportIDList, transactionIDList);
+                InteractionManager.runAfterInteractions(() => {
+                    clearSelectedTransactions();
+                });
+            },
+        });
+    }
+
+    const shouldShowPayOption =
+        !isOffline &&
+        !isAnyTransactionOnHold &&
+        (selectedReports.length
+            ? selectedReports.every((report) => report.action === CONST.SEARCH.ACTION_TYPES.PAY && report.policyID && getLastPolicyPaymentMethod(report.policyID, lastPaymentMethods))
+            : selectedTransactionsKeys.every(
+                  (id) =>
+                      selectedTransactions[id].action === CONST.SEARCH.ACTION_TYPES.PAY &&
+                      selectedTransactions[id].policyID &&
+                      getLastPolicyPaymentMethod(selectedTransactions[id].policyID, lastPaymentMethods),
+              ));
+
+    if (shouldShowPayOption) {
+        options.push({
+            icon: Expensicons.MoneyBag,
+            text: translate('search.bulkActions.pay'),
+            value: CONST.SEARCH.BULK_ACTION_TYPES.PAY,
+            shouldCloseModalOnSelect: true,
+            onSelected: () => {
+                if (isOffline) {
+                    setIsOfflineModalVisible(true);
+                    return;
+                }
+
+                const activeRoute = Navigation.getActiveRoute();
+                const transactionIDList = selectedReports.length ? undefined : Object.keys(selectedTransactions);
+                const items = selectedReports.length ? selectedReports : Object.values(selectedTransactions);
+
+                for (const item of items) {
+                    const itemPolicyID = item.policyID;
+                    const lastPolicyPaymentMethod = getLastPolicyPaymentMethod(itemPolicyID, lastPaymentMethods);
+
+                    if (!lastPolicyPaymentMethod) {
+                        Navigation.navigate(
+                            ROUTES.SEARCH_REPORT.getRoute({
+                                reportID: item.reportID,
+                                backTo: activeRoute,
+                            }),
+                        );
+                        return;
+                    }
+
+                    const hasPolicyVBBA = hasVBBA(itemPolicyID);
+
+                    if (lastPolicyPaymentMethod !== CONST.IOU.PAYMENT_TYPE.ELSEWHERE && !hasPolicyVBBA) {
+                        Navigation.navigate(
+                            ROUTES.SEARCH_REPORT.getRoute({
+                                reportID: item.reportID,
+                                backTo: activeRoute,
+                            }),
+                        );
+                        return;
+                    }
+                }
+
+                const paymentData = (
+                    selectedReports.length
+                        ? selectedReports.map((report) => ({
+                              reportID: report.reportID,
+                              amount: report.total,
+                              paymentType: getLastPolicyPaymentMethod(report.policyID, lastPaymentMethods),
+                          }))
+                        : Object.values(selectedTransactions).map((transaction) => ({
+                              reportID: transaction.reportID,
+                              amount: transaction.amount,
+                              paymentType: getLastPolicyPaymentMethod(transaction.policyID, lastPaymentMethods),
+                          }))
+                ) as PaymentData[];
+
+                payMoneyRequestOnSearch(hash, paymentData, transactionIDList);
+                InteractionManager.runAfterInteractions(() => {
+                    clearSelectedTransactions();
+                });
+            },
+        });
+    }
+
+    options.push(downloadButtonOption);
+
+    const shouldShowHoldOption = !isOffline && selectedTransactionsKeys.every((id) => selectedTransactions[id].canHold);
+
+    if (shouldShowHoldOption) {
+        options.push({
+            icon: Expensicons.Stopwatch,
+            text: translate('search.bulkActions.hold'),
+            value: CONST.SEARCH.BULK_ACTION_TYPES.HOLD,
+            shouldCloseModalOnSelect: true,
+            onSelected: () => {
+                if (isOffline) {
+                    setIsOfflineModalVisible(true);
+                    return;
+                }
+
+                Navigation.navigate(ROUTES.TRANSACTION_HOLD_REASON_RHP);
+            },
+        });
+    }
+
+    const shouldShowUnholdOption = !isOffline && selectedTransactionsKeys.every((id) => selectedTransactions[id].canUnhold);
+
+    if (shouldShowUnholdOption) {
+        options.push({
+            icon: Expensicons.Stopwatch,
+            text: translate('search.bulkActions.unhold'),
+            value: CONST.SEARCH.BULK_ACTION_TYPES.UNHOLD,
+            shouldCloseModalOnSelect: true,
+            onSelected: () => {
+                if (isOffline) {
+                    setIsOfflineModalVisible(true);
+                    return;
+                }
+
+                unholdMoneyRequestOnSearch(hash, selectedTransactionsKeys);
+                InteractionManager.runAfterInteractions(() => {
+                    clearSelectedTransactions();
+                });
+            },
+        });
+    }
+
+    const canAllTransactionsBeMoved = selectedTransactionsKeys.every((id) => selectedTransactions[id].canChangeReport);
+
+    if (canAllTransactionsBeMoved) {
+        options.push({
+            text: translate('iou.moveExpenses', {count: selectedTransactionsKeys.length}),
+            icon: Expensicons.DocumentMerge,
+            value: CONST.SEARCH.BULK_ACTION_TYPES.CHANGE_REPORT,
+            shouldCloseModalOnSelect: true,
+            onSelected: () => Navigation.navigate(ROUTES.MOVE_TRANSACTIONS_SEARCH_RHP),
+        });
+    }
+
+    const shouldShowDeleteOption = !isOffline && selectedTransactionsKeys.every((id) => selectedTransactions[id].canDelete);
+
+    if (shouldShowDeleteOption) {
+        options.push({
+            icon: Expensicons.Trashcan,
+            text: translate('search.bulkActions.delete'),
+            value: CONST.SEARCH.BULK_ACTION_TYPES.DELETE,
+            shouldCloseModalOnSelect: true,
+            onSelected: () => {
+                if (isOffline) {
+                    setIsOfflineModalVisible(true);
+                    return;
+                }
+                setIsDeleteExpensesConfirmModalVisible(true);
+            },
+        });
+    }
+
+    if (options.length === 0) {
+        const emptyOptionStyle = {
+            interactive: false,
+            iconFill: theme.icon,
+            iconHeight: variables.iconSizeLarge,
+            iconWidth: variables.iconSizeLarge,
+            numberOfLinesTitle: 2,
+            titleStyle: {...styles.colorMuted, ...styles.fontWeightNormal, ...styles.textWrap},
+        };
+
+        options.push({
+            icon: Expensicons.Exclamation,
+            text: translate('search.bulkActions.noOptionsAvailable'),
+            value: undefined,
+            ...emptyOptionStyle,
+        });
+    }
+
+    return options;
+}
+
 
 function SearchPage({route}: SearchPageProps) {
     const {translate} = useLocalize();
@@ -109,266 +399,53 @@ function SearchPage({route}: SearchPageProps) {
     const {status, hash} = queryJSON ?? {};
     const selectedTransactionsKeys = Object.keys(selectedTransactions ?? {});
 
+    const lastOptionsRef = useRef<Array<DropdownOption<SearchHeaderOptionValue>>>(EMPTY_OPTIONS);
+
     const headerButtonsOptions = useMemo(() => {
-        if (selectedTransactionsKeys.length === 0 || status == null || !hash) {
-            return [];
+        const newOptions = getHeaderButtonsOptions({
+            selectedTransactionsKeys,
+            status,
+            hash,
+            selectedTransactions,
+            selectedReports,
+            queryJSON,
+            isOffline,
+            isExportMode,
+            theme,
+            translate,
+            clearSelectedTransactions,
+            setIsOfflineModalVisible,
+            setIsDownloadExportModalVisible,
+            setIsDownloadErrorModalVisible,
+            setIsDeleteExpensesConfirmModalVisible,
+            lastPaymentMethods,
+            styles,
+        });
+
+        if (deepEqual(newOptions, lastOptionsRef.current)) {
+            return lastOptionsRef.current;
         }
 
-        const options: Array<DropdownOption<SearchHeaderOptionValue>> = [];
-        const isAnyTransactionOnHold = Object.values(selectedTransactions).some((transaction) => transaction.isHeld);
-
-        const downloadButtonOption: DropdownOption<SearchHeaderOptionValue> = {
-            icon: Expensicons.Download,
-            text: translate('common.download'),
-            value: CONST.SEARCH.BULK_ACTION_TYPES.EXPORT,
-            shouldCloseModalOnSelect: true,
-            onSelected: () => {
-                if (isOffline) {
-                    setIsOfflineModalVisible(true);
-                    return;
-                }
-
-                if (isExportMode) {
-                    setIsDownloadExportModalVisible(true);
-                    return;
-                }
-
-                const reportIDList = selectedReports?.filter((report) => !!report).map((report) => report.reportID) ?? [];
-                exportSearchItemsToCSV(
-                    {
-                        query: status,
-                        jsonQuery: JSON.stringify(queryJSON),
-                        reportIDList,
-                        transactionIDList: selectedTransactionsKeys,
-                    },
-                    () => {
-                        setIsDownloadErrorModalVisible(true);
-                    },
-                );
-                clearSelectedTransactions();
-            },
-        };
-
-        if (isExportMode) {
-            return [downloadButtonOption];
-        }
-
-        const shouldShowApproveOption =
-            !isOffline &&
-            !isAnyTransactionOnHold &&
-            (selectedReports.length
-                ? selectedReports.every((report) => report.action === CONST.SEARCH.ACTION_TYPES.APPROVE)
-                : selectedTransactionsKeys.every((id) => selectedTransactions[id].action === CONST.SEARCH.ACTION_TYPES.APPROVE));
-
-        if (shouldShowApproveOption) {
-            options.push({
-                icon: Expensicons.ThumbsUp,
-                text: translate('search.bulkActions.approve'),
-                value: CONST.SEARCH.BULK_ACTION_TYPES.APPROVE,
-                shouldCloseModalOnSelect: true,
-                onSelected: () => {
-                    if (isOffline) {
-                        setIsOfflineModalVisible(true);
-                        return;
-                    }
-
-                    const transactionIDList = selectedReports.length ? undefined : Object.keys(selectedTransactions);
-                    const reportIDList = !selectedReports.length
-                        ? Object.values(selectedTransactions).map((transaction) => transaction.reportID)
-                        : (selectedReports?.filter((report) => !!report).map((report) => report.reportID) ?? []);
-                    approveMoneyRequestOnSearch(hash, reportIDList, transactionIDList);
-                    InteractionManager.runAfterInteractions(() => {
-                        clearSelectedTransactions();
-                    });
-                },
-            });
-        }
-
-        const shouldShowPayOption =
-            !isOffline &&
-            !isAnyTransactionOnHold &&
-            (selectedReports.length
-                ? selectedReports.every((report) => report.action === CONST.SEARCH.ACTION_TYPES.PAY && report.policyID && getLastPolicyPaymentMethod(report.policyID, lastPaymentMethods))
-                : selectedTransactionsKeys.every(
-                      (id) =>
-                          selectedTransactions[id].action === CONST.SEARCH.ACTION_TYPES.PAY &&
-                          selectedTransactions[id].policyID &&
-                          getLastPolicyPaymentMethod(selectedTransactions[id].policyID, lastPaymentMethods),
-                  ));
-
-        if (shouldShowPayOption) {
-            options.push({
-                icon: Expensicons.MoneyBag,
-                text: translate('search.bulkActions.pay'),
-                value: CONST.SEARCH.BULK_ACTION_TYPES.PAY,
-                shouldCloseModalOnSelect: true,
-                onSelected: () => {
-                    if (isOffline) {
-                        setIsOfflineModalVisible(true);
-                        return;
-                    }
-
-                    const activeRoute = Navigation.getActiveRoute();
-                    const transactionIDList = selectedReports.length ? undefined : Object.keys(selectedTransactions);
-                    const items = selectedReports.length ? selectedReports : Object.values(selectedTransactions);
-
-                    for (const item of items) {
-                        const itemPolicyID = item.policyID;
-                        const lastPolicyPaymentMethod = getLastPolicyPaymentMethod(itemPolicyID, lastPaymentMethods);
-
-                        if (!lastPolicyPaymentMethod) {
-                            Navigation.navigate(
-                                ROUTES.SEARCH_REPORT.getRoute({
-                                    reportID: item.reportID,
-                                    backTo: activeRoute,
-                                }),
-                            );
-                            return;
-                        }
-
-                        const hasPolicyVBBA = hasVBBA(itemPolicyID);
-
-                        if (lastPolicyPaymentMethod !== CONST.IOU.PAYMENT_TYPE.ELSEWHERE && !hasPolicyVBBA) {
-                            Navigation.navigate(
-                                ROUTES.SEARCH_REPORT.getRoute({
-                                    reportID: item.reportID,
-                                    backTo: activeRoute,
-                                }),
-                            );
-                            return;
-                        }
-                    }
-
-                    const paymentData = (
-                        selectedReports.length
-                            ? selectedReports.map((report) => ({
-                                  reportID: report.reportID,
-                                  amount: report.total,
-                                  paymentType: getLastPolicyPaymentMethod(report.policyID, lastPaymentMethods),
-                              }))
-                            : Object.values(selectedTransactions).map((transaction) => ({
-                                  reportID: transaction.reportID,
-                                  amount: transaction.amount,
-                                  paymentType: getLastPolicyPaymentMethod(transaction.policyID, lastPaymentMethods),
-                              }))
-                    ) as PaymentData[];
-
-                    payMoneyRequestOnSearch(hash, paymentData, transactionIDList);
-                    InteractionManager.runAfterInteractions(() => {
-                        clearSelectedTransactions();
-                    });
-                },
-            });
-        }
-
-        options.push(downloadButtonOption);
-
-        const shouldShowHoldOption = !isOffline && selectedTransactionsKeys.every((id) => selectedTransactions[id].canHold);
-
-        if (shouldShowHoldOption) {
-            options.push({
-                icon: Expensicons.Stopwatch,
-                text: translate('search.bulkActions.hold'),
-                value: CONST.SEARCH.BULK_ACTION_TYPES.HOLD,
-                shouldCloseModalOnSelect: true,
-                onSelected: () => {
-                    if (isOffline) {
-                        setIsOfflineModalVisible(true);
-                        return;
-                    }
-
-                    Navigation.navigate(ROUTES.TRANSACTION_HOLD_REASON_RHP);
-                },
-            });
-        }
-
-        const shouldShowUnholdOption = !isOffline && selectedTransactionsKeys.every((id) => selectedTransactions[id].canUnhold);
-
-        if (shouldShowUnholdOption) {
-            options.push({
-                icon: Expensicons.Stopwatch,
-                text: translate('search.bulkActions.unhold'),
-                value: CONST.SEARCH.BULK_ACTION_TYPES.UNHOLD,
-                shouldCloseModalOnSelect: true,
-                onSelected: () => {
-                    if (isOffline) {
-                        setIsOfflineModalVisible(true);
-                        return;
-                    }
-
-                    unholdMoneyRequestOnSearch(hash, selectedTransactionsKeys);
-                    InteractionManager.runAfterInteractions(() => {
-                        clearSelectedTransactions();
-                    });
-                },
-            });
-        }
-
-        const canAllTransactionsBeMoved = selectedTransactionsKeys.every((id) => selectedTransactions[id].canChangeReport);
-
-        if (canAllTransactionsBeMoved) {
-            options.push({
-                text: translate('iou.moveExpenses', {count: selectedTransactionsKeys.length}),
-                icon: Expensicons.DocumentMerge,
-                value: CONST.SEARCH.BULK_ACTION_TYPES.CHANGE_REPORT,
-                shouldCloseModalOnSelect: true,
-                onSelected: () => Navigation.navigate(ROUTES.MOVE_TRANSACTIONS_SEARCH_RHP),
-            });
-        }
-
-        const shouldShowDeleteOption = !isOffline && selectedTransactionsKeys.every((id) => selectedTransactions[id].canDelete);
-
-        if (shouldShowDeleteOption) {
-            options.push({
-                icon: Expensicons.Trashcan,
-                text: translate('search.bulkActions.delete'),
-                value: CONST.SEARCH.BULK_ACTION_TYPES.DELETE,
-                shouldCloseModalOnSelect: true,
-                onSelected: () => {
-                    if (isOffline) {
-                        setIsOfflineModalVisible(true);
-                        return;
-                    }
-                    setIsDeleteExpensesConfirmModalVisible(true);
-                },
-            });
-        }
-
-        if (options.length === 0) {
-            const emptyOptionStyle = {
-                interactive: false,
-                iconFill: theme.icon,
-                iconHeight: variables.iconSizeLarge,
-                iconWidth: variables.iconSizeLarge,
-                numberOfLinesTitle: 2,
-                titleStyle: {...styles.colorMuted, ...styles.fontWeightNormal, ...styles.textWrap},
-            };
-
-            options.push({
-                icon: Expensicons.Exclamation,
-                text: translate('search.bulkActions.noOptionsAvailable'),
-                value: undefined,
-                ...emptyOptionStyle,
-            });
-        }
-
-        return options;
+        lastOptionsRef.current = newOptions;
+        return newOptions;
     }, [
         selectedTransactionsKeys,
         status,
         hash,
         selectedTransactions,
-        translate,
-        isExportMode,
-        isOffline,
         selectedReports,
         queryJSON,
+        isOffline,
+        isExportMode,
+        theme,
+        translate,
         clearSelectedTransactions,
+        setIsOfflineModalVisible,
+        setIsDownloadExportModalVisible,
+        setIsDownloadErrorModalVisible,
+        setIsDeleteExpensesConfirmModalVisible,
         lastPaymentMethods,
-        theme.icon,
-        styles.colorMuted,
-        styles.fontWeightNormal,
-        styles.textWrap,
+        styles,
     ]);
 
     const handleDeleteExpenses = () => {

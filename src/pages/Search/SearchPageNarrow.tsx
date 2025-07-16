@@ -43,6 +43,25 @@ type SearchPageNarrowProps = {
     isMobileSelectionModeEnabled: boolean;
 };
 
+function usePropChangeLogger(componentName, props) {
+    const prevProps = React.useRef(props);
+
+    React.useEffect(() => {
+        const changedProps = Object.entries(props).filter(([key, value]) => {
+            return prevProps.current[key] !== value;
+        });
+
+        if (changedProps.length > 0) {
+            console.log(`🔄 ${componentName} re-rendered due to:`);
+            changedProps.forEach(([key]) => {
+                console.log(`   - ${key} changed`);
+            });
+        }
+
+        prevProps.current = props;
+    });
+}
+
 function SearchPageNarrow({queryJSON, headerButtonsOptions, searchResults, isMobileSelectionModeEnabled}: SearchPageNarrowProps) {
     const {translate} = useLocalize();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
@@ -52,6 +71,17 @@ function SearchPageNarrow({queryJSON, headerButtonsOptions, searchResults, isMob
     const {clearSelectedTransactions} = useSearchContext();
     const [searchRouterListVisible, setSearchRouterListVisible] = useState(false);
     const {isOffline} = useNetwork();
+
+    // usePropChangeLogger('SearchPageNarrow', {
+    //     queryJSON,
+    //     headerButtonsOptions,
+    //     searchResults,
+    //     isMobileSelectionModeEnabled,
+    // });
+
+    // React.useEffect(() => {
+    //     console.log('🔄 headerButtonsOptions changed:', headerButtonsOptions);
+    //   }, [headerButtonsOptions]);
 
     // Controls the visibility of the educational tooltip based on user scrolling.
     // Hides the tooltip when the user is scrolling and displays it once scrolling stops.

@@ -23,6 +23,9 @@ function ChatListItem<TItem extends ListItem>({
     shouldSyncFocus,
     policies,
     allReports,
+    userWallet,
+    isUserValidated,
+    personalDetails,
 }: ChatListItemProps<TItem>) {
     const reportActionItem = item as unknown as ReportActionListItemType;
     const reportID = Number(reportActionItem?.reportID ?? CONST.DEFAULT_NUMBER_ID);
@@ -93,6 +96,9 @@ function ChatListItem<TItem extends ListItem>({
                 }
                 policies={policies}
                 shouldShowBorder
+                userWallet={userWallet}
+                isUserValidated={isUserValidated}
+                personalDetails={personalDetails}
             />
         </BaseListItem>
     );

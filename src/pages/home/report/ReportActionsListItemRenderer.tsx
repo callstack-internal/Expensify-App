@@ -3,7 +3,7 @@ import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import {getOriginalMessage, isSentMoneyReportAction, isTransactionThread} from '@libs/ReportActionsUtils';
 import {isChatThread, isInvoiceRoom, isPolicyExpenseChat} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
-import type {Policy, Report, ReportAction, Transaction} from '@src/types/onyx';
+import type {Policy, Report, ReportAction, UserWallet, PersonalDetailsList, Transaction, BlockedFromConcierge} from '@src/types/onyx';
 import ReportActionItem from './ReportActionItem';
 import ReportActionItemParentAction from './ReportActionItemParentAction';
 
@@ -61,6 +61,25 @@ type ReportActionsListItemRendererProps = {
 
     /** If the thread divider line will be used */
     shouldUseThreadDividerLine?: boolean;
+
+    /** Draft messages for the report */
+ //   draftMessages?: Record<string, string | undefined>;
+
+    /** Emoji reactions for the report action */
+   // emojiReactions?: OnyxEntry<ReportActionReactions>;
+
+    /** User wallet */
+    userWallet?: OnyxEntry<UserWallet>;
+
+    // /** Linked transaction route error */
+    // linkedTransactionRouteError?: OnyxEntry<Errors>;
+
+    /** Whether the user is validated */
+    isUserValidated?: boolean | undefined;
+
+    /** Personal details list */
+    personalDetails?: OnyxEntry<PersonalDetailsList>;
+
 };
 
 function ReportActionsListItemRenderer({
@@ -82,6 +101,12 @@ function ReportActionsListItemRenderer({
     isFirstVisibleReportAction = false,
     shouldUseThreadDividerLine = false,
     parentReportActionForTransactionThread,
+   // draftMessages,
+  //  emojiReactions,
+    userWallet,
+  //  linkedTransactionRouteError,
+    isUserValidated,
+    personalDetails,
 }: ReportActionsListItemRendererProps) {
     const originalMessage = useMemo(() => getOriginalMessage(reportAction), [reportAction]);
 
@@ -204,6 +229,9 @@ function ReportActionsListItemRenderer({
             index={index}
             isFirstVisibleReportAction={isFirstVisibleReportAction}
             shouldUseThreadDividerLine={shouldUseThreadDividerLine}
+            userWallet={userWallet}
+            isUserValidated={isUserValidated}
+            personalDetails={personalDetails}
         />
     );
 }

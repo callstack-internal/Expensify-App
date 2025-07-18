@@ -172,6 +172,9 @@ function ReportActionsList({
     const [accountID] = useOnyx(ONYXKEYS.SESSION, {selector: (session) => session?.accountID, canBeMissing: true});
     const participantsContext = useContext(PersonalDetailsContext);
     const isReportArchived = useReportIsArchived(report?.reportID);
+    const [userWallet] = useOnyx(ONYXKEYS.USER_WALLET, {canBeMissing: false});
+    const [isUserValidated] = useOnyx(ONYXKEYS.ACCOUNT, {selector: (account) => account?.validated, canBeMissing: true});
+
 
     const [isScrollToBottomEnabled, setIsScrollToBottomEnabled] = useState(false);
 
@@ -601,6 +604,10 @@ function ReportActionsList({
                     isFirstVisibleReportAction={firstVisibleReportActionID === reportAction.reportActionID}
                     shouldUseThreadDividerLine={shouldUseThreadDividerLine}
                     transactions={Object.values(transactions ?? {})}
+               //     draftMessages={draftMessages}
+                    userWallet={userWallet}
+                    isUserValidated={isUserValidated}
+                    personalDetails={personalDetailsList}
                 />
             );
         },
@@ -620,6 +627,9 @@ function ReportActionsList({
             shouldUseThreadDividerLine,
             firstVisibleReportActionID,
             unreadMarkerReportActionID,
+            userWallet,
+            isUserValidated,
+            personalDetailsList,
         ],
     );
 

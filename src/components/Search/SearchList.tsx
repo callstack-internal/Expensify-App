@@ -32,6 +32,7 @@ import {addKeyDownPressListener, removeKeyDownPressListener} from '@libs/Keyboar
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+import { usePersonalDetails } from '@components/OnyxProvider';
 import {createItemHeightCalculator} from './itemHeightCalculator';
 import ITEM_HEIGHTS from './itemHeights';
 import type {SearchQueryJSON} from './types';
@@ -161,6 +162,11 @@ function SearchList(
     });
 
     const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: false});
+
+    const personalDetails = usePersonalDetails();
+
+    const [userWallet] = useOnyx(ONYXKEYS.USER_WALLET, {canBeMissing: false});
+    const [isUserValidated] = useOnyx(ONYXKEYS.ACCOUNT, {selector: (account) => account?.validated, canBeMissing: true});
 
     const handleLongPressRow = useCallback(
         (item: SearchListItem) => {
@@ -330,6 +336,9 @@ function SearchList(
                     isDisabled={isDisabled}
                     allReports={allReports}
                     groupBy={groupBy}
+                    userWallet={userWallet}
+                    isUserValidated={isUserValidated}
+                    personalDetails={personalDetails}
                 />
             );
         },
@@ -347,6 +356,9 @@ function SearchList(
             setFocusedIndex,
             shouldPreventDefaultFocusOnSelectRow,
             allReports,
+            userWallet,
+            isUserValidated,
+            personalDetails,
         ],
     );
 

@@ -15,6 +15,9 @@ type BaseSelectionListItemRendererProps<TItem extends ListItem> = Omit<BaseListI
         singleExecution: ReturnType<typeof useSingleExecution>['singleExecution'];
         titleStyles?: StyleProp<TextStyle>;
         titleContainerStyles?: StyleProp<ViewStyle>;
+        userWallet: OnyxEntry<UserWallet>;
+        isUserValidated: boolean | undefined;
+        personalDetails: OnyxEntry<PersonalDetailsList>;
     };
 
 function BaseSelectionListItemRenderer<TItem extends ListItem>({
@@ -45,6 +48,9 @@ function BaseSelectionListItemRenderer<TItem extends ListItem>({
     titleContainerStyles,
     shouldUseDefaultRightHandSideCheckmark,
     canShowProductTrainingTooltip = true,
+    userWallet,
+    isUserValidated,
+    personalDetails,
 }: BaseSelectionListItemRendererProps<TItem>) {
     const handleOnCheckboxPress = () => {
         if (isTransactionGroupListItemType(item)) {
@@ -96,6 +102,9 @@ function BaseSelectionListItemRenderer<TItem extends ListItem>({
                 titleContainerStyles={titleContainerStyles}
                 shouldUseDefaultRightHandSideCheckmark={shouldUseDefaultRightHandSideCheckmark}
                 canShowProductTrainingTooltip={canShowProductTrainingTooltip}
+                userWallet={userWallet}
+                isUserValidated={isUserValidated}
+                personalDetails={personalDetails}
             />
             {item.footerContent && item.footerContent}
         </>

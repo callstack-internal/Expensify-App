@@ -48,9 +48,11 @@
 - [ ] If the PR modifies a component or page that can be accessed by a direct deeplink, I verified that the code functions as expected when the deeplink is used - from a logged in and logged out account.
 - [ ] I verified that the composer does not automatically focus or open the keyboard on mobile unless explicitly intended. This includes checking that returning the app from the background does not unexpectedly open the keyboard.
 
+### Localization & Content
 - [ ] I verified any copy / text shown in the product is localized by adding it to `src/languages/*` files and using the [translation method](https://github.com/Expensify/App/blob/4510fc76bbf5df699a2575bfb49a276af90f3ed7/src/components/LocaleContextProvider.tsx#L80)
 - [ ] I verified all numbers, amounts, dates and phone numbers shown in the product are using the [localization methods](https://github.com/Expensify/App/blob/4510fc76bbf5df699a2575bfb49a276af90f3ed7/src/components/LocaleContextProvider.tsx#L116-L123)
 - [ ] I verified any copy / text that was added to the app is grammatically correct in English. It adheres to proper capitalization guidelines (note: only the first word of header/labels should be capitalized), and is either coming verbatim from figma or has been approved by marketing (in order to get marketing approval, ask the Bug Zero team member to add the Waiting for copy label to the issue)
+
 - [ ] If there are any errors in the console that are unrelated to this PR, I either fixed them (preferred) or linked to where I reported them in Slack
 - [ ] I verified there are no new alerts related to the `canBeMissing` param for `useOnyx`
 - [ ] If a new component is created I verified that:

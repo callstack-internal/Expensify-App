@@ -1,7 +1,11 @@
 ## Reviewer Checklist
 
+### Process & Documentation
 - [ ] I have verified the author checklist is complete (all boxes are checked off).
 - [ ] I verified the correct issue is linked in the `### Fixed Issues` section above
+- [ ] I verified that this PR follows the guidelines as stated in the [Review Guidelines](https://github.com/Expensify/App/blob/main/contributingGuides/PR_REVIEW_GUIDELINES.md)
+- [ ] If the `main` branch was merged into this PR after a review, I tested again and verified the outcome was still expected according to the `Test` steps.
+- [ ] I have checked off every checkbox in the PR reviewer checklist, including those that don't apply to this PR.
 - [ ] I verified testing steps are clear and they cover the changes made in this PR
     - [ ] I verified the steps for local testing are in the `Tests` section
     - [ ] I verified the steps for Staging and/or Production testing are in the `QA steps` section
@@ -29,7 +33,6 @@
     - [ ] I verified proper file naming conventions were followed for any new files or renamed files. All non-platform specific files are named after what they export and are not named "index.js". All platform-specific files are named for the platform the code supports as outlined in the README.
     - [ ] I verified the JSDocs style guidelines (in [`STYLE.md`](https://github.com/Expensify/App/blob/main/contributingGuides/STYLE.md#jsdocs)) were followed
 - [ ] If a new code pattern is added I verified it was agreed to be used by multiple Expensify engineers
-- [ ] I verified that this PR follows the guidelines as stated in the [Review Guidelines](https://github.com/Expensify/App/blob/main/contributingGuides/PR_REVIEW_GUIDELINES.md)
 - [ ] I verified other components that can be impacted by these changes have been tested, and I retested again (i.e. if the PR modifies a shared library or component like `Avatar`, I verified the components using `Avatar` have been tested & I retested again)
 - [ ] I verified all code is DRY (the PR doesn't include any logic written more than once, with the exception of tests)
 - [ ] I verified any variables that can be defined as constants (ie. in CONST.ts or at the top of the file that uses the constant) are defined as such
@@ -57,8 +60,6 @@
     - [ ] I added `Design` label and/or tagged `@Expensify/design` so the design team can review the changes.
 - [ ] If a new page is added, I verified it's using the `ScrollView` component to make it scrollable when more elements are added to the page.
 - [ ] For any bug fix or new feature in this PR, I verified that sufficient [unit tests](https://github.com/Expensify/App/blob/main/tests/README.md) are included to prevent regressions in this flow.
-- [ ] If the `main` branch was merged into this PR after a review, I tested again and verified the outcome was still expected according to the `Test` steps.
-- [ ] I have checked off every checkbox in the PR reviewer checklist, including those that don't apply to this PR.
 
 ### Screenshots/Videos
 <details>

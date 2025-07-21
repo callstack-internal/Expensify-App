@@ -2,6 +2,7 @@ import type {ValueOf} from 'type-fest';
 import type CONST from '@src/CONST';
 import type {Errors} from './OnyxCommon';
 import type {ReportActions} from './ReportAction';
+import type ReportAction from './ReportAction';
 import type Transaction from './Transaction';
 import type TransactionViolations from './TransactionViolation';
 
@@ -66,20 +67,20 @@ type ReportActionsMetadata = {
     /**
      * The most recent report action for the report.
      */
-    lastReportAction?: ReportActions[string];
+    lastReportAction?: ReportActions;
     /**
      * Sorted array of report actions for the report.
      */
-    allSortedReportActions?: Array<ReportActions[string]>;
+    allSortedReportActions?: ReportActions[];
     /**
      * The most recent visible report action for the report.
      */
-    lastVisibleReportAction?: ReportActions[string];
+    lastVisibleReportAction?: ReportAction;
     /**
      * The most recent visible report action suitable for display as the last action in sidebar/LHN.
      * This is similar to lastVisibleReportAction but uses more restrictive filtering.
      */
-    lastVisibleReportActionForDisplay?: ReportActions[string];
+    lastVisibleReportActionForDisplay?: ReportAction;
 };
 
 /**

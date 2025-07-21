@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/prefer-for-of */
-
-/* eslint-disable no-continue */
 import {Str} from 'expensify-common';
 import keyBy from 'lodash/keyBy';
 import lodashOrderBy from 'lodash/orderBy';
@@ -62,12 +60,14 @@ import {
     getExportIntegrationLastMessageText,
     getIOUReportIDFromReportActionPreview,
     getJoinRequestMessage,
+    getLastVisibleMessage,
     getLeaveRoomMessage,
     getMentionedAccountIDsFromAction,
     getMessageOfOldDotReportAction,
     getOneTransactionThreadReportID,
     getOriginalMessage,
     getReceiptScanFailedMessage,
+    getRenamedAction,
     getReopenedMessage,
     getReportActionHtml,
     getReportActionMessageText,
@@ -77,6 +77,7 @@ import {
     isActionableAddPaymentCard,
     isActionableJoinRequest,
     isActionOfType,
+    isAddCommentAction,
     isClosedAction,
     isCreatedTaskReportAction,
     isDeletedAction,
@@ -89,6 +90,7 @@ import {
     isPendingRemove,
     isReimbursementDeQueuedOrCanceledAction,
     isReimbursementQueuedAction,
+    isRenamedAction,
     isReportPreviewAction,
     isTaskAction,
     isThreadParentMessage,
@@ -102,6 +104,7 @@ import {
     getChatByParticipants,
     getChatRoomSubtitle,
     getDeletedParentActionMessageForChatReport,
+    getDeletedTransactionMessage,
     getDisplayNameForParticipant,
     getDowngradeWorkspaceMessage,
     getIcons,
@@ -654,9 +657,16 @@ function hasHiddenDisplayNames(accountIDs: number[]) {
 /**
  * Get the last message text from the report directly or from other sources for special cases.
  */
-function getLastMessageTextForReport(report: OnyxEntry<Report>, lastActorDetails: Partial<PersonalDetails> | null, policy?: OnyxEntry<Policy>, isReportArchived = false, reportActionsMetadata?: OnyxEntry<ReportActionsMetadataDerivedValue>): string {
+function getLastMessageTextForReport(
+    report: OnyxEntry<Report>,
+    lastActorDetails: Partial<PersonalDetails> | null,
+    policy?: OnyxEntry<Policy>,
+    isReportArchived = false,
+    reportActionsMetadata?: OnyxEntry<ReportActionsMetadataDerivedValue>,
+): string {
     const reportID = report?.reportID;
     const lastReportAction = reportID ? reportActionsMetadata?.[reportID]?.lastVisibleReportAction : undefined;
+    const lastVisibleMessage = getLastVisibleMessage(report?.reportID);
 
     // some types of actions are filtered out for lastReportAction, in some cases we need to check the actual last action
     const lastOriginalReportAction = reportID ? reportActionsMetadata?.[reportID]?.lastReportAction : undefined;
@@ -783,6 +793,10 @@ function getLastMessageTextForReport(report: OnyxEntry<Report>, lastActorDetails
         lastMessageTextFromReport = getPolicyChangeMessage(lastReportAction);
     } else if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.TRAVEL_UPDATE)) {
         lastMessageTextFromReport = getTravelUpdateMessage(lastReportAction);
+    } else if (isRenamedAction(lastReportAction)) {
+        lastMessageTextFromReport = getRenamedAction(lastReportAction, isExpenseReport(report));
+    } else if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.DELETED_TRANSACTION)) {
+        lastMessageTextFromReport = getDeletedTransactionMessage(lastReportAction);
     }
 
     // we do not want to show report closed in LHN for non archived report so use getReportLastMessage as fallback instead of lastMessageText from report
@@ -814,13 +828,24 @@ function getLastMessageTextForReport(report: OnyxEntry<Report>, lastActorDetails
         }
     }
 
+    // If the last action is AddComment and no last message text was determined yet, use getLastVisibleMessage to get the preview text
+    if (reportID && !lastMessageTextFromReport && isAddCommentAction(lastReportAction)) {
+        lastMessageTextFromReport = lastVisibleMessage?.lastMessageText;
+    }
+
     return lastMessageTextFromReport || (report?.lastMessageText ?? '');
 }
 
 /**
  * Creates a report list option
  */
-function createOption(accountIDs: number[], personalDetails: OnyxInputOrEntry<PersonalDetailsList>, report: OnyxInputOrEntry<Report>, config?: PreviewConfig, reportActionsMetadata?: OnyxEntry<ReportActionsMetadataDerivedValue>): OptionData {
+function createOption(
+    accountIDs: number[],
+    personalDetails: OnyxInputOrEntry<PersonalDetailsList>,
+    report: OnyxInputOrEntry<Report>,
+    config?: PreviewConfig,
+    reportActionsMetadata?: OnyxEntry<ReportActionsMetadataDerivedValue>,
+): OptionData {
     const {showChatPreviewLine = false, forcePolicyNamePreview = false, showPersonalDetails = false, selected, isSelected, isDisabled} = config ?? {};
     const result: OptionData = {
         text: undefined,
@@ -962,10 +987,16 @@ function getReportOption(participant: Participant, reportActionsMetadata?: OnyxE
     const report = getReportOrDraftReport(participant.reportID);
     const visibleParticipantAccountIDs = getParticipantsAccountIDsForDisplay(report, true);
 
-    const option = createOption(visibleParticipantAccountIDs, allPersonalDetails ?? {}, !isEmptyObject(report) ? report : undefined, {
-        showChatPreviewLine: false,
-        forcePolicyNamePreview: false,
-    }, reportActionsMetadata);
+    const option = createOption(
+        visibleParticipantAccountIDs,
+        allPersonalDetails ?? {},
+        !isEmptyObject(report) ? report : undefined,
+        {
+            showChatPreviewLine: false,
+            forcePolicyNamePreview: false,
+        },
+        reportActionsMetadata,
+    );
 
     // Update text & alternateText because createOption returns workspace name only if report is owned by the user
     if (option.isSelfDM) {
@@ -1001,10 +1032,16 @@ function getReportOption(participant: Participant, reportActionsMetadata?: OnyxE
 function getReportDisplayOption(report: OnyxEntry<Report>, unknownUserDetails: OnyxEntry<Participant>, reportActionsMetadata?: OnyxEntry<ReportActionsMetadataDerivedValue>): OptionData {
     const visibleParticipantAccountIDs = getParticipantsAccountIDsForDisplay(report, true);
 
-    const option = createOption(visibleParticipantAccountIDs, allPersonalDetails ?? {}, !isEmptyObject(report) ? report : undefined, {
-        showChatPreviewLine: false,
-        forcePolicyNamePreview: false,
-    }, reportActionsMetadata);
+    const option = createOption(
+        visibleParticipantAccountIDs,
+        allPersonalDetails ?? {},
+        !isEmptyObject(report) ? report : undefined,
+        {
+            showChatPreviewLine: false,
+            forcePolicyNamePreview: false,
+        },
+        reportActionsMetadata,
+    );
 
     // Update text & alternateText because createOption returns workspace name only if report is owned by the user
     if (option.isSelfDM) {
@@ -1036,10 +1073,16 @@ function getPolicyExpenseReportOption(participant: Participant | OptionData, rep
         .filter(([, reportParticipant]) => reportParticipant && !isHiddenForCurrentUser(reportParticipant.notificationPreference))
         .map(([accountID]) => Number(accountID));
 
-    const option = createOption(visibleParticipantAccountIDs, allPersonalDetails ?? {}, !isEmptyObject(expenseReport) ? expenseReport : null, {
-        showChatPreviewLine: false,
-        forcePolicyNamePreview: false,
-    }, reportActionsMetadata);
+    const option = createOption(
+        visibleParticipantAccountIDs,
+        allPersonalDetails ?? {},
+        !isEmptyObject(expenseReport) ? expenseReport : null,
+        {
+            showChatPreviewLine: false,
+            forcePolicyNamePreview: false,
+        },
+        reportActionsMetadata,
+    );
 
     // Update text & alternateText because createOption returns workspace name only if report is owned by the user
     option.text = getPolicyName({report: expenseReport});
@@ -1195,9 +1238,15 @@ function createOptionList(personalDetails: OnyxEntry<PersonalDetailsList>, repor
 
     const allPersonalDetailsOptions = Object.values(personalDetails ?? {}).map((personalDetail) => ({
         item: personalDetail,
-        ...createOption([personalDetail?.accountID ?? CONST.DEFAULT_NUMBER_ID], personalDetails, reportMapForAccountIDs[personalDetail?.accountID ?? CONST.DEFAULT_NUMBER_ID], {
-            showPersonalDetails: true,
-        }, reportActionsMetadata),
+        ...createOption(
+            [personalDetail?.accountID ?? CONST.DEFAULT_NUMBER_ID],
+            personalDetails,
+            reportMapForAccountIDs[personalDetail?.accountID ?? CONST.DEFAULT_NUMBER_ID],
+            {
+                showPersonalDetails: true,
+            },
+            reportActionsMetadata,
+        ),
     }));
 
     return {
@@ -1390,7 +1439,14 @@ function canCreateOptimisticPersonalDetailOption({
  * - If prop shouldAcceptName = true, the searchValue can be also a normal string
  * - The searchValue isn't the current personal detail login
  */
-function getUserToInviteOption({searchValue, loginsToExclude = {}, selectedOptions = [], showChatPreviewLine = false, shouldAcceptName = false, reportActionsMetadata}: GetUserToInviteConfig): OptionData | null {
+function getUserToInviteOption({
+    searchValue,
+    loginsToExclude = {},
+    selectedOptions = [],
+    showChatPreviewLine = false,
+    shouldAcceptName = false,
+    reportActionsMetadata,
+}: GetUserToInviteConfig): OptionData | null {
     if (!searchValue) {
         return null;
     }
@@ -1415,9 +1471,15 @@ function getUserToInviteOption({searchValue, loginsToExclude = {}, selectedOptio
             login: searchValue,
         },
     };
-    const userToInvite = createOption([optimisticAccountID], personalDetailsExtended, null, {
-        showChatPreviewLine,
-    }, reportActionsMetadata);
+    const userToInvite = createOption(
+        [optimisticAccountID],
+        personalDetailsExtended,
+        null,
+        {
+            showChatPreviewLine,
+        },
+        reportActionsMetadata,
+    );
     userToInvite.isOptimisticAccount = true;
     userToInvite.login = isValidEmail || isValidPhoneNumber ? searchValue : '';
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

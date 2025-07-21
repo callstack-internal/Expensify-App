@@ -2,6 +2,8 @@ import type {ValueOf} from 'type-fest';
 import type CONST from '@src/CONST';
 import type {Errors} from './OnyxCommon';
 import type {ReportActions} from './ReportAction';
+import type Transaction from './Transaction';
+import type TransactionViolations from './TransactionViolation';
 
 /**
  * The attributes of a report.
@@ -44,6 +46,20 @@ type ReportAttributesDerivedValue = {
 };
 
 /**
+ * The transactions and violations of a report.
+ */
+type ReportTransactionsAndViolations = {
+    /**
+     * The transactions of the report.
+     */
+    transactions: Record<string, Transaction>;
+    /**
+     * The violations of the report.
+     */
+    violations: Record<string, TransactionViolations>;
+};
+
+/**
  * The metadata for a single report's actions.
  */
 type ReportActionsMetadata = {
@@ -67,9 +83,14 @@ type ReportActionsMetadata = {
 };
 
 /**
- * The derived value containing metadata for each report's actions.
+ * The derived value for report transactions.
+ */
+type ReportTransactionsAndViolationsDerivedValue = Record<string, ReportTransactionsAndViolations>;
+
+/**
+ * The derived value for report actions metadata.
  */
 type ReportActionsMetadataDerivedValue = Record<string, ReportActionsMetadata>;
 
 export default ReportAttributesDerivedValue;
-export type {ReportAttributes, ReportAttributesDerivedValue, ReportActionsMetadata, ReportActionsMetadataDerivedValue};
+export type {ReportAttributes, ReportAttributesDerivedValue, ReportTransactionsAndViolationsDerivedValue, ReportTransactionsAndViolations, ReportActionsMetadataDerivedValue};

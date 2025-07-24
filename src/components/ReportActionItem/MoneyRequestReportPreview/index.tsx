@@ -1,16 +1,17 @@
 import React, {useCallback, useMemo, useRef, useState} from 'react';
 import type {LayoutChangeEvent, ListRenderItem} from 'react-native';
-import {usePersonalDetails} from '@components/OnyxListItemProvider';
+import {useAllReportsTransactionsAndViolations, usePersonalDetails} from '@components/OnyxListItemProvider';
 import TransactionPreview from '@components/ReportActionItem/TransactionPreview';
 import usePolicy from '@hooks/usePolicy';
 import useReportWithTransactionsAndViolations from '@hooks/useReportWithTransactionsAndViolations';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useTransactionViolations from '@hooks/useTransactionViolations';
+import useOnyx from '@hooks/useOnyx';
 import Performance from '@libs/Performance';
 import {getIOUActionForReportID, isSplitBillAction as isSplitBillActionReportActionsUtils, isTrackExpenseAction as isTrackExpenseActionReportActionsUtils} from '@libs/ReportActionsUtils';
 import {isIOUReport} from '@libs/ReportUtils';
+import {computeTransactionViolations} from '@libs/TransactionUtils/transactionViolationsUtils';
 import Navigation from '@navigation/Navigation';
 import {contextMenuRef} from '@pages/home/report/ContextMenu/ReportActionContextMenu';
 import Timing from '@userActions/Timing';
@@ -48,8 +49,14 @@ function MoneyRequestReportPreview({
     const invoiceReceiverPersonalDetail = chatReport?.invoiceReceiver && 'accountID' in chatReport.invoiceReceiver ? personalDetailsList?.[chatReport.invoiceReceiver.accountID] : null;
     const [iouReport, transactions, violations] = useReportWithTransactionsAndViolations(iouReportID);
     const policy = usePolicy(policyID);
+    const allReportsTransactionsAndViolations = useAllReportsTransactionsAndViolations();
     const lastTransaction = transactions?.at(0);
-    const lastTransactionViolations = useTransactionViolations(lastTransaction?.transactionID);
+    const lastTransactionViolations = useMemo(() => {
+        if (!lastTransaction?.transactionID) {
+            return [];
+        }
+        return computeTransactionViolations(lastTransaction.transactionID, allReportsTransactionsAndViolations, allReports, policies);
+    }, [lastTransaction?.transactionID, allReportsTransactionsAndViolations, allReports, policies]);
     const isTrackExpenseAction = isTrackExpenseActionReportActionsUtils(action);
     const isSplitBillAction = isSplitBillActionReportActionsUtils(action);
 

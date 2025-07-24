@@ -1,5 +1,5 @@
 import React from 'react';
-import type {ViewStyle} from 'react-native';
+import {Text, ViewStyle} from 'react-native';
 import {View} from 'react-native';
 import Icon from '@components/Icon';
 import {DotIndicator} from '@components/Icon/Expensicons';
@@ -8,11 +8,11 @@ import useLocalize from '@hooks/useLocalize';
 import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useTransactionViolations from '@hooks/useTransactionViolations';
 import {getIOUActionForTransactionID} from '@libs/ReportActionsUtils';
 import ViolationsUtils from '@libs/Violations/ViolationsUtils';
 import variables from '@styles/variables';
 import type Transaction from '@src/types/onyx/Transaction';
+import type {TransactionViolations} from '@src/types/onyx';
 
 type TransactionItemRowRBRProps = {
     /** Transaction item */
@@ -23,11 +23,13 @@ type TransactionItemRowRBRProps = {
 
     /** Error message for missing required fields in the transaction */
     missingFieldError?: string;
+
+    /** Pre-computed transaction violations */
+    violations?: TransactionViolations;
 };
 
-function TransactionItemRowRBRWithOnyx({transaction, containerStyles, missingFieldError}: TransactionItemRowRBRProps) {
+function TransactionItemRowRBRWithOnyx({transaction, containerStyles, missingFieldError, violations = []}: TransactionItemRowRBRProps) {
     const styles = useThemeStyles();
-    const transactionViolations = useTransactionViolations(transaction?.transactionID, false);
     const {translate} = useLocalize();
     const theme = useTheme();
 
@@ -35,7 +37,7 @@ function TransactionItemRowRBRWithOnyx({transaction, containerStyles, missingFie
     const transactionThreadId = transactionActions ? getIOUActionForTransactionID(transactionActions, transaction.transactionID)?.childReportID : undefined;
     const {sortedAllReportActions: transactionThreadActions} = usePaginatedReportActions(transactionThreadId);
 
-    const RBRMessages = ViolationsUtils.getRBRMessages(transaction, transactionViolations, translate, missingFieldError, transactionThreadActions);
+    const RBRMessages = ViolationsUtils.getRBRMessages(transaction, violations, translate, missingFieldError, transactionThreadActions);
 
     return (
         RBRMessages.length > 0 && (

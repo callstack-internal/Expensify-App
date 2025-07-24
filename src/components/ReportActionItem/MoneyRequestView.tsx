@@ -7,7 +7,7 @@ import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
-import {usePolicyCategories, usePolicyTags} from '@components/OnyxListItemProvider';
+import {useAllReportsTransactionsAndViolations, usePolicyCategories, usePolicyTags} from '@components/OnyxListItemProvider';
 import ReceiptAudit, {ReceiptAuditMessages} from '@components/ReceiptAudit';
 import ReceiptEmptyState from '@components/ReceiptEmptyState';
 import Switch from '@components/Switch';
@@ -19,7 +19,6 @@ import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useTransactionViolations from '@hooks/useTransactionViolations';
 import useViolations from '@hooks/useViolations';
 import type {ViolationField} from '@hooks/useViolations';
 import {getCompanyCardDescription} from '@libs/CardUtils';
@@ -67,6 +66,7 @@ import {
     isScanning,
     shouldShowAttendees as shouldShowAttendeesTransactionUtils,
 } from '@libs/TransactionUtils';
+import {computeTransactionViolations} from '@libs/TransactionUtils/transactionViolationsUtils';
 import ViolationsUtils from '@libs/Violations/ViolationsUtils';
 import Navigation from '@navigation/Navigation';
 import AnimatedEmptyStateBackground from '@pages/home/report/AnimatedEmptyStateBackground';
@@ -152,7 +152,14 @@ function MoneyRequestView({allReports, report, policy, shouldShowAnimatedBackgro
 
     const [transaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(linkedTransactionID)}`, {canBeMissing: true});
     const [transactionBackup] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION_BACKUP}${getNonEmptyStringOnyxID(linkedTransactionID)}`, {canBeMissing: true});
-    const transactionViolations = useTransactionViolations(transaction?.transactionID);
+    const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
+    const allReportsTransactionsAndViolations = useAllReportsTransactionsAndViolations();
+    const transactionViolations = useMemo(() => {
+        if (!transaction?.transactionID) {
+            return [];
+        }
+        return computeTransactionViolations(transaction.transactionID, allReportsTransactionsAndViolations, allReports, allPolicies);
+    }, [transaction?.transactionID, allReportsTransactionsAndViolations, allReports, allPolicies]);
 
     const {
         created: transactionDate,

@@ -9,6 +9,7 @@ import Checkbox from '@components/Checkbox';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import Modal from '@components/Modal';
+import {useAllReportsTransactionsAndViolations} from '@components/OnyxListItemProvider';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import {useSearchContext} from '@components/Search/SearchContext';
 import type {SortOrder} from '@components/Search/types';
@@ -33,13 +34,16 @@ import {getIOUActionForTransactionID} from '@libs/ReportActionsUtils';
 import {getMoneyRequestSpendBreakdown, isIOUReport} from '@libs/ReportUtils';
 import {compareValues, isTransactionAmountTooLong, isTransactionTaxAmountTooLong} from '@libs/SearchUIUtils';
 import {getTransactionPendingAction, isTransactionPendingDelete} from '@libs/TransactionUtils';
+import {computeTransactionViolationsBatch} from '@libs/TransactionUtils/transactionViolationsUtils';
 import shouldShowTransactionYear from '@libs/TransactionUtils/shouldShowTransactionYear';
 import Navigation from '@navigation/Navigation';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
+import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type * as OnyxTypes from '@src/types/onyx';
+import useOnyx from '@hooks/useOnyx';
 import MoneyRequestReportTableHeader from './MoneyRequestReportTableHeader';
 import SearchMoneyRequestReportEmptyState from './SearchMoneyRequestReportEmptyState';
 
@@ -122,6 +126,11 @@ function MoneyRequestReportTransactionList({
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [selectedTransactionID, setSelectedTransactionID] = useState<string>('');
 
+    // Get shared data from OnyxListItemProvider
+    const allReportsTransactionsAndViolations = useAllReportsTransactionsAndViolations();
+    const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
+    const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
+
     const {totalDisplaySpend, nonReimbursableSpend, reimbursableSpend} = getMoneyRequestSpendBreakdown(report);
     const formattedOutOfPocketAmount = convertToDisplayString(reimbursableSpend, report?.currency);
     const formattedCompanySpendAmount = convertToDisplayString(nonReimbursableSpend, report?.currency);
@@ -178,14 +187,27 @@ function MoneyRequestReportTransactionList({
 
     const {sortBy, sortOrder} = sortConfig;
 
+    // Compute violations for all transactions at once using shared data
+    const transactionViolationsMap = useMemo(() => {
+        const transactionIDs = transactions.map(t => t.transactionID);
+        return computeTransactionViolationsBatch(
+            transactionIDs,
+            allReportsTransactionsAndViolations,
+            allReports,
+            allPolicies,
+            false // shouldShowRterForSettledReport = false for RBR display
+        );
+    }, [transactions, allReportsTransactionsAndViolations, allReports, allPolicies]);
+
     const sortedTransactions: TransactionWithOptionalHighlight[] = useMemo(() => {
         return [...transactions]
             .sort((a, b) => compareValues(a[getTransactionKey(a, sortBy)], b[getTransactionKey(b, sortBy)], sortOrder, sortBy))
             .map((transaction) => ({
                 ...transaction,
                 shouldBeHighlighted: newTransactions?.includes(transaction),
+                violations: transactionViolationsMap[transaction.transactionID] || [],
             }));
-    }, [newTransactions, sortBy, sortOrder, transactions]);
+    }, [newTransactions, sortBy, sortOrder, transactions, transactionViolationsMap]);
 
     const navigateToTransaction = useCallback(
         (activeTransaction: OnyxTypes.Transaction) => {

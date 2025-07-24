@@ -1,12 +1,11 @@
 import {useRoute} from '@react-navigation/native';
 import React, {useCallback, useMemo} from 'react';
 import type {GestureResponderEvent} from 'react-native';
-import {usePersonalDetails, useSession} from '@components/OnyxListItemProvider';
+import {useAllReportsTransactionsAndViolations, usePersonalDetails, useSession} from '@components/OnyxListItemProvider';
 import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeedback';
 import {showContextMenuForReport} from '@components/ShowContextMenuContext';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
-import useTransactionViolations from '@hooks/useTransactionViolations';
 import ControlSelection from '@libs/ControlSelection';
 import {convertToDisplayString} from '@libs/CurrencyUtils';
 import {canUseTouchScreen} from '@libs/DeviceCapabilities';
@@ -16,6 +15,7 @@ import {getOriginalMessage, isMoneyRequestAction as isMoneyRequestActionReportAc
 import {getTransactionDetails} from '@libs/ReportUtils';
 import {getReviewNavigationRoute} from '@libs/TransactionPreviewUtils';
 import {getOriginalTransactionWithSplitInfo, isCardTransaction, removeSettledAndApprovedTransactions} from '@libs/TransactionUtils';
+import {computeTransactionViolations} from '@libs/TransactionUtils/transactionViolationsUtils';
 import type {PlatformStackRouteProp} from '@navigation/PlatformStackNavigation/types';
 import type {TransactionDuplicateNavigatorParamList} from '@navigation/types';
 import {clearWalletTermsError} from '@userActions/PaymentMethods';
@@ -49,7 +49,14 @@ function TransactionPreview(props: TransactionPreviewProps) {
     const isMoneyRequestAction = isMoneyRequestActionReportActionsUtils(action);
     const transactionID = transactionIDFromProps ?? (isMoneyRequestAction ? getOriginalMessage(action)?.IOUTransactionID : undefined);
     const [transaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`, {canBeMissing: true});
-    const violations = useTransactionViolations(transaction?.transactionID);
+    const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
+    const allReportsTransactionsAndViolations = useAllReportsTransactionsAndViolations();
+    const violations = useMemo(() => {
+        if (!transaction?.transactionID) {
+            return [];
+        }
+        return computeTransactionViolations(transaction.transactionID, allReportsTransactionsAndViolations, allReports, allPolicies);
+    }, [transaction?.transactionID, allReportsTransactionsAndViolations, allReports, allPolicies]);
     const [walletTerms] = useOnyx(ONYXKEYS.WALLET_TERMS, {canBeMissing: true});
     const session = useSession();
     const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${chatReportID}`];

@@ -1,6 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import {useOptionsList} from '@components/OptionListContextProvider';
 import ScreenWrapper from '@components/ScreenWrapper';
@@ -9,6 +8,7 @@ import UserListItem from '@components/SelectionList/UserListItem';
 import useDebouncedState from '@hooks/useDebouncedState';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as ReportActions from '@libs/actions/Report';
 import {READ_COMMANDS} from '@libs/API/types';
@@ -67,7 +67,7 @@ function TaskShareDestinationSelectorModal() {
             };
         }
         const filteredReports = reportFilter(optionList.reports);
-        const {recentReports} = OptionsListUtils.getShareDestinationOptions(filteredReports, optionList.personalDetails, [], '', [], [], true);
+        const {recentReports} = OptionsListUtils.getShareDestinationOptions(filteredReports, optionList.personalDetails, [], [], {}, true);
         const header = OptionsListUtils.getHeaderMessage(recentReports && recentReports.length !== 0, false, '');
         return {
             recentReports,
@@ -82,8 +82,8 @@ function TaskShareDestinationSelectorModal() {
         if (debouncedSearchValue.trim() === '') {
             return defaultOptions;
         }
-        const filteredReports = OptionsListUtils.filterOptions(defaultOptions, debouncedSearchValue.trim(), {
-            excludeLogins: CONST.EXPENSIFY_EMAILS,
+        const filteredReports = OptionsListUtils.filterAndOrderOptions(defaultOptions, debouncedSearchValue.trim(), {
+            excludeLogins: CONST.EXPENSIFY_EMAILS_OBJECT,
             canInviteUser: false,
         });
         const header = OptionsListUtils.getHeaderMessage(filteredReports.recentReports && filteredReports.recentReports.length !== 0, false, debouncedSearchValue);

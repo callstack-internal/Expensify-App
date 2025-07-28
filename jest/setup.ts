@@ -9,12 +9,18 @@ import 'setimmediate';
 import mockFSLibrary from './setupMockFullstoryLib';
 import setupMockImages from './setupMockImages';
 
+// Needed for tests to have the necessary environment variables set
+if (!('GITHUB_REPOSITORY' in process.env)) {
+    (process.env as NodeJS.ProcessEnv).GITHUB_REPOSITORY_OWNER = 'Expensify';
+    (process.env as NodeJS.ProcessEnv).GITHUB_REPOSITORY = 'Expensify/App';
+}
+
 setupMockImages();
 mockFSLibrary();
 
 // This mock is required as per setup instructions for react-navigation testing
 // https://reactnavigation.org/docs/testing/#mocking-native-modules
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+jest.mock('react-native/src/private/animated/NativeAnimatedHelper');
 
 // Mock react-native-onyx storage layer because the SQLite storage layer doesn't work in jest.
 // Mocking this file in __mocks__ does not work because jest doesn't support mocking files that are not directly used in the testing project,
@@ -72,32 +78,85 @@ jest.mock('react-native-reanimated', () => ({
     ...jest.requireActual<typeof Animated>('react-native-reanimated/mock'),
     createAnimatedPropAdapter: jest.fn,
     useReducedMotion: jest.fn,
+    useScrollViewOffset: jest.fn(() => 0),
+    useAnimatedRef: jest.fn(() => jest.fn()),
+    LayoutAnimationConfig: jest.fn,
 }));
 
 jest.mock('react-native-keyboard-controller', () => require<typeof RNKeyboardController>('react-native-keyboard-controller/jest'));
 
 jest.mock('react-native-app-logs', () => require<typeof RNAppLogs>('react-native-app-logs/jest'));
 
+jest.mock('@libs/runOnLiveMarkdownRuntime', () => {
+    const runOnLiveMarkdownRuntime = <Args extends unknown[], ReturnValue>(worklet: (...args: Args) => ReturnValue) => worklet;
+    return runOnLiveMarkdownRuntime;
+});
+
 jest.mock('@src/libs/actions/Timing', () => ({
     start: jest.fn(),
     end: jest.fn(),
+    clearData: jest.fn(),
 }));
 
-// This makes FlatList render synchronously for easier testing.
+jest.mock('../modules/background-task/src/NativeReactNativeBackgroundTask', () => ({
+    defineTask: jest.fn(),
+    onBackgroundTaskExecution: jest.fn(),
+}));
+
+jest.mock('../modules/hybrid-app/src/NativeReactNativeHybridApp', () => ({
+    isHybridApp: jest.fn(),
+    closeReactNativeApp: jest.fn(),
+    completeOnboarding: jest.fn(),
+    switchAccount: jest.fn(),
+}));
+
 jest.mock(
-    '@react-native/virtualized-lists/Interaction/Batchinator',
+    '@components/InvertedFlatList/BaseInvertedFlatList/RenderTaskQueue',
     () =>
-        class SyncBachinator {
-            #callback: () => void;
+        class SyncRenderTaskQueue {
+            private handler: (info: unknown) => void = () => {};
 
-            constructor(callback: () => void) {
-                this.#callback = callback;
+            add(info: unknown) {
+                this.handler(info);
             }
 
-            schedule() {
-                this.#callback();
+            setHandler(handler: () => void) {
+                this.handler = handler;
             }
 
-            dispose() {}
+            cancel() {}
         },
 );
+
+jest.mock('@libs/prepareRequestPayload/index.native.ts', () => ({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    __esModule: true,
+    default: jest.fn((command: string, data: Record<string, unknown>) => {
+        const formData = new FormData();
+
+        Object.keys(data).forEach((key) => {
+            const value = data[key];
+
+            if (value === undefined) {
+                return;
+            }
+
+            formData.append(key, value as string | Blob);
+        });
+
+        return Promise.resolve(formData);
+    }),
+}));
+
+// This keeps the error "@rnmapbox/maps native code not available." from causing the tests to fail
+jest.mock('@components/ConfirmedRoute.tsx');
+
+jest.mock('@src/hooks/useWorkletStateMachine/executeOnUIRuntimeSync', () => ({
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    __esModule: true,
+    default: jest.fn(() => jest.fn()), // Return a function that returns a function
+}));
+
+jest.mock('react-native-nitro-sqlite', () => ({
+    open: jest.fn(),
+}));

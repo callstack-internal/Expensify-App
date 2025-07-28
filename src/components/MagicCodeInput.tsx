@@ -3,11 +3,12 @@ import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} fro
 import type {NativeSyntheticEvent, TextInputFocusEventData, TextInputKeyPressEventData} from 'react-native';
 import {StyleSheet, View} from 'react-native';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import Animated, {useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming} from 'react-native-reanimated';
 import useNetwork from '@hooks/useNetwork';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
-import * as Browser from '@libs/Browser';
-import * as ValidationUtils from '@libs/ValidationUtils';
+import {isMobileChrome, isMobileSafari} from '@libs/Browser';
+import {isNumeric} from '@libs/ValidationUtils';
 import CONST from '@src/CONST';
 import FormHelpMessage from './FormHelpMessage';
 import Text from './Text';
@@ -27,9 +28,6 @@ type MagicCodeInputProps = {
 
     /** Should the input auto focus */
     autoFocus?: boolean;
-
-    /** Whether we should wait before focusing the TextInput, useful when using transitions  */
-    shouldDelayFocus?: boolean;
 
     /** Error text to display */
     errorText?: string;
@@ -78,7 +76,7 @@ const decomposeString = (value: string, length: number): string[] => {
     let arr = value
         .split('')
         .slice(0, length)
-        .map((v) => (ValidationUtils.isNumeric(v) ? v : CONST.MAGIC_CODE_EMPTY_CHAR));
+        .map((v) => (isNumeric(v) ? v : CONST.MAGIC_CODE_EMPTY_CHAR));
     if (arr.length < length) {
         arr = arr.concat(Array(length - arr.length).fill(CONST.MAGIC_CODE_EMPTY_CHAR));
     }
@@ -98,7 +96,6 @@ function MagicCodeInput(
         value = '',
         name = '',
         autoFocus = true,
-        shouldDelayFocus = false,
         errorText = '',
         shouldSubmitOnComplete = true,
         onChangeText: onChangeTextProp = () => {},
@@ -114,36 +111,44 @@ function MagicCodeInput(
 ) {
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
-    const inputRefs = useRef<BaseTextInputRef | null>();
+    const inputRef = useRef<BaseTextInputRef | null>(null);
     const [input, setInput] = useState(TEXT_INPUT_EMPTY_STATE);
     const [focusedIndex, setFocusedIndex] = useState<number | undefined>(0);
-    const [editIndex, setEditIndex] = useState(0);
+    const editIndex = useRef(0);
     const [wasSubmitted, setWasSubmitted] = useState(false);
     const shouldFocusLast = useRef(false);
     const inputWidth = useRef(0);
     const lastFocusedIndex = useRef(0);
     const lastValue = useRef<string | number>(TEXT_INPUT_EMPTY_STATE);
+    const valueRef = useRef(value);
 
     useEffect(() => {
         lastValue.current = input.length;
     }, [input]);
 
+    useEffect(() => {
+        // Note: there are circumstances where the value state isn't updated yet
+        // when e.g. onChangeText gets called the next time. In those cases its safer to access the value from a ref
+        // to not have outdated values.
+        valueRef.current = value;
+    }, [value]);
+
     const blurMagicCodeInput = () => {
-        inputRefs.current?.blur();
+        inputRef.current?.blur();
         setFocusedIndex(undefined);
     };
 
     const focusMagicCodeInput = () => {
         setFocusedIndex(0);
         lastFocusedIndex.current = 0;
-        setEditIndex(0);
-        inputRefs.current?.focus();
+        editIndex.current = 0;
+        inputRef.current?.focus();
     };
 
     const setInputAndIndex = (index: number) => {
         setInput(TEXT_INPUT_EMPTY_STATE);
         setFocusedIndex(index);
-        setEditIndex(index);
+        editIndex.current = index;
     };
 
     useImperativeHandle(ref, () => ({
@@ -151,7 +156,7 @@ function MagicCodeInput(
             focusMagicCodeInput();
         },
         focusLastSelected() {
-            inputRefs.current?.focus();
+            inputRef.current?.focus();
         },
         resetFocus() {
             setInput(TEXT_INPUT_EMPTY_STATE);
@@ -160,7 +165,7 @@ function MagicCodeInput(
         clear() {
             lastFocusedIndex.current = 0;
             setInputAndIndex(0);
-            inputRefs.current?.focus();
+            inputRef.current?.focus();
             onChangeTextProp('');
         },
         blur() {
@@ -171,7 +176,7 @@ function MagicCodeInput(
     const validateAndSubmit = () => {
         const numbers = decomposeString(value, maxLength);
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        if (wasSubmitted || !shouldSubmitOnComplete || numbers.filter((n) => ValidationUtils.isNumeric(n)).length !== maxLength || isOffline) {
+        if (wasSubmitted || !shouldSubmitOnComplete || numbers.filter((n) => isNumeric(n)).length !== maxLength || isOffline) {
             return;
         }
         if (!wasSubmitted) {
@@ -218,8 +223,8 @@ function MagicCodeInput(
             shouldFocusLast.current = false;
             // TapGestureHandler works differently on mobile web and native app
             // On web gesture handler doesn't block interactions with textInput below so there is no need to run `focus()` manually
-            if (!Browser.isMobileChrome() && !Browser.isMobileSafari()) {
-                inputRefs.current?.focus();
+            if (!isMobileChrome() && !isMobileSafari()) {
+                inputRef.current?.focus();
             }
             setInputAndIndex(index);
             lastFocusedIndex.current = index;
@@ -231,9 +236,15 @@ function MagicCodeInput(
      * the focused input on the next empty one, if exists.
      * It handles both fast typing and only one digit at a time
      * in a specific position.
+     *
+     * Note: this works under the assumption that the backing text input will always have a cleared text,
+     * and entering text will exactly call onChangeText with one new character/digit.
+     * When the OS is inserting one time passwords for example it will call this method successively with one more digit each time.
+     * Thus, this method relies on an internal value ref to make sure to always use the latest value (as state updates are async, and
+     * might happen later than the next call to onChangeText).
      */
     const onChangeText = (textValue?: string) => {
-        if (!textValue?.length || !ValidationUtils.isNumeric(textValue)) {
+        if (!textValue?.length || !isNumeric(textValue)) {
             return;
         }
 
@@ -249,16 +260,17 @@ function MagicCodeInput(
         const numbersArr = addedValue
             .trim()
             .split('')
-            .slice(0, maxLength - editIndex);
-        const updatedFocusedIndex = Math.min(editIndex + (numbersArr.length - 1) + 1, maxLength - 1);
+            .slice(0, maxLength - editIndex.current);
+        const updatedFocusedIndex = Math.min(editIndex.current + (numbersArr.length - 1) + 1, maxLength - 1);
 
-        let numbers = decomposeString(value, maxLength);
-        numbers = [...numbers.slice(0, editIndex), ...numbersArr, ...numbers.slice(numbersArr.length + editIndex, maxLength)];
+        let numbers = decomposeString(valueRef.current, maxLength);
+        numbers = [...numbers.slice(0, editIndex.current), ...numbersArr, ...numbers.slice(numbersArr.length + editIndex.current, maxLength)];
 
         setInputAndIndex(updatedFocusedIndex);
 
         const finalInput = composeToString(numbers);
         onChangeTextProp(finalInput);
+        valueRef.current = finalInput;
     };
 
     /**
@@ -275,12 +287,13 @@ function MagicCodeInput(
             // If keyboard is disabled and no input is focused we need to remove
             // the last entered digit and focus on the correct input
             if (isDisableKeyboard && focusedIndex === undefined) {
-                const indexBeforeLastEditIndex = editIndex === 0 ? editIndex : editIndex - 1;
+                const curEditIndex = editIndex.current;
+                const indexBeforeLastEditIndex = curEditIndex === 0 ? curEditIndex : curEditIndex - 1;
 
-                const indexToFocus = numbers.at(editIndex) === CONST.MAGIC_CODE_EMPTY_CHAR ? indexBeforeLastEditIndex : editIndex;
+                const indexToFocus = numbers.at(curEditIndex) === CONST.MAGIC_CODE_EMPTY_CHAR ? indexBeforeLastEditIndex : curEditIndex;
                 if (indexToFocus !== undefined) {
                     lastFocusedIndex.current = indexToFocus;
-                    inputRefs.current?.focus();
+                    inputRef.current?.focus();
                 }
                 onChangeTextProp(value.substring(0, indexToFocus));
 
@@ -292,12 +305,12 @@ function MagicCodeInput(
             if (focusedIndex !== undefined && numbers?.at(focusedIndex) !== CONST.MAGIC_CODE_EMPTY_CHAR) {
                 setInput(TEXT_INPUT_EMPTY_STATE);
                 numbers = [...numbers.slice(0, focusedIndex), CONST.MAGIC_CODE_EMPTY_CHAR, ...numbers.slice(focusedIndex + 1, maxLength)];
-                setEditIndex(focusedIndex);
+                editIndex.current = focusedIndex;
                 onChangeTextProp(composeToString(numbers));
                 return;
             }
 
-            const hasInputs = numbers.filter((n) => ValidationUtils.isNumeric(n)).length !== 0;
+            const hasInputs = numbers.filter((n) => isNumeric(n)).length !== 0;
 
             // Fill the array with empty characters if there are no inputs.
             if (focusedIndex === 0 && !hasInputs) {
@@ -318,17 +331,17 @@ function MagicCodeInput(
 
             if (newFocusedIndex !== undefined) {
                 lastFocusedIndex.current = newFocusedIndex;
-                inputRefs.current?.focus();
+                inputRef.current?.focus();
             }
         }
         if (keyValue === 'ArrowLeft' && focusedIndex !== undefined) {
             const newFocusedIndex = Math.max(0, focusedIndex - 1);
             setInputAndIndex(newFocusedIndex);
-            inputRefs.current?.focus();
+            inputRef.current?.focus();
         } else if (keyValue === 'ArrowRight' && focusedIndex !== undefined) {
             const newFocusedIndex = Math.min(focusedIndex + 1, maxLength - 1);
             setInputAndIndex(newFocusedIndex);
-            inputRefs.current?.focus();
+            inputRef.current?.focus();
         } else if (keyValue === 'Enter') {
             // We should prevent users from submitting when it's offline.
             if (isOffline) {
@@ -340,7 +353,7 @@ function MagicCodeInput(
             const newFocusedIndex = (event as unknown as KeyboardEvent).shiftKey ? focusedIndex - 1 : focusedIndex + 1;
             if (newFocusedIndex >= 0 && newFocusedIndex < maxLength) {
                 setInputAndIndex(newFocusedIndex);
-                inputRefs.current?.focus();
+                inputRef.current?.focus();
                 if (event?.preventDefault) {
                     event.preventDefault();
                 }
@@ -369,6 +382,17 @@ function MagicCodeInput(
         // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
     }, [lastPressedDigit, isDisableKeyboard]);
 
+    const cursorOpacity = useSharedValue(1);
+
+    useEffect(() => {
+        cursorOpacity.set(withRepeat(withSequence(withDelay(500, withTiming(0, {duration: 0})), withDelay(500, withTiming(1, {duration: 0}))), -1, false));
+        // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
+    }, []);
+
+    const animatedCursorStyle = useAnimatedStyle(() => ({
+        opacity: cursorOpacity.get(),
+    }));
+
     return (
         <>
             <View style={[styles.magicCodeInputContainer]}>
@@ -383,7 +407,9 @@ function MagicCodeInput(
                             onLayout={(e) => {
                                 inputWidth.current = e.nativeEvent.layout.width;
                             }}
-                            ref={(inputRef) => (inputRefs.current = inputRef)}
+                            ref={(newRef) => {
+                                inputRef.current = newRef;
+                            }}
                             autoFocus={autoFocus}
                             inputMode="numeric"
                             textContentType="oneTimeCode"
@@ -392,7 +418,6 @@ function MagicCodeInput(
                             value={input}
                             hideFocusedState
                             autoComplete={input.length === 0 ? autoComplete : undefined}
-                            shouldDelayFocus={input.length === 0 && shouldDelayFocus}
                             keyboardType={CONST.KEYBOARD_TYPE.NUMBER_PAD}
                             onChangeText={onChangeText}
                             onKeyPress={onKeyPress}
@@ -406,28 +431,45 @@ function MagicCodeInput(
                             inputStyle={[styles.inputTransparent]}
                             role={CONST.ROLE.PRESENTATION}
                             style={[styles.inputTransparent]}
-                            textInputContainerStyles={[styles.borderNone]}
+                            textInputContainerStyles={[styles.borderNone, styles.bgTransparent]}
                             testID={testID}
                         />
                     </View>
                 </GestureDetector>
-                {getInputPlaceholderSlots(maxLength).map((index) => (
-                    <View
-                        key={index}
-                        style={maxLength === CONST.MAGIC_CODE_LENGTH ? [styles.w15] : [styles.flex1, index !== 0 && styles.ml3]}
-                    >
+                {getInputPlaceholderSlots(maxLength).map((index) => {
+                    const char = decomposeString(value, maxLength).at(index)?.trim() ?? '';
+                    const cursorMargin = char ? {marginLeft: 2} : {};
+                    const isFocused = focusedIndex === index;
+
+                    return (
                         <View
-                            style={[
-                                styles.textInputContainer,
-                                StyleUtils.getHeightOfMagicCodeInput(),
-                                hasError || errorText ? styles.borderColorDanger : {},
-                                focusedIndex === index ? styles.borderColorFocus : {},
-                            ]}
+                            key={index}
+                            style={maxLength === CONST.MAGIC_CODE_LENGTH ? [styles.w15] : [styles.flex1, index !== 0 && styles.ml3]}
                         >
-                            <Text style={[styles.magicCodeInput, styles.textAlignCenter]}>{decomposeString(value, maxLength).at(index) ?? ''}</Text>
+                            <View
+                                style={[
+                                    styles.textInputContainer,
+                                    StyleUtils.getHeightOfMagicCodeInput(),
+                                    hasError || errorText ? styles.borderColorDanger : {},
+                                    focusedIndex === index ? styles.borderColorFocus : {},
+                                    styles.pt0,
+                                    {position: 'relative'},
+                                ]}
+                            >
+                                <View style={styles.magicCodeInputValueContainer}>
+                                    <Text style={[styles.magicCodeInput, styles.textAlignCenter]}>{char}</Text>
+                                    {isFocused && !isDisableKeyboard && (
+                                        <View style={[styles.magicCodeInputCursorContainer]}>
+                                            {!!char && <Text style={[styles.magicCodeInput, styles.textAlignCenter, styles.opacity0]}>{char}</Text>}
+                                            <Text style={[styles.magicCodeInput, {width: 1}]}> </Text>
+                                            <Animated.Text style={[styles.magicCodeInputCursor, animatedCursorStyle, cursorMargin]}>│</Animated.Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
                         </View>
-                    </View>
-                ))}
+                    );
+                })}
             </View>
             {!!errorText && (
                 <FormHelpMessage

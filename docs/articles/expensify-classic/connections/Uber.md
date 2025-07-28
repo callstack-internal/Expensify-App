@@ -1,26 +1,46 @@
 ---
-title: Uber integration
-description: Connecting your Uber account to Expensify
+title: Integrate Uber with Expensify
+description: Learn how to connect Uber to Expensify Classic and how trip and tip expenses appear as separate entries based on Uber receipts.
+keywords: [Uber integration, Expensify Classic, trip expense, tip expense, connect Uber, import Uber receipts]
 ---
-## Overview
 
-Link Expensify directly to your Uber account so your Uber for Business receipts populate automatically in Expensify. 
+<div id="expensify-classic" markdown="1">
 
-# How to connect Uber to Expensify
+# Connect Uber to Expensify Classic
 
-You can do this right in the Uber app:
+You can automatically import your Uber receipts into Expensify Classic by connecting your Uber account. If you leave a tip, Uber issues a **separate receipt** for it—so you'll see **two expenses** in Expensify: one for the trip and one for the tip.
 
-1. Head to Account > Business hub > Get started 
-2. Tap Create an individual account > Get started
-3. Enter your business email and tap Next
-4. Select the payment card you'd like to use for your business profile
-5. Choose how frequently you’d like to receive travel summaries 
-6. Select Expensify as your expense provider
-Expensify and Uber are now connected! 
+---
 
-Now, every time you use Uber for Business – be it for rides or meals – the receipt will be imported and scanned into Expensify automatically. 
+## How Uber expenses are created
 
-![Uber integration set up steps: Connecting your account](https://help.expensify.com/assets/images/Uber1.png){:width="100%"}
-![Uber integration set up steps: Selecting Expensify](https://help.expensify.com/assets/images/Uber2.png){:width="100%"}
+Expensify imports expenses based on the receipts Uber sends:
 
-To disconnect Uber and Expensify, simply follow the above path and select Disconnect on the Expensify option.
+- **Trip Expense**: Created from Uber’s receipt for the base fare, taxes, and fees.
+- **Tip Expense**: Created from a separate receipt if you tip your driver after the ride.
+
+This helps ensure each charge is clearly tracked and categorized.
+
+---
+
+## How to connect your Uber account
+
+To connect your Uber account to Expensify:
+
+1. Log in to [Expensify Classic](https://www.expensify.com).
+2. Go to `Settings > Account > Profile`.
+3. Scroll to the **Connected Accounts** section.
+4. Click **Connect** next to Uber.
+5. Log in to your Uber account and authorize the connection.
+
+Once connected, Uber receipts will automatically import after each completed trip.
+
+---
+
+## Notes on Uber integration
+
+- Tip expenses may appear a few minutes after the trip expense.
+- Expensify will attempt to match duplicate receipts if SmartScanned or emailed separately.
+
+</div>
+

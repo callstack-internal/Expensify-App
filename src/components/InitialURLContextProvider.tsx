@@ -1,46 +1,35 @@
 import React, {createContext, useEffect, useMemo, useState} from 'react';
 import type {ReactNode} from 'react';
 import {Linking} from 'react-native';
-import {signInAfterTransitionFromOldDot} from '@libs/actions/Session';
-import CONST from '@src/CONST';
 import type {Route} from '@src/ROUTES';
-import {useSplashScreenStateContext} from '@src/SplashScreenStateContext';
 
 type InitialUrlContextType = {
-    initialURL: Route | undefined;
-    setInitialURL: React.Dispatch<React.SetStateAction<Route | undefined>>;
+    initialURL: Route | null;
+    setInitialURL: React.Dispatch<React.SetStateAction<Route | null>>;
 };
 
 /** Initial url that will be opened when NewDot is embedded into Hybrid App. */
 const InitialURLContext = createContext<InitialUrlContextType>({
-    initialURL: undefined,
+    initialURL: null,
     setInitialURL: () => {},
 });
 
 type InitialURLContextProviderProps = {
-    /** URL passed to our top-level React Native component by HybridApp. Will always be undefined in "pure" NewDot builds. */
-    url?: Route;
-
     /** Children passed to the context provider */
     children: ReactNode;
 };
 
-function InitialURLContextProvider({children, url}: InitialURLContextProviderProps) {
-    const [initialURL, setInitialURL] = useState<Route | undefined>();
-    const {setSplashScreenState} = useSplashScreenStateContext();
+function InitialURLContextProvider({children}: InitialURLContextProviderProps) {
+    const [initialURL, setInitialURL] = useState<Route | null>(null);
 
     useEffect(() => {
-        if (url) {
-            signInAfterTransitionFromOldDot(url).then((route) => {
-                setInitialURL(route);
-                setSplashScreenState(CONST.BOOT_SPLASH_STATE.READY_TO_BE_HIDDEN);
-            });
-            return;
-        }
         Linking.getInitialURL().then((initURL) => {
+            if (!initURL) {
+                return;
+            }
             setInitialURL(initURL as Route);
         });
-    }, [setSplashScreenState, url]);
+    }, []);
 
     const initialUrlContext = useMemo(
         () => ({

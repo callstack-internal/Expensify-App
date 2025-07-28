@@ -1,10 +1,10 @@
 import React from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';
 import SearchFiltersParticipantsSelector from '@components/Search/SearchFiltersParticipantsSelector';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import Navigation from '@libs/Navigation/Navigation';
 import * as SearchActions from '@userActions/Search';
@@ -20,7 +20,7 @@ function SearchFiltersFromPage() {
     return (
         <ScreenWrapper
             testID={SearchFiltersFromPage.displayName}
-            includeSafeAreaPaddingBottom={false}
+            includeSafeAreaPaddingBottom
             shouldShowOfflineIndicatorInWideScreen
             offlineIndicatorStyle={styles.mtAuto}
             shouldEnableMaxHeight

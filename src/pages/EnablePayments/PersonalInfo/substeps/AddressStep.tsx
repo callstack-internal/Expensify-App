@@ -1,7 +1,7 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
 import CommonAddressStep from '@components/SubStepForms/AddressStep';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import type {SubStepProps} from '@hooks/useSubStep/types';
 import useWalletAdditionalDetailsStepFormSubmit from '@hooks/useWalletAdditionalDetailsStepFormSubmit';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -43,7 +43,7 @@ function AddressStep({onNext, onMove, isEditing}: SubStepProps) {
             onMove={onMove}
             formID={ONYXKEYS.FORMS.WALLET_ADDITIONAL_DETAILS}
             formTitle={translate('personalInfoStep.whatsYourAddress')}
-            formPOBoxDisclaimer={translate('personalInfoStep.noPOBoxesPlease')}
+            formPOBoxDisclaimer={translate('common.noPO')}
             onSubmit={handleSubmit}
             stepFields={STEP_FIELDS}
             inputFieldsIDs={INPUT_KEYS}

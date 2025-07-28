@@ -1,25 +1,25 @@
 import {useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
+import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import PaginationUtils from '@libs/PaginationUtils';
-import * as ReportActionsUtils from '@libs/ReportActionsUtils';
-import * as ReportUtils from '@libs/ReportUtils';
+import {getSortedReportActionsForDisplay} from '@libs/ReportActionsUtils';
+import {canUserPerformWriteAction} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
+import useOnyx from './useOnyx';
 
 /**
  * Get the longest continuous chunk of reportActions including the linked reportAction. If not linking to a specific action, returns the continuous chunk of newest reportActions.
  */
-function usePaginatedReportActions(reportID?: string, reportActionID?: string) {
-    // Use `||` instead of `??` to handle empty string.
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    const reportIDWithDefault = reportID || '-1';
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDWithDefault}`);
-    const canUserPerformWriteAction = ReportUtils.canUserPerformWriteAction(report);
+function usePaginatedReportActions(reportID: string | undefined, reportActionID?: string) {
+    const nonEmptyStringReportID = getNonEmptyStringOnyxID(reportID);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${nonEmptyStringReportID}`, {canBeMissing: true});
+    const hasWriteAccess = canUserPerformWriteAction(report);
 
-    const [sortedAllReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportIDWithDefault}`, {
+    const [sortedAllReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${nonEmptyStringReportID}`, {
         canEvict: false,
-        selector: (allReportActions) => ReportActionsUtils.getSortedReportActionsForDisplay(allReportActions, canUserPerformWriteAction, true),
+        selector: (allReportActions) => getSortedReportActionsForDisplay(allReportActions, hasWriteAccess, true),
+        canBeMissing: true,
     });
-    const [reportActionPages] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_PAGES}${reportIDWithDefault}`);
+    const [reportActionPages] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_PAGES}${nonEmptyStringReportID}`, {canBeMissing: true});
 
     const {
         data: reportActions,
@@ -33,7 +33,7 @@ function usePaginatedReportActions(reportID?: string, reportActionID?: string) {
     }, [reportActionID, reportActionPages, sortedAllReportActions]);
 
     const linkedAction = useMemo(
-        () => sortedAllReportActions?.find((reportAction) => String(reportAction.reportActionID) === String(reportActionID)),
+        () => (reportActionID ? sortedAllReportActions?.find((reportAction) => String(reportAction.reportActionID) === String(reportActionID)) : undefined),
         [reportActionID, sortedAllReportActions],
     );
 
@@ -43,6 +43,7 @@ function usePaginatedReportActions(reportID?: string, reportActionID?: string) {
         sortedAllReportActions,
         hasOlderActions: hasNextPage,
         hasNewerActions: hasPreviousPage,
+        report,
     };
 }
 

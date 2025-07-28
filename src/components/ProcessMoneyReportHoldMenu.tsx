@@ -4,8 +4,7 @@ import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import Navigation from '@libs/Navigation/Navigation';
 import {isLinkedTransactionHeld} from '@libs/ReportActionsUtils';
-import playSound, {SOUNDS} from '@libs/Sound';
-import * as IOU from '@userActions/IOU';
+import {approveMoneyRequest, payMoneyRequest} from '@userActions/IOU';
 import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
 import type * as OnyxTypes from '@src/types/onyx';
@@ -67,16 +66,18 @@ function ProcessMoneyReportHoldMenu({
 
     const onSubmit = (full: boolean) => {
         if (isApprove) {
-            IOU.approveMoneyRequest(moneyRequestReport, full);
-            if (!full && isLinkedTransactionHeld(Navigation.getTopmostReportActionId() ?? '-1', moneyRequestReport?.reportID ?? '')) {
-                Navigation.goBack(ROUTES.REPORT_WITH_ID.getRoute(moneyRequestReport?.reportID ?? ''));
+            if (startAnimation) {
+                startAnimation();
+            }
+            approveMoneyRequest(moneyRequestReport, full);
+            if (!full && isLinkedTransactionHeld(Navigation.getTopmostReportActionId(), moneyRequestReport?.reportID)) {
+                Navigation.goBack(ROUTES.REPORT_WITH_ID.getRoute(moneyRequestReport?.reportID));
             }
         } else if (chatReport && paymentType) {
             if (startAnimation) {
                 startAnimation();
             }
-            playSound(SOUNDS.SUCCESS);
-            IOU.payMoneyRequest(paymentType, chatReport, moneyRequestReport, full);
+            payMoneyRequest(paymentType, chatReport, moneyRequestReport, full);
         }
         onClose();
     };

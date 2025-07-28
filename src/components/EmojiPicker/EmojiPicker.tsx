@@ -11,10 +11,12 @@ import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
+import blurActiveElement from '@libs/Accessibility/blurActiveElement';
 import type {AnchorOrigin, EmojiPickerRef, EmojiPopoverAnchor, OnEmojiSelected, OnModalHideValue, OnWillShowPicker} from '@libs/actions/EmojiPickerAction';
-import * as Browser from '@libs/Browser';
+import {isMobileChrome} from '@libs/Browser';
 import calculateAnchorPosition from '@libs/calculateAnchorPosition';
-import * as Modal from '@userActions/Modal';
+import DomUtils from '@libs/DomUtils';
+import {close} from '@userActions/Modal';
 import CONST from '@src/CONST';
 import EmojiPickerMenu from './EmojiPickerMenu';
 
@@ -36,6 +38,7 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
         vertical: 0,
     });
     const [emojiPopoverAnchorOrigin, setEmojiPopoverAnchorOrigin] = useState<AnchorOrigin>(DEFAULT_ANCHOR_ORIGIN);
+    const [isWithoutOverlay, setIsWithoutOverlay] = useState(true);
     const [activeID, setActiveID] = useState<string | null>();
     const emojiPopoverAnchorRef = useRef<EmojiPopoverAnchor | null>(null);
     const emojiAnchorDimension = useRef({
@@ -44,8 +47,8 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
     });
     const onModalHide = useRef<OnModalHideValue>(() => {});
     const onEmojiSelected = useRef<OnEmojiSelected>(() => {});
-    const activeEmoji = useRef<string | undefined>();
-    const emojiSearchInput = useRef<BaseTextInputRef | null>();
+    const activeEmoji = useRef<string | undefined>(undefined);
+    const emojiSearchInput = useRef<BaseTextInputRef | null>(null);
     const {windowHeight} = useWindowDimensions();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
 
@@ -78,10 +81,12 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
         onWillShow?: OnWillShowPicker,
         id?: string,
         activeEmojiValue?: string,
+        withoutOverlay = true,
     ) => {
         onModalHide.current = onModalHideValue;
         onEmojiSelected.current = onEmojiSelectedValue;
         activeEmoji.current = activeEmojiValue;
+        setIsWithoutOverlay(withoutOverlay);
         emojiPopoverAnchorRef.current = emojiPopoverAnchorValue;
         const emojiPopoverAnchor = getEmojiPopoverAnchor();
         // Drop focus to avoid blue focus ring.
@@ -92,7 +97,7 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
         // It's possible that the anchor is inside an active modal (e.g., add emoji reaction in report context menu).
         // So, we need to get the anchor position first before closing the active modal which will also destroy the anchor.
         calculateAnchorPosition(emojiPopoverAnchor?.current, anchorOriginValue).then((value) => {
-            Modal.close(() => {
+            close(() => {
                 onWillShow?.();
                 setIsEmojiPickerVisible(true);
                 setEmojiPopoverAnchorPosition({
@@ -113,6 +118,10 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
      * Hide the emoji picker menu.
      */
     const hideEmojiPicker = (isNavigating?: boolean) => {
+        const activeElementId = DomUtils.getActiveElement()?.id;
+        if (activeElementId !== CONST.COMPOSER.NATIVE_ID) {
+            blurActiveElement();
+        }
         const currOnModalHide = onModalHide.current;
         onModalHide.current = () => {
             if (currOnModalHide) {
@@ -190,25 +199,20 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
         };
     }, [isEmojiPickerVisible, shouldUseNarrowLayout, emojiPopoverAnchorOrigin, getEmojiPopoverAnchor]);
 
-    // There is no way to disable animations, and they are really laggy, because there are so many
-    // emojis. The best alternative is to set it to 1ms so it just "pops" in and out
     return (
         <PopoverWithMeasuredContent
-            shouldHandleNavigationBack={Browser.isMobileChrome()}
+            shouldHandleNavigationBack={isMobileChrome()}
             isVisible={isEmojiPickerVisible}
             onClose={hideEmojiPicker}
             onModalShow={focusEmojiSearchInput}
             onModalHide={onModalHide.current}
-            hideModalContentWhileAnimating
             shouldSetModalVisibility={false}
-            animationInTiming={1}
-            animationOutTiming={1}
             anchorPosition={{
                 vertical: emojiPopoverAnchorPosition.vertical,
                 horizontal: emojiPopoverAnchorPosition.horizontal,
             }}
             anchorRef={getEmojiPopoverAnchor() as RefObject<View | HTMLDivElement>}
-            withoutOverlay
+            withoutOverlay={isWithoutOverlay}
             popoverDimensions={{
                 width: CONST.EMOJI_PICKER_SIZE.WIDTH,
                 height: CONST.EMOJI_PICKER_SIZE.HEIGHT,
@@ -218,16 +222,19 @@ function EmojiPicker({viewportOffsetTop}: EmojiPickerProps, ref: ForwardedRef<Em
             innerContainerStyle={styles.popoverInnerContainer}
             anchorDimensions={emojiAnchorDimension.current}
             avoidKeyboard
-            shoudSwitchPositionIfOverflow
+            shouldSwitchPositionIfOverflow
             shouldEnableNewFocusManagement
             restoreFocusType={CONST.MODAL.RESTORE_FOCUS_TYPE.DELETE}
+            shouldSkipRemeasurement
         >
             <FocusTrapForModal active={isEmojiPickerVisible}>
                 <View>
                     <EmojiPickerMenu
                         onEmojiSelected={selectEmoji}
                         activeEmoji={activeEmoji.current}
-                        ref={(el) => (emojiSearchInput.current = el)}
+                        ref={(el) => {
+                            emojiSearchInput.current = el;
+                        }}
                     />
                 </View>
             </FocusTrapForModal>

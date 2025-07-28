@@ -39,13 +39,13 @@ function TypeSelectorModal({isVisible, currentType, label, subtitle, onTypeSelec
             isVisible={isVisible}
             onClose={onClose}
             onModalHide={onClose}
-            hideModalContentWhileAnimating
-            useNativeDriver
+            enableEdgeToEdgeBottomSafeAreaPadding
+            shouldUseReanimatedModal
         >
             <ScreenWrapper
                 style={styles.pb0}
                 includePaddingTop={false}
-                includeSafeAreaPaddingBottom={false}
+                enableEdgeToEdgeBottomSafeAreaPadding
                 testID={TypeSelectorModal.displayName}
             >
                 <HeaderWithBackButton

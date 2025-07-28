@@ -1,5 +1,4 @@
 import React, {useCallback, useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
 import Icon from '@components/Icon';
 import * as Expensicons from '@components/Icon/Expensicons';
 import SelectionList from '@components/SelectionList';
@@ -7,22 +6,18 @@ import RadioListItem from '@components/SelectionList/RadioListItem';
 import type {ListItem} from '@components/SelectionList/types';
 import useDebouncedState from '@hooks/useDebouncedState';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useTheme from '@hooks/useTheme';
-import localeCompare from '@libs/LocaleCompare';
-import * as OptionsListUtils from '@libs/OptionsListUtils';
-import * as ReportFieldOptionsListUtils from '@libs/ReportFieldOptionsListUtils';
+import {getHeaderMessageForNonUserList} from '@libs/OptionsListUtils';
+import {getReportFieldOptionsSection} from '@libs/ReportFieldOptionsListUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 
-type EditReportFieldDropdownPageComponentProps = {
+type EditReportFieldDropdownPageProps = {
     /** Value of the policy report field */
     fieldValue: string;
 
     /** Key of the policy report field */
     fieldKey: string;
-
-    /** ID of the policy this report field belongs to */
-    // eslint-disable-next-line react/no-unused-prop-types
-    policyID: string;
 
     /** Options of the policy report field */
     fieldOptions: string[];
@@ -31,14 +26,12 @@ type EditReportFieldDropdownPageComponentProps = {
     onSubmit: (form: Record<string, string>) => void;
 };
 
-type EditReportFieldDropdownPageProps = EditReportFieldDropdownPageComponentProps;
-
 function EditReportFieldDropdownPage({onSubmit, fieldKey, fieldValue, fieldOptions}: EditReportFieldDropdownPageProps) {
-    const [recentlyUsedReportFields] = useOnyx(ONYXKEYS.RECENTLY_USED_REPORT_FIELDS);
+    const [recentlyUsedReportFields] = useOnyx(ONYXKEYS.RECENTLY_USED_REPORT_FIELDS, {canBeMissing: true});
     const [searchValue, debouncedSearchValue, setSearchValue] = useDebouncedState('');
     const theme = useTheme();
-    const {translate} = useLocalize();
-    const recentlyUsedOptions = useMemo(() => recentlyUsedReportFields?.[fieldKey]?.sort(localeCompare) ?? [], [recentlyUsedReportFields, fieldKey]);
+    const {translate, localeCompare} = useLocalize();
+    const recentlyUsedOptions = useMemo(() => recentlyUsedReportFields?.[fieldKey]?.sort(localeCompare) ?? [], [recentlyUsedReportFields, fieldKey, localeCompare]);
 
     const itemRightSideComponent = useCallback(
         (item: ListItem) => {
@@ -59,7 +52,7 @@ function EditReportFieldDropdownPage({onSubmit, fieldKey, fieldValue, fieldOptio
     const [sections, headerMessage] = useMemo(() => {
         const validFieldOptions = fieldOptions?.filter((option) => !!option)?.sort(localeCompare);
 
-        const policyReportFieldOptions = ReportFieldOptionsListUtils.getReportFieldOptionsSection({
+        const policyReportFieldOptions = getReportFieldOptionsSection({
             searchValue: debouncedSearchValue,
             selectedOptions: [
                 {
@@ -73,10 +66,10 @@ function EditReportFieldDropdownPage({onSubmit, fieldKey, fieldValue, fieldOptio
         });
 
         const policyReportFieldData = policyReportFieldOptions.at(0)?.data ?? [];
-        const header = OptionsListUtils.getHeaderMessageForNonUserList(policyReportFieldData.length > 0, debouncedSearchValue);
+        const header = getHeaderMessageForNonUserList(policyReportFieldData.length > 0, debouncedSearchValue);
 
         return [policyReportFieldOptions, header];
-    }, [recentlyUsedOptions, debouncedSearchValue, fieldValue, fieldOptions]);
+    }, [fieldOptions, localeCompare, debouncedSearchValue, fieldValue, recentlyUsedOptions]);
 
     const selectedOptionKey = useMemo(() => (sections.at(0)?.data ?? []).filter((option) => option.searchText === fieldValue)?.at(0)?.keyForList, [sections, fieldValue]);
     return (

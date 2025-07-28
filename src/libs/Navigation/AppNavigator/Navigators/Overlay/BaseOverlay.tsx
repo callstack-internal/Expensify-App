@@ -1,5 +1,6 @@
 import {useCardAnimation} from '@react-navigation/stack';
 import React from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {Animated, View} from 'react-native';
 import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeedback';
 import useLocalize from '@hooks/useLocalize';
@@ -7,9 +8,6 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import CONST from '@src/CONST';
 
 type BaseOverlayProps = {
-    /* Whether to use native styles tailored for native devices */
-    shouldUseNativeStyles: boolean;
-
     /* Callback to close the modal */
     onPress?: () => void;
 
@@ -17,7 +15,7 @@ type BaseOverlayProps = {
     isModalOnTheLeft?: boolean;
 };
 
-function BaseOverlay({shouldUseNativeStyles, onPress, isModalOnTheLeft = false}: BaseOverlayProps) {
+function BaseOverlay({onPress, isModalOnTheLeft = false}: BaseOverlayProps) {
     const styles = useThemeStyles();
     const {current} = useCardAnimation();
     const {translate} = useLocalize();
@@ -25,7 +23,7 @@ function BaseOverlay({shouldUseNativeStyles, onPress, isModalOnTheLeft = false}:
     return (
         <Animated.View
             id="BaseOverlay"
-            style={shouldUseNativeStyles ? styles.nativeOverlayStyles(current) : styles.overlayStyles(current, isModalOnTheLeft)}
+            style={styles.overlayStyles(current, isModalOnTheLeft)}
         >
             <View style={[styles.flex1, styles.flexColumn]}>
                 {/* In the latest Electron version buttons can't be both clickable and draggable.
@@ -33,7 +31,7 @@ function BaseOverlay({shouldUseNativeStyles, onPress, isModalOnTheLeft = false}:
              we have 30px draggable ba at the top and the rest of the dimmed area is clickable. On other devices,
              everything behaves normally like one big pressable */}
                 <PressableWithoutFeedback
-                    style={[styles.draggableTopBar, styles.boxShadowNone]}
+                    style={[styles.draggableTopBar, styles.boxShadowNone, styles.cursorAuto]}
                     onPress={onPress}
                     accessibilityLabel={translate('common.close')}
                     role={CONST.ROLE.BUTTON}
@@ -41,7 +39,7 @@ function BaseOverlay({shouldUseNativeStyles, onPress, isModalOnTheLeft = false}:
                     tabIndex={-1}
                 />
                 <PressableWithoutFeedback
-                    style={[styles.flex1, styles.boxShadowNone]}
+                    style={[styles.flex1, styles.boxShadowNone, styles.cursorAuto]}
                     onPress={onPress}
                     accessibilityLabel={translate('common.close')}
                     role={CONST.ROLE.BUTTON}

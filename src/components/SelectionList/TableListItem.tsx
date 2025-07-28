@@ -26,6 +26,8 @@ function TableListItem<TItem extends ListItem>({
     onFocus,
     onLongPressRow,
     shouldSyncFocus,
+    titleContainerStyles,
+    shouldUseDefaultRightHandSideCheckmark,
 }: TableListItemProps<TItem>) {
     const styles = useThemeStyles();
     const theme = useTheme();
@@ -79,6 +81,7 @@ function TableListItem<TItem extends ListItem>({
             onFocus={onFocus}
             shouldSyncFocus={shouldSyncFocus}
             hoverStyle={item.isSelected && styles.activeComponentBG}
+            shouldUseDefaultRightHandSideCheckmark={shouldUseDefaultRightHandSideCheckmark}
         >
             {(hovered) => (
                 <>
@@ -89,6 +92,7 @@ function TableListItem<TItem extends ListItem>({
                             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
                             disabled={isDisabled || item.isDisabledCheckbox}
                             onPress={handleCheckboxPress}
+                            testID={`TableListItemCheckbox-${item.text}`}
                             style={[styles.cursorUnset, StyleUtils.getCheckboxPressableStyle(), item.isDisabledCheckbox && styles.cursorDisabled, styles.mr3, item.cursorStyle]}
                         >
                             <View style={[StyleUtils.getCheckboxContainerStyle(20), StyleUtils.getMultiselectListStyles(!!item.isSelected, !!item.isDisabled), item.cursorStyle]}>
@@ -114,7 +118,7 @@ function TableListItem<TItem extends ListItem>({
                             ]}
                         />
                     )}
-                    <View style={[styles.flex1, styles.flexColumn, styles.justifyContentCenter, styles.alignItemsStretch]}>
+                    <View style={[styles.flex1, styles.flexColumn, styles.justifyContentCenter, styles.alignItemsStretch, titleContainerStyles]}>
                         <TextWithTooltip
                             shouldShowTooltip={showTooltip}
                             text={item.text ?? ''}

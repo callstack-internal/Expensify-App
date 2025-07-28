@@ -1,7 +1,5 @@
-import type {StackScreenProps} from '@react-navigation/stack';
 import React, {useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
 import CategorySelector from '@components/CategorySelector';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
@@ -10,9 +8,11 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import ScrollView from '@components/ScrollView';
 import type {ListItem} from '@components/SelectionList/types';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {clearPolicyPerDiemRatesErrorFields} from '@libs/actions/Policy/PerDiem';
 import * as ErrorUtils from '@libs/ErrorUtils';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import * as OptionsListUtils from '@libs/OptionsListUtils';
 import {getPerDiemCustomUnit} from '@libs/PolicyUtils';
 import type {SettingsNavigatorParamList} from '@navigation/types';
@@ -23,7 +23,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
 import type {CustomUnit} from '@src/types/onyx/Policy';
 
-type WorkspacePerDiemSettingsPageProps = StackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.PER_DIEM_SETTINGS>;
+type WorkspacePerDiemSettingsPageProps = PlatformStackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.PER_DIEM_SETTINGS>;
 
 function WorkspacePerDiemSettingsPage({route}: WorkspacePerDiemSettingsPageProps) {
     const policyID = route.params.policyID;
@@ -60,13 +60,17 @@ function WorkspacePerDiemSettingsPage({route}: WorkspacePerDiemSettingsPageProps
             featureName={CONST.POLICY.MORE_FEATURES.ARE_PER_DIEM_RATES_ENABLED}
         >
             <ScreenWrapper
-                includeSafeAreaPaddingBottom={false}
+                enableEdgeToEdgeBottomSafeAreaPadding
                 style={[styles.defaultModalContainer]}
                 testID={WorkspacePerDiemSettingsPage.displayName}
             >
                 <HeaderWithBackButton title={translate('workspace.common.settings')} />
-                <FullPageBlockingView style={customUnit ? styles.flexGrow1 : []}>
+                <FullPageBlockingView
+                    style={customUnit ? styles.flexGrow1 : []}
+                    addBottomSafeAreaPadding
+                >
                     <ScrollView
+                        addBottomSafeAreaPadding
                         contentContainerStyle={styles.flexGrow1}
                         keyboardShouldPersistTaps="always"
                     >

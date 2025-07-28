@@ -44,13 +44,13 @@ function ExpenseLimitTypeSelectorModal({isVisible, currentExpenseLimitType, onEx
             isVisible={isVisible}
             onClose={onClose}
             onModalHide={onClose}
-            hideModalContentWhileAnimating
-            useNativeDriver
+            enableEdgeToEdgeBottomSafeAreaPadding
+            shouldUseReanimatedModal
         >
             <ScreenWrapper
                 style={[styles.pb0]}
                 includePaddingTop={false}
-                includeSafeAreaPaddingBottom={false}
+                enableEdgeToEdgeBottomSafeAreaPadding
                 testID={ExpenseLimitTypeSelectorModal.displayName}
             >
                 <HeaderWithBackButton
@@ -67,6 +67,7 @@ function ExpenseLimitTypeSelectorModal({isVisible, currentExpenseLimitType, onEx
                     initiallyFocusedOptionKey={currentExpenseLimitType}
                     isAlternateTextMultilineSupported
                     alternateTextNumberOfLines={3}
+                    addBottomSafeAreaPadding
                 />
             </ScreenWrapper>
         </Modal>

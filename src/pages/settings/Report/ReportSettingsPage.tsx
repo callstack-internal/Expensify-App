@@ -1,7 +1,5 @@
-import type {StackScreenProps} from '@react-navigation/stack';
 import React, {useMemo} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
@@ -9,43 +7,52 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import ScrollView from '@components/ScrollView';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
+import useReportIsArchived from '@hooks/useReportIsArchived';
 import useThemeStyles from '@hooks/useThemeStyles';
 import Navigation from '@libs/Navigation/Navigation';
-import * as ReportUtils from '@libs/ReportUtils';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
+import {
+    canEditRoomVisibility,
+    canEditWriteCapability,
+    getReportNotificationPreference,
+    isAdminRoom,
+    isArchivedNonExpenseReport as isArchivedNonExpenseReportUtils,
+    isHiddenForCurrentUser,
+    isMoneyRequestReport as isMoneyRequestReportUtils,
+    isSelfDM,
+} from '@libs/ReportUtils';
 import type {ReportSettingsNavigatorParamList} from '@navigation/types';
 import withReportOrNotFound from '@pages/home/report/withReportOrNotFound';
 import type {WithReportOrNotFoundProps} from '@pages/home/report/withReportOrNotFound';
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
-type ReportSettingsPageProps = WithReportOrNotFoundProps & StackScreenProps<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.ROOT>;
+type ReportSettingsPageProps = WithReportOrNotFoundProps & PlatformStackScreenProps<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.ROOT>;
 
-function ReportSettingsPage({report, policies, route}: ReportSettingsPageProps) {
+function ReportSettingsPage({report, policy, route}: ReportSettingsPageProps) {
     const backTo = route.params.backTo;
-    const reportID = report?.reportID ?? '-1';
+    const reportID = report?.reportID;
     const styles = useThemeStyles();
     const {translate} = useLocalize();
-    const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`);
+    const isReportArchived = useReportIsArchived(reportID);
+    const isArchivedNonExpenseReport = isArchivedNonExpenseReportUtils(report, isReportArchived);
     // The workspace the report is on, null if the user isn't a member of the workspace
-    const linkedWorkspace = useMemo(() => Object.values(policies ?? {}).find((policy) => policy && policy.id === report?.policyID), [policies, report?.policyID]);
-    const isMoneyRequestReport = ReportUtils.isMoneyRequestReport(report);
-
-    const shouldDisableSettings = isEmptyObject(report) || ReportUtils.isArchivedRoom(report, reportNameValuePairs) || ReportUtils.isSelfDM(report);
-    const notificationPreferenceValue = ReportUtils.getReportNotificationPreference(report);
+    const linkedWorkspace = useMemo(() => (report?.policyID && policy?.id === report?.policyID ? policy : undefined), [policy, report?.policyID]);
+    const isMoneyRequestReport = isMoneyRequestReportUtils(report);
+    const shouldDisableSettings = isArchivedNonExpenseReport || isEmptyObject(report) || isSelfDM(report);
+    const notificationPreferenceValue = getReportNotificationPreference(report);
     const notificationPreference =
-        notificationPreferenceValue && notificationPreferenceValue !== CONST.REPORT.NOTIFICATION_PREFERENCE.HIDDEN
+        notificationPreferenceValue && !isHiddenForCurrentUser(notificationPreferenceValue)
             ? translate(`notificationPreferencesPage.notificationPreferences.${notificationPreferenceValue}`)
             : '';
-    const writeCapability = ReportUtils.isAdminRoom(report) ? CONST.REPORT.WRITE_CAPABILITIES.ADMINS : report?.writeCapability ?? CONST.REPORT.WRITE_CAPABILITIES.ALL;
-
+    const writeCapability = isAdminRoom(report) ? CONST.REPORT.WRITE_CAPABILITIES.ADMINS : (report?.writeCapability ?? CONST.REPORT.WRITE_CAPABILITIES.ALL);
     const writeCapabilityText = translate(`writeCapabilityPage.writeCapability.${writeCapability}`);
-    const shouldAllowWriteCapabilityEditing = useMemo(() => ReportUtils.canEditWriteCapability(report, linkedWorkspace), [report, linkedWorkspace]);
-    const shouldAllowChangeVisibility = useMemo(() => ReportUtils.canEditRoomVisibility(report, linkedWorkspace), [report, linkedWorkspace]);
+    const shouldAllowWriteCapabilityEditing = useMemo(() => canEditWriteCapability(report, linkedWorkspace, isReportArchived), [report, linkedWorkspace, isReportArchived]);
+    const shouldAllowChangeVisibility = useMemo(() => canEditRoomVisibility(linkedWorkspace, isArchivedNonExpenseReport), [linkedWorkspace, isArchivedNonExpenseReport]);
 
-    const shouldShowNotificationPref = !isMoneyRequestReport && notificationPreferenceValue !== CONST.REPORT.NOTIFICATION_PREFERENCE.HIDDEN;
+    const shouldShowNotificationPref = !isMoneyRequestReport && !isHiddenForCurrentUser(notificationPreferenceValue);
 
     const shouldShowWriteCapability = !isMoneyRequestReport;
 

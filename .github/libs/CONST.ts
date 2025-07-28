@@ -1,8 +1,9 @@
 const GITHUB_BASE_URL_REGEX = new RegExp('https?://(?:github\\.com|api\\.github\\.com)');
 
 const GIT_CONST = {
-    GITHUB_OWNER: 'Expensify',
-    APP_REPO: 'App',
+    GITHUB_OWNER: process.env.GITHUB_REPOSITORY_OWNER ?? 'Expensify',
+    APP_REPO: (process.env.GITHUB_REPOSITORY ?? 'Expensify/App').split('/').at(1) ?? '',
+    MOBILE_EXPENSIFY_REPO: 'Mobile-Expensify',
 } as const;
 
 const CONST = {
@@ -16,19 +17,21 @@ const CONST = {
         HELP_WANTED: 'Help Wanted',
         CP_STAGING: 'CP Staging',
     },
+    STATE: {
+        OPEN: 'open',
+    },
+    COMMENT: {
+        TYPE_BOT: 'Bot',
+        NAME_GITHUB_ACTIONS: 'github-actions',
+    },
     ACTIONS: {
         CREATED: 'created',
-        EDIT: 'edited',
+        EDITED: 'edited',
     },
     EVENTS: {
         ISSUE_COMMENT: 'issue_comment',
     },
-    OPENAI_ROLES: {
-        USER: 'user',
-        ASSISTANT: 'assistant',
-    },
     PROPOSAL_KEYWORD: 'Proposal',
-    OPENAI_THREAD_COMPLETED: 'completed',
     DATE_FORMAT_STRING: 'yyyy-MM-dd',
     PULL_REQUEST_REGEX: new RegExp(`${GITHUB_BASE_URL_REGEX.source}/.*/.*/pull/([0-9]+).*`),
     ISSUE_REGEX: new RegExp(`${GITHUB_BASE_URL_REGEX.source}/.*/.*/issues/([0-9]+).*`),
@@ -37,8 +40,9 @@ const CONST = {
     APP_REPO_URL: `https://github.com/${GIT_CONST.GITHUB_OWNER}/${GIT_CONST.APP_REPO}`,
     APP_REPO_GIT_URL: `git@github.com:${GIT_CONST.GITHUB_OWNER}/${GIT_CONST.APP_REPO}.git`,
     NO_ACTION: 'NO_ACTION',
-    OPENAI_POLL_RATE: 1500,
-    OPENAI_POLL_TIMEOUT: 90000,
+    ACTION_EDIT: 'ACTION_EDIT',
+    ACTION_REQUIRED: 'ACTION_REQUIRED',
+    ACTION_HIDE_DUPLICATE: 'ACTION_HIDE_DUPLICATE',
 } as const;
 
 export default CONST;

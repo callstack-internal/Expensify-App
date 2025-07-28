@@ -1,11 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import CheckboxWithLabel from '@components/CheckboxWithLabel';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';
 import Text from '@components/Text';
 import TextLink from '@components/TextLink';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import type {SubStepProps} from '@hooks/useSubStep/types';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as ErrorUtils from '@libs/ErrorUtils';
@@ -28,12 +28,14 @@ function AgreeToTheLabel() {
     const [userWallet] = useOnyx(ONYXKEYS.USER_WALLET);
 
     const walletAgreementUrl =
-        userWallet?.walletProgramID && userWallet?.walletProgramID === CONST.WALLET.BANCORP_WALLET_PROGRAM_ID ? CONST.BANCORP_WALLET_AGREEMENT_URL : CONST.WALLET_AGREEMENT_URL;
+        userWallet?.walletProgramID && userWallet?.walletProgramID === CONST.WALLET.BANCORP_WALLET_PROGRAM_ID
+            ? CONST.OLD_DOT_PUBLIC_URLS.BANCORP_WALLET_AGREEMENT_URL
+            : CONST.OLD_DOT_PUBLIC_URLS.WALLET_AGREEMENT_URL;
 
     return (
         <Text>
             {`${translate('termsStep.agreeToThe')} `}
-            <TextLink href={CONST.PRIVACY_URL}>{`${translate('common.privacy')} `}</TextLink>
+            <TextLink href={CONST.OLD_DOT_PUBLIC_URLS.PRIVACY_URL}>{`${translate('common.privacy')} `}</TextLink>
             {`${translate('common.and')} `}
             <TextLink href={walletAgreementUrl}>{`${translate('termsStep.walletAgreement')}.`}</TextLink>
         </Text>
@@ -49,7 +51,7 @@ function TermsStep({onNext}: SubStepProps) {
 
     const [walletTerms] = useOnyx(ONYXKEYS.WALLET_TERMS);
 
-    const errorMessage = error ? translate('common.error.acceptTerms') : ErrorUtils.getLatestErrorMessage(walletTerms ?? {}) ?? '';
+    const errorMessage = error ? translate('common.error.acceptTerms') : (ErrorUtils.getLatestErrorMessage(walletTerms ?? {}) ?? '');
 
     const toggleDisclosure = () => {
         setHasAcceptedDisclosure(!hasAcceptedDisclosure);

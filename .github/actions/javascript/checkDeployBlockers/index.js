@@ -4732,6 +4732,79 @@ exports.throttling = throttling;
 
 /***/ }),
 
+/***/ 537:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var deprecation = __nccwpck_require__(8932);
+var once = _interopDefault(__nccwpck_require__(1223));
+
+const logOnceCode = once(deprecation => console.warn(deprecation));
+const logOnceHeaders = once(deprecation => console.warn(deprecation));
+/**
+ * Error with extra properties to help with debugging
+ */
+class RequestError extends Error {
+  constructor(message, statusCode, options) {
+    super(message);
+    // Maintains proper stack trace (only available on V8)
+    /* istanbul ignore next */
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+    this.name = "HttpError";
+    this.status = statusCode;
+    let headers;
+    if ("headers" in options && typeof options.headers !== "undefined") {
+      headers = options.headers;
+    }
+    if ("response" in options) {
+      this.response = options.response;
+      headers = options.response.headers;
+    }
+    // redact request credentials without mutating original request options
+    const requestCopy = Object.assign({}, options.request);
+    if (options.request.headers.authorization) {
+      requestCopy.headers = Object.assign({}, options.request.headers, {
+        authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
+      });
+    }
+    requestCopy.url = requestCopy.url
+    // client_id & client_secret can be passed as URL query parameters to increase rate limit
+    // see https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
+    .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]")
+    // OAuth tokens can be passed as URL query parameters, although it is not recommended
+    // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
+    .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
+    this.request = requestCopy;
+    // deprecations
+    Object.defineProperty(this, "code", {
+      get() {
+        logOnceCode(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
+        return statusCode;
+      }
+    });
+    Object.defineProperty(this, "headers", {
+      get() {
+        logOnceHeaders(new deprecation.Deprecation("[@octokit/request-error] `error.headers` is deprecated, use `error.response.headers`."));
+        return headers || {};
+      }
+    });
+  }
+}
+
+exports.RequestError = RequestError;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
 /***/ 3682:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -11457,7 +11530,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const CONST_1 = __importDefault(__nccwpck_require__(9873));
 const GithubUtils_1 = __importDefault(__nccwpck_require__(9296));
-const EmptyObject_1 = __nccwpck_require__(8227);
+const isEmptyObject_1 = __nccwpck_require__(6497);
 const run = function () {
     const issueNumber = Number(core.getInput('ISSUE_NUMBER', { required: true }));
     console.log(`Fetching issue number ${issueNumber}`);
@@ -11491,7 +11564,7 @@ const run = function () {
             return;
         }
         // If there are no comments, then we have not yet gotten the :shipit: seal of approval.
-        if ((0, EmptyObject_1.isEmptyObject)(comments.data)) {
+        if ((0, isEmptyObject_1.isEmptyObject)(comments.data)) {
             console.log('No comments found on issue');
             core.setOutput('HAS_DEPLOY_BLOCKERS', true);
             return;
@@ -11529,8 +11602,9 @@ exports["default"] = run;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const GITHUB_BASE_URL_REGEX = new RegExp('https?://(?:github\\.com|api\\.github\\.com)');
 const GIT_CONST = {
-    GITHUB_OWNER: 'Expensify',
-    APP_REPO: 'App',
+    GITHUB_OWNER: process.env.GITHUB_REPOSITORY_OWNER ?? 'Expensify',
+    APP_REPO: (process.env.GITHUB_REPOSITORY ?? 'Expensify/App').split('/').at(1) ?? '',
+    MOBILE_EXPENSIFY_REPO: 'Mobile-Expensify',
 };
 const CONST = {
     ...GIT_CONST,
@@ -11543,19 +11617,21 @@ const CONST = {
         HELP_WANTED: 'Help Wanted',
         CP_STAGING: 'CP Staging',
     },
+    STATE: {
+        OPEN: 'open',
+    },
+    COMMENT: {
+        TYPE_BOT: 'Bot',
+        NAME_GITHUB_ACTIONS: 'github-actions',
+    },
     ACTIONS: {
         CREATED: 'created',
-        EDIT: 'edited',
+        EDITED: 'edited',
     },
     EVENTS: {
         ISSUE_COMMENT: 'issue_comment',
     },
-    OPENAI_ROLES: {
-        USER: 'user',
-        ASSISTANT: 'assistant',
-    },
     PROPOSAL_KEYWORD: 'Proposal',
-    OPENAI_THREAD_COMPLETED: 'completed',
     DATE_FORMAT_STRING: 'yyyy-MM-dd',
     PULL_REQUEST_REGEX: new RegExp(`${GITHUB_BASE_URL_REGEX.source}/.*/.*/pull/([0-9]+).*`),
     ISSUE_REGEX: new RegExp(`${GITHUB_BASE_URL_REGEX.source}/.*/.*/issues/([0-9]+).*`),
@@ -11564,8 +11640,9 @@ const CONST = {
     APP_REPO_URL: `https://github.com/${GIT_CONST.GITHUB_OWNER}/${GIT_CONST.APP_REPO}`,
     APP_REPO_GIT_URL: `git@github.com:${GIT_CONST.GITHUB_OWNER}/${GIT_CONST.APP_REPO}.git`,
     NO_ACTION: 'NO_ACTION',
-    OPENAI_POLL_RATE: 1500,
-    OPENAI_POLL_TIMEOUT: 90000,
+    ACTION_EDIT: 'ACTION_EDIT',
+    ACTION_REQUIRED: 'ACTION_REQUIRED',
+    ACTION_HIDE_DUPLICATE: 'ACTION_HIDE_DUPLICATE',
 };
 exports["default"] = CONST;
 
@@ -11609,9 +11686,10 @@ const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
 const plugin_paginate_rest_1 = __nccwpck_require__(4193);
 const plugin_throttling_1 = __nccwpck_require__(9968);
-const EmptyObject_1 = __nccwpck_require__(8227);
-const arrayDifference_1 = __importDefault(__nccwpck_require__(7034));
+const request_error_1 = __nccwpck_require__(537);
+const arrayDifference_1 = __importDefault(__nccwpck_require__(7532));
 const CONST_1 = __importDefault(__nccwpck_require__(9873));
+const isEmptyObject_1 = __nccwpck_require__(6497);
 class GithubUtils {
     static internalOctokit;
     /**
@@ -11645,7 +11723,11 @@ class GithubUtils {
      * @private
      */
     static initOctokit() {
-        const token = core.getInput('GITHUB_TOKEN', { required: true });
+        const token = process.env.GITHUB_TOKEN ?? core.getInput('GITHUB_TOKEN', { required: true });
+        if (!token) {
+            console.error('GitHubUtils could not find GITHUB_TOKEN');
+            process.exit(1);
+        }
         this.initOctokitWithToken(token);
     }
     /**
@@ -11717,7 +11799,7 @@ class GithubUtils {
     static getStagingDeployCashData(issue) {
         try {
             const versionRegex = new RegExp('([0-9]+)\\.([0-9]+)\\.([0-9]+)(?:-([0-9]+))?', 'g');
-            const tag = issue.body?.match(versionRegex)?.[0].replace(/`/g, '');
+            const version = (issue.body?.match(versionRegex)?.[0] ?? '').replace(/`/g, '');
             return {
                 title: issue.title,
                 url: issue.url,
@@ -11726,10 +11808,10 @@ class GithubUtils {
                 PRList: this.getStagingDeployCashPRList(issue),
                 deployBlockers: this.getStagingDeployCashDeployBlockers(issue),
                 internalQAPRList: this.getStagingDeployCashInternalQA(issue),
-                isTimingDashboardChecked: issue.body ? /-\s\[x]\sI checked the \[App Timing Dashboard]/.test(issue.body) : false,
                 isFirebaseChecked: issue.body ? /-\s\[x]\sI checked \[Firebase Crashlytics]/.test(issue.body) : false,
                 isGHStatusChecked: issue.body ? /-\s\[x]\sI checked \[GitHub Status]/.test(issue.body) : false,
-                tag,
+                version,
+                tag: `${version}-staging`,
             };
         }
         catch (exception) {
@@ -11795,10 +11877,10 @@ class GithubUtils {
     /**
      * Generate the issue body and assignees for a StagingDeployCash.
      */
-    static generateStagingDeployCashBodyAndAssignees(tag, PRList, verifiedPRList = [], deployBlockers = [], resolvedDeployBlockers = [], resolvedInternalQAPRs = [], isTimingDashboardChecked = false, isFirebaseChecked = false, isGHStatusChecked = false) {
+    static generateStagingDeployCashBodyAndAssignees(tag, PRList, verifiedPRList = [], deployBlockers = [], resolvedDeployBlockers = [], resolvedInternalQAPRs = [], isFirebaseChecked = false, isGHStatusChecked = false) {
         return this.fetchAllPullRequests(PRList.map((pr) => this.getPullRequestNumberFromURL(pr)))
             .then((data) => {
-            const internalQAPRs = Array.isArray(data) ? data.filter((pr) => !(0, EmptyObject_1.isEmptyObject)(pr.labels.find((item) => item.name === CONST_1.default.LABELS.INTERNAL_QA))) : [];
+            const internalQAPRs = Array.isArray(data) ? data.filter((pr) => !(0, isEmptyObject_1.isEmptyObject)(pr.labels.find((item) => item.name === CONST_1.default.LABELS.INTERNAL_QA))) : [];
             return Promise.all(internalQAPRs.map((pr) => this.getPullRequestMergerLogin(pr.number).then((mergerLogin) => ({ url: pr.html_url, mergerLogin })))).then((results) => {
                 // The format of this map is following:
                 // {
@@ -11817,7 +11899,7 @@ class GithubUtils {
                 const sortedDeployBlockers = [...new Set(deployBlockers)].sort((a, b) => GithubUtils.getIssueOrPullRequestNumberFromURL(a) - GithubUtils.getIssueOrPullRequestNumberFromURL(b));
                 // Tag version and comparison URL
                 // eslint-disable-next-line max-len
-                let issueBody = `**Release Version:** \`${tag}\`\r\n**Compare Changes:** https://github.com/Expensify/App/compare/production...staging\r\n`;
+                let issueBody = `**Release Version:** \`${tag}\`\r\n**Compare Changes:** https://github.com/${process.env.GITHUB_REPOSITORY}/compare/production...staging\r\n`;
                 // PR list
                 if (sortedPRList.length > 0) {
                     issueBody += '\r\n**This release contains changes from the following pull requests:**\r\n';
@@ -11828,7 +11910,7 @@ class GithubUtils {
                     issueBody += '\r\n\r\n';
                 }
                 // Internal QA PR list
-                if (!(0, EmptyObject_1.isEmptyObject)(internalQAPRMap)) {
+                if (!(0, isEmptyObject_1.isEmptyObject)(internalQAPRMap)) {
                     console.log('Found the following verified Internal QA PRs:', resolvedInternalQAPRs);
                     issueBody += '**Internal QA:**\r\n';
                     Object.keys(internalQAPRMap).forEach((URL) => {
@@ -11853,9 +11935,9 @@ class GithubUtils {
                 }
                 issueBody += '**Deployer verifications:**';
                 // eslint-disable-next-line max-len
-                issueBody += `\r\n- [${isTimingDashboardChecked ? 'x' : ' '}] I checked the [App Timing Dashboard](https://graphs.expensify.com/grafana/d/yj2EobAGz/app-timing?orgId=1) and verified this release does not cause a noticeable performance regression.`;
+                issueBody += `\r\n- [${isFirebaseChecked ? 'x' : ' '}] I checked [Firebase Crashlytics](https://console.firebase.google.com/u/0/project/expensify-mobile-app/crashlytics/app/ios:com.expensify.expensifylite/issues?state=open&time=last-seven-days&types=crash&tag=all&sort=eventCount) for **this release version** and verified that this release does not introduce any new crashes. More detailed instructions on this verification can be found [here](https://stackoverflowteams.com/c/expensify/questions/15095/15096).`;
                 // eslint-disable-next-line max-len
-                issueBody += `\r\n- [${isFirebaseChecked ? 'x' : ' '}] I checked [Firebase Crashlytics](https://console.firebase.google.com/u/0/project/expensify-chat/crashlytics/app/android:com.expensify.chat/issues?state=open&time=last-seven-days&tag=all) and verified that this release does not introduce any new crashes. More detailed instructions on this verification can be found [here](https://stackoverflowteams.com/c/expensify/questions/15095/15096).`;
+                issueBody += `\r\n- [${isFirebaseChecked ? 'x' : ' '}] I checked [Firebase Crashlytics](https://console.firebase.google.com/u/0/project/expensify-mobile-app/crashlytics/app/android:org.me.mobiexpensifyg/issues?state=open&time=last-seven-days&types=crash&tag=all&sort=eventCount) for **the previous release version** and verified that the release did not introduce any new crashes. More detailed instructions on this verification can be found [here](https://stackoverflowteams.com/c/expensify/questions/15095/15096).`;
                 // eslint-disable-next-line max-len
                 issueBody += `\r\n- [${isGHStatusChecked ? 'x' : ' '}] I checked [GitHub Status](https://www.githubstatus.com/) and verified there is no reported incident with Actions.`;
                 issueBody += '\r\n\r\ncc @Expensify/applauseleads\r\n';
@@ -11921,6 +12003,14 @@ class GithubUtils {
             per_page: 100,
         }, (response) => response.data.map((comment) => comment.body));
     }
+    static getAllCommentDetails(issueNumber) {
+        return this.paginate(this.octokit.issues.listComments, {
+            owner: CONST_1.default.GITHUB_OWNER,
+            repo: CONST_1.default.APP_REPO,
+            issue_number: issueNumber,
+            per_page: 100,
+        }, (response) => response.data);
+    }
     /**
      * Create comment on pull request
      */
@@ -11936,6 +12026,7 @@ class GithubUtils {
     /**
      * Get the most recent workflow run for the given New Expensify workflow.
      */
+    /* eslint-disable rulesdir/no-default-id-values */
     static getLatestWorkflowRunID(workflow) {
         console.log(`Fetching New Expensify workflow runs for ${workflow}...`);
         return this.octokit.actions
@@ -12027,28 +12118,89 @@ class GithubUtils {
         })
             .then((response) => response.url);
     }
+    /**
+     * Get the contents of a file from the API at a given ref as a string.
+     */
+    static async getFileContents(path, ref = 'main') {
+        const { data } = await this.octokit.repos.getContent({
+            owner: CONST_1.default.GITHUB_OWNER,
+            repo: CONST_1.default.APP_REPO,
+            path,
+            ref,
+        });
+        if (Array.isArray(data)) {
+            throw new Error(`Provided path ${path} refers to a directory, not a file`);
+        }
+        if (!('content' in data)) {
+            throw new Error(`Provided path ${path} is invalid`);
+        }
+        return Buffer.from(data.content, 'base64').toString('utf8');
+    }
+    /**
+     * Get commits between two tags via the GitHub API
+     */
+    static async getCommitHistoryBetweenTags(fromTag, toTag) {
+        console.log('Getting pull requests merged between the following tags:', fromTag, toTag);
+        core.startGroup('Fetching paginated commits:');
+        try {
+            let allCommits = [];
+            let page = 1;
+            const perPage = 250;
+            let hasMorePages = true;
+            while (hasMorePages) {
+                core.info(`📄 Fetching page ${page} of commits...`);
+                const response = await this.octokit.repos.compareCommits({
+                    owner: CONST_1.default.GITHUB_OWNER,
+                    repo: CONST_1.default.APP_REPO,
+                    base: fromTag,
+                    head: toTag,
+                    per_page: perPage,
+                    page,
+                });
+                // Check if we got a proper response with commits
+                if (response.data?.commits && Array.isArray(response.data.commits)) {
+                    if (page === 1) {
+                        core.info(`📊 Total commits: ${response.data.total_commits ?? 'unknown'}`);
+                    }
+                    core.info(`✅ compareCommits API returned ${response.data.commits.length} commits for page ${page}`);
+                    allCommits = allCommits.concat(response.data.commits);
+                    // Check if we got fewer commits than requested or if we've reached the total
+                    const totalCommits = response.data.total_commits;
+                    if (response.data.commits.length < perPage || (totalCommits && allCommits.length >= totalCommits)) {
+                        hasMorePages = false;
+                    }
+                    else {
+                        page++;
+                    }
+                }
+                else {
+                    core.warning('⚠️ GitHub API returned unexpected response format');
+                    hasMorePages = false;
+                }
+            }
+            core.info(`🎉 Successfully fetched ${allCommits.length} total commits`);
+            core.endGroup();
+            return allCommits.map((commit) => ({
+                commit: commit.sha,
+                subject: commit.commit.message,
+                authorName: commit.commit.author?.name ?? 'Unknown',
+            }));
+        }
+        catch (error) {
+            if (error instanceof request_error_1.RequestError && error.status === 404) {
+                console.error(`❓❓ Failed to get commits with the GitHub API. The base tag ('${fromTag}') or head tag ('${toTag}') likely doesn't exist on the remote repository. If this is the case, create or push them.`);
+            }
+            core.endGroup();
+            throw error;
+        }
+    }
 }
 exports["default"] = GithubUtils;
 
 
 /***/ }),
 
-/***/ 8227:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isEmptyObject = void 0;
-function isEmptyObject(obj) {
-    return Object.keys(obj ?? {}).length === 0;
-}
-exports.isEmptyObject = isEmptyObject;
-
-
-/***/ }),
-
-/***/ 7034:
+/***/ 7532:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -12062,6 +12214,21 @@ function arrayDifference(array1, array2) {
     return [array1, array2].reduce((a, b) => a.filter((c) => !b.includes(c)));
 }
 exports["default"] = arrayDifference;
+
+
+/***/ }),
+
+/***/ 6497:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isEmptyObject = void 0;
+function isEmptyObject(obj) {
+    return Object.keys(obj ?? {}).length === 0;
+}
+exports.isEmptyObject = isEmptyObject;
 
 
 /***/ }),

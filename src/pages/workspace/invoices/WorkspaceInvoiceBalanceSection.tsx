@@ -1,8 +1,8 @@
 import React from 'react';
-import {useOnyx} from 'react-native-onyx';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import Section from '@components/Section';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as CurrencyUtils from '@libs/CurrencyUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -28,7 +28,7 @@ function WorkspaceInvoiceBalanceSection({policyID}: WorkspaceInvoiceBalanceSecti
         >
             <MenuItemWithTopDescription
                 description={translate('walletPage.balance')}
-                title={CurrencyUtils.convertToDisplayString(policy?.invoice?.bankAccount?.stripeConnectAccountBalance ?? 0)}
+                title={CurrencyUtils.convertToDisplayString(policy?.invoice?.bankAccount?.stripeConnectAccountBalance ?? 0, policy?.outputCurrency)}
                 titleStyle={styles.textHeadlineH2}
                 interactive={false}
                 wrapperStyle={styles.sectionMenuItemTopDescription}

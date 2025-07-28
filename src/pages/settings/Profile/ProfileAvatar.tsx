@@ -1,65 +1,51 @@
-import type {StackScreenProps} from '@react-navigation/stack';
 import React, {useEffect} from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import {withOnyx} from 'react-native-onyx';
 import AttachmentModal from '@components/AttachmentModal';
+import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import Navigation from '@libs/Navigation/Navigation';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {AuthScreensParamList} from '@libs/Navigation/types';
-import * as PersonalDetailsUtils from '@libs/PersonalDetailsUtils';
-import * as UserUtils from '@libs/UserUtils';
-import * as ValidationUtils from '@libs/ValidationUtils';
-import * as PersonalDetails from '@userActions/PersonalDetails';
+import {getDisplayNameOrDefault} from '@libs/PersonalDetailsUtils';
+import {getFullSizeAvatar} from '@libs/UserUtils';
+import {isValidAccountRoute} from '@libs/ValidationUtils';
+import {openPublicProfilePage} from '@userActions/PersonalDetails';
+import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
-import type {PersonalDetailsList, PersonalDetailsMetadata} from '@src/types/onyx';
 
-type ProfileAvatarOnyxProps = {
-    personalDetails: OnyxEntry<PersonalDetailsList>;
-    personalDetailsMetadata: OnyxEntry<Record<string, PersonalDetailsMetadata>>;
-    isLoadingApp: OnyxEntry<boolean>;
-};
+type ProfileAvatarProps = PlatformStackScreenProps<AuthScreensParamList, typeof SCREENS.PROFILE_AVATAR>;
 
-type ProfileAvatarProps = ProfileAvatarOnyxProps & StackScreenProps<AuthScreensParamList, typeof SCREENS.PROFILE_AVATAR>;
-
-function ProfileAvatar({route, personalDetails, personalDetailsMetadata, isLoadingApp = true}: ProfileAvatarProps) {
+function ProfileAvatar({route}: ProfileAvatarProps) {
+    const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {canBeMissing: true});
+    const [personalDetailsMetadata] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_METADATA, {canBeMissing: true});
+    const [isLoadingApp = true] = useOnyx(ONYXKEYS.IS_LOADING_APP, {canBeMissing: true});
     const personalDetail = personalDetails?.[route.params.accountID];
     const avatarURL = personalDetail?.avatar ?? '';
-    const accountID = Number(route.params.accountID ?? '-1');
+    const accountID = Number(route.params.accountID ?? CONST.DEFAULT_NUMBER_ID);
     const isLoading = personalDetailsMetadata?.[accountID]?.isLoading ?? (isLoadingApp && !Object.keys(personalDetail ?? {}).length);
-    const displayName = PersonalDetailsUtils.getDisplayNameOrDefault(personalDetail);
-
+    const displayName = getDisplayNameOrDefault(personalDetail);
+    const {formatPhoneNumber} = useLocalize();
     useEffect(() => {
-        if (!ValidationUtils.isValidAccountRoute(Number(accountID)) ?? !!avatarURL) {
+        if (!isValidAccountRoute(Number(accountID)) ?? !!avatarURL) {
             return;
         }
-        PersonalDetails.openPublicProfilePage(accountID);
+        openPublicProfilePage(accountID);
     }, [accountID, avatarURL]);
 
     return (
         <AttachmentModal
-            headerTitle={displayName}
+            headerTitle={formatPhoneNumber(displayName)}
             defaultOpen
-            source={UserUtils.getFullSizeAvatar(avatarURL, accountID)}
-            onModalClose={() => {
-                Navigation.goBack();
-            }}
+            source={getFullSizeAvatar(avatarURL, accountID)}
+            onModalClose={() => Navigation.goBack(route.params?.backTo)}
             originalFileName={personalDetail?.originalFileName ?? ''}
             isLoading={!!isLoading}
             shouldShowNotFoundPage={!avatarURL}
+            maybeIcon
         />
     );
 }
 
 ProfileAvatar.displayName = 'ProfileAvatar';
 
-export default withOnyx<ProfileAvatarProps, ProfileAvatarOnyxProps>({
-    personalDetails: {
-        key: ONYXKEYS.PERSONAL_DETAILS_LIST,
-    },
-    personalDetailsMetadata: {
-        key: ONYXKEYS.PERSONAL_DETAILS_METADATA,
-    },
-    isLoadingApp: {
-        key: ONYXKEYS.IS_LOADING_APP,
-    },
-})(ProfileAvatar);
+export default ProfileAvatar;

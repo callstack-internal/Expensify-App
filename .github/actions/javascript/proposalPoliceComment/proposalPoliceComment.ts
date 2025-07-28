@@ -1,22 +1,39 @@
-import {setFailed} from '@actions/core';
+import {getInput, setFailed} from '@actions/core';
+import * as core from '@actions/core';
 import {context} from '@actions/github';
 import type {IssueCommentCreatedEvent, IssueCommentEditedEvent, IssueCommentEvent} from '@octokit/webhooks-types';
+import {format} from 'date-fns';
+import {toZonedTime} from 'date-fns-tz';
+import {convertToNumber} from '@github/libs/ActionUtils';
 import CONST from '@github/libs/CONST';
 import GithubUtils from '@github/libs/GithubUtils';
-import OpenAIUtils from '@github/libs/OpenAIUtils';
+import PROPOSAL_POLICE_TEMPLATES from '@prompts/proposalPolice';
+import OpenAIUtils from '@scripts/utils/OpenAIUtils';
 
-function isCommentCreatedOrEditedEvent(payload: IssueCommentEvent): payload is IssueCommentCreatedEvent | IssueCommentEditedEvent {
-    return payload.action === CONST.ACTIONS.CREATED || payload.action === CONST.ACTIONS.EDIT;
-}
+type AssistantResponse = {
+    action: typeof CONST.NO_ACTION | typeof CONST.ACTION_REQUIRED | typeof CONST.ACTION_EDIT;
+    message: string;
+};
+
+type DuplicateProposalResponse = AssistantResponse & {
+    similarity?: number;
+};
 
 function isCommentCreatedEvent(payload: IssueCommentEvent): payload is IssueCommentCreatedEvent {
     return payload.action === CONST.ACTIONS.CREATED;
 }
 
+function isCommentEditedEvent(payload: IssueCommentEvent): payload is IssueCommentEditedEvent {
+    return payload.action === CONST.ACTIONS.EDITED;
+}
+
 // Main function to process the workflow event
 async function run() {
-    // get date early, as soon as the workflow starts running
-    const date = new Date();
+    // Capture the timestamp immediately at the start of the run
+    const now = Date.now();
+    const zonedDate = toZonedTime(now, 'UTC');
+    const formattedDate = format(zonedDate, "yyyy-MM-dd HH:mm:ss 'UTC'");
+
     // Verify this is running for an expected webhook event
     if (context.eventName !== CONST.EVENTS.ISSUE_COMMENT) {
         throw new Error('ProposalPolice™ only supports the issue_comment webhook event');
@@ -24,8 +41,9 @@ async function run() {
 
     const payload = context.payload as IssueCommentEvent;
 
-    // check if the issue is open and the has labels
-    if (payload.issue?.state !== 'open' && !payload.issue?.labels.some((issueLabel: {name: string}) => issueLabel.name === CONST.LABELS.HELP_WANTED)) {
+    // Return early unless issue is open AND has the "Help Wanted" label
+    if (payload.issue?.state !== CONST.STATE.OPEN || !payload.issue?.labels.some((issueLabel: {name: string}) => issueLabel.name === CONST.LABELS.HELP_WANTED)) {
+        console.log('Issue is not open or does not have the "Help Wanted" label, skipping checks.');
         return;
     }
 
@@ -35,69 +53,133 @@ async function run() {
         return;
     }
 
+    // If event is `edited` and comment was already edited by the bot, return early
+    if (isCommentEditedEvent(payload) && payload.comment?.body.trim().includes('Edited by **proposal-police**')) {
+        console.log('Comment was already edited by proposal-police once.\n', payload.comment?.body);
+        return;
+    }
+
     console.log('ProposalPolice™ Action triggered for comment:', payload.comment?.body);
     console.log('-> GitHub Action Type: ', payload.action?.toUpperCase());
 
-    if (!isCommentCreatedOrEditedEvent(payload)) {
+    if (!isCommentCreatedEvent(payload) && !isCommentEditedEvent(payload)) {
         console.error('Unsupported action type:', payload?.action);
         setFailed(new Error(`Unsupported action type ${payload?.action}`));
         return;
     }
 
-    const prompt = isCommentCreatedEvent(payload)
-        ? `I NEED HELP WITH CASE (1.), CHECK IF COMMENT IS PROPOSAL AND IF TEMPLATE IS FOLLOWED AS PER INSTRUCTIONS. IT IS MANDATORY THAT YOU RESPOND ONLY WITH "${CONST.NO_ACTION}" IN CASE THE COMMENT IS NOT A PROPOSAL. Comment content: ${payload.comment?.body}`
-        : `I NEED HELP WITH CASE (2.) WHEN A USER THAT POSTED AN INITIAL PROPOSAL OR COMMENT (UNEDITED) THEN EDITS THE COMMENT - WE NEED TO CLASSIFY THE COMMENT BASED IN THE GIVEN INSTRUCTIONS AND IF TEMPLATE IS FOLLOWED AS PER INSTRUCTIONS. IT IS MANDATORY THAT YOU RESPOND ONLY WITH "${CONST.NO_ACTION}" IN CASE THE COMMENT IS NOT A PROPOSAL. \n\nPrevious comment content: ${payload.changes.body?.from}.\n\nEdited comment content: ${payload.comment?.body}`;
+    const apiKey = getInput('PROPOSAL_POLICE_API_KEY', {required: true});
+    const assistantID = getInput('PROPOSAL_POLICE_ASSISTANT_ID', {required: true});
+    const openAI = new OpenAIUtils(apiKey);
 
-    const assistantResponse = await OpenAIUtils.prompt(prompt);
+    /* eslint-disable rulesdir/no-default-id-values */
+    const issueNumber = payload.issue?.number ?? -1;
+    /* eslint-disable rulesdir/no-default-id-values */
+    const commentID = payload.comment?.id ?? -1;
 
-    // check if assistant response is either NO_ACTION or "NO_ACTION" strings
-    // as sometimes the assistant response varies
-    const isNoAction = assistantResponse.trim().replaceAll(' ', '_').replaceAll('"', '').toUpperCase() === CONST.NO_ACTION;
-
-    // If assistant response is NO_ACTION, do nothing
-    if (isNoAction) {
-        console.log('Detected NO_ACTION for comment, returning early');
-        return;
-    }
-
-    // if the assistant responded with no action but there's some context in the response
-    if (assistantResponse.includes(`[${CONST.NO_ACTION}]`)) {
-        // extract the text after [NO_ACTION] from assistantResponse since this is a
-        // bot related action keyword
-        const noActionContext = assistantResponse.split(`[${CONST.NO_ACTION}] `).at(1)?.replace('"', '');
-        console.log('[NO_ACTION] w/ context: ', noActionContext);
-        return;
-    }
-
+    // DUPLICATE PROPOSAL DETECTION
     if (isCommentCreatedEvent(payload)) {
-        const formattedResponse = assistantResponse
+        console.log('Starting DUPLICATE PROPOSAL DETECTION Check');
+        const newProposalCreatedAt = new Date(payload.comment.created_at).getTime();
+        const newProposalBody = payload.comment.body;
+        const newProposalAuthor = payload.comment.user.login;
+        // Fetch all comments in the issue
+        console.log('Get comments for issue #', issueNumber);
+        const commentsResponse = await GithubUtils.getAllCommentDetails(issueNumber);
+        core.startGroup('Comments Response');
+        console.log('commentsResponse', commentsResponse);
+        core.endGroup();
+
+        let didFindDuplicate = false;
+        for (const previousProposal of commentsResponse) {
+            const isProposal = !!previousProposal.body?.includes(CONST.PROPOSAL_KEYWORD);
+            const previousProposalCreatedAt = new Date(previousProposal.created_at).getTime();
+            // Early continue if not a proposal or previous comment is newer than current one
+            if (!isProposal || previousProposalCreatedAt >= newProposalCreatedAt) {
+                continue;
+            }
+            const isAuthorBot = previousProposal.user?.login === CONST.COMMENT.NAME_GITHUB_ACTIONS || previousProposal.user?.type === CONST.COMMENT.TYPE_BOT;
+            // Skip prompting if comment author is the GH bot
+            if (isAuthorBot) {
+                continue;
+            }
+
+            const duplicateCheckPrompt = PROPOSAL_POLICE_TEMPLATES.getPromptForNewProposalDuplicateCheck(previousProposal.body, newProposalBody);
+            const duplicateCheckResponse = await openAI.promptAssistant(assistantID, duplicateCheckPrompt);
+            let similarityPercentage = 0;
+            const parsedDuplicateCheckResponse = openAI.parseAssistantResponse<DuplicateProposalResponse>(duplicateCheckResponse);
+            core.startGroup('Parsed Duplicate Check Response');
+            console.log('parsedDuplicateCheckResponse: ', parsedDuplicateCheckResponse);
+            core.endGroup();
+            if (parsedDuplicateCheckResponse) {
+                const {similarity = 0} = parsedDuplicateCheckResponse ?? {};
+                similarityPercentage = convertToNumber(similarity);
+                if (similarityPercentage >= 90) {
+                    console.log(`Found duplicate with ${similarityPercentage}% similarity.`);
+                    didFindDuplicate = true;
+                    break;
+                }
+            }
+        }
+
+        if (didFindDuplicate) {
+            const duplicateCheckWithdrawMessage = PROPOSAL_POLICE_TEMPLATES.getDuplicateCheckWithdrawMessage();
+            const duplicateCheckNoticeMessage = PROPOSAL_POLICE_TEMPLATES.getDuplicateCheckNoticeMessage(newProposalAuthor);
+            // If a duplicate proposal is detected, update the comment to withdraw it
+            console.log('ProposalPolice™ withdrawing duplicated proposal...');
+            await GithubUtils.octokit.issues.updateComment({
+                ...context.repo,
+                /* eslint-disable @typescript-eslint/naming-convention */
+                comment_id: commentID,
+                body: duplicateCheckWithdrawMessage,
+            });
+            // Post a comment to notify the user about the withdrawn duplicated proposal
+            console.log('ProposalPolice™ notifying contributor of withdrawn proposal...');
+            await GithubUtils.createComment(CONST.APP_REPO, issueNumber, duplicateCheckNoticeMessage);
+            console.log('DUPLICATE PROPOSAL DETECTION Check Completed, returning early.');
+            return;
+        }
+    }
+
+    const prompt = isCommentCreatedEvent(payload)
+        ? PROPOSAL_POLICE_TEMPLATES.getPromptForNewProposalTemplateCheck(payload.comment?.body)
+        : PROPOSAL_POLICE_TEMPLATES.getPromptForEditedProposal(payload.changes.body?.from, payload.comment?.body);
+
+    const assistantResponse = await openAI.promptAssistant(assistantID, prompt);
+    const parsedAssistantResponse = openAI.parseAssistantResponse<AssistantResponse>(assistantResponse);
+    core.startGroup('Parsed Assistant Response');
+    console.log('parsedAssistantResponse: ', parsedAssistantResponse);
+    core.endGroup();
+
+    // fallback to empty strings to avoid crashing in case parsing fails
+    const {action = '', message = ''} = parsedAssistantResponse ?? {};
+    const isNoAction = action.trim() === CONST.NO_ACTION;
+    const isActionEdit = action.trim() === CONST.ACTION_EDIT;
+    const isActionRequired = action.trim() === CONST.ACTION_REQUIRED;
+
+    // If assistant response is NO_ACTION and there's no message, return early
+    if (isNoAction && !message) {
+        console.log('Detected NO_ACTION for comment, returning early.');
+        return;
+    }
+
+    if (isCommentCreatedEvent(payload) && isActionRequired) {
+        const formattedResponse = message
             // replace {user} from response template with @username
-            .replaceAll('{user}', `@${payload.comment?.user.login}`)
-
-            // replace {proposalLink} from response template with the link to the comment
-            .replaceAll('{proposalLink}', payload.comment?.html_url)
-
-            // remove any double quotes from the final comment because sometimes the assistant's
-            // response contains double quotes / sometimes it doesn't
-            .replaceAll('"', '');
+            .replaceAll('{user}', `@${payload.comment?.user.login}`);
 
         // Create a comment with the assistant's response
         console.log('ProposalPolice™ commenting on issue...');
-        await GithubUtils.createComment(CONST.APP_REPO, context.issue.number, formattedResponse);
-        // edit comment if assistant detected substantial changes and if the comment was not edited already by the bot
-    } else if (assistantResponse.includes('[EDIT_COMMENT]') && !payload.comment?.body.includes('Edited by **proposal-police**')) {
-        // extract the text after [EDIT_COMMENT] from assistantResponse since this is a
-        // bot related action keyword
-        let extractedNotice = assistantResponse.split('[EDIT_COMMENT] ').at(1)?.replace('"', '');
-        // format the date like: 2024-01-24 13:15:24 UTC not 2024-01-28 18:18:28.000 UTC
-        const formattedDate = `${date.toISOString()?.split('.').at(0)?.replace('T', ' ')} UTC`;
-        extractedNotice = extractedNotice?.replace('{updated_timestamp}', formattedDate);
-        console.log('ProposalPolice™ editing issue comment...', payload.comment.id);
+        await GithubUtils.createComment(CONST.APP_REPO, issueNumber, formattedResponse);
+        // edit comment if assistant detected substantial changes
+    } else if (isActionEdit) {
+        const formattedResponse = message.replace('{updated_timestamp}', formattedDate);
+        console.log('ProposalPolice™ editing issue comment...', commentID);
         await GithubUtils.octokit.issues.updateComment({
             ...context.repo,
             /* eslint-disable @typescript-eslint/naming-convention */
-            comment_id: payload.comment.id,
-            body: `${extractedNotice}\n\n${payload.comment?.body}`,
+            comment_id: commentID,
+            body: `${formattedResponse}\n\n${payload.comment?.body}`,
         });
     }
 }
@@ -108,3 +190,5 @@ run().catch((error) => {
     // which means that no failure notification is sent to issue's subscribers
     process.exit(0);
 });
+
+export type {AssistantResponse, DuplicateProposalResponse};

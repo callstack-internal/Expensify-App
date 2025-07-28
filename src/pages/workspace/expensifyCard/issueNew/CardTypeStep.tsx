@@ -1,41 +1,47 @@
 import React from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import * as Illustrations from '@components/Icon/Illustrations';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import MenuItem from '@components/MenuItem';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
+import {setIssueNewCardStepAndData} from '@libs/actions/Card';
 import variables from '@styles/variables';
-import * as Card from '@userActions/Card';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 
-function CardTypeStep() {
+type CardTypeStepProps = {
+    /** ID of the policy */
+    policyID: string | undefined;
+};
+
+function CardTypeStep({policyID}: CardTypeStepProps) {
     const {translate} = useLocalize();
     const styles = useThemeStyles();
-    const [issueNewCard] = useOnyx(ONYXKEYS.ISSUE_NEW_EXPENSIFY_CARD);
+    const [issueNewCard] = useOnyx(`${ONYXKEYS.COLLECTION.ISSUE_NEW_EXPENSIFY_CARD}${policyID}`);
 
     const isEditing = issueNewCard?.isEditing;
 
     const submit = (value: ValueOf<typeof CONST.EXPENSIFY_CARD.CARD_TYPE>) => {
-        Card.setIssueNewCardStepAndData({
+        setIssueNewCardStepAndData({
             step: isEditing ? CONST.EXPENSIFY_CARD.STEP.CONFIRMATION : CONST.EXPENSIFY_CARD.STEP.LIMIT_TYPE,
             data: {
                 cardType: value,
             },
             isEditing: false,
+            policyID,
         });
     };
 
     const handleBackButtonPress = () => {
         if (isEditing) {
-            Card.setIssueNewCardStepAndData({step: CONST.EXPENSIFY_CARD.STEP.CONFIRMATION, isEditing: false});
+            setIssueNewCardStepAndData({step: CONST.EXPENSIFY_CARD.STEP.CONFIRMATION, isEditing: false, policyID});
             return;
         }
-        Card.setIssueNewCardStepAndData({step: CONST.EXPENSIFY_CARD.STEP.ASSIGNEE});
+        setIssueNewCardStepAndData({step: CONST.EXPENSIFY_CARD.STEP.ASSIGNEE, policyID});
     };
 
     return (
@@ -48,6 +54,7 @@ function CardTypeStep() {
             handleBackButtonPress={handleBackButtonPress}
             startStepIndex={1}
             stepNames={CONST.EXPENSIFY_CARD.STEP_NAMES}
+            enableEdgeToEdgeBottomSafeAreaPadding
         >
             <Text style={[styles.textHeadlineLineHeightXXL, styles.ph5, styles.mv3]}>{translate('workspace.card.issueNewCard.chooseCardType')}</Text>
             <View style={styles.mh5}>

@@ -4,6 +4,7 @@ import type ONYXKEYS from '@src/ONYXKEYS';
 import type CollectionDataSet from '@src/types/utils/CollectionDataSet';
 import type * as OnyxCommon from './OnyxCommon';
 import type {PolicyReportField} from './Policy';
+import type {TripData} from './TripData';
 
 /** Preference that defines how regular the chat notifications are sent to the user */
 type NotificationPreference = ValueOf<typeof CONST.REPORT.NOTIFICATION_PREFERENCE>;
@@ -23,18 +24,6 @@ type Note = OnyxCommon.OnyxValueWithOfflineFeedback<{
     errors?: OnyxCommon.Errors;
 }>;
 
-/** The pending member of report */
-type PendingChatMember = {
-    /** Account ID of the pending member */
-    accountID: string;
-
-    /** Action to be applied to the pending member of report */
-    pendingAction: OnyxCommon.PendingAction;
-
-    /** Collection of errors to show to the user */
-    errors?: OnyxCommon.Errors;
-};
-
 /** Report participant properties */
 type Participant = OnyxCommon.OnyxValueWithOfflineFeedback<{
     /** What is the role of the participant in the report */
@@ -42,6 +31,9 @@ type Participant = OnyxCommon.OnyxValueWithOfflineFeedback<{
 
     /** Whether the participant is visible in the report */
     notificationPreference: NotificationPreference;
+
+    /** Permissions granted to the participant */
+    permissions?: Array<ValueOf<typeof CONST.REPORT.PERMISSIONS>>;
 }>;
 
 /** Types of invoice receivers in a report */
@@ -60,6 +52,9 @@ type InvoiceReceiver =
           /** ID of the policy */
           policyID: string;
       };
+
+/** Type of invoice receiver */
+type InvoiceReceiverType = InvoiceReceiver['type'];
 
 /** Record of report participants, indexed by their accountID */
 type Participants = Record<number, Participant>;
@@ -127,9 +122,6 @@ type Report = OnyxCommon.OnyxValueWithOfflineFeedback<
         /** ID of the report */
         reportID: string;
 
-        /** ID of the report action */
-        reportActionID?: string;
-
         /** ID of the chat report */
         chatReportID?: string;
 
@@ -151,17 +143,11 @@ type Report = OnyxCommon.OnyxValueWithOfflineFeedback<
         /** Invoice room receiver data */
         invoiceReceiver?: InvoiceReceiver;
 
-        /** Translation key of the last message in the report */
-        lastMessageTranslationKey?: string;
-
         /** ID of the parent report of the current report, if it exists */
         parentReportID?: string;
 
         /** ID of the parent report action of the current report, if it exists */
         parentReportActionID?: string;
-
-        /** Whether the current report is optimistic */
-        isOptimisticReport?: boolean;
 
         /** Account ID of the report manager */
         managerID?: number;
@@ -190,11 +176,17 @@ type Report = OnyxCommon.OnyxValueWithOfflineFeedback<
         /** For expense reports, this is the total amount requested */
         unheldTotal?: number;
 
+        /** Total amount of unheld non-reimbursable transactions in an expense report */
+        unheldNonReimbursableTotal?: number;
+
         /** For expense reports, this is the currency of the expense */
         currency?: string;
 
         /** Collection of errors that exist in report fields */
         errorFields?: OnyxCommon.ErrorFields;
+
+        /** Errors used by Search to show RBR */
+        errors?: OnyxCommon.Errors;
 
         /** Whether the report is waiting on a bank account */
         isWaitingOnBankAccount?: boolean;
@@ -211,14 +203,8 @@ type Report = OnyxCommon.OnyxValueWithOfflineFeedback<
         /** If the report contains nonreimbursable expenses, send the nonreimbursable total */
         nonReimbursableTotal?: number;
 
-        /** Whether the report is hidden from options list */
-        isHidden?: boolean;
-
         /** Collection of participant private notes, indexed by their accountID */
         privateNotes?: Record<number, Note>;
-
-        /** Pending members of the report */
-        pendingChatMembers?: PendingChatMember[];
 
         /** Collection of policy report fields, indexed by their fieldID */
         fieldList?: Record<string, PolicyReportField>;
@@ -229,20 +215,22 @@ type Report = OnyxCommon.OnyxValueWithOfflineFeedback<
         /** The trip data for a trip room */
         tripData?: {
             /** The start date of a trip */
-            startDate: string;
+            startDate?: string;
 
             /** The end date of a trip */
-            endDate: string;
+            endDate?: string;
 
             /** The trip ID in spotnana */
             tripID: string;
+
+            /** The trip data */
+            payload?: TripData;
         };
 
-        /** Whether the report is archived */
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        private_isArchived?: string;
+        /** The report's welcome message */
+        welcomeMessage?: string;
     },
-    'addWorkspaceRoom' | 'avatar' | 'createChat' | 'partial' | 'reimbursed' | 'preview'
+    'addWorkspaceRoom' | 'avatar' | 'createChat' | 'partial' | 'reimbursed' | 'preview' | 'createReport'
 >;
 
 /** Collection of reports, indexed by report_{reportID} */
@@ -250,4 +238,4 @@ type ReportCollectionDataSet = CollectionDataSet<typeof ONYXKEYS.COLLECTION.REPO
 
 export default Report;
 
-export type {NotificationPreference, RoomVisibility, WriteCapability, Note, ReportCollectionDataSet, PendingChatMember, Participant, Participants, InvoiceReceiver};
+export type {NotificationPreference, RoomVisibility, WriteCapability, Note, ReportCollectionDataSet, Participant, Participants, InvoiceReceiver, InvoiceReceiverType};

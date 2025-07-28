@@ -1,15 +1,13 @@
 import type {MarkdownStyle} from '@expensify/react-native-live-markdown';
 import {useMemo} from 'react';
-import {containsOnlyEmojis} from '@libs/EmojiUtils';
 import FontUtils from '@styles/utils/FontUtils';
 import variables from '@styles/variables';
 import useTheme from './useTheme';
 
 const defaultEmptyArray: Array<keyof MarkdownStyle> = [];
 
-function useMarkdownStyle(message: string | null = null, excludeStyles: Array<keyof MarkdownStyle> = defaultEmptyArray): MarkdownStyle {
+function useMarkdownStyle(hasMessageOnlyEmojis: boolean, excludeStyles: Array<keyof MarkdownStyle> = defaultEmptyArray): MarkdownStyle {
     const theme = useTheme();
-    const hasMessageOnlyEmojis = message != null && message.length > 0 && containsOnlyEmojis(message);
     const emojiFontSize = hasMessageOnlyEmojis ? variables.fontSizeOnlyEmojis : variables.fontSizeEmojisWithinText;
 
     // this map is used to reset the styles that are not needed - passing undefined value can break the native side
@@ -37,6 +35,7 @@ function useMarkdownStyle(message: string | null = null, excludeStyles: Array<ke
                 fontSize: variables.fontSizeLarge,
             },
             emoji: {
+                ...FontUtils.fontFamily.platform.CUSTOM_EMOJI_FONT,
                 fontSize: emojiFontSize,
                 lineHeight: variables.lineHeightXLarge,
             },
@@ -53,7 +52,7 @@ function useMarkdownStyle(message: string | null = null, excludeStyles: Array<ke
                 paddingRight: 1,
             },
             code: {
-                ...FontUtils.fontFamily.platform.MONOSPACE,
+                fontFamily: FontUtils.fontFamily.platform.MONOSPACE.fontFamily,
                 fontSize: 13, // TODO: should be 15 if inside h1, see StyleUtils.getCodeFontSize
                 color: theme.text,
                 backgroundColor: 'transparent',
@@ -67,10 +66,12 @@ function useMarkdownStyle(message: string | null = null, excludeStyles: Array<ke
             mentionHere: {
                 color: theme.ourMentionText,
                 backgroundColor: theme.ourMentionBG,
+                borderRadius: variables.componentBorderRadiusSmall,
             },
             mentionUser: {
                 color: theme.mentionText,
                 backgroundColor: theme.mentionBG,
+                borderRadius: variables.componentBorderRadiusSmall,
             },
             mentionReport: {
                 color: theme.mentionText,

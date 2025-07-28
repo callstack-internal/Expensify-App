@@ -1,8 +1,5 @@
-import type {RouteProp} from '@react-navigation/native';
 import {useRoute} from '@react-navigation/native';
-import type {StackScreenProps} from '@react-navigation/stack';
 import React, {useCallback, useMemo, useRef, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import ConfirmModal from '@components/ConfirmModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
@@ -10,25 +7,25 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import SelectionList from '@components/SelectionList';
 import RadioListItem from '@components/SelectionList/RadioListItem';
 import useLocalize from '@hooks/useLocalize';
+import useReportIsArchived from '@hooks/useReportIsArchived';
+import type {PlatformStackRouteProp, PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {ReportSettingsNavigatorParamList} from '@libs/Navigation/types';
-import * as ReportUtils from '@libs/ReportUtils';
+import {goBackToDetailsPage, isArchivedNonExpenseReport} from '@libs/ReportUtils';
 import type {WithReportOrNotFoundProps} from '@pages/home/report/withReportOrNotFound';
 import withReportOrNotFound from '@pages/home/report/withReportOrNotFound';
-import * as ReportActions from '@userActions/Report';
+import {updateRoomVisibility} from '@userActions/Report';
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
 import type {RoomVisibility} from '@src/types/onyx/Report';
 
-type VisibilityProps = WithReportOrNotFoundProps & StackScreenProps<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.VISIBILITY>;
+type VisibilityProps = WithReportOrNotFoundProps & PlatformStackScreenProps<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.VISIBILITY>;
 
 function VisibilityPage({report}: VisibilityProps) {
-    const route = useRoute<RouteProp<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.VISIBILITY>>();
+    const route = useRoute<PlatformStackRouteProp<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.VISIBILITY>>();
     const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report?.reportID || -1}`);
     const shouldGoBackToDetailsPage = useRef(false);
-
-    const shouldDisableVisibility = ReportUtils.isArchivedRoom(report, reportNameValuePairs);
+    const isReportArchived = useReportIsArchived(report?.reportID);
+    const shouldDisableVisibility = isArchivedNonExpenseReport(report, isReportArchived);
     const {translate} = useLocalize();
 
     const visibilityOptions = useMemo(
@@ -46,7 +43,7 @@ function VisibilityPage({report}: VisibilityProps) {
     );
 
     const goBack = useCallback(() => {
-        ReportUtils.goBackToDetailsPage(report, route.params.backTo);
+        goBackToDetailsPage(report, route.params.backTo);
     }, [report, route.params.backTo]);
 
     const changeVisibility = useCallback(
@@ -54,7 +51,7 @@ function VisibilityPage({report}: VisibilityProps) {
             if (!report) {
                 return;
             }
-            ReportActions.updateRoomVisibility(report.reportID, report.visibility, newVisibility);
+            updateRoomVisibility(report.reportID, report.visibility, newVisibility);
             if (showConfirmModal) {
                 shouldGoBackToDetailsPage.current = true;
             } else {

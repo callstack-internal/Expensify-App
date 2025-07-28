@@ -1,16 +1,17 @@
 import Onyx from 'react-native-onyx';
+import {getMissingOnyxUpdates} from '@libs/actions/App';
 import Log from '@libs/Log';
-import * as App from '@userActions/App';
 import type {DeferredUpdatesDictionary, DetectGapAndSplitResult} from '@userActions/OnyxUpdateManager/types';
+import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import {applyUpdates} from './applyUpdates';
 // eslint-disable-next-line import/no-cycle
-import * as DeferredOnyxUpdates from './DeferredOnyxUpdates';
+import {clear, enqueue, getUpdates} from './DeferredOnyxUpdates';
 
-let lastUpdateIDAppliedToClient = 0;
+let lastUpdateIDAppliedToClient: number = CONST.DEFAULT_NUMBER_ID;
 Onyx.connect({
     key: ONYXKEYS.ONYX_UPDATES_LAST_UPDATE_ID_APPLIED_TO_CLIENT,
-    callback: (value) => (lastUpdateIDAppliedToClient = value ?? 0),
+    callback: (value) => (lastUpdateIDAppliedToClient = value ?? CONST.DEFAULT_NUMBER_ID),
 });
 
 /**
@@ -27,7 +28,7 @@ function detectGapsAndSplit(lastUpdateIDFromClient: number): DetectGapAndSplitRe
     // We only want to apply deferred updates that are newer than the last update that was applied to the client.
     // At this point, the missing updates from "GetMissingOnyxUpdates" have been applied already,
     // so we can safely filter out any outdated deferred updates.
-    const pendingDeferredUpdates = DeferredOnyxUpdates.getUpdates({minUpdateID: lastUpdateIDFromClient});
+    const pendingDeferredUpdates = getUpdates({minUpdateID: lastUpdateIDFromClient});
 
     // If there are no remaining deferred updates after filtering out outdated updates,
     // we don't need to iterate over the deferred updates and check for gaps.
@@ -75,7 +76,6 @@ function detectGapsAndSplit(lastUpdateIDFromClient: number): DetectGapAndSplitRe
             // This can cause a recursion loop, because "validateAndApplyDeferredUpdates" will refetch
             // missing updates up to the previous update, which will then be applied again.
             if (isPreviousUpdateAlreadyApplied) {
-                // eslint-disable-next-line no-continue
                 continue;
             }
 
@@ -114,13 +114,13 @@ function detectGapsAndSplit(lastUpdateIDFromClient: number): DetectGapAndSplitRe
  * apply the updates in order after the missing updates are fetched and applied
  */
 function validateAndApplyDeferredUpdates(clientLastUpdateID?: number, previousParams?: {newLastUpdateIDFromClient: number; latestMissingUpdateID: number}): Promise<void> {
-    const lastUpdateIDFromClient = clientLastUpdateID ?? lastUpdateIDAppliedToClient ?? 0;
+    const lastUpdateIDFromClient = clientLastUpdateID ?? lastUpdateIDAppliedToClient ?? CONST.DEFAULT_NUMBER_ID;
 
     Log.info('[DeferredUpdates] Processing deferred updates', false, {lastUpdateIDFromClient, previousParams});
 
     const {applicableUpdates, updatesAfterGaps, latestMissingUpdateID} = detectGapsAndSplit(lastUpdateIDFromClient);
 
-    // If there are no applicable deferred updates and no missing deferred updates,
+    // If there are no applicably deferred updates and no missing deferred updates,
     // we don't need to apply or re-fetch any updates. We can just unpause the queue by resolving.
     if (Object.values(applicableUpdates).length === 0 && latestMissingUpdateID === undefined) {
         return Promise.resolve();
@@ -132,19 +132,19 @@ function validateAndApplyDeferredUpdates(clientLastUpdateID?: number, previousPa
         Log.info('[DeferredUpdates] Gap detected in deferred updates', false, {lastUpdateIDFromClient, latestMissingUpdateID});
 
         return new Promise((resolve, reject) => {
-            DeferredOnyxUpdates.clear({shouldUnpauseSequentialQueue: false, shouldResetGetMissingOnyxUpdatesPromise: false});
+            clear({shouldUnpauseSequentialQueue: false, shouldResetGetMissingOnyxUpdatesPromise: false});
 
             applyUpdates(applicableUpdates).then(() => {
                 // After we have applied the applicable updates, there might have been new deferred updates added.
                 // In the next (recursive) call of "validateAndApplyDeferredUpdates",
                 // the initial "updatesAfterGaps" and all new deferred updates will be applied in order,
-                // as long as there was no new gap detected. Otherwise repeat the process.
+                // as long as there was no new gap detected. Otherwise, repeat the process.
 
-                const newLastUpdateIDFromClient = clientLastUpdateID ?? lastUpdateIDAppliedToClient ?? 0;
+                const newLastUpdateIDFromClient = clientLastUpdateID ?? lastUpdateIDAppliedToClient ?? CONST.DEFAULT_NUMBER_ID;
 
-                DeferredOnyxUpdates.enqueue(updatesAfterGaps, {shouldPauseSequentialQueue: false});
+                enqueue(updatesAfterGaps, {shouldPauseSequentialQueue: false});
 
-                // If lastUpdateIDAppliedToClient got updated, we will just retrigger the validation
+                // If lastUpdateIDAppliedToClient got updated, we will just re-trigger the validation
                 // and application of the current deferred updates.
                 if (latestMissingUpdateID <= newLastUpdateIDFromClient) {
                     validateAndApplyDeferredUpdates(undefined, {newLastUpdateIDFromClient, latestMissingUpdateID})
@@ -161,7 +161,7 @@ function validateAndApplyDeferredUpdates(clientLastUpdateID?: number, previousPa
                 }
 
                 // Then we can fetch the missing updates and apply them
-                App.getMissingOnyxUpdates(newLastUpdateIDFromClient, latestMissingUpdateID)
+                getMissingOnyxUpdates(newLastUpdateIDFromClient, latestMissingUpdateID)
                     .then(() => validateAndApplyDeferredUpdates(undefined, {newLastUpdateIDFromClient, latestMissingUpdateID}))
                     .then(() => resolve(undefined))
                     .catch(reject);

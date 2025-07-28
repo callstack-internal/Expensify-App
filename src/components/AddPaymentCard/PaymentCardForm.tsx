@@ -2,7 +2,6 @@ import {useRoute} from '@react-navigation/native';
 import React, {useCallback, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import AddressSearch from '@components/AddressSearch';
 import CheckboxWithLabel from '@components/CheckboxWithLabel';
@@ -16,14 +15,16 @@ import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import TextLink from '@components/TextLink';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
-import * as ValidationUtils from '@libs/ValidationUtils';
+import {getFieldRequiredErrors, isValidAddress, isValidDebitCard, isValidExpirationDate, isValidLegalName, isValidPaymentZipCode, isValidSecurityCode} from '@libs/ValidationUtils';
 import CONST from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import INPUT_IDS from '@src/types/form/AddPaymentCardForm';
+import isLoadingOnyxValue from '@src/types/utils/isLoadingOnyxValue';
 
 type PaymentCardFormProps = {
     shouldShowPaymentCardForm?: boolean;
@@ -48,8 +49,8 @@ function IAcceptTheLabel() {
     return (
         <Text>
             {`${translate('common.iAcceptThe')}`}
-            <TextLink href={CONST.TERMS_URL}>{`${translate('common.addCardTermsOfService')}`}</TextLink> {`${translate('common.and')}`}
-            <TextLink href={CONST.PRIVACY_URL}> {` ${translate('common.privacyPolicy')} `}</TextLink>
+            <TextLink href={CONST.OLD_DOT_PUBLIC_URLS.TERMS_URL}>{`${translate('common.addCardTermsOfService')}`}</TextLink> {`${translate('common.and')}`}
+            <TextLink href={CONST.OLD_DOT_PUBLIC_URLS.PRIVACY_URL}> {` ${translate('common.privacyPolicy')} `}</TextLink>
         </Text>
     );
 }
@@ -132,41 +133,94 @@ function PaymentCardForm({
     currencySelectorRoute,
 }: PaymentCardFormProps) {
     const styles = useThemeStyles();
-    const [data] = useOnyx(ONYXKEYS.FORMS.ADD_PAYMENT_CARD_FORM);
+    const [data, metadata] = useOnyx(ONYXKEYS.FORMS.ADD_PAYMENT_CARD_FORM, {canBeMissing: true});
 
     const {translate} = useLocalize();
     const route = useRoute();
     const label = CARD_LABELS[isDebitCard ? CARD_TYPES.DEBIT_CARD : CARD_TYPES.PAYMENT_CARD];
 
     const cardNumberRef = useRef<AnimatedTextInputRef>(null);
+    const [expirationDate, setExpirationDate] = useState(data?.expirationDate);
+
+    const previousValueRef = useRef<string>('');
+
+    // Formats user input into a valid expiration date (MM/YY) and automatically adds slash after the month.
+    // Ensures the month is always between 01 and 12 by correcting invalid value to match the proper format.
+    const onChangeExpirationDate = useCallback((newValue: string) => {
+        if (typeof newValue !== 'string') {
+            return;
+        }
+
+        let value = newValue.replace(CONST.REGEX.NON_NUMERIC, '');
+
+        if (value.length === 1) {
+            const firstDigit = value.charAt(0);
+            if (parseInt(firstDigit, 10) > 1) {
+                value = `0${firstDigit}`;
+            }
+        }
+
+        if (value.length >= 2) {
+            const month = parseInt(value.slice(0, 2), 10);
+            if (value.startsWith('00')) {
+                value = '0';
+            }
+            if (month > 12) {
+                value = `0${value.charAt(0)}${value.charAt(1)}${value.charAt(2)}`;
+            }
+        }
+
+        const prevValue = previousValueRef.current?.replace(CONST.REGEX.NON_NUMERIC, '') ?? '';
+        let formattedValue = value;
+
+        if (value.length === 2 && prevValue.length < 2) {
+            formattedValue = `${value}/`;
+        } else if (value.length > 2) {
+            formattedValue = `${value.slice(0, 2)}/${value.slice(2, 4)}`;
+        }
+
+        previousValueRef.current = formattedValue;
+        setExpirationDate(formattedValue);
+    }, []);
 
     const [cardNumber, setCardNumber] = useState('');
 
     const validate = (values: FormOnyxValues<typeof ONYXKEYS.FORMS.ADD_PAYMENT_CARD_FORM>): FormInputErrors<typeof ONYXKEYS.FORMS.ADD_PAYMENT_CARD_FORM> => {
-        const errors = ValidationUtils.getFieldRequiredErrors(values, REQUIRED_FIELDS);
+        const errors = getFieldRequiredErrors(values, REQUIRED_FIELDS);
 
-        if (values.nameOnCard && !ValidationUtils.isValidLegalName(values.nameOnCard)) {
+        if (values.nameOnCard && !isValidLegalName(values.nameOnCard)) {
             errors.nameOnCard = translate(label.error.nameOnCard);
         }
 
-        if (values.cardNumber && !ValidationUtils.isValidDebitCard(values.cardNumber.replace(/ /g, ''))) {
+        if (values.cardNumber && !isValidDebitCard(values.cardNumber.replace(/ /g, ''))) {
             errors.cardNumber = translate(label.error.cardNumber);
         }
 
-        if (values.expirationDate && !ValidationUtils.isValidExpirationDate(values.expirationDate)) {
+        // When user pastes 5 digit value without slash, trim it to the first 4 digits before validation.
+        const normalizedExpirationDate = values.expirationDate?.length === 5 && !values.expirationDate.includes('/') ? values.expirationDate.slice(0, 4) : values.expirationDate;
+
+        if (normalizedExpirationDate && !isValidExpirationDate(normalizedExpirationDate)) {
             errors.expirationDate = translate(label.error.expirationDate);
         }
 
-        if (values.securityCode && !ValidationUtils.isValidSecurityCode(values.securityCode)) {
+        if (values.securityCode && !isValidSecurityCode(values.securityCode)) {
             errors.securityCode = translate(label.error.securityCode);
         }
 
-        if (values.addressStreet && !ValidationUtils.isValidAddress(values.addressStreet)) {
+        if (values.addressStreet && !isValidAddress(values.addressStreet)) {
             errors.addressStreet = translate(label.error.addressStreet);
         }
 
-        if (values.addressZipCode && !ValidationUtils.isValidZipCode(values.addressZipCode)) {
-            errors.addressZipCode = translate(label.error.addressZipCode);
+        // If tempered with, this can block users from adding payment cards so
+        // do not touch unless you are aware of the context.
+        // See issue: https://github.com/Expensify/App/issues/55493#issuecomment-2616349754
+        if (values.addressZipCode && !isValidPaymentZipCode(values.addressZipCode)) {
+            errors.addressZipCode = translate('addPaymentCardPage.error.addressZipCode');
+        } else if (values.addressZipCode.length > CONST.BANK_ACCOUNT.MAX_LENGTH.ZIP_CODE) {
+            errors.addressZipCode = translate('common.error.characterLimitExceedCounter', {
+                length: values.addressZipCode.length,
+                limit: CONST.BANK_ACCOUNT.MAX_LENGTH.ZIP_CODE,
+            });
         }
 
         if (!values.acceptTerms) {
@@ -201,7 +255,7 @@ function PaymentCardForm({
         setCardNumber(validCardNumber);
     }, []);
 
-    if (!shouldShowPaymentCardForm) {
+    if (!shouldShowPaymentCardForm || isLoadingOnyxValue(metadata)) {
         return null;
     }
 
@@ -242,14 +296,17 @@ function PaymentCardForm({
                     <View style={[styles.mr2, styles.flex1]}>
                         <InputWrapper
                             defaultValue={data?.expirationDate}
+                            value={expirationDate}
+                            onChangeText={onChangeExpirationDate}
                             InputComponent={TextInput}
                             inputID={INPUT_IDS.EXPIRATION_DATE}
                             label={translate(label.defaults.expiration)}
+                            testID={label.defaults.expiration}
                             aria-label={translate(label.defaults.expiration)}
                             role={CONST.ROLE.PRESENTATION}
                             placeholder={translate(label.defaults.expirationDate)}
                             inputMode={CONST.INPUT_MODE.NUMERIC}
-                            maxLength={4}
+                            maxLength={5}
                         />
                     </View>
                     <View style={styles.flex1}>
@@ -275,7 +332,7 @@ function PaymentCardForm({
                             containerStyles={[styles.mt5]}
                             maxInputLength={CONST.FORM_CHARACTER_LIMIT}
                             // Limit the address search only to the USA until we fully can support international debit cards
-                            isLimitedToUSA
+                            limitSearchesToCountry={CONST.COUNTRY.US}
                         />
                     </View>
                 )}
@@ -283,11 +340,9 @@ function PaymentCardForm({
                     InputComponent={TextInput}
                     defaultValue={data?.addressZipCode}
                     inputID={INPUT_IDS.ADDRESS_ZIP_CODE}
-                    label={translate('common.zip')}
-                    aria-label={translate('common.zip')}
+                    label={translate('common.zipPostCode')}
+                    aria-label={translate('common.zipPostCode')}
                     role={CONST.ROLE.PRESENTATION}
-                    inputMode={CONST.INPUT_MODE.NUMERIC}
-                    maxLength={CONST.BANK_ACCOUNT.MAX_LENGTH.ZIP_CODE}
                     containerStyles={[styles.mt5]}
                 />
                 {!!showStateSelector && (

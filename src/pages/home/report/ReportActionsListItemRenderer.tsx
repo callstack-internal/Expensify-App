@@ -1,18 +1,27 @@
 import React, {memo, useMemo} from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import * as ReportActionsUtils from '@libs/ReportActionsUtils';
-import * as ReportUtils from '@libs/ReportUtils';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
+import {getOriginalMessage, isSentMoneyReportAction, isTransactionThread} from '@libs/ReportActionsUtils';
+import {isChatThread, isInvoiceRoom, isPolicyExpenseChat} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
-import type {Report, ReportAction} from '@src/types/onyx';
+import type {Policy, Report, ReportAction, Transaction} from '@src/types/onyx';
 import ReportActionItem from './ReportActionItem';
 import ReportActionItemParentAction from './ReportActionItemParentAction';
 
 type ReportActionsListItemRendererProps = {
+    /** All the data of the report collection */
+    allReports: OnyxCollection<Report>;
+
+    /** All the data of the policy collection */
+    policies: OnyxCollection<Policy>;
+
     /** All the data of the action item */
     reportAction: ReportAction;
 
     /** Array of report actions for the report */
     reportActions: ReportAction[];
+
+    /** All the data of the transaction collection */
+    transactions?: Array<OnyxEntry<Transaction>>;
 
     /** The report's parentReportAction */
     parentReportAction: OnyxEntry<ReportAction>;
@@ -41,7 +50,7 @@ type ReportActionsListItemRendererProps = {
     /** Should we display the new marker on top of the comment? */
     shouldDisplayNewMarker: boolean;
 
-    /** Linked report action ID */
+    /** Report action ID that was referenced in the deeplink to report  */
     linkedReportActionID?: string;
 
     /** Whether we should display "Replies" divider */
@@ -55,8 +64,11 @@ type ReportActionsListItemRendererProps = {
 };
 
 function ReportActionsListItemRenderer({
+    allReports,
+    policies,
     reportAction,
     reportActions = [],
+    transactions,
     parentReportAction,
     index,
     report,
@@ -71,12 +83,8 @@ function ReportActionsListItemRenderer({
     shouldUseThreadDividerLine = false,
     parentReportActionForTransactionThread,
 }: ReportActionsListItemRendererProps) {
-    const shouldDisplayParentAction =
-        reportAction.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED &&
-        ReportUtils.isChatThread(report) &&
-        (!ReportActionsUtils.isTransactionThread(parentReportAction) || ReportActionsUtils.isSentMoneyReportAction(parentReportAction));
+    const originalMessage = useMemo(() => getOriginalMessage(reportAction), [reportAction]);
 
-    const originalMessage = useMemo(() => ReportActionsUtils.getOriginalMessage(reportAction), [reportAction]);
     /**
      * Create a lightweight ReportAction so as to keep the re-rendering as light as possible by
      * passing in only the required props.
@@ -112,7 +120,7 @@ function ReportActionsListItemRenderer({
                 childManagerAccountID: reportAction.childManagerAccountID,
                 childMoneyRequestCount: reportAction.childMoneyRequestCount,
                 childOwnerAccountID: reportAction.childOwnerAccountID,
-            } as ReportAction),
+            }) as ReportAction,
         [
             reportAction.reportActionID,
             reportAction.message,
@@ -145,21 +153,32 @@ function ReportActionsListItemRenderer({
         ],
     );
 
-    return shouldDisplayParentAction ? (
-        <ReportActionItemParentAction
-            shouldHideThreadDividerLine={shouldDisplayParentAction && shouldHideThreadDividerLine}
-            shouldDisplayReplyDivider={shouldDisplayReplyDivider}
-            parentReportAction={parentReportAction}
-            reportID={report.reportID}
-            report={report}
-            reportActions={reportActions}
-            transactionThreadReport={transactionThreadReport}
-            index={index}
-            isFirstVisibleReportAction={isFirstVisibleReportAction}
-            shouldUseThreadDividerLine={shouldUseThreadDividerLine}
-        />
-    ) : (
+    const shouldDisplayParentAction =
+        reportAction.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED && (!isTransactionThread(parentReportAction) || isSentMoneyReportAction(parentReportAction));
+
+    if (shouldDisplayParentAction && isChatThread(report)) {
+        return (
+            <ReportActionItemParentAction
+                allReports={allReports}
+                policies={policies}
+                shouldHideThreadDividerLine={shouldDisplayParentAction && shouldHideThreadDividerLine}
+                shouldDisplayReplyDivider={shouldDisplayReplyDivider}
+                parentReportAction={parentReportAction}
+                reportID={report.reportID}
+                report={report}
+                reportActions={reportActions}
+                transactionThreadReport={transactionThreadReport}
+                index={index}
+                isFirstVisibleReportAction={isFirstVisibleReportAction}
+                shouldUseThreadDividerLine={shouldUseThreadDividerLine}
+            />
+        );
+    }
+
+    return (
         <ReportActionItem
+            allReports={allReports}
+            policies={policies}
             shouldHideThreadDividerLine={shouldHideThreadDividerLine}
             parentReportAction={parentReportAction}
             report={report}
@@ -169,9 +188,10 @@ function ReportActionsListItemRenderer({
             reportActions={reportActions}
             linkedReportActionID={linkedReportActionID}
             displayAsGroup={displayAsGroup}
+            transactions={transactions}
             shouldDisplayNewMarker={shouldDisplayNewMarker}
             shouldShowSubscriptAvatar={
-                (ReportUtils.isPolicyExpenseChat(report) || ReportUtils.isInvoiceRoom(report)) &&
+                (isPolicyExpenseChat(report) || isInvoiceRoom(report)) &&
                 [
                     CONST.REPORT.ACTIONS.TYPE.IOU,
                     CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,

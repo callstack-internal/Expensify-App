@@ -1,9 +1,7 @@
-/* eslint-disable rulesdir/prefer-actions-set-data */
 import lodashEscape from 'lodash/escape';
 import React from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import Onyx, {withOnyx} from 'react-native-onyx';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {getCurrentUserAccountID} from '@libs/actions/Report';
 import * as PersonalDetailsUtils from '@libs/PersonalDetailsUtils';
@@ -11,28 +9,21 @@ import * as ReportActionsUtils from '@libs/ReportActionsUtils';
 import * as ReportUtils from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetailsList, Report, ReportAction} from '@src/types/onyx';
+import type {PersonalDetailsList, Report} from '@src/types/onyx';
+import {getEmptyObject} from '@src/types/utils/EmptyObject';
 import Banner from './Banner';
 
-type ArchivedReportFooterOnyxProps = {
-    /** The reason this report was archived */
-    reportClosedAction: OnyxEntry<ReportAction>;
-
-    /** Personal details of all users */
-    personalDetails: OnyxEntry<PersonalDetailsList>;
-
-    policyID: string;
-};
-
-type ArchivedReportFooterProps = ArchivedReportFooterOnyxProps & {
+type ArchivedReportFooterProps = {
     /** The archived report */
     report: Report;
 };
 
-function ArchivedReportFooter({policyID, report, reportClosedAction, personalDetails = {}}: ArchivedReportFooterProps) {
+function ArchivedReportFooter({report}: ArchivedReportFooterProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
 
+    const [personalDetails = getEmptyObject<PersonalDetailsList>()] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
+    const [reportClosedAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {canEvict: false, selector: ReportActionsUtils.getLastClosedReportAction});
     const originalMessage = ReportActionsUtils.isClosedAction(reportClosedAction) ? ReportActionsUtils.getOriginalMessage(reportClosedAction) : null;
     const archiveReason = originalMessage?.reason ?? CONST.REPORT.ARCHIVE_REASON.DEFAULT;
     const actorPersonalDetails = personalDetails?.[reportClosedAction?.actorAccountID ?? -1];
@@ -48,7 +39,7 @@ function ArchivedReportFooter({policyID, report, reportClosedAction, personalDet
 
     const shouldRenderHTML = archiveReason !== CONST.REPORT.ARCHIVE_REASON.DEFAULT && archiveReason !== CONST.REPORT.ARCHIVE_REASON.BOOKING_END_DATE_HAS_PASSED;
 
-    let policyName = ReportUtils.getPolicyName(report);
+    let policyName = ReportUtils.getPolicyName({report});
 
     if (archiveReason === CONST.REPORT.ARCHIVE_REASON.INVOICE_RECEIVER_POLICY_DELETED) {
         policyName = originalMessage?.receiverPolicyName ?? '';
@@ -75,46 +66,10 @@ function ArchivedReportFooter({policyID, report, reportClosedAction, personalDet
             text={text}
             shouldRenderHTML={shouldRenderHTML}
             shouldShowIcon
-            shouldShowCloseButton
-            onClose={() => {
-                // Onyx.set(ONYXKEYS.POLICY_ID, policyID === '1576B20B2BA20523' ? '4EB3958A3E59A354' : '1576B20B2BA20523');
-                Onyx.set(ONYXKEYS.POLICY_ID, policyID === '1576B20B2BA20523' ? 'undefined' : '1576B20B2BA20523');
-                // Onyx.merge(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {name: Math.random().toString()});
-                // Onyx.merge(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, null);
-                // Onyx.merge(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {name: policyID === '1576B20B2BA20523' ? '4EB3958A3E59A354' : '1576B20B2BA20523'});
-                // Onyx.merge(`${ONYXKEYS.COLLECTION.POLICY}${'test2'}`, {
-                //     isFromFullPolicy: false,
-                //     id: 'test2',
-                //     name: '0.6415550731600059',
-                //     role: 'admin',
-                //     type: 'free',
-                //     owner: '0.2669946236723346',
-                //     ownerAccountID: 14357020,
-                //     outputCurrency: 'EUR',
-                //     avatar: '',
-                //     employeeList: [],
-                //     isPolicyExpenseChatEnabled: true,
-                //     chatReportIDAnnounce: 1038301144060652,
-                //     chatReportIDAdmins: 5618866612197321,
-                // });
-            }}
         />
     );
 }
 
 ArchivedReportFooter.displayName = 'ArchivedReportFooter';
 
-export default withOnyx<ArchivedReportFooterProps, ArchivedReportFooterOnyxProps>({
-    policyID: {
-        key: ONYXKEYS.POLICY_ID,
-        selector: (value) => value ?? '1576B20B2BA20523',
-    },
-    personalDetails: {
-        key: ONYXKEYS.PERSONAL_DETAILS_LIST,
-    },
-    reportClosedAction: {
-        key: ({report}) => `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`,
-        canEvict: false,
-        selector: ReportActionsUtils.getLastClosedReportAction,
-    },
-})(ArchivedReportFooter);
+export default ArchivedReportFooter;

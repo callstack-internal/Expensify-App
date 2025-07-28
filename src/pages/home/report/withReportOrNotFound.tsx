@@ -1,48 +1,38 @@
 /* eslint-disable rulesdir/no-negated-variables */
-import type {RouteProp} from '@react-navigation/native';
 import {useIsFocused} from '@react-navigation/native';
 import type {ComponentType, ForwardedRef, RefAttributes} from 'react';
 import React, {useEffect} from 'react';
-import {useOnyx} from 'react-native-onyx';
-import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
+import type {OnyxEntry} from 'react-native-onyx';
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
+import useOnyx from '@hooks/useOnyx';
+import {openReport} from '@libs/actions/Report';
 import getComponentDisplayName from '@libs/getComponentDisplayName';
-import * as ReportUtils from '@libs/ReportUtils';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
+import {canAccessReport} from '@libs/ReportUtils';
 import type {
     ParticipantsNavigatorParamList,
     PrivateNotesNavigatorParamList,
+    ReportChangeWorkspaceNavigatorParamList,
     ReportDescriptionNavigatorParamList,
     ReportDetailsNavigatorParamList,
     ReportSettingsNavigatorParamList,
     RoomMembersNavigatorParamList,
 } from '@navigation/types';
 import NotFoundPage from '@pages/ErrorPage/NotFoundPage';
-import * as Report from '@userActions/Report';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
 import type * as OnyxTypes from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
-type WithReportOrNotFoundProps = {
-    route:
-        | RouteProp<PrivateNotesNavigatorParamList, typeof SCREENS.PRIVATE_NOTES.EDIT>
-        | RouteProp<ReportDescriptionNavigatorParamList, typeof SCREENS.REPORT_DESCRIPTION_ROOT>
-        | RouteProp<ParticipantsNavigatorParamList, typeof SCREENS.REPORT_PARTICIPANTS.ROOT>
-        | RouteProp<ParticipantsNavigatorParamList, typeof SCREENS.REPORT_PARTICIPANTS.DETAILS>
-        | RouteProp<ParticipantsNavigatorParamList, typeof SCREENS.REPORT_PARTICIPANTS.ROLE>
-        | RouteProp<ReportDetailsNavigatorParamList, typeof SCREENS.REPORT_DETAILS.ROOT>
-        | RouteProp<ReportDetailsNavigatorParamList, typeof SCREENS.REPORT_DETAILS.SHARE_CODE>
-        | RouteProp<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.ROOT>
-        | RouteProp<RoomMembersNavigatorParamList, typeof SCREENS.ROOM_MEMBERS.DETAILS>;
-
+type WithReportOrNotFoundOnyxProps = {
     /** The report currently being looked at */
     report: OnyxTypes.Report;
 
     /** Metadata of the report currently being looked at */
     reportMetadata: OnyxEntry<OnyxTypes.ReportMetadata>;
 
-    /** The policies which the user has access to */
-    policies: OnyxCollection<OnyxTypes.Policy>;
+    /** The policy linked to the report */
+    policy: OnyxEntry<OnyxTypes.Policy>;
 
     /** Beta features list */
     betas: OnyxEntry<OnyxTypes.Beta[]>;
@@ -51,16 +41,33 @@ type WithReportOrNotFoundProps = {
     isLoadingReportData: OnyxEntry<boolean>;
 };
 
+type ScreenProps =
+    | PlatformStackScreenProps<PrivateNotesNavigatorParamList, typeof SCREENS.PRIVATE_NOTES.EDIT>
+    | PlatformStackScreenProps<ReportDescriptionNavigatorParamList, typeof SCREENS.REPORT_DESCRIPTION_ROOT>
+    | PlatformStackScreenProps<ParticipantsNavigatorParamList, typeof SCREENS.REPORT_PARTICIPANTS.ROOT>
+    | PlatformStackScreenProps<ParticipantsNavigatorParamList, typeof SCREENS.REPORT_PARTICIPANTS.DETAILS>
+    | PlatformStackScreenProps<ParticipantsNavigatorParamList, typeof SCREENS.REPORT_PARTICIPANTS.ROLE>
+    | PlatformStackScreenProps<ReportDetailsNavigatorParamList, typeof SCREENS.REPORT_DETAILS.ROOT>
+    | PlatformStackScreenProps<ReportDetailsNavigatorParamList, typeof SCREENS.REPORT_DETAILS.SHARE_CODE>
+    | PlatformStackScreenProps<ReportSettingsNavigatorParamList, typeof SCREENS.REPORT_SETTINGS.ROOT>
+    | PlatformStackScreenProps<RoomMembersNavigatorParamList, typeof SCREENS.ROOM_MEMBERS.DETAILS>
+    | PlatformStackScreenProps<ReportChangeWorkspaceNavigatorParamList, typeof SCREENS.REPORT_CHANGE_WORKSPACE.ROOT>;
+
+type WithReportOrNotFoundProps = WithReportOrNotFoundOnyxProps & {
+    route: ScreenProps['route'];
+    navigation: ScreenProps['navigation'];
+};
+
 export default function (
     shouldRequireReportID = true,
 ): <TProps extends WithReportOrNotFoundProps, TRef>(WrappedComponent: React.ComponentType<TProps & React.RefAttributes<TRef>>) => React.ComponentType<TProps & React.RefAttributes<TRef>> {
     return function <TProps extends WithReportOrNotFoundProps, TRef>(WrappedComponent: ComponentType<TProps & RefAttributes<TRef>>) {
         function WithReportOrNotFound(props: TProps, ref: ForwardedRef<TRef>) {
-            const [betas] = useOnyx(ONYXKEYS.BETAS);
-            const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
-            const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${props.route.params.reportID}`);
-            const [isLoadingReportData] = useOnyx(ONYXKEYS.IS_LOADING_REPORT_DATA);
-            const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${props.route.params.reportID}`);
+            const [betas] = useOnyx(ONYXKEYS.BETAS, {canBeMissing: false});
+            const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${props.route.params.reportID}`, {canBeMissing: true});
+            const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`, {canBeMissing: true});
+            const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${props.route.params.reportID}`, {canBeMissing: true});
+            const [isLoadingReportData] = useOnyx(ONYXKEYS.IS_LOADING_REPORT_DATA, {canBeMissing: true});
             const isFocused = useIsFocused();
             const contentShown = React.useRef(false);
             const isReportIdInRoute = !!props.route.params.reportID?.length;
@@ -77,13 +84,13 @@ export default function (
                     return;
                 }
 
-                Report.openReport(props.route.params.reportID);
+                openReport(props.route.params.reportID);
                 // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
             }, [shouldFetchReport, isReportLoaded, props.route.params.reportID]);
 
             if (shouldRequireReportID || isReportIdInRoute) {
                 const shouldShowFullScreenLoadingIndicator = !isReportLoaded && (isLoadingReportData !== false || shouldFetchReport);
-                const shouldShowNotFoundPage = !isReportLoaded || !ReportUtils.canAccessReport(report, policies, betas);
+                const shouldShowNotFoundPage = !isReportLoaded || !canAccessReport(report, betas);
 
                 // If the content was shown, but it's not anymore, that means the report was deleted, and we are probably navigating out of this screen.
                 // Return null for this case to avoid rendering FullScreenLoadingIndicator or NotFoundPage when animating transition.
@@ -113,7 +120,7 @@ export default function (
                     {...props}
                     report={report}
                     betas={betas}
-                    policies={policies}
+                    policy={policy}
                     reportMetadata={reportMetadata}
                     isLoadingReportData={isLoadingReportData}
                     ref={ref}

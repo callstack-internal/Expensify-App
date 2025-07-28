@@ -1,20 +1,18 @@
 import React, {useCallback, useMemo} from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
 import {View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
-import Avatar from '@components/Avatar';
-import {FallbackAvatar} from '@components/Icon/Expensicons';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import MultipleAvatars from '@components/MultipleAvatars';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
-import {usePersonalDetails} from '@components/OnyxProvider';
 import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeedback';
+import SingleReportAvatar from '@components/ReportActionItem/SingleReportAvatar';
 import SubscriptAvatar from '@components/SubscriptAvatar';
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
-import UserDetailsTooltip from '@components/UserDetailsTooltip';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import usePolicy from '@hooks/usePolicy';
+import useReportAvatarDetails from '@hooks/useReportAvatarDetails';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -23,12 +21,11 @@ import DateUtils from '@libs/DateUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import {getPersonalDetailByEmail} from '@libs/PersonalDetailsUtils';
 import {getReportActionMessage} from '@libs/ReportActionsUtils';
-import * as ReportUtils from '@libs/ReportUtils';
+import {getReportActionActorAccountID, isOptimisticPersonalDetail} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
-import type {Report, ReportAction} from '@src/types/onyx';
-import type {Icon} from '@src/types/onyx/OnyxCommon';
+import type {Policy, Report, ReportAction} from '@src/types/onyx';
 import type ChildrenProps from '@src/types/utils/ChildrenProps';
 import ReportActionItemDate from './ReportActionItemDate';
 import ReportActionItemFragment from './ReportActionItemFragment';
@@ -57,13 +54,22 @@ type ReportActionItemSingleProps = Partial<ChildrenProps> & {
 
     /** If the action is being hovered */
     isHovered?: boolean;
+
+    /** If the action is active */
+    isActive?: boolean;
+
+    /** Policies */
+    policies?: OnyxCollection<Policy>;
 };
 
-const showUserDetails = (accountID: string) => {
-    Navigation.navigate(ROUTES.PROFILE.getRoute(accountID, Navigation.getReportRHPActiveRoute()));
+const showUserDetails = (accountID: number | undefined) => {
+    Navigation.navigate(ROUTES.PROFILE.getRoute(accountID, Navigation.getActiveRoute()));
 };
 
-const showWorkspaceDetails = (reportID: string) => {
+const showWorkspaceDetails = (reportID: string | undefined) => {
+    if (!reportID) {
+        return;
+    }
     Navigation.navigate(ROUTES.REPORT_WITH_ID_DETAILS.getRoute(reportID, Navigation.getReportRHPActiveRoute()));
 };
 
@@ -77,95 +83,53 @@ function ReportActionItemSingle({
     report,
     iouReport,
     isHovered = false,
+    isActive = false,
+    policies,
 }: ReportActionItemSingleProps) {
     const theme = useTheme();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
     const {translate} = useLocalize();
-    const personalDetails = usePersonalDetails() ?? CONST.EMPTY_OBJECT;
+    const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {
+        canBeMissing: true,
+    });
+
+    const [innerPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {
+        canBeMissing: true,
+    });
+
     const policy = usePolicy(report?.policyID);
-    const delegatePersonalDetails = personalDetails[action?.delegateAccountID ?? ''];
-    const ownerAccountID = iouReport?.ownerAccountID ?? action?.childOwnerAccountID;
-    const isReportPreviewAction = action?.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW;
-    const actorAccountID = ReportUtils.getReportActionActorAccountID(action, iouReport, report);
-    const [invoiceReceiverPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.invoiceReceiver && 'policyID' in report.invoiceReceiver ? report.invoiceReceiver.policyID : -1}`);
 
-    let displayName = ReportUtils.getDisplayNameForParticipant(actorAccountID);
-    const {avatar, login, pendingFields, status, fallbackIcon} = personalDetails[actorAccountID ?? -1] ?? {};
+    const delegatePersonalDetails = action?.delegateAccountID ? personalDetails?.[action?.delegateAccountID] : undefined;
+    const actorAccountID = getReportActionActorAccountID(action, iouReport, report, delegatePersonalDetails);
+
+    const reportPreviewDetails = useReportAvatarDetails({
+        action,
+        report,
+        iouReport,
+        policies,
+        personalDetails,
+        innerPolicies,
+        policy,
+    });
+
+    const {primaryAvatar, secondaryAvatar, displayName, shouldDisplayAllActors, isWorkspaceActor, reportPreviewSenderID, actorHint} = reportPreviewDetails;
+    const accountID = reportPreviewSenderID ?? actorAccountID ?? CONST.DEFAULT_NUMBER_ID;
+
+    const {login, pendingFields, status} = personalDetails?.[accountID] ?? {};
     const accountOwnerDetails = getPersonalDetailByEmail(login ?? '');
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    let actorHint = (login || (displayName ?? '')).replace(CONST.REGEX.MERGED_ACCOUNT_PREFIX, '');
-    const isTripRoom = ReportUtils.isTripRoom(report);
-    const displayAllActors = isReportPreviewAction && !isTripRoom && !ReportUtils.isPolicyExpenseChat(report);
-    const isInvoiceReport = ReportUtils.isInvoiceReport(iouReport ?? null);
-    const isWorkspaceActor = isInvoiceReport || (ReportUtils.isPolicyExpenseChat(report) && (!actorAccountID || displayAllActors));
 
-    let avatarSource = avatar;
-    let avatarId: number | string | undefined = actorAccountID;
-
-    if (isWorkspaceActor) {
-        displayName = ReportUtils.getPolicyName(report, undefined, policy);
-        actorHint = displayName;
-        avatarSource = ReportUtils.getWorkspaceIcon(report, policy).source;
-        avatarId = report?.policyID;
-    } else if (action?.delegateAccountID && personalDetails[action?.delegateAccountID]) {
-        displayName = delegatePersonalDetails?.displayName ?? '';
-        avatarSource = delegatePersonalDetails?.avatar;
-        avatarId = delegatePersonalDetails?.accountID;
-    } else if (isReportPreviewAction && isTripRoom) {
-        displayName = report?.reportName ?? '';
-    }
-
-    // If this is a report preview, display names and avatars of both people involved
-    let secondaryAvatar: Icon;
-    const primaryDisplayName = displayName;
-    if (displayAllActors) {
-        if (ReportUtils.isInvoiceRoom(report) && !ReportUtils.isIndividualInvoiceRoom(report)) {
-            const secondaryPolicyAvatar = invoiceReceiverPolicy?.avatarURL ?? ReportUtils.getDefaultWorkspaceAvatar(invoiceReceiverPolicy?.name);
-
-            secondaryAvatar = {
-                source: secondaryPolicyAvatar,
-                type: CONST.ICON_TYPE_WORKSPACE,
-                name: invoiceReceiverPolicy?.name,
-                id: invoiceReceiverPolicy?.id,
-            };
-        } else {
-            // The ownerAccountID and actorAccountID can be the same if a user submits an expense back from the IOU's original creator, in that case we need to use managerID to avoid displaying the same user twice
-            const secondaryAccountId = ownerAccountID === actorAccountID || isInvoiceReport ? actorAccountID : ownerAccountID;
-            const secondaryUserAvatar = personalDetails?.[secondaryAccountId ?? -1]?.avatar ?? FallbackAvatar;
-            const secondaryDisplayName = ReportUtils.getDisplayNameForParticipant(secondaryAccountId);
-
-            secondaryAvatar = {
-                source: secondaryUserAvatar,
-                type: CONST.ICON_TYPE_AVATAR,
-                name: secondaryDisplayName ?? '',
-                id: secondaryAccountId,
-            };
-        }
-    } else if (!isWorkspaceActor) {
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        const avatarIconIndex = report?.isOwnPolicyExpenseChat || ReportUtils.isPolicyExpenseChat(report) ? 0 : 1;
-        const reportIcons = ReportUtils.getIcons(report, {});
-
-        secondaryAvatar = reportIcons.at(avatarIconIndex) ?? {name: '', source: '', type: CONST.ICON_TYPE_AVATAR};
-    } else {
-        secondaryAvatar = {name: '', source: '', type: 'avatar'};
-    }
-    const icon = {
-        source: avatarSource ?? FallbackAvatar,
-        type: isWorkspaceActor ? CONST.ICON_TYPE_WORKSPACE : CONST.ICON_TYPE_AVATAR,
-        name: primaryDisplayName ?? '',
-        id: avatarId,
-    };
+    const showMultipleUserAvatarPattern = shouldDisplayAllActors && !shouldShowSubscriptAvatar;
+    const headingText = showMultipleUserAvatarPattern ? `${primaryAvatar.name} & ${secondaryAvatar.name}` : displayName;
 
     // Since the display name for a report action message is delivered with the report history as an array of fragments
     // we'll need to take the displayName from personal details and have it be in the same format for now. Eventually,
     // we should stop referring to the report history items entirely for this information.
-    const personArray = displayName
+    const personArray = headingText
         ? [
               {
                   type: 'TEXT',
-                  text: displayName,
+                  text: headingText,
               },
           ]
         : action?.person;
@@ -175,64 +139,67 @@ function ReportActionItemSingle({
 
     const showActorDetails = useCallback(() => {
         if (isWorkspaceActor) {
-            showWorkspaceDetails(reportID ?? '');
+            showWorkspaceDetails(reportID);
         } else {
             // Show participants page IOU report preview
-            if (iouReportID && displayAllActors) {
+            if (iouReportID && shouldDisplayAllActors) {
                 Navigation.navigate(ROUTES.REPORT_PARTICIPANTS.getRoute(iouReportID, Navigation.getReportRHPActiveRoute()));
                 return;
             }
-            showUserDetails(action?.delegateAccountID ? String(action.delegateAccountID) : String(actorAccountID));
+            showUserDetails(Number(primaryAvatar.id));
         }
-    }, [isWorkspaceActor, reportID, actorAccountID, action?.delegateAccountID, iouReportID, displayAllActors]);
+    }, [isWorkspaceActor, reportID, iouReportID, shouldDisplayAllActors, primaryAvatar.id]);
 
     const shouldDisableDetailPage = useMemo(
         () =>
-            CONST.RESTRICTED_ACCOUNT_IDS.includes(actorAccountID ?? -1) ||
-            (!isWorkspaceActor && ReportUtils.isOptimisticPersonalDetail(action?.delegateAccountID ? Number(action.delegateAccountID) : actorAccountID ?? -1)),
+            CONST.RESTRICTED_ACCOUNT_IDS.includes(actorAccountID ?? CONST.DEFAULT_NUMBER_ID) ||
+            (!isWorkspaceActor && isOptimisticPersonalDetail(action?.delegateAccountID ? Number(action.delegateAccountID) : (actorAccountID ?? CONST.DEFAULT_NUMBER_ID))),
         [action, isWorkspaceActor, actorAccountID],
     );
+
+    const getBackgroundColor = () => {
+        if (isActive) {
+            return theme.messageHighlightBG;
+        }
+        if (isHovered) {
+            return theme.hoverComponentBG;
+        }
+        return theme.sidebar;
+    };
 
     const getAvatar = () => {
         if (shouldShowSubscriptAvatar) {
             return (
                 <SubscriptAvatar
-                    mainAvatar={icon}
+                    mainAvatar={primaryAvatar}
                     secondaryAvatar={secondaryAvatar}
                     noMargin
+                    backgroundColor={getBackgroundColor()}
                 />
             );
         }
-        if (displayAllActors) {
+        if (shouldDisplayAllActors) {
             return (
                 <MultipleAvatars
-                    icons={[icon, secondaryAvatar]}
+                    icons={[primaryAvatar, secondaryAvatar]}
                     isInReportAction
                     shouldShowTooltip
                     secondAvatarStyle={[StyleUtils.getBackgroundAndBorderStyle(theme.appBG), isHovered ? StyleUtils.getBackgroundAndBorderStyle(theme.hoverComponentBG) : undefined]}
                 />
             );
         }
+
         return (
-            <UserDetailsTooltip
-                accountID={Number(icon.id ?? -1)}
-                delegateAccountID={Number(action?.delegateAccountID ?? -1)}
-                icon={icon}
-            >
-                <View>
-                    <Avatar
-                        containerStyles={[styles.actionAvatar]}
-                        source={icon.source}
-                        type={icon.type}
-                        name={icon.name}
-                        avatarID={icon.id}
-                        fallbackIcon={fallbackIcon}
-                    />
-                </View>
-            </UserDetailsTooltip>
+            <SingleReportAvatar
+                reportPreviewDetails={reportPreviewDetails}
+                personalDetails={personalDetails}
+                containerStyles={[styles.actionAvatar]}
+                actorAccountID={actorAccountID}
+            />
         );
     };
-    const hasEmojiStatus = !displayAllActors && status?.emojiCode;
+
+    const hasEmojiStatus = !shouldDisplayAllActors && status?.emojiCode;
     const formattedDate = DateUtils.getStatusUntilDate(status?.clearAfter ?? '');
     const statusText = status?.text ?? '';
     const statusTooltipText = formattedDate ? `${statusText ? `${statusText} ` : ''}(${formattedDate})` : statusText;
@@ -266,12 +233,13 @@ function ReportActionItemSingle({
                                 <ReportActionItemFragment
                                     // eslint-disable-next-line react/no-array-index-key
                                     key={`person-${action?.reportActionID}-${index}`}
-                                    accountID={Number(icon.id) ?? -1}
+                                    accountID={Number(delegatePersonalDetails && !isWorkspaceActor ? actorAccountID : (primaryAvatar.id ?? CONST.DEFAULT_NUMBER_ID))}
                                     fragment={{...fragment, type: fragment.type ?? '', text: fragment.text ?? ''}}
                                     delegateAccountID={action?.delegateAccountID}
                                     isSingleLine
-                                    actorIcon={icon}
+                                    actorIcon={primaryAvatar}
                                     moderationDecision={getReportActionMessage(action)?.moderationDecision?.decision}
+                                    shouldShowTooltip={!showMultipleUserAvatarPattern}
                                 />
                             ))}
                         </PressableWithoutFeedback>
@@ -286,7 +254,7 @@ function ReportActionItemSingle({
                         <ReportActionItemDate created={action?.created ?? ''} />
                     </View>
                 ) : null}
-                {!!action?.delegateAccountID && !isReportPreviewAction && (
+                {!!action?.delegateAccountID && (
                     <Text style={[styles.chatDelegateMessage]}>{translate('delegate.onBehalfOfMessage', {delegator: accountOwnerDetails?.displayName ?? ''})}</Text>
                 )}
                 <View style={hasBeenFlagged ? styles.blockquote : {}}>{children}</View>

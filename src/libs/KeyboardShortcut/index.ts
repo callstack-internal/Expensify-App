@@ -1,7 +1,6 @@
 import {Str} from 'expensify-common';
 import * as KeyCommand from 'react-native-key-command';
 import getOperatingSystem from '@libs/getOperatingSystem';
-import localeCompare from '@libs/LocaleCompare';
 import CONST from '@src/CONST';
 import bindHandlerToKeydownEvent from './bindHandlerToKeydownEvent';
 
@@ -20,7 +19,7 @@ type EventHandler = {
 // Handlers for the various keyboard listeners we set up
 const eventHandlers: Record<string, EventHandler[]> = {};
 
-type ShortcutModifiers = readonly ['CTRL'] | readonly ['CTRL', 'SHIFT'] | readonly [];
+type ShortcutModifiers = readonly ['CTRL'] | readonly ['SHIFT'] | readonly ['CTRL', 'SHIFT'] | readonly [];
 
 type Shortcut = {
     displayName: string;
@@ -32,16 +31,13 @@ type Shortcut = {
 // Documentation information for keyboard shortcuts that are displayed in the keyboard shortcuts informational modal
 const documentedShortcuts: Record<string, Shortcut> = {};
 
-function getDocumentedShortcuts(): Shortcut[] {
-    return Object.values(documentedShortcuts).sort((a, b) => localeCompare(a.displayName, b.displayName));
-}
-
 const keyInputEnter = KeyCommand?.constants?.keyInputEnter?.toString() ?? 'keyInputEnter';
 const keyInputEscape = KeyCommand?.constants?.keyInputEscape?.toString() ?? 'keyInputEscape';
 const keyInputUpArrow = KeyCommand?.constants?.keyInputUpArrow?.toString() ?? 'keyInputUpArrow';
 const keyInputDownArrow = KeyCommand?.constants?.keyInputDownArrow?.toString() ?? 'keyInputDownArrow';
 const keyInputLeftArrow = KeyCommand?.constants?.keyInputLeftArrow?.toString() ?? 'keyInputLeftArrow';
 const keyInputRightArrow = KeyCommand?.constants?.keyInputRightArrow?.toString() ?? 'keyInputRightArrow';
+const keyInputSpace = ' ';
 
 /**
  * Generates the normalized display name for keyboard shortcuts.
@@ -66,6 +62,9 @@ function getDisplayName(key: string, modifiers: string | string[]): string {
         }
         if (key.toLowerCase() === keyInputRightArrow.toLowerCase()) {
             return ['ARROWRIGHT'];
+        }
+        if (key === keyInputSpace) {
+            return ['SPACE'];
         }
         return [key.toUpperCase()];
     })();
@@ -188,7 +187,6 @@ function subscribe(
 const KeyboardShortcut = {
     subscribe,
     getDisplayName,
-    getDocumentedShortcuts,
     getPlatformEquivalentForKeys,
 };
 

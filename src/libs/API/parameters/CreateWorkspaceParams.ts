@@ -11,6 +11,11 @@ type CreateWorkspaceParams = {
     customUnitID: string;
     customUnitRateID: string;
     engagementChoice?: string;
+    guidedSetupData?: string;
+    currency: string;
+    file?: File;
+    companySize?: string;
+    userReportedIntegration?: string;
 };
 
 export default CreateWorkspaceParams;

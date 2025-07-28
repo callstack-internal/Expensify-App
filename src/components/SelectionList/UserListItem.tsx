@@ -13,6 +13,7 @@ import useLocalize from '@hooks/useLocalize';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+import getButtonState from '@libs/getButtonState';
 import CONST from '@src/CONST';
 import type {Icon as IconType} from '@src/types/onyx/OnyxCommon';
 import BaseListItem from './BaseListItem';
@@ -40,6 +41,7 @@ function UserListItem<TItem extends ListItem>({
     shouldSyncFocus,
     wrapperStyle,
     pressableStyle,
+    shouldUseDefaultRightHandSideCheckmark,
 }: UserListItemProps<TItem>) {
     const styles = useThemeStyles();
     const theme = useTheme();
@@ -86,7 +88,7 @@ function UserListItem<TItem extends ListItem>({
         >
             {(hovered?: boolean) => (
                 <>
-                    {!!canSelectMultiple && (
+                    {!shouldUseDefaultRightHandSideCheckmark && !!canSelectMultiple && (
                         <PressableWithFeedback
                             accessibilityLabel={item.text ?? ''}
                             role={CONST.ROLE.BUTTON}
@@ -147,6 +149,35 @@ function UserListItem<TItem extends ListItem>({
                         )}
                     </View>
                     {!!item.rightElement && item.rightElement}
+                    {!!item.shouldShowRightIcon && (
+                        <View style={[styles.popoverMenuIcon, styles.pointerEventsAuto, isDisabled && styles.cursorDisabled]}>
+                            <Icon
+                                src={Expensicons.ArrowRight}
+                                fill={StyleUtils.getIconFillColor(getButtonState(hovered, false, false, !!isDisabled, item.isInteractive !== false))}
+                            />
+                        </View>
+                    )}
+                    {!!shouldUseDefaultRightHandSideCheckmark && !!canSelectMultiple && (
+                        <PressableWithFeedback
+                            accessibilityLabel={item.text ?? ''}
+                            role={CONST.ROLE.BUTTON}
+                            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+                            disabled={isDisabled || item.isDisabledCheckbox}
+                            onPress={handleCheckboxPress}
+                            style={[styles.cursorUnset, StyleUtils.getCheckboxPressableStyle(), item.isDisabledCheckbox && styles.cursorDisabled, styles.ml3]}
+                        >
+                            <View style={[StyleUtils.getCheckboxContainerStyle(20), StyleUtils.getMultiselectListStyles(!!item.isSelected, !!item.isDisabled)]}>
+                                {!!item.isSelected && (
+                                    <Icon
+                                        src={Expensicons.Checkmark}
+                                        fill={theme.textLight}
+                                        height={14}
+                                        width={14}
+                                    />
+                                )}
+                            </View>
+                        </PressableWithFeedback>
+                    )}
                 </>
             )}
         </BaseListItem>

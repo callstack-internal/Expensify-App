@@ -1,5 +1,6 @@
 import type {ViewStyle} from 'react-native';
 import type {ModalProps} from 'react-native-modal';
+import {isMobileSafari} from '@libs/Browser';
 import type {ThemeStyles} from '@styles/index';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
@@ -19,6 +20,7 @@ type WindowDimensions = {
     windowWidth: number;
     windowHeight: number;
     isSmallScreenWidth: boolean;
+    shouldUseNarrowLayout?: boolean;
 };
 
 type GetModalStyles = {
@@ -41,11 +43,26 @@ type GetModalStylesStyleUtil = {
         popoverAnchorPosition?: ViewStyle,
         innerContainerStyle?: ViewStyle,
         outerStyle?: ViewStyle,
+        shouldUseModalPaddingStyle?: boolean,
+        safeAreaOptions?: {
+            shouldDisableBottomSafeAreaPadding?: boolean;
+            modalOverlapsWithTopSafeArea?: boolean;
+        },
+        shouldUseReanimatedModal?: boolean,
     ) => GetModalStyles;
 };
 
 const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({theme, styles}) => ({
-    getModalStyles: (type, windowDimensions, popoverAnchorPosition = {}, innerContainerStyle = {}, outerStyle = {}): GetModalStyles => {
+    getModalStyles: (
+        type,
+        windowDimensions,
+        popoverAnchorPosition = {},
+        innerContainerStyle = {},
+        outerStyle = {},
+        shouldUseModalPaddingStyle = true,
+        safeAreaOptions = {modalOverlapsWithTopSafeArea: false, shouldDisableBottomSafeAreaPadding: false},
+        shouldUseReanimatedModal = false,
+    ): GetModalStyles => {
         const {windowWidth, isSmallScreenWidth} = windowDimensions;
 
         let modalStyle: GetModalStyles['modalStyle'] = {
@@ -64,6 +81,13 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
         let shouldAddTopSafeAreaPadding = false;
 
         switch (type) {
+            case CONST.MODAL.MODAL_TYPE.FULLSCREEN:
+                modalStyle = {...modalStyle, height: '100%'};
+                modalContainerStyle = {};
+                swipeDirection = 'down';
+                animationIn = 'slideInUp';
+                animationOut = 'slideOutDown';
+                break;
             case CONST.MODAL.MODAL_TYPE.CONFIRM:
                 // A confirm modal is one that has a visible backdrop
                 // and can be dismissed by clicking outside of the modal.
@@ -74,7 +98,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     },
                 };
                 modalContainerStyle = {
-                    boxShadow: '0px 0px 5px 5px rgba(0, 0, 0, 0.1)',
+                    boxShadow: theme.shadow,
                     borderRadius: variables.componentBorderRadiusLarge,
                     overflow: 'hidden',
                     width: variables.sideBarWidth,
@@ -98,7 +122,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     },
                 };
                 modalContainerStyle = {
-                    boxShadow: '0px 0px 5px 5px rgba(0, 0, 0, 0.1)',
+                    boxShadow: theme.shadow,
                     flex: 1,
                     marginTop: isSmallScreenWidth ? 0 : 20,
                     marginBottom: isSmallScreenWidth ? 0 : 20,
@@ -116,7 +140,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                 shouldAddTopSafeAreaPadding = isSmallScreenWidth;
                 shouldAddBottomSafeAreaPadding = false;
                 break;
-            case CONST.MODAL.MODAL_TYPE.CENTERED_SWIPABLE_TO_RIGHT:
+            case CONST.MODAL.MODAL_TYPE.CENTERED_SWIPEABLE_TO_RIGHT:
                 // A centered modal is one that has a visible backdrop
                 // and can be dismissed by clicking outside of the modal.
                 // This modal should take up the entire visible area when
@@ -128,7 +152,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     },
                 };
                 modalContainerStyle = {
-                    boxShadow: '0px 0px 5px 5px rgba(0, 0, 0, 0.1)',
+                    boxShadow: theme.shadow,
                     flex: 1,
                     marginTop: isSmallScreenWidth ? 0 : 20,
                     marginBottom: isSmallScreenWidth ? 0 : 20,
@@ -152,10 +176,11 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     ...modalStyle,
                     ...{
                         alignItems: 'center',
+                        justifyContent: 'center',
                     },
                 };
                 modalContainerStyle = {
-                    boxShadow: '0px 0px 5px 5px rgba(0, 0, 0, 0.1)',
+                    boxShadow: theme.shadow,
                     flex: 1,
                     marginTop: isSmallScreenWidth ? 0 : 20,
                     marginBottom: isSmallScreenWidth ? 0 : 20,
@@ -180,7 +205,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     },
                 };
                 modalContainerStyle = {
-                    boxShadow: '0px 0px 5px 5px rgba(0, 0, 0, 0.1)',
+                    boxShadow: theme.shadow,
                     borderRadius: variables.componentBorderRadiusLarge,
                     borderWidth: 0,
                 };
@@ -206,12 +231,22 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     width: '100%',
                     borderTopLeftRadius: variables.componentBorderRadiusLarge,
                     borderTopRightRadius: variables.componentBorderRadiusLarge,
-                    paddingTop: variables.componentBorderRadiusLarge,
                     justifyContent: 'center',
                     overflow: 'hidden',
+                    boxShadow: theme.shadow,
+                    // Workaround for Safari not supporting interactive-widget=resizes-content, sets max height of a container modal.
+                    // This allows better scrolling experience after keyboard shows for modals with input, that are larger than remaining screen height.
+                    // More info https://github.com/Expensify/App/pull/62799#issuecomment-2943136220.
+                    ...(isMobileSafari() ? {maxHeight: `${windowDimensions.windowHeight}px`} : {}),
                 };
 
-                shouldAddBottomSafeAreaPadding = true;
+                if (shouldUseModalPaddingStyle) {
+                    modalContainerStyle.paddingTop = variables.componentBorderRadiusLarge;
+                    modalContainerStyle.paddingBottom = variables.componentBorderRadiusLarge;
+                }
+
+                shouldAddBottomSafeAreaPadding = !safeAreaOptions?.shouldDisableBottomSafeAreaPadding;
+                shouldAddTopSafeAreaMargin = !!safeAreaOptions?.modalOverlapsWithTopSafeArea;
                 swipeDirection = undefined;
                 animationIn = 'slideInUp';
                 animationOut = 'slideOutDown';
@@ -232,7 +267,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     borderColor: theme.border,
                     justifyContent: 'center',
                     overflow: 'hidden',
-                    boxShadow: variables.popoverMenuShadow,
+                    boxShadow: theme.shadow,
                 };
 
                 hideBackdrop = true;
@@ -256,23 +291,28 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     overflow: 'hidden',
                 };
 
-                animationIn = {
-                    from: {
-                        translateX: isSmallScreenWidth ? windowWidth : variables.sideBarWidth,
-                    },
-                    to: {
-                        translateX: 0,
-                    },
-                };
-                animationOut = {
-                    from: {
-                        translateX: 0,
-                    },
-                    to: {
-                        translateX: isSmallScreenWidth ? windowWidth : variables.sideBarWidth,
-                    },
-                };
-                hideBackdrop = true;
+                if (shouldUseReanimatedModal) {
+                    animationIn = 'slideInRight';
+                    animationOut = 'slideOutRight';
+                } else {
+                    animationIn = {
+                        from: {
+                            translateX: isSmallScreenWidth ? windowWidth : variables.sideBarWidth,
+                        },
+                        to: {
+                            translateX: 0,
+                        },
+                    };
+                    animationOut = {
+                        from: {
+                            translateX: 0,
+                        },
+                        to: {
+                            translateX: isSmallScreenWidth ? windowWidth : variables.sideBarWidth,
+                        },
+                    };
+                }
+
                 swipeDirection = undefined;
                 shouldAddBottomSafeAreaPadding = true;
                 shouldAddTopSafeAreaPadding = true;

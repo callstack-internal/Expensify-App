@@ -1,5 +1,22 @@
+import type * as OnyxCommon from './OnyxCommon';
+
+/** The pending member of report */
+type PendingChatMember = {
+    /** Account ID of the pending member */
+    accountID: string;
+
+    /** Action to be applied to the pending member of report */
+    pendingAction: OnyxCommon.PendingAction;
+
+    /** Collection of errors to show to the user */
+    errors?: OnyxCommon.Errors;
+};
+
 /** Model of report metadata */
 type ReportMetadata = {
+    /** Whether the user has successfully opened a report at least once, or if it was created by this user */
+    hasOnceLoadedReportActions?: boolean;
+
     /** Are we loading newer report actions? */
     isLoadingNewerReportActions?: boolean;
 
@@ -20,6 +37,14 @@ type ReportMetadata = {
 
     /** Whether participants private notes are being currently loaded */
     isLoadingPrivateNotes?: boolean;
+
+    /** Whether the current report is optimistic */
+    isOptimisticReport?: boolean;
+
+    /** Pending members of the report */
+    pendingChatMembers?: PendingChatMember[];
 };
 
 export default ReportMetadata;
+
+export type {PendingChatMember};

@@ -2,7 +2,7 @@ import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
 
 type ReportActionItemMessageHeaderSenderProps = {
     /** Text to display */
-    fragmentText: string;
+    fragmentText: string | undefined;
 
     /** Users accountID */
     accountID: number;
@@ -15,6 +15,9 @@ type ReportActionItemMessageHeaderSenderProps = {
 
     /** Actor icon */
     actorIcon?: OnyxCommon.Icon;
+
+    /** Whether the fragment should show a tooltip */
+    shouldShowTooltip?: boolean;
 };
 
 export default ReportActionItemMessageHeaderSenderProps;

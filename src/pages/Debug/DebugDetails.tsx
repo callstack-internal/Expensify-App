@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo} from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import Button from '@components/Button';
 import CheckboxWithLabel from '@components/CheckboxWithLabel';
@@ -12,11 +11,10 @@ import ScrollView from '@components/ScrollView';
 import Text from '@components/Text';
 import TextInput from '@components/TextInput';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import type {ObjectType, OnyxDataType} from '@libs/DebugUtils';
 import DebugUtils from '@libs/DebugUtils';
-import * as PolicyUtils from '@libs/PolicyUtils';
-import * as TagsOptionsListUtils from '@libs/TagsOptionsListUtils';
 import Debug from '@userActions/Debug';
 import type CONST from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
@@ -31,9 +29,16 @@ type DebugDetailsProps = {
     /** Type of debug form - required to access constant field options for a specific form */
     formType: ValueOf<typeof CONST.DEBUG.FORMS>;
 
-    /** The report or report action data to be displayed and editted. */
+    /** The report or report action data to be displayed and edited. */
     data: OnyxEntry<Report> | OnyxEntry<ReportAction> | OnyxEntry<Transaction> | OnyxEntry<TransactionViolation>;
 
+    /** Whether the provided policy has enabled tags */
+    policyHasEnabledTags?: boolean;
+
+    /** ID of the provided policy */
+    policyID?: string;
+
+    /** Metadata UI */
     children?: React.ReactNode;
 
     /** Callback to be called when user saves the debug data. */
@@ -47,39 +52,36 @@ type DebugDetailsProps = {
     validate: (key: any, value: string) => void;
 };
 
-function DebugDetails({formType, data, children, onSave, onDelete, validate}: DebugDetailsProps) {
-    const {translate} = useLocalize();
+function DebugDetails({formType, data, policyHasEnabledTags, policyID, children, onSave, onDelete, validate}: DebugDetailsProps) {
+    const {translate, localeCompare} = useLocalize();
     const styles = useThemeStyles();
-    const [formDraftData] = useOnyx(ONYXKEYS.FORMS.DEBUG_DETAILS_FORM_DRAFT);
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${(data as OnyxEntry<Transaction>)?.reportID ?? ''}`);
-    const [policyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${report?.policyID}`);
-    const policyTagLists = useMemo(() => PolicyUtils.getTagLists(policyTags), [policyTags]);
+    const [formDraftData] = useOnyx(ONYXKEYS.FORMS.DEBUG_DETAILS_FORM_DRAFT, {canBeMissing: true});
     const booleanFields = useMemo(
         () =>
             Object.entries(data ?? {})
                 .filter(([, value]) => typeof value === 'boolean')
-                .sort((a, b) => a[0].localeCompare(b[0])) as Array<[string, boolean]>,
-        [data],
+                .sort((a, b) => localeCompare(a[0], b[0])) as Array<[string, boolean]>,
+        [data, localeCompare],
     );
     const constantFields = useMemo(
         () =>
             Object.entries(data ?? {})
                 .filter((entry): entry is [string, string] => {
                     // Tag picker needs to be hidden when the policy has no tags available to pick
-                    if (entry[0] === TRANSACTION_FORM_INPUT_IDS.TAG && !TagsOptionsListUtils.hasEnabledTags(policyTagLists)) {
+                    if (entry[0] === TRANSACTION_FORM_INPUT_IDS.TAG && !policyHasEnabledTags) {
                         return false;
                     }
                     return DETAILS_CONSTANT_FIELDS[formType].some(({fieldName}) => fieldName === entry[0]);
                 })
-                .sort((a, b) => a[0].localeCompare(b[0])),
-        [data, formType, policyTagLists],
+                .sort((a, b) => localeCompare(a[0], b[0])),
+        [data, formType, policyHasEnabledTags, localeCompare],
     );
     const numberFields = useMemo(
         () =>
             Object.entries(data ?? {})
                 .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
-                .sort((a, b) => a[0].localeCompare(b[0])),
-        [data],
+                .sort((a, b) => localeCompare(a[0], b[0])),
+        [data, localeCompare],
     );
     const textFields = useMemo(
         () =>
@@ -91,8 +93,8 @@ function DebugDetails({formType, data, children, onSave, onDelete, validate}: De
                         !DETAILS_DATETIME_FIELDS.includes(entry[0]),
                 )
                 .map(([key, value]) => [key, DebugUtils.onyxDataToString(value)])
-                .sort((a, b) => (a.at(0) ?? '').localeCompare(b.at(0) ?? '')),
-        [data, formType],
+                .sort((a, b) => localeCompare(a.at(0) ?? '', b.at(0) ?? '')),
+        [data, formType, localeCompare],
     );
     const dateTimeFields = useMemo(() => Object.entries(data ?? {}).filter((entry): entry is [string, string] => DETAILS_DATETIME_FIELDS.includes(entry[0])), [data]);
 
@@ -165,6 +167,7 @@ function DebugDetails({formType, data, children, onSave, onDelete, validate}: De
                         const numberOfLines = DebugUtils.getNumberOfLinesFromString((formDraftData?.[key as keyof typeof formDraftData] as string) ?? value);
                         return (
                             <InputWrapper
+                                key={key}
                                 InputComponent={TextInput}
                                 inputID={key}
                                 accessibilityLabel={key}
@@ -185,6 +188,7 @@ function DebugDetails({formType, data, children, onSave, onDelete, validate}: De
                 <View style={[styles.mb5, styles.ph5, styles.gap5]}>
                     {numberFields.map(([key, value]) => (
                         <InputWrapper
+                            key={key}
                             InputComponent={TextInput}
                             inputID={key}
                             accessibilityLabel={key}
@@ -209,7 +213,7 @@ function DebugDetails({formType, data, children, onSave, onDelete, validate}: De
                             name={key}
                             shouldSaveDraft
                             defaultValue={String(value)}
-                            policyID={report?.policyID}
+                            policyID={policyID}
                         />
                     ))}
                     {constantFields.length === 0 && <Text style={[styles.textNormalThemeText, styles.ph5]}>{translate('debug.none')}</Text>}
@@ -232,6 +236,7 @@ function DebugDetails({formType, data, children, onSave, onDelete, validate}: De
                 <View style={[styles.mb5, styles.ph5, styles.gap5]}>
                     {booleanFields.map(([key, value]) => (
                         <InputWrapper
+                            key={key}
                             InputComponent={CheckboxWithLabel}
                             label={key}
                             inputID={key}
@@ -248,9 +253,7 @@ function DebugDetails({formType, data, children, onSave, onDelete, validate}: De
                         danger
                         large
                         text={translate('common.delete')}
-                        onPress={() => {
-                            onDelete();
-                        }}
+                        onPress={onDelete}
                     />
                 </View>
             </FormProvider>

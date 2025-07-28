@@ -1,9 +1,9 @@
 import React, {memo, useMemo} from 'react';
-import {useOnyx} from 'react-native-onyx';
 import Text from '@components/Text';
 import TextWithEllipsis from '@components/TextWithEllipsis';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as ReportUtils from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -29,7 +29,9 @@ function ReportTypingIndicator({reportID}: ReportTypingIndicatorProps) {
     }
 
     // If the user is typing on OldDot, firstUserTyping will be a string (the user's displayName)
-    const firstUserTypingDisplayName = isUserTypingADisplayName ? firstUserTyping : ReportUtils.getDisplayNameForParticipant(Number(firstUserTyping), false, false);
+    const firstUserTypingDisplayName = isUserTypingADisplayName
+        ? firstUserTyping
+        : ReportUtils.getDisplayNameForParticipant({accountID: Number(firstUserTyping), shouldFallbackToHidden: false});
 
     if (usersTyping.length === 1) {
         return (

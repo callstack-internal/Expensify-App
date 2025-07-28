@@ -1,7 +1,5 @@
-import type {StackScreenProps} from '@react-navigation/stack';
-import React, {useMemo, useState} from 'react';
-import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import React, {useCallback, useMemo, useState} from 'react';
+import {InteractionManager, View} from 'react-native';
 import Button from '@components/Button';
 import ButtonWithDropdownMenu from '@components/ButtonWithDropdownMenu';
 import type {DropdownOption} from '@components/ButtonWithDropdownMenu/types';
@@ -11,24 +9,35 @@ import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import * as Expensicons from '@components/Icon/Expensicons';
 import * as Illustrations from '@components/Icon/Illustrations';
 import ScreenWrapper from '@components/ScreenWrapper';
-import ListItemRightCaretWithLabel from '@components/SelectionList/ListItemRightCaretWithLabel';
+import ScrollView from '@components/ScrollView';
+import SearchBar from '@components/SearchBar';
 import TableListItem from '@components/SelectionList/TableListItem';
 import type {ListItem} from '@components/SelectionList/types';
 import SelectionListWithModal from '@components/SelectionListWithModal';
 import CustomListHeader from '@components/SelectionListWithModal/CustomListHeader';
 import TableListItemSkeleton from '@components/Skeletons/TableRowSkeleton';
+import Switch from '@components/Switch';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
 import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
+import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
+import useSearchBackPress from '@hooks/useSearchBackPress';
+import useSearchResults from '@hooks/useSearchResults';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {turnOffMobileSelectionMode} from '@libs/actions/MobileSelectionMode';
-import * as ReportField from '@libs/actions/Policy/ReportField';
-import * as DeviceCapabilities from '@libs/DeviceCapabilities';
-import localeCompare from '@libs/LocaleCompare';
+import {
+    deleteReportFieldsListValue,
+    removeReportFieldListValue,
+    setReportFieldsListValueEnabled,
+    updateReportFieldListValueEnabled as updateReportFieldListValueEnabledReportField,
+} from '@libs/actions/Policy/ReportField';
+import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import Navigation from '@libs/Navigation/Navigation';
-import * as PolicyUtils from '@libs/PolicyUtils';
-import * as ReportUtils from '@libs/ReportUtils';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
+import {hasAccountingConnections as hasAccountingConnectionsPolicyUtils} from '@libs/PolicyUtils';
+import {getReportFieldKey} from '@libs/ReportUtils';
+import StringUtils from '@libs/StringUtils';
 import type {SettingsNavigatorParamList} from '@navigation/types';
 import AccessOrNotFoundWrapper from '@pages/workspace/AccessOrNotFoundWrapper';
 import type {WithPolicyAndFullscreenLoadingProps} from '@pages/workspace/withPolicyAndFullscreenLoading';
@@ -50,7 +59,7 @@ type ValueListItem = ListItem & {
     orderWeight?: number;
 };
 
-type ReportFieldsListValuesPageProps = WithPolicyAndFullscreenLoadingProps & StackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.REPORT_FIELDS_LIST_VALUES>;
+type ReportFieldsListValuesPageProps = WithPolicyAndFullscreenLoadingProps & PlatformStackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.REPORT_FIELDS_LIST_VALUES>;
 
 function ReportFieldsListValuesPage({
     policy,
@@ -59,26 +68,26 @@ function ReportFieldsListValuesPage({
     },
 }: ReportFieldsListValuesPageProps) {
     const styles = useThemeStyles();
-    const {translate} = useLocalize();
+    const {translate, localeCompare} = useLocalize();
     // We need to use isSmallScreenWidth instead of shouldUseNarrowLayout here to use the mobile selection mode on small screens only
     // See https://github.com/Expensify/App/issues/48724 for more details
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
-    const [formDraft] = useOnyx(ONYXKEYS.FORMS.WORKSPACE_REPORT_FIELDS_FORM_DRAFT);
-    const {selectionMode} = useMobileSelectionMode();
+    const [formDraft] = useOnyx(ONYXKEYS.FORMS.WORKSPACE_REPORT_FIELDS_FORM_DRAFT, {canBeMissing: true});
+    const isMobileSelectionModeEnabled = useMobileSelectionMode();
 
     const [selectedValues, setSelectedValues] = useState<Record<string, boolean>>({});
     const [deleteValuesConfirmModalVisible, setDeleteValuesConfirmModalVisible] = useState(false);
-    const hasAccountingConnections = PolicyUtils.hasAccountingConnections(policy);
+    const hasAccountingConnections = hasAccountingConnectionsPolicyUtils(policy);
 
-    const canSelectMultiple = !hasAccountingConnections && (isSmallScreenWidth ? selectionMode?.isEnabled : true);
+    const canSelectMultiple = !hasAccountingConnections && (isSmallScreenWidth ? isMobileSelectionModeEnabled : true);
 
     const [listValues, disabledListValues] = useMemo(() => {
         let reportFieldValues: string[];
         let reportFieldDisabledValues: boolean[];
 
         if (reportFieldID) {
-            const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
+            const reportFieldKey = getReportFieldKey(reportFieldID);
 
             reportFieldValues = Object.values(policy?.fieldList?.[reportFieldKey]?.values ?? {});
             reportFieldDisabledValues = Object.values(policy?.fieldList?.[reportFieldKey]?.disabledOptions ?? {});
@@ -90,23 +99,58 @@ function ReportFieldsListValuesPage({
         return [reportFieldValues, reportFieldDisabledValues];
     }, [formDraft?.disabledListValues, formDraft?.listValues, policy?.fieldList, reportFieldID]);
 
-    const listValuesSections = useMemo(() => {
-        const data = listValues
-            .map<ValueListItem>((value, index) => ({
+    const updateReportFieldListValueEnabled = useCallback(
+        (value: boolean, valueIndex: number) => {
+            if (reportFieldID) {
+                updateReportFieldListValueEnabledReportField(policyID, reportFieldID, [Number(valueIndex)], value);
+                return;
+            }
+
+            setReportFieldsListValueEnabled([valueIndex], value);
+        },
+        [policyID, reportFieldID],
+    );
+
+    useSearchBackPress({
+        onClearSelection: () => {
+            setSelectedValues({});
+        },
+        onNavigationCallBack: () => Navigation.goBack(),
+    });
+
+    const data = useMemo(
+        () =>
+            listValues.map<ValueListItem>((value, index) => ({
                 value,
                 index,
                 text: value,
                 keyForList: value,
                 isSelected: selectedValues[value] && canSelectMultiple,
                 enabled: !disabledListValues.at(index) ?? true,
-                rightElement: <ListItemRightCaretWithLabel labelText={disabledListValues.at(index) ? translate('workspace.common.disabled') : translate('workspace.common.enabled')} />,
-            }))
-            .sort((a, b) => localeCompare(a.value, b.value));
-        return [{data, isDisabled: false}];
-    }, [canSelectMultiple, disabledListValues, listValues, selectedValues, translate]);
+                rightElement: (
+                    <Switch
+                        isOn={!disabledListValues.at(index) ?? true}
+                        accessibilityLabel={translate('workspace.distanceRates.trackTax')}
+                        onToggle={(newValue: boolean) => updateReportFieldListValueEnabled(newValue, index)}
+                    />
+                ),
+            })),
+        [canSelectMultiple, disabledListValues, listValues, selectedValues, translate, updateReportFieldListValueEnabled],
+    );
+
+    const filterListValue = useCallback((item: ValueListItem, searchInput: string) => {
+        const itemText = StringUtils.normalize(item.text?.toLowerCase() ?? '');
+        const normalizedSearchInput = StringUtils.normalize(searchInput.toLowerCase());
+        return itemText.includes(normalizedSearchInput);
+    }, []);
+    const sortListValues = useCallback((values: ValueListItem[]) => values.sort((a, b) => localeCompare(a.value, b.value)), [localeCompare]);
+    const [inputValue, setInputValue, filteredListValues] = useSearchResults(data, filterListValue, sortListValues);
+    const sections = useMemo(() => [{data: filteredListValues, isDisabled: false}], [filteredListValues]);
+
+    const filteredListValuesArray = filteredListValues.map((item) => item.value);
 
     const shouldShowEmptyState = Object.values(listValues ?? {}).length <= 0;
-    const selectedValuesArray = Object.keys(selectedValues).filter((key) => selectedValues[key]);
+    const selectedValuesArray = Object.keys(selectedValues).filter((key) => selectedValues[key] && listValues.includes(key));
 
     const toggleValue = (valueItem: ValueListItem) => {
         setSelectedValues((prev) => ({
@@ -116,14 +160,10 @@ function ReportFieldsListValuesPage({
     };
 
     const toggleAllValues = () => {
-        const areAllSelected = listValues.length === selectedValuesArray.length;
-
-        setSelectedValues(areAllSelected ? {} : Object.fromEntries(listValues.map((value) => [value, true])));
+        setSelectedValues(selectedValuesArray.length > 0 ? {} : Object.fromEntries(filteredListValuesArray.map((value) => [value, true])));
     };
 
     const handleDeleteValues = () => {
-        setSelectedValues({});
-
         const valuesToDelete = selectedValuesArray.reduce<number[]>((acc, valueName) => {
             const index = listValues?.indexOf(valueName) ?? -1;
 
@@ -135,12 +175,16 @@ function ReportFieldsListValuesPage({
         }, []);
 
         if (reportFieldID) {
-            ReportField.removeReportFieldListValue(policyID, reportFieldID, valuesToDelete);
+            removeReportFieldListValue(policyID, reportFieldID, valuesToDelete);
         } else {
-            ReportField.deleteReportFieldsListValue(valuesToDelete);
+            deleteReportFieldsListValue(valuesToDelete);
         }
 
         setDeleteValuesConfirmModalVisible(false);
+
+        InteractionManager.runAfterInteractions(() => {
+            setSelectedValues({});
+        });
     };
 
     const openListValuePage = (valueItem: ValueListItem) => {
@@ -149,23 +193,24 @@ function ReportFieldsListValuesPage({
         }
 
         Navigation.navigate(ROUTES.WORKSPACE_REPORT_FIELDS_VALUE_SETTINGS.getRoute(policyID, valueItem.index, reportFieldID));
-
-        setSelectedValues({});
     };
 
     const getCustomListHeader = () => {
+        if (filteredListValues.length === 0) {
+            return null;
+        }
         return (
             <CustomListHeader
                 canSelectMultiple={canSelectMultiple}
                 leftHeaderText={translate('common.name')}
-                rightHeaderText={translate('statusPage.status')}
+                rightHeaderText={translate('common.enabled')}
             />
         );
     };
 
     const getHeaderButtons = () => {
         const options: Array<DropdownOption<DeepValueOf<typeof CONST.POLICY.BULK_ACTION_TYPES>>> = [];
-        if (isSmallScreenWidth ? selectionMode?.isEnabled : selectedValuesArray.length > 0) {
+        if (isSmallScreenWidth ? isMobileSelectionModeEnabled : selectedValuesArray.length > 0) {
             if (selectedValuesArray.length > 0) {
                 options.push({
                     icon: Expensicons.Trashcan,
@@ -197,11 +242,11 @@ function ReportFieldsListValuesPage({
                         setSelectedValues({});
 
                         if (reportFieldID) {
-                            ReportField.updateReportFieldListValueEnabled(policyID, reportFieldID, valuesToDisable, false);
+                            updateReportFieldListValueEnabledReportField(policyID, reportFieldID, valuesToDisable, false);
                             return;
                         }
 
-                        ReportField.setReportFieldsListValueEnabled(valuesToDisable, false);
+                        setReportFieldsListValueEnabled(valuesToDisable, false);
                     },
                 });
             }
@@ -229,11 +274,11 @@ function ReportFieldsListValuesPage({
                         setSelectedValues({});
 
                         if (reportFieldID) {
-                            ReportField.updateReportFieldListValueEnabled(policyID, reportFieldID, valuesToEnable, true);
+                            updateReportFieldListValueEnabledReportField(policyID, reportFieldID, valuesToEnable, true);
                             return;
                         }
 
-                        ReportField.setReportFieldsListValueEnabled(valuesToEnable, true);
+                        setReportFieldsListValueEnabled(valuesToEnable, true);
                     },
                 });
             }
@@ -242,7 +287,6 @@ function ReportFieldsListValuesPage({
                 <ButtonWithDropdownMenu
                     onPress={() => null}
                     shouldAlwaysShowDropdownMenu
-                    pressOnEnter
                     buttonSize={CONST.DROPDOWN_BUTTON_SIZE.MEDIUM}
                     customText={translate('workspace.common.selected', {count: selectedValuesArray.length})}
                     options={options}
@@ -264,7 +308,23 @@ function ReportFieldsListValuesPage({
         );
     };
 
-    const selectionModeHeader = selectionMode?.isEnabled && isSmallScreenWidth;
+    const selectionModeHeader = isMobileSelectionModeEnabled && isSmallScreenWidth;
+
+    const headerContent = (
+        <>
+            <View style={[styles.ph5, styles.pv4]}>
+                <Text style={[styles.sidebarLinkText, styles.optionAlternateText]}>{translate('workspace.reportFields.listInputSubtitle')}</Text>
+            </View>
+            {data.length > CONST.SEARCH_ITEM_LIMIT && (
+                <SearchBar
+                    label={translate('workspace.reportFields.findReportField')}
+                    inputValue={inputValue}
+                    onChangeText={setInputValue}
+                    shouldShowEmptyState={!shouldShowEmptyState && filteredListValues.length === 0}
+                />
+            )}
+        </>
+    );
 
     return (
         <AccessOrNotFoundWrapper
@@ -273,7 +333,7 @@ function ReportFieldsListValuesPage({
             featureName={CONST.POLICY.MORE_FEATURES.ARE_REPORT_FIELDS_ENABLED}
         >
             <ScreenWrapper
-                includeSafeAreaPaddingBottom={false}
+                enableEdgeToEdgeBottomSafeAreaPadding
                 style={styles.defaultModalContainer}
                 testID={ReportFieldsListValuesPage.displayName}
                 shouldEnableMaxHeight
@@ -281,7 +341,7 @@ function ReportFieldsListValuesPage({
                 <HeaderWithBackButton
                     title={translate(selectionModeHeader ? 'common.selectMultiple' : 'workspace.reportFields.listValues')}
                     onBackButtonPress={() => {
-                        if (selectionMode?.isEnabled) {
+                        if (isMobileSelectionModeEnabled) {
                             setSelectedValues({});
                             turnOffMobileSelectionMode();
                             return;
@@ -292,32 +352,37 @@ function ReportFieldsListValuesPage({
                     {!isSmallScreenWidth && !hasAccountingConnections && getHeaderButtons()}
                 </HeaderWithBackButton>
                 {isSmallScreenWidth && <View style={[styles.pl5, styles.pr5]}>{!hasAccountingConnections && getHeaderButtons()}</View>}
-                <View style={[styles.ph5, styles.pv4]}>
-                    <Text style={[styles.sidebarLinkText, styles.optionAlternateText]}>{translate('workspace.reportFields.listInputSubtitle')}</Text>
-                </View>
                 {shouldShowEmptyState && (
-                    <EmptyStateComponent
-                        title={translate('workspace.reportFields.emptyReportFieldsValues.title')}
-                        subtitle={translate('workspace.reportFields.emptyReportFieldsValues.subtitle')}
-                        SkeletonComponent={TableListItemSkeleton}
-                        headerMediaType={CONST.EMPTY_STATE_MEDIA.ILLUSTRATION}
-                        headerMedia={Illustrations.FolderWithPapers}
-                        headerStyles={styles.emptyFolderDarkBG}
-                        headerContentStyles={styles.emptyStateFolderWithPaperIconSize}
-                    />
+                    <ScrollView contentContainerStyle={[styles.flexGrow1, styles.flexShrink0]}>
+                        {headerContent}
+                        <EmptyStateComponent
+                            title={translate('workspace.reportFields.emptyReportFieldsValues.title')}
+                            subtitle={translate('workspace.reportFields.emptyReportFieldsValues.subtitle')}
+                            SkeletonComponent={TableListItemSkeleton}
+                            headerMediaType={CONST.EMPTY_STATE_MEDIA.ILLUSTRATION}
+                            headerMedia={Illustrations.FolderWithPapers}
+                            headerStyles={styles.emptyFolderDarkBG}
+                            headerContentStyles={styles.emptyStateFolderWithPaperIconSize}
+                        />
+                    </ScrollView>
                 )}
                 {!shouldShowEmptyState && (
                     <SelectionListWithModal
+                        addBottomSafeAreaPadding
                         canSelectMultiple={canSelectMultiple}
                         turnOnSelectionModeOnLongPress={!hasAccountingConnections}
                         onTurnOnSelectionMode={(item) => item && toggleValue(item)}
-                        sections={listValuesSections}
+                        sections={sections}
+                        selectedItems={selectedValuesArray}
+                        shouldUseDefaultRightHandSideCheckmark={false}
                         onCheckboxPress={toggleValue}
                         onSelectRow={openListValuePage}
-                        onSelectAll={toggleAllValues}
+                        onSelectAll={filteredListValues.length > 0 ? toggleAllValues : undefined}
                         ListItem={TableListItem}
+                        listHeaderContent={headerContent}
                         customListHeader={getCustomListHeader()}
-                        shouldPreventDefaultFocusOnSelectRow={!DeviceCapabilities.canUseTouchScreen()}
+                        shouldShowListEmptyContent={false}
+                        shouldPreventDefaultFocusOnSelectRow={!canUseTouchScreen()}
                         listHeaderWrapperStyle={[styles.ph9, styles.pv3, styles.pb5]}
                         showScrollIndicator={false}
                     />

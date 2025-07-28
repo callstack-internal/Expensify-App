@@ -1,6 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import {withOnyx} from 'react-native-onyx';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';
@@ -11,9 +9,10 @@ import Text from '@components/Text';
 import type {WithCurrentUserPersonalDetailsProps} from '@components/withCurrentUserPersonalDetails';
 import withCurrentUserPersonalDetails from '@components/withCurrentUserPersonalDetails';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import Navigation from '@libs/Navigation/Navigation';
-import * as PersonalDetails from '@userActions/PersonalDetails';
+import {updatePronouns as updatePronounsPersonalDetails} from '@userActions/PersonalDetails';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 
@@ -21,17 +20,16 @@ type PronounEntry = ListItem & {
     value: string;
 };
 
-type PronounsPageOnyxProps = {
-    isLoadingApp: OnyxEntry<boolean>;
-};
-type PronounsPageProps = PronounsPageOnyxProps & WithCurrentUserPersonalDetailsProps;
+type PronounsPageProps = WithCurrentUserPersonalDetailsProps;
 
-function PronounsPage({currentUserPersonalDetails, isLoadingApp = true}: PronounsPageProps) {
+function PronounsPage({currentUserPersonalDetails}: PronounsPageProps) {
     const styles = useThemeStyles();
-    const {translate} = useLocalize();
+    const {translate, localeCompare} = useLocalize();
+    const [isLoadingApp = true] = useOnyx(ONYXKEYS.IS_LOADING_APP, {canBeMissing: true});
     const currentPronouns = currentUserPersonalDetails?.pronouns ?? '';
     const currentPronounsKey = currentPronouns.substring(CONST.PRONOUNS.PREFIX.length);
     const [searchValue, setSearchValue] = useState('');
+    const isOptionSelected = useRef(false);
 
     useEffect(() => {
         if (isLoadingApp && !currentUserPersonalDetails.pronouns) {
@@ -56,7 +54,7 @@ function PronounsPage({currentUserPersonalDetails, isLoadingApp = true}: Pronoun
                 keyForList: value,
                 isSelected: isCurrentPronouns,
             };
-        }).sort((a, b) => a.text.toLowerCase().localeCompare(b.text.toLowerCase()));
+        }).sort((a, b) => localeCompare(a.text.toLowerCase(), b.text.toLowerCase()));
 
         const trimmedSearch = searchValue.trim();
 
@@ -64,12 +62,16 @@ function PronounsPage({currentUserPersonalDetails, isLoadingApp = true}: Pronoun
             return [];
         }
         return pronouns.filter((pronoun) => pronoun.text.toLowerCase().indexOf(trimmedSearch.toLowerCase()) >= 0);
-    }, [searchValue, currentPronouns, translate]);
+    }, [searchValue, currentPronouns, translate, localeCompare]);
 
     const headerMessage = searchValue.trim() && filteredPronounsList?.length === 0 ? translate('common.noResultsFound') : '';
 
     const updatePronouns = (selectedPronouns: PronounEntry) => {
-        PersonalDetails.updatePronouns(selectedPronouns.keyForList === currentPronounsKey ? '' : selectedPronouns?.value ?? '');
+        if (isOptionSelected.current) {
+            return;
+        }
+        isOptionSelected.current = true;
+        updatePronounsPersonalDetails(selectedPronouns.keyForList === currentPronounsKey ? '' : (selectedPronouns?.value ?? ''));
         Navigation.goBack();
     };
 
@@ -107,10 +109,4 @@ function PronounsPage({currentUserPersonalDetails, isLoadingApp = true}: Pronoun
 
 PronounsPage.displayName = 'PronounsPage';
 
-export default withCurrentUserPersonalDetails(
-    withOnyx<PronounsPageProps, PronounsPageOnyxProps>({
-        isLoadingApp: {
-            key: ONYXKEYS.IS_LOADING_APP,
-        },
-    })(PronounsPage),
-);
+export default withCurrentUserPersonalDetails(PronounsPage);

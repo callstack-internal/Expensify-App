@@ -1,5 +1,4 @@
 import React, {useMemo, useState} from 'react';
-import {useOnyx} from 'react-native-onyx';
 import Button from '@components/Button';
 import FormHelpMessage from '@components/FormHelpMessage';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
@@ -9,13 +8,13 @@ import RadioListItem from '@components/SelectionList/RadioListItem';
 import type {ListItem} from '@components/SelectionList/types';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
+import type {OnboardingCompanySize} from '@libs/actions/Welcome/OnboardingFlow';
 import Navigation from '@libs/Navigation/Navigation';
-import * as Policy from '@userActions/Policy/Policy';
-import * as Welcome from '@userActions/Welcome';
+import {setOnboardingCompanySize} from '@userActions/Welcome';
 import CONST from '@src/CONST';
-import type {OnboardingCompanySize} from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type {BaseOnboardingEmployeesProps} from './types';
@@ -26,22 +25,26 @@ type OnboardingListItem = ListItem & {
 function BaseOnboardingEmployees({shouldUseNativeStyles, route}: BaseOnboardingEmployeesProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
-    const [onboardingCompanySize] = useOnyx(ONYXKEYS.ONBOARDING_COMPANY_SIZE);
-    const [onboardingPurposeSelected] = useOnyx(ONYXKEYS.ONBOARDING_PURPOSE_SELECTED);
-    const [onboardingPolicyID] = useOnyx(ONYXKEYS.ONBOARDING_POLICY_ID);
+    const [onboardingCompanySize] = useOnyx(ONYXKEYS.ONBOARDING_COMPANY_SIZE, {canBeMissing: true});
+    const [onboardingPurposeSelected] = useOnyx(ONYXKEYS.ONBOARDING_PURPOSE_SELECTED, {canBeMissing: true});
+
     const {onboardingIsMediumOrLargerScreenWidth} = useResponsiveLayout();
     const [selectedCompanySize, setSelectedCompanySize] = useState<OnboardingCompanySize | null | undefined>(onboardingCompanySize);
     const [error, setError] = useState('');
 
+    const [onboardingValues] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {canBeMissing: true});
     const companySizeOptions: OnboardingListItem[] = useMemo(() => {
-        return Object.values(CONST.ONBOARDING_COMPANY_SIZE).map((companySize): OnboardingListItem => {
-            return {
-                text: translate(`onboarding.employees.${companySize}`),
-                keyForList: companySize,
-                isSelected: companySize === selectedCompanySize,
-            };
-        });
-    }, [translate, selectedCompanySize]);
+        const isSmb = onboardingValues?.signupQualifier === CONST.ONBOARDING_SIGNUP_QUALIFIERS.SMB;
+        return Object.values(CONST.ONBOARDING_COMPANY_SIZE)
+            .filter((size) => !isSmb || size !== CONST.ONBOARDING_COMPANY_SIZE.MICRO)
+            .map((companySize): OnboardingListItem => {
+                return {
+                    text: translate(`onboarding.employees.${companySize}`),
+                    keyForList: companySize,
+                    isSelected: companySize === selectedCompanySize,
+                };
+            });
+    }, [translate, selectedCompanySize, onboardingValues?.signupQualifier]);
 
     const footerContent = (
         <>
@@ -61,14 +64,7 @@ function BaseOnboardingEmployees({shouldUseNativeStyles, route}: BaseOnboardingE
                         setError(translate('onboarding.errorSelection'));
                         return;
                     }
-                    Welcome.setOnboardingCompanySize(selectedCompanySize);
-
-                    if (!onboardingPolicyID) {
-                        const {adminsChatReportID, policyID} = Policy.createWorkspace(undefined, true, '', Policy.generatePolicyID(), CONST.ONBOARDING_CHOICES.MANAGE_TEAM);
-                        Welcome.setOnboardingAdminsChatReportID(adminsChatReportID);
-                        Welcome.setOnboardingPolicyID(policyID);
-                    }
-
+                    setOnboardingCompanySize(selectedCompanySize);
                     Navigation.navigate(ROUTES.ONBOARDING_ACCOUNTING.getRoute(route.params?.backTo));
                 }}
                 pressOnEnter
@@ -78,14 +74,15 @@ function BaseOnboardingEmployees({shouldUseNativeStyles, route}: BaseOnboardingE
 
     return (
         <ScreenWrapper
-            includeSafeAreaPaddingBottom={false}
             testID="BaseOnboardingEmployees"
             style={[styles.defaultModalContainer, shouldUseNativeStyles && styles.pt8]}
         >
             <HeaderWithBackButton
                 shouldShowBackButton
-                progressBarPercentage={onboardingPurposeSelected === CONST.ONBOARDING_CHOICES.MANAGE_TEAM ? 50 : 75}
-                onBackButtonPress={Navigation.goBack}
+                progressBarPercentage={onboardingPurposeSelected === CONST.ONBOARDING_CHOICES.MANAGE_TEAM ? 80 : 90}
+                onBackButtonPress={() => {
+                    Navigation.goBack(ROUTES.ONBOARDING_PURPOSE.getRoute());
+                }}
             />
             <Text style={[styles.textHeadlineH1, styles.mb5, onboardingIsMediumOrLargerScreenWidth && styles.mt5, onboardingIsMediumOrLargerScreenWidth ? styles.mh8 : styles.mh5]}>
                 {translate('onboarding.employees.title')}
@@ -101,6 +98,7 @@ function BaseOnboardingEmployees({shouldUseNativeStyles, route}: BaseOnboardingE
                 ListItem={RadioListItem}
                 footerContent={footerContent}
                 listItemWrapperStyle={onboardingIsMediumOrLargerScreenWidth ? [styles.pl8, styles.pr8] : []}
+                includeSafeAreaPaddingBottom={false}
             />
         </ScreenWrapper>
     );

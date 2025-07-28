@@ -1,7 +1,5 @@
-import type {StackScreenProps} from '@react-navigation/stack';
 import React, {useState} from 'react';
 import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
 import ConfirmModal from '@components/ConfirmModal';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import * as Expensicons from '@components/Icon/Expensicons';
@@ -13,10 +11,12 @@ import ScrollView from '@components/ScrollView';
 import Switch from '@components/Switch';
 import Text from '@components/Text';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import * as CurrencyUtils from '@libs/CurrencyUtils';
 import * as ErrorUtils from '@libs/ErrorUtils';
 import Navigation from '@libs/Navigation/Navigation';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import {getDistanceRateCustomUnit} from '@libs/PolicyUtils';
 import type {SettingsNavigatorParamList} from '@navigation/types';
 import NotFoundPage from '@pages/ErrorPage/NotFoundPage';
@@ -28,7 +28,7 @@ import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
 import type {Rate, TaxRateAttributes} from '@src/types/onyx/Policy';
 
-type PolicyDistanceRateDetailsPageProps = StackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.DISTANCE_RATE_DETAILS>;
+type PolicyDistanceRateDetailsPageProps = PlatformStackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.DISTANCE_RATE_DETAILS>;
 
 function PolicyDistanceRateDetailsPage({route}: PolicyDistanceRateDetailsPageProps) {
     const styles = useThemeStyles();
@@ -99,11 +99,14 @@ function PolicyDistanceRateDetailsPage({route}: PolicyDistanceRateDetailsPagePro
         >
             <ScreenWrapper
                 testID={PolicyDistanceRateDetailsPage.displayName}
-                includeSafeAreaPaddingBottom={false}
+                enableEdgeToEdgeBottomSafeAreaPadding
                 style={[styles.defaultModalContainer]}
             >
                 <HeaderWithBackButton title={`${rateValueToDisplay} / ${translate(`common.${customUnit?.attributes?.unit ?? CONST.CUSTOM_UNITS.DISTANCE_UNIT_MILES}`)}`} />
-                <ScrollView contentContainerStyle={styles.flexGrow1}>
+                <ScrollView
+                    contentContainerStyle={styles.flexGrow1}
+                    addBottomSafeAreaPadding
+                >
                     <OfflineWithFeedback
                         errors={ErrorUtils.getLatestErrorField(rate ?? {}, 'enabled')}
                         pendingAction={rate?.pendingFields?.enabled}

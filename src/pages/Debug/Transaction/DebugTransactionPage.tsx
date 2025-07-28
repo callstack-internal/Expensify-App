@@ -1,19 +1,22 @@
-import type {StackScreenProps} from '@react-navigation/stack';
-import React from 'react';
-import {View} from 'react-native';
-import {useOnyx} from 'react-native-onyx';
+import React, {useCallback, useMemo} from 'react';
+import {InteractionManager, View} from 'react-native';
 import Button from '@components/Button';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';
-import TabSelector from '@components/TabSelector/TabSelector';
 import useLocalize from '@hooks/useLocalize';
+import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import Debug from '@libs/actions/Debug';
 import DebugUtils from '@libs/DebugUtils';
-import * as DeviceCapabilities from '@libs/DeviceCapabilities';
+import {canUseTouchScreen} from '@libs/DeviceCapabilities';
+import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
+import type {DebugTabNavigatorRoutes} from '@libs/Navigation/DebugTabNavigator';
+import DebugTabNavigator from '@libs/Navigation/DebugTabNavigator';
 import Navigation from '@libs/Navigation/Navigation';
-import OnyxTabNavigator, {TopTab} from '@libs/Navigation/OnyxTabNavigator';
+import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {DebugParamList} from '@libs/Navigation/types';
+import {getTagLists} from '@libs/PolicyUtils';
+import {hasEnabledTags} from '@libs/TagsOptionsListUtils';
 import DebugDetails from '@pages/Debug/DebugDetails';
 import DebugJSON from '@pages/Debug/DebugJSON';
 import NotFoundPage from '@pages/ErrorPage/NotFoundPage';
@@ -23,7 +26,7 @@ import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
 import DebugTransactionViolations from './DebugTransactionViolations';
 
-type DebugTransactionPageProps = StackScreenProps<DebugParamList, typeof SCREENS.DEBUG.TRANSACTION>;
+type DebugTransactionPageProps = PlatformStackScreenProps<DebugParamList, typeof SCREENS.DEBUG.TRANSACTION>;
 
 function DebugTransactionPage({
     route: {
@@ -31,8 +34,64 @@ function DebugTransactionPage({
     },
 }: DebugTransactionPageProps) {
     const {translate} = useLocalize();
-    const [transaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`);
+    const [transaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`, {
+        canBeMissing: true,
+    });
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transaction?.reportID}`, {
+        canBeMissing: true,
+    });
+    const [policyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${report?.policyID}`, {
+        canBeMissing: true,
+    });
+    const policyTagLists = useMemo(() => getTagLists(policyTags), [policyTags]);
+
     const styles = useThemeStyles();
+
+    const DebugDetailsTab = useCallback(
+        () => (
+            <DebugDetails
+                formType={CONST.DEBUG.FORMS.TRANSACTION}
+                data={transaction}
+                policyID={report?.policyID}
+                policyHasEnabledTags={hasEnabledTags(policyTagLists)}
+                onSave={(data) => {
+                    Debug.setDebugData(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`, data);
+                }}
+                onDelete={() => {
+                    Navigation.goBack();
+                    // We need to wait for navigation animations to finish before deleting a transaction,
+                    // otherwise the user will see a not found page briefly.
+                    InteractionManager.runAfterInteractions(() => {
+                        Debug.setDebugData(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`, null);
+                    });
+                }}
+                validate={DebugUtils.validateTransactionDraftProperty}
+            >
+                <View style={[styles.mh5, styles.mb5]}>
+                    <Button
+                        text={translate('debug.viewReport')}
+                        onPress={() => {
+                            Navigation.navigate(ROUTES.DEBUG_REPORT.getRoute(`${transaction?.reportID}`));
+                        }}
+                    />
+                </View>
+            </DebugDetails>
+        ),
+        [policyTagLists, report?.policyID, styles.mb5, styles.mh5, transaction, transactionID, translate],
+    );
+
+    const DebugJSONTab = useCallback(() => <DebugJSON data={transaction ?? {}} />, [transaction]);
+
+    const DebugTransactionViolationsTab = useCallback(() => <DebugTransactionViolations transactionID={transactionID} />, [transactionID]);
+
+    const routes = useMemo<DebugTabNavigatorRoutes>(
+        () => [
+            {name: CONST.DEBUG.DETAILS, component: DebugDetailsTab},
+            {name: CONST.DEBUG.JSON, component: DebugJSONTab},
+            {name: CONST.DEBUG.TRANSACTION_VIOLATIONS, component: DebugTransactionViolationsTab},
+        ],
+        [DebugDetailsTab, DebugJSONTab, DebugTransactionViolationsTab],
+    );
 
     if (!transaction) {
         return <NotFoundPage />;
@@ -42,7 +101,7 @@ function DebugTransactionPage({
         <ScreenWrapper
             includeSafeAreaPaddingBottom={false}
             shouldEnableKeyboardAvoidingView={false}
-            shouldEnableMinHeight={DeviceCapabilities.canUseTouchScreen()}
+            shouldEnableMinHeight={canUseTouchScreen()}
             testID={DebugTransactionPage.displayName}
         >
             {({safeAreaPaddingBottomStyle}) => (
@@ -51,37 +110,10 @@ function DebugTransactionPage({
                         title={`${translate('debug.debug')} - ${translate('debug.transaction')}`}
                         onBackButtonPress={Navigation.goBack}
                     />
-                    <OnyxTabNavigator
+                    <DebugTabNavigator
                         id={CONST.TAB.DEBUG_TAB_ID}
-                        tabBar={TabSelector}
-                    >
-                        <TopTab.Screen name={CONST.DEBUG.DETAILS}>
-                            {() => (
-                                <DebugDetails
-                                    formType={CONST.DEBUG.FORMS.TRANSACTION}
-                                    data={transaction}
-                                    onSave={(data) => {
-                                        Debug.setDebugData(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`, data);
-                                    }}
-                                    onDelete={() => {
-                                        Debug.setDebugData(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`, null);
-                                    }}
-                                    validate={DebugUtils.validateTransactionDraftProperty}
-                                >
-                                    <View style={[styles.mh5, styles.mb5]}>
-                                        <Button
-                                            text={translate('debug.viewReport')}
-                                            onPress={() => {
-                                                Navigation.navigate(ROUTES.DEBUG_REPORT.getRoute(transaction?.reportID ?? ''));
-                                            }}
-                                        />
-                                    </View>
-                                </DebugDetails>
-                            )}
-                        </TopTab.Screen>
-                        <TopTab.Screen name={CONST.DEBUG.JSON}>{() => <DebugJSON data={transaction ?? {}} />}</TopTab.Screen>
-                        <TopTab.Screen name={CONST.DEBUG.TRANSACTION_VIOLATIONS}>{() => <DebugTransactionViolations transactionID={transactionID} />}</TopTab.Screen>
-                    </OnyxTabNavigator>
+                        routes={routes}
+                    />
                 </View>
             )}
         </ScreenWrapper>

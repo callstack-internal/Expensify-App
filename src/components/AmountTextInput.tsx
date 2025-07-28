@@ -37,9 +37,12 @@ type AmountTextInputProps = {
     /** Style for the TextInput container */
     containerStyle?: StyleProp<ViewStyle>;
 
+    /** Whether to apply padding to the input, some inputs doesn't require any padding, e.g. Amount input in money request flow */
+    shouldApplyPaddingToContainer?: boolean;
+
     /** Hide the focus styles on TextInput */
     hideFocusedState?: boolean;
-} & Pick<BaseTextInputProps, 'autoFocus'>;
+} & Pick<BaseTextInputProps, 'autoFocus' | 'autoGrowExtraSpace' | 'submitBehavior'>;
 
 function AmountTextInput(
     {
@@ -54,6 +57,7 @@ function AmountTextInput(
         containerStyle,
         disableKeyboard = true,
         hideFocusedState = true,
+        shouldApplyPaddingToContainer = false,
         ...rest
     }: AmountTextInputProps,
     ref: ForwardedRef<BaseTextInputRef>,
@@ -71,6 +75,9 @@ function AmountTextInput(
             value={formattedAmount}
             placeholder={placeholder}
             inputMode={CONST.INPUT_MODE.DECIMAL}
+            // On android autoCapitalize="words" is necessary when keyboardType="decimal-pad" or inputMode="decimal" to prevent input lag.
+            // See https://github.com/Expensify/App/issues/51868 for more information
+            autoCapitalize="words"
             blurOnSubmit={false}
             selection={selection}
             onSelectionChange={onSelectionChange}
@@ -81,6 +88,9 @@ function AmountTextInput(
             // Setting both autoCorrect and spellCheck to false will hide the suggestion.
             autoCorrect={false}
             spellCheck={false}
+            disableKeyboardShortcuts
+            shouldUseFullInputHeight
+            shouldApplyPaddingToContainer={shouldApplyPaddingToContainer}
             // eslint-disable-next-line react/jsx-props-no-spreading
             {...rest}
         />

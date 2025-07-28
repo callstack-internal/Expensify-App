@@ -127,13 +127,11 @@ function mergeAndSortContinuousPages<TResource>(sortedItems: TResource[], pages:
         const prevPage = result.at(-1);
 
         if (!page || !prevPage) {
-            // eslint-disable-next-line no-continue
             continue;
         }
 
         // Current page is inside the previous page, skip
         if (page.lastIndex <= prevPage.lastIndex && page.lastID !== CONST.PAGINATION_END_ID) {
-            // eslint-disable-next-line no-continue
             continue;
         }
 
@@ -148,7 +146,6 @@ function mergeAndSortContinuousPages<TResource>(sortedItems: TResource[], pages:
                 // Only add items from prevPage that are not included in page in case of overlap.
                 ids: prevPage.ids.slice(0, prevPage.ids.indexOf(page.firstID)).concat(page.ids),
             };
-            // eslint-disable-next-line no-continue
             continue;
         }
 
@@ -173,7 +170,8 @@ function getContinuousChain<TResource>(
     id?: string,
 ): {data: TResource[]; hasNextPage: boolean; hasPreviousPage: boolean} {
     if (pages.length === 0) {
-        return {data: id ? [] : sortedItems, hasNextPage: false, hasPreviousPage: false};
+        const dataItem = sortedItems.find((item) => getID(item) === id);
+        return {data: id && !dataItem ? [] : sortedItems, hasNextPage: false, hasPreviousPage: false};
     }
 
     const pagesWithIndexes = getPagesWithIndexes(sortedItems, pages, getID);

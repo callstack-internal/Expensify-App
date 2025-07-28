@@ -2,22 +2,27 @@ import {PortalProvider} from '@gorhom/portal';
 import React from 'react';
 import {LogBox} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {KeyboardProvider} from 'react-native-keyboard-controller';
 import {PickerStateProvider} from 'react-native-picker-select';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import '../wdyr';
+import {ActionSheetAwareScrollViewProvider} from './components/ActionSheetAwareScrollView';
 import ActiveElementRoleProvider from './components/ActiveElementRoleProvider';
-import ActiveWorkspaceContextProvider from './components/ActiveWorkspaceProvider';
 import ColorSchemeWrapper from './components/ColorSchemeWrapper';
 import ComposeProviders from './components/ComposeProviders';
 import CustomStatusBarAndBackground from './components/CustomStatusBarAndBackground';
 import CustomStatusBarAndBackgroundContextProvider from './components/CustomStatusBarAndBackground/CustomStatusBarAndBackgroundContextProvider';
 import ErrorBoundary from './components/ErrorBoundary';
+import FullScreenBlockingViewContextProvider from './components/FullScreenBlockingViewContextProvider';
+import FullScreenLoaderContextProvider from './components/FullScreenLoaderContext';
 import HTMLEngineProvider from './components/HTMLEngineProvider';
 import InitialURLContextProvider from './components/InitialURLContextProvider';
+import {InputBlurContextProvider} from './components/InputBlurContext';
+import KeyboardProvider from './components/KeyboardProvider';
 import {LocaleContextProvider} from './components/LocaleContextProvider';
-import OnyxProvider from './components/OnyxProvider';
+import NavigationBar from './components/NavigationBar';
+import OnyxListItemProvider from './components/OnyxListItemProvider';
 import PopoverContextProvider from './components/PopoverProvider';
+import {ProductTrainingContextProvider} from './components/ProductTrainingContext';
 import SafeArea from './components/SafeArea';
 import ScrollOffsetContextProvider from './components/ScrollOffsetContextProvider';
 import {SearchRouterContextProvider} from './components/Search/SearchRouter/SearchRouterContext';
@@ -28,22 +33,18 @@ import {FullScreenContextProvider} from './components/VideoPlayerContexts/FullSc
 import {PlaybackContextProvider} from './components/VideoPlayerContexts/PlaybackContext';
 import {VideoPopoverMenuContextProvider} from './components/VideoPlayerContexts/VideoPopoverMenuContext';
 import {VolumeContextProvider} from './components/VideoPlayerContexts/VolumeContext';
-import {CurrentReportIDContextProvider} from './components/withCurrentReportID';
 import {EnvironmentProvider} from './components/withEnvironment';
 import {KeyboardStateProvider} from './components/withKeyboardState';
 import CONFIG from './CONFIG';
 import Expensify from './Expensify';
+import {CurrentReportIDContextProvider} from './hooks/useCurrentReportID';
 import useDefaultDragAndDrop from './hooks/useDefaultDragAndDrop';
-import {ReportIDsContextProvider} from './hooks/useReportIDs';
+import HybridAppHandler from './HybridAppHandler';
 import OnyxUpdateManager from './libs/actions/OnyxUpdateManager';
-import {ReportAttachmentsProvider} from './pages/home/report/ReportAttachmentsContext';
-import type {Route} from './ROUTES';
+import {AttachmentModalContextProvider} from './pages/media/AttachmentModalScreen/AttachmentModalContext';
+import './setup/backgroundTask';
+import './setup/hybridApp';
 import {SplashScreenStateContextProvider} from './SplashScreenStateContext';
-
-type AppProps = {
-    /** URL passed to our top-level React Native component by HybridApp. Will always be undefined in "pure" NewDot builds. */
-    url?: Route;
-};
 
 LogBox.ignoreLogs([
     // Basically it means that if the app goes in the background and back to foreground on Android,
@@ -58,43 +59,47 @@ const fill = {flex: 1};
 
 const StrictModeWrapper = CONFIG.USE_REACT_STRICT_MODE_IN_DEV ? React.StrictMode : ({children}: {children: React.ReactElement}) => children;
 
-function App({url}: AppProps) {
+function App() {
     useDefaultDragAndDrop();
     OnyxUpdateManager();
 
     return (
         <StrictModeWrapper>
             <SplashScreenStateContextProvider>
-                <InitialURLContextProvider url={url}>
+                <InitialURLContextProvider>
+                    <HybridAppHandler />
                     <GestureHandlerRootView style={fill}>
                         <ComposeProviders
                             components={[
-                                OnyxProvider,
+                                OnyxListItemProvider,
                                 ThemeProvider,
                                 ThemeStylesProvider,
                                 ThemeIllustrationsProvider,
                                 SafeAreaProvider,
+                                HTMLEngineProvider,
                                 PortalProvider,
                                 SafeArea,
                                 LocaleContextProvider,
-                                HTMLEngineProvider,
-                                KeyboardStateProvider,
                                 PopoverContextProvider,
                                 CurrentReportIDContextProvider,
                                 ScrollOffsetContextProvider,
-                                ReportAttachmentsProvider,
+                                AttachmentModalContextProvider,
                                 PickerStateProvider,
                                 EnvironmentProvider,
                                 CustomStatusBarAndBackgroundContextProvider,
                                 ActiveElementRoleProvider,
-                                ActiveWorkspaceContextProvider,
-                                ReportIDsContextProvider,
+                                ActionSheetAwareScrollViewProvider,
                                 PlaybackContextProvider,
                                 FullScreenContextProvider,
                                 VolumeContextProvider,
                                 VideoPopoverMenuContextProvider,
                                 KeyboardProvider,
+                                KeyboardStateProvider,
                                 SearchRouterContextProvider,
+                                ProductTrainingContextProvider,
+                                InputBlurContextProvider,
+                                FullScreenBlockingViewContextProvider,
+                                FullScreenLoaderContextProvider,
                             ]}
                         >
                             <CustomStatusBarAndBackground />
@@ -103,6 +108,7 @@ function App({url}: AppProps) {
                                     <Expensify />
                                 </ColorSchemeWrapper>
                             </ErrorBoundary>
+                            <NavigationBar />
                         </ComposeProviders>
                     </GestureHandlerRootView>
                 </InitialURLContextProvider>

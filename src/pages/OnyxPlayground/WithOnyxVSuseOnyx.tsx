@@ -5,6 +5,7 @@
 /* eslint-disable no-console */
 import React, {useState} from 'react';
 import type {OnyxCollection, OnyxEntry, UseOnyxResult} from 'react-native-onyx';
+// eslint-disable-next-line no-restricted-imports
 import {useOnyx, withOnyx} from 'react-native-onyx';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';

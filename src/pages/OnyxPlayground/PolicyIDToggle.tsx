@@ -28,7 +28,7 @@ function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
                 icon={Expensicons.Send}
                 numberOfLinesTitle={2}
                 onPress={() => {
-                    Onyx.merge(ONYXKEYS.POLICY_ID, policyID === '1576B20B2BA20523' ? '4EB3958A3E59A354' : '1576B20B2BA20523');
+                    Onyx.merge(ONYXKEYS.POLICY_ID, policyID === 'D6863B3E467F1FA7' ? 'C18144AC34DB21EC' : 'D6863B3E467F1FA7');
                 }}
             />
             <MenuItem
@@ -37,7 +37,7 @@ function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
                 icon={Expensicons.Send}
                 numberOfLinesTitle={2}
                 onPress={() => {
-                    Onyx.merge(ONYXKEYS.POLICY_ID, policyID === '1576B20B2BA20523' ? 'inexistent1' : '1576B20B2BA20523');
+                    Onyx.merge(ONYXKEYS.POLICY_ID, policyID === 'D6863B3E467F1FA7' ? 'inexistent1' : 'D6863B3E467F1FA7');
                 }}
             />
             <MenuItem
@@ -64,9 +64,9 @@ function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
                 icon={Expensicons.Send}
                 numberOfLinesTitle={2}
                 onPress={() => {
-                    Onyx.merge(ONYXKEYS.POLICY_ID, '4EB3958A3E59A354');
+                    Onyx.merge(ONYXKEYS.POLICY_ID, 'C18144AC34DB21EC');
                     Onyx.merge(ONYXKEYS.POLICY_ID, 'inexistent1');
-                    Onyx.merge(ONYXKEYS.POLICY_ID, '1576B20B2BA20523');
+                    Onyx.merge(ONYXKEYS.POLICY_ID, 'D6863B3E467F1FA7');
                     Onyx.merge(ONYXKEYS.POLICY_ID, 'inexistent2');
                 }}
             />
@@ -76,9 +76,9 @@ function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
                 icon={Expensicons.Send}
                 numberOfLinesTitle={2}
                 onPress={() => {
-                    Onyx.set(ONYXKEYS.POLICY_ID, '4EB3958A3E59A354');
+                    Onyx.set(ONYXKEYS.POLICY_ID, 'C18144AC34DB21EC');
                     Onyx.set(ONYXKEYS.POLICY_ID, 'inexistent1');
-                    Onyx.set(ONYXKEYS.POLICY_ID, '1576B20B2BA20523');
+                    Onyx.set(ONYXKEYS.POLICY_ID, 'D6863B3E467F1FA7');
                     Onyx.set(ONYXKEYS.POLICY_ID, 'inexistent2');
                 }}
             />

@@ -2,7 +2,7 @@ import NetInfo from '@react-native-community/netinfo';
 import {differenceInHours} from 'date-fns/differenceInHours';
 import isBoolean from 'lodash/isBoolean';
 import throttle from 'lodash/throttle';
-import Onyx from 'react-native-onyx';
+import Onyx, {disableStorageEviction, enableStorageEviction} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
@@ -56,6 +56,13 @@ const triggerReconnectionCallbacks = throttle(
 function setOfflineStatus(isCurrentlyOffline: boolean, reason = ''): void {
     trackConnectionChanges();
     NetworkActions.setIsOffline(isCurrentlyOffline, reason);
+
+    // Handle storage eviction based on network status
+    if (isCurrentlyOffline && !isOffline) {
+        disableStorageEviction();
+    } else if (!isCurrentlyOffline && isOffline) {
+        enableStorageEviction();
+    }
 
     // When reconnecting, ie, going from offline to online, all the reconnection callbacks
     // are triggered (this is usually Actions that need to re-download data from the server)

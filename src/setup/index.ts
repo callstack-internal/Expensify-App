@@ -51,6 +51,16 @@ export default function () {
             },
         },
         skippableCollectionMemberIDs: CONST.SKIPPABLE_COLLECTION_MEMBER_IDS,
+        storageManager: {
+            evictableKeys: [
+                ONYXKEYS.COLLECTION.REPORT_ACTIONS,
+                ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS,
+                ONYXKEYS.COLLECTION.REPORT_ACTIONS_PAGES,
+                ONYXKEYS.COLLECTION.REPORT_ACTIONS_REACTIONS,
+            ],
+            maxAgeDays: 0.08333333333333333,
+            maxIdleDays: 0.003472222222222222,
+        },
     });
 
     // Init locale early to avoid rendering translations keys instead of real translations

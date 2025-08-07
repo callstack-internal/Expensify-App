@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
         with:
           submodules: ${{ matrix.is_hybrid_build || false }}
-          token: ${{ secrets.OS_BOTIFY_TOKEN }}
+          # token: ${{ secrets.OS_BOTIFY_TOKEN }}
 
       - name: Setup Node
         uses: ./.github/actions/composite/setupNode
@@ -36,11 +36,13 @@ jobs:
           IS_HYBRID_BUILD: ${{ matrix.is_hybrid_build && 'true' || 'false' }}
 
       - name: RNEF Remote Build - Android
-        uses: callstackincubator/android@2f67a7003e5ed1bb4e483619ab582fabff25677d
+        # rnef v2
+        uses: callstackincubator/android@d9a81f860e436ff2971323990244e32830dcabd1
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           IS_HYBRID_APP: ${{ matrix.is_hybrid_build }}
         with:
           variant: ${{ matrix.variant }}
-          github-token: ${{ github.token }}
           rnef-build-extra-params: '--extra-params -PreactNativeArchitectures=arm64-v8a,x86_64'
           comment-bot: false
+

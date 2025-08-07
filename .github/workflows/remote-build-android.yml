@@ -39,7 +39,7 @@ jobs:
         # rnef v2
         uses: callstackincubator/android@d9a81f860e436ff2971323990244e32830dcabd1
         env:
-          # GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           IS_HYBRID_APP: ${{ matrix.is_hybrid_build }}
         with:
           variant: ${{ matrix.variant }}

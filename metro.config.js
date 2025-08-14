@@ -31,8 +31,14 @@ const config = {
         getTransformOptions: async () => ({
             transform: {
                 inlineRequires: true,
+                // Force transformation of expo-modules-core and other node_modules
+                experimentalImportSupport: false,
             },
         }),
+        // Ensure babel transforms node_modules properly
+        enableBabelRCLookup: true,
+        // Add platforms for better resolution
+        platforms: ['ios', 'android', 'native', 'web'],
     },
 };
 

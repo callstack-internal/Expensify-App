@@ -459,14 +459,6 @@ const CONST = {
         AU: 'https://powerforms.docusign.net/2ff347bb-172a-4138-b1cd-4001a7c319b5?env=na1&acct=cf4cc39a-1c3e-4c19-bbf9-71844e1bcbde&accountId=cf4cc39a-1c3e-4c19-bbf9-71844e1bcbde',
     },
     BANK_ACCOUNT: {
-        STATE: {
-            PENDING: 'PENDING',
-            OPEN: 'OPEN',
-            DELETED: 'DELETED',
-            LOCKED: 'LOCKED',
-            SETUP: 'SETUP',
-            VERIFYING: 'VERIFYING',
-        },
         BENEFICIAL_OWNER_INFO_STEP: {
             SUBSTEP: {
                 IS_USER_UBO: 1,
@@ -555,6 +547,8 @@ const CONST = {
             SETUP: 'SETUP',
             PENDING: 'PENDING',
             OPEN: 'OPEN',
+            DELETED: 'DELETED',
+            LOCKED: 'LOCKED',
         },
         MAX_LENGTH: {
             FULL_SSN: 9,

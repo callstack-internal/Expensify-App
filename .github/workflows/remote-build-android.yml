@@ -45,4 +45,3 @@ jobs:
           variant: ${{ matrix.variant }}
           rnef-build-extra-params: '--extra-params -PreactNativeArchitectures=arm64-v8a,x86_64'
           comment-bot: false
-

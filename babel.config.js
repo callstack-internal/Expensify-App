@@ -70,7 +70,7 @@ const webpack = {
 };
 
 const metro = {
-    presets: [require('@react-native/babel-preset')],
+    presets: [require('babel-preset-expo')],
     plugins: [
         ['babel-plugin-react-compiler', ReactCompilerConfig], // must run first!
 

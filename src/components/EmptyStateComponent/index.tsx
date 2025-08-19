@@ -1,4 +1,4 @@
-import type {VideoReadyForDisplayEvent} from 'expo-av';
+import type {VideoReadyForDisplayEvent} from '@components/VideoPlayer/videoCompatibilityTypes';
 import isEmpty from 'lodash/isEmpty';
 import React, {useMemo, useState} from 'react';
 import {View} from 'react-native';

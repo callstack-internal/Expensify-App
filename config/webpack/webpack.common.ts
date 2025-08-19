@@ -44,7 +44,8 @@ const includeModules = [
     'react-native-view-shot',
     '@react-native/assets',
     'expo',
-    'expo-av',
+    'expo-audio',
+    'expo-video',
     'expo-image-manipulator',
     'expo-modules-core',
 ].join('|');

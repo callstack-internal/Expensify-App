@@ -1,5 +1,5 @@
 import {useNavigation} from '@react-navigation/native';
-import type {VideoReadyForDisplayEvent} from 'expo-av';
+import type {VideoReadyForDisplayEvent} from '@components/VideoPlayer/videoCompatibilityTypes';
 import React, {useEffect, useState} from 'react';
 import type {GestureResponderEvent} from 'react-native';
 import {View} from 'react-native';

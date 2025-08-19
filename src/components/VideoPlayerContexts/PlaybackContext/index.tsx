@@ -1,4 +1,6 @@
-import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useVideoPlayer} from 'expo-video';
+import type {VideoPlayer} from 'expo-video';
+import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import type {View} from 'react-native';
 import type {VideoWithOnFullScreenUpdate} from '@components/VideoPlayer/types';
 import {getReportOrDraftReport, isChatThread} from '@libs/ReportUtils';
@@ -16,6 +18,16 @@ function PlaybackContextProvider({children}: ChildrenProps) {
     const [sharedElement, setSharedElement] = useState<PlaybackContextValues['sharedElement']>(null);
     const [originalParent, setOriginalParent] = useState<OriginalParent>(null);
     const [currentRouteReportID, setCurrentRouteReportID] = useState<ProtectedCurrentRouteReportID>(NO_REPORT_ID);
+    
+    // Shared video player management for expo-video
+    const sharedVideoPlayers = useRef<Map<string, VideoPlayer>>(new Map());
+    const sharedPlayerCleanupTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+    
+    // Shared video element rendering management
+    const sharedVideoRenderers = useRef<Map<string, Set<string>>>(new Map());
+    const primaryVideoRenderers = useRef<Map<string, string>>(new Map());
+    const rendererCallbacks = useRef<Map<string, Map<string, (isPrimary: boolean) => void>>>(new Map());
+    
     const resetContextProperties = () => {
         setSharedElement(null);
         setOriginalParent(null);
@@ -78,6 +90,101 @@ function PlaybackContextProvider({children}: ChildrenProps) {
         [currentRouteReportID, currentlyPlayingURL, video],
     );
 
+    // Shared video player management functions for expo-video
+    const registerSharedVideoPlayer = useCallback((url: string, player: VideoPlayer) => {
+        sharedVideoPlayers.current.set(url, player);
+        
+        // Cancel any pending cleanup for this URL
+        const cleanupTimer = sharedPlayerCleanupTimers.current.get(url);
+        if (cleanupTimer) {
+            clearTimeout(cleanupTimer);
+            sharedPlayerCleanupTimers.current.delete(url);
+        }
+    }, []);
+
+    const getSharedVideoPlayer = useCallback((url: string): VideoPlayer | null => {
+        return sharedVideoPlayers.current.get(url) || null;
+    }, []);
+
+    const releaseSharedVideoPlayer = useCallback((url: string) => {
+        // Set a cleanup timer to remove the player after a delay
+        // This prevents immediate recreation if the player is needed again soon
+        const cleanupTimer = setTimeout(() => {
+            sharedVideoPlayers.current.delete(url);
+            sharedPlayerCleanupTimers.current.delete(url);
+        }, 5000); // 5 second delay
+        
+        sharedPlayerCleanupTimers.current.set(url, cleanupTimer);
+    }, []);
+
+    // Shared video element rendering management functions
+    const registerSharedVideoRenderer = useCallback((url: string, componentId: string, callback?: (isPrimary: boolean) => void): boolean => {
+        let renderers = sharedVideoRenderers.current.get(url);
+        if (!renderers) {
+            renderers = new Set();
+            sharedVideoRenderers.current.set(url, renderers);
+        }
+        
+        renderers.add(componentId);
+        
+        // Store callback if provided
+        if (callback) {
+            let callbacks = rendererCallbacks.current.get(url);
+            if (!callbacks) {
+                callbacks = new Map();
+                rendererCallbacks.current.set(url, callbacks);
+            }
+            callbacks.set(componentId, callback);
+        }
+        
+        // If this is the first renderer for this URL, make it the primary
+        if (!primaryVideoRenderers.current.has(url)) {
+            primaryVideoRenderers.current.set(url, componentId);
+            callback?.(true);
+            return true; // This component should render the VideoView
+        }
+        
+        callback?.(false);
+        return false; // This component should not render the VideoView
+    }, []);
+
+    const isPrimaryVideoRenderer = useCallback((url: string, componentId: string): boolean => {
+        return primaryVideoRenderers.current.get(url) === componentId;
+    }, []);
+
+    const releaseSharedVideoRenderer = useCallback((url: string, componentId: string) => {
+        const renderers = sharedVideoRenderers.current.get(url);
+        const callbacks = rendererCallbacks.current.get(url);
+        
+        if (renderers) {
+            renderers.delete(componentId);
+            callbacks?.delete(componentId);
+            
+            // If this was the primary renderer, assign a new one
+            if (primaryVideoRenderers.current.get(url) === componentId) {
+                primaryVideoRenderers.current.delete(url);
+                
+                // Assign the next available renderer as primary
+                const nextRenderer = renderers.values().next().value;
+                if (nextRenderer) {
+                    primaryVideoRenderers.current.set(url, nextRenderer);
+                    
+                    // Notify all components about the change
+                    callbacks?.forEach((callback, rendererComponentId) => {
+                        callback(rendererComponentId === nextRenderer);
+                    });
+                }
+            }
+            
+            // Clean up if no renderers left
+            if (renderers.size === 0) {
+                sharedVideoRenderers.current.delete(url);
+                primaryVideoRenderers.current.delete(url);
+                rendererCallbacks.current.delete(url);
+            }
+        }
+    }, []);
+
     useEffect(() => {
         Navigation.isNavigationReady().then(() => {
             // This logic ensures that resetVideoPlayerData is only called when currentReportID
@@ -117,8 +224,16 @@ function PlaybackContextProvider({children}: ChildrenProps) {
             checkIfVideoIsPlaying: video.isPlaying,
             videoResumeTryNumberRef: video.resumeTryNumberRef,
             resetVideoPlayerData: video.resetPlayerData,
+            // Shared video player functions for expo-video
+            registerSharedVideoPlayer,
+            getSharedVideoPlayer,
+            releaseSharedVideoPlayer,
+            // Shared video element rendering management
+            registerSharedVideoRenderer,
+            isPrimaryVideoRenderer,
+            releaseSharedVideoRenderer,
         }),
-        [updateCurrentURLAndReportID, currentlyPlayingURL, currentRouteReportID, originalParent, sharedElement, video, shareVideoPlayerElements],
+        [updateCurrentURLAndReportID, currentlyPlayingURL, currentRouteReportID, originalParent, sharedElement, video, shareVideoPlayerElements, registerSharedVideoPlayer, getSharedVideoPlayer, releaseSharedVideoPlayer, registerSharedVideoRenderer, isPrimaryVideoRenderer, releaseSharedVideoRenderer],
     );
 
     return <Context.Provider value={contextValue}>{children}</Context.Provider>;

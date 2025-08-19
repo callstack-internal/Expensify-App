@@ -1,5 +1,5 @@
 import HybridAppModule from '@expensify/react-native-hybrid-app';
-import {Audio} from 'expo-av';
+import {setAudioModeAsync} from 'expo-audio';
 import React, {useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {NativeEventSubscription} from 'react-native';
 import {AppState, Linking, Platform} from 'react-native';
@@ -233,7 +233,7 @@ function Expensify() {
 
     // This is being done since we want to play sound even when iOS device is on silent mode, to align with other platforms.
     useEffect(() => {
-        Audio.setAudioModeAsync({playsInSilentModeIOS: true});
+        setAudioModeAsync({playsInSilentMode: true});
     }, []);
 
     useLayoutEffect(() => {

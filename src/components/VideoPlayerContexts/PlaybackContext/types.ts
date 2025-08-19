@@ -1,4 +1,5 @@
-import type {AVPlaybackStatus} from 'expo-av';
+import type {AVPlaybackStatus} from '@components/VideoPlayer/videoCompatibilityTypes';
+import type {VideoPlayer} from 'expo-video';
 import type {MutableRefObject} from 'react';
 import type {View} from 'react-native';
 import type {VideoWithOnFullScreenUpdate} from '@components/VideoPlayer/types';
@@ -48,6 +49,14 @@ type PlaybackContext = PlaybackContextValues & {
     checkIfVideoIsPlaying: PlaybackContextVideoRefs['isPlaying'];
     videoResumeTryNumberRef: PlaybackContextVideoRefs['resumeTryNumberRef'];
     currentVideoPlayerRef: PlaybackContextVideoRefs['ref'];
+    // Shared video player functions for expo-video
+    registerSharedVideoPlayer: (url: string, player: VideoPlayer) => void;
+    getSharedVideoPlayer: (url: string) => VideoPlayer | null;
+    releaseSharedVideoPlayer: (url: string) => void;
+    // Shared video element rendering management
+    registerSharedVideoRenderer: (url: string, componentId: string, callback?: (isPrimary: boolean) => void) => boolean;
+    isPrimaryVideoRenderer: (url: string, componentId: string) => boolean;
+    releaseSharedVideoRenderer: (url: string, componentId: string) => void;
 };
 
 export type {StatusCallback, PlaybackContextValues, OriginalParent, UnloadVideo, StopVideo, PlayVideoPromiseRef, PlaybackContextVideoRefs, PlaybackContext};

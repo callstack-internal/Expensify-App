@@ -19,7 +19,8 @@ const MODULES_TO_STUB = [
     'react-native-picker-select',
     'react-native-onyx',
     '@react-navigation/native',
-    'expo-av',
+    'expo-audio',
+    'expo-video',
 ];
 
 // Stub implementations

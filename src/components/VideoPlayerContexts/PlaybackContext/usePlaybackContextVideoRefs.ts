@@ -1,4 +1,4 @@
-import type {AVPlaybackStatus, AVPlaybackStatusToSet} from 'expo-av';
+import type {AVPlaybackStatus, AVPlaybackStatusToSet} from '@components/VideoPlayer/videoCompatibilityTypes';
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import Visibility from '@libs/Visibility';
 import type {PlaybackContextVideoRefs, PlayVideoPromiseRef, StopVideo, UnloadVideo} from './types';
@@ -27,7 +27,7 @@ function usePlaybackContextVideoRefs(resetCallback: () => void) {
             if ('durationMillis' in status && status.durationMillis === status.positionMillis) {
                 newStatus.positionMillis = 0;
             }
-            playVideoPromiseRef.current = currentVideoPlayerRef.current?.setStatusAsync(newStatus).catch((error: AVPlaybackStatus) => {
+            playVideoPromiseRef.current = currentVideoPlayerRef.current?.setStatusAsync?.(newStatus).catch((error: AVPlaybackStatus) => {
                 return error;
             });
         });

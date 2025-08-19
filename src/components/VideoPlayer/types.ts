@@ -1,11 +1,16 @@
-import type {Video} from 'expo-av';
-import type {AVPlaybackStatus} from 'expo-av/build/AV';
-import type {VideoFullscreenUpdateEvent, VideoReadyForDisplayEvent} from 'expo-av/build/Video.types';
+import type {VideoView} from 'expo-video';
 import type {StyleProp, ViewStyle} from 'react-native';
 import type {ValueOf} from 'type-fest';
 import type CONST from '@src/CONST';
+import type {AVPlaybackStatus, AVPlaybackStatusToSet, VideoFullscreenUpdateEvent, VideoReadyForDisplayEvent} from './videoCompatibilityTypes';
 
-type VideoWithOnFullScreenUpdate = Video & {_onFullscreenUpdate: (event: VideoFullscreenUpdateEvent) => void};
+type VideoWithOnFullScreenUpdate = VideoView & {
+    _onFullscreenUpdate: (event: VideoFullscreenUpdateEvent) => void;
+    // TODO: Remove these stub methods when migrating to expo-video context system
+    setStatusAsync?: (status: AVPlaybackStatusToSet) => Promise<AVPlaybackStatus>;
+    getStatusAsync?: () => Promise<AVPlaybackStatus>;
+    unloadAsync?: () => Promise<void>;
+};
 
 type VideoPlayerProps = {
     url: string;

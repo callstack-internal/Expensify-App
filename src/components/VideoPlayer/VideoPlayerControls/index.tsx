@@ -1,5 +1,5 @@
-import type {Video} from 'expo-av';
-import type {MutableRefObject} from 'react';
+import type {VideoView, VideoPlayer} from 'expo-video';
+import type {RefObject} from 'react';
 import React, {useCallback, useMemo, useState} from 'react';
 import type {GestureResponderEvent, LayoutChangeEvent, StyleProp, ViewStyle} from 'react-native';
 import {View} from 'react-native';
@@ -28,7 +28,10 @@ type VideoPlayerControlsProps = {
     url: string;
 
     /** Ref for video player. */
-    videoPlayerRef: MutableRefObject<Video | null>;
+    videoPlayerRef: RefObject<VideoView | null>;
+
+    /** Player instance from expo-video. */
+    player: VideoPlayer;
 
     /** Is video playing. */
     isPlaying: boolean;
@@ -55,6 +58,7 @@ function VideoPlayerControls({
     position,
     url,
     videoPlayerRef,
+    player,
     isPlaying,
     small = false,
     style,
@@ -75,17 +79,28 @@ function VideoPlayerControls({
     };
 
     const enterFullScreenMode = useCallback(() => {
-        // eslint-disable-next-line react-compiler/react-compiler
-        isFullScreenRef.current = true;
-        updateCurrentURLAndReportID(url, reportID);
-        videoPlayerRef.current?.presentFullscreenPlayer();
+        if (!videoPlayerRef.current) {
+            return;
+        }
+
+        try {
+            // eslint-disable-next-line react-compiler/react-compiler
+            isFullScreenRef.current = true;
+            updateCurrentURLAndReportID(url, reportID);
+            videoPlayerRef.current.enterFullscreen();
+            // Note: On iOS, this will show native controls in fullscreen mode regardless of nativeControls={false}
+            // This is expected iOS behavior and provides users with proper exit controls
+        } catch (error) {
+            // Reset fullscreen state if it failed
+            isFullScreenRef.current = false;
+        }
     }, [isFullScreenRef, reportID, updateCurrentURLAndReportID, url, videoPlayerRef]);
 
     const seekPosition = useCallback(
         (newPosition: number) => {
-            videoPlayerRef.current?.setStatusAsync({positionMillis: newPosition});
+            Object.assign(player, { currentTime: newPosition / 1000 });
         },
-        [videoPlayerRef],
+        [player],
     );
 
     const durationFormatted = useMemo(() => convertMillisecondsToTime(duration), [duration]);
@@ -136,16 +151,18 @@ function VideoPlayerControls({
                     </View>
                 </View>
             )}
-            <View style={styles.videoPlayerControlsRow}>
-                <View style={[styles.flex1]}>
-                    <ProgressBar
-                        duration={duration}
-                        position={position}
-                        seekPosition={seekPosition}
-                    />
+            {controlsStatus !== CONST.VIDEO_PLAYER.CONTROLS_STATUS.HIDE && (
+                <View style={styles.videoPlayerControlsRow}>
+                    <View style={[styles.flex1]}>
+                        <ProgressBar
+                            duration={duration}
+                            position={position}
+                            seekPosition={seekPosition}
+                        />
+                    </View>
+                    {controlsStatus === CONST.VIDEO_PLAYER.CONTROLS_STATUS.VOLUME_ONLY && <VolumeButton style={styles.ml3} />}
                 </View>
-                {controlsStatus === CONST.VIDEO_PLAYER.CONTROLS_STATUS.VOLUME_ONLY && <VolumeButton style={styles.ml3} />}
-            </View>
+            )}
         </Animated.View>
     );
 }

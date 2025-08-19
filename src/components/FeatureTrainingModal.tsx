@@ -1,4 +1,3 @@
-import type {VideoReadyForDisplayEvent} from 'expo-av';
 import type {ImageContentFit} from 'expo-image';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Image, InteractionManager, View} from 'react-native';
@@ -18,6 +17,7 @@ import variables from '@styles/variables';
 import {dismissTrackTrainingModal} from '@userActions/User';
 import CONST from '@src/CONST';
 import type IconAsset from '@src/types/utils/IconAsset';
+import type {VideoReadyForDisplayEvent} from './VideoPlayer/videoCompatibilityTypes';
 import Button from './Button';
 import CheckboxWithLabel from './CheckboxWithLabel';
 import FormAlertWithSubmitButton from './FormAlertWithSubmitButton';

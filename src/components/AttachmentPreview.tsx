@@ -1,7 +1,8 @@
 import {Str} from 'expensify-common';
-import {ResizeMode, Video} from 'expo-av';
+import {useVideoPlayer, VideoView} from 'expo-video';
 import React, {useState} from 'react';
 import {View} from 'react-native';
+import type {StyleProp, ViewStyle} from 'react-native';
 import useThemeStyles from '@hooks/useThemeStyles';
 import variables from '@styles/variables';
 import {checkIsFileImage} from './Attachments/AttachmentView';
@@ -11,6 +12,23 @@ import {Play} from './Icon/Expensicons';
 import Image from './Image';
 import PDFThumbnail from './PDFThumbnail';
 import {PressableWithFeedback} from './Pressable';
+
+// Simple video thumbnail component using expo-video
+function VideoThumbnail({source, style}: {source: string; style?: StyleProp<ViewStyle>; onError?: () => void}) {
+    const player = useVideoPlayer(source, (p) => {
+        p.pause(); // Ensure it doesn't autoplay
+    });
+    
+    return (
+        <VideoView
+            player={player}
+            style={style}
+            contentFit="contain"
+            allowsFullscreen={false}
+            allowsPictureInPicture={false}
+        />
+    );
+}
 
 type AttachmentPreviewProps = {
     /** Source for file. */
@@ -42,15 +60,9 @@ function AttachmentPreview({source, aspectRatio = 1, onPress, onLoadError}: Atta
                 accessible
                 accessibilityLabel="Attachment Thumbnail"
             >
-                <Video
+                <VideoThumbnail
+                    source={source}
                     style={[styles.w100, styles.h100]}
-                    source={{
-                        uri: source,
-                    }}
-                    shouldPlay={false}
-                    useNativeControls={false}
-                    resizeMode={ResizeMode.CONTAIN}
-                    isLooping={false}
                     onError={onLoadError}
                 />
                 <View style={[styles.h100, styles.w100, styles.pAbsolute, styles.justifyContentCenter, styles.alignItemsCenter]}>

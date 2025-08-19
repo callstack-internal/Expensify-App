@@ -17,7 +17,7 @@ function VolumeContextProvider({children}: ChildrenProps) {
             if (!currentVideoPlayerRef.current) {
                 return;
             }
-            currentVideoPlayerRef.current.setStatusAsync({volume: newVolume, isMuted: newVolume === 0});
+            currentVideoPlayerRef.current.setStatusAsync?.({volume: newVolume, isMuted: newVolume === 0});
 
             volume.set(newVolume);
         },

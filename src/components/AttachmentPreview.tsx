@@ -24,7 +24,7 @@ function VideoThumbnail({source, style}: {source: string; style?: StyleProp<View
             player={player}
             style={style}
             contentFit="contain"
-            allowsFullscreen={false}
+            fullscreenOptions={{enable: false}}
             allowsPictureInPicture={false}
         />
     );

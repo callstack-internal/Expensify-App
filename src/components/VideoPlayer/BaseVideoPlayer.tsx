@@ -291,7 +291,7 @@ function BaseVideoPlayer({
                                             // On iOS/Android: nativeControls=true enables fullscreen functionality
                                             // On Web: nativeControls=false prevents dual controls
                                             nativeControls={Platform.OS !== 'web'}
-                                            allowsFullscreen
+                                            fullscreenOptions={{enable: true}}
                                             allowsPictureInPicture={false}
                                             onFullscreenEnter={() => handleOnFullscreenUpdate({fullscreenUpdate: 1})}
                                             onFullscreenExit={() => handleOnFullscreenUpdate({fullscreenUpdate: 3})}

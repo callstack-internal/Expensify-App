@@ -5,11 +5,11 @@ import createPlatformStackNavigator from '@libs/Navigation/PlatformStackNavigati
 import Animations, {InternalPlatformAnimations} from '@libs/Navigation/PlatformStackNavigation/navigationOptions/animation';
 import type {PublicScreensParamList} from '@navigation/types';
 import ConnectionCompletePage from '@pages/ConnectionCompletePage';
+import TestSVGPage from '@pages/TestSVGPage';
 import LogInWithShortLivedAuthTokenPage from '@pages/LogInWithShortLivedAuthTokenPage';
 import AppleSignInDesktopPage from '@pages/signin/AppleSignInDesktopPage';
 import GoogleSignInDesktopPage from '@pages/signin/GoogleSignInDesktopPage';
 import SAMLSignInPage from '@pages/signin/SAMLSignInPage';
-import SignInPage from '@pages/signin/SignInPage';
 import UnlinkLoginPage from '@pages/UnlinkLoginPage';
 import ValidateLoginPage from '@pages/ValidateLoginPage';
 import NAVIGATORS from '@src/NAVIGATORS';
@@ -36,7 +36,7 @@ function PublicScreens() {
                     // This was put here to prevent excessive animations when resetting the navigation state in `resetNavigationState`
                     animation: Animations.NONE,
                 }}
-                component={SignInPage}
+                component={TestSVGPage}
             />
             <RootStack.Screen
                 name={SCREENS.TRANSITION_BETWEEN_APPS}

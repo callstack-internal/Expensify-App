@@ -19,6 +19,7 @@ import Log from '@src/libs/Log';
 import * as ReportActionUtils from '@src/libs/ReportActionsUtils';
 import * as ReportUtils from '@src/libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
+// import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report, Transaction, TransactionViolation, TransactionViolations} from '@src/types/onyx';
 import {actionR14932 as mockAction} from '../../__mocks__/reportData/actions';
 import {chatReportR14932 as mockChatReport, iouReportR14932 as mockIOUReport} from '../../__mocks__/reportData/reports';
@@ -32,13 +33,19 @@ const mockSecondTransactionID = `${mockTransaction.transactionID}2`;
 
 type Listener = {key: string; cb: (v: unknown) => void};
 
-
 jest.mock('react-native-onyx', () => {
     const listeners: Record<string, Array<(val: unknown) => void>> = {};
     let store: Record<string, unknown> = {};
 
-    const {default: ONYXKEYS} = require('@src/ONYXKEYS'); // in-factory import OK
-
+    const ONYXKEYSMOCK = {
+        COLLECTION: {
+            TRANSACTION: 'transactions_',
+            REPORT: 'report_',
+            TRANSACTION_VIOLATIONS: 'transactionViolations_',
+        },
+        NVP_PREFERRED_CURRENCY: 'nvp_preferredCurrency',
+        NVP_PREFERRED_LOCALE: 'nvp_preferredLocale',
+    };
 
     const listenersByID: Record<number, Listener> = {};
     const listenersByKey: Record<string, Array<{id: number; cb: (v: unknown) => void}>> = {};
@@ -55,9 +62,7 @@ jest.mock('react-native-onyx', () => {
 
     const notify = (key: string) => (listeners[key] || []).forEach((cb) => cb(store[key]));
 
-    const actual = jest.requireActual('react-native-onyx');
-
-    
+    // const actual = jest.requireActual('react-native-onyx');
 
     // const set = jest.fn((k: string, v: unknown) => {
     //     store[k] = v;
@@ -68,14 +73,18 @@ jest.mock('react-native-onyx', () => {
     const mergeCollection = jest.fn((collectionPrefix: string, data: Record<string, unknown>) => {
         Object.entries(data).forEach(([key, val]) => {
             const fullKey = `${collectionPrefix}${key}`;
-            store[fullKey] = {...(store[fullKey] || {}), ...val};
+            const existingValue = store[fullKey];
+            if (typeof existingValue === 'object' && existingValue !== null && typeof val === 'object' && val !== null) {
+                store[fullKey] = {...existingValue, ...val};
+            } else {
+                store[fullKey] = val;
+            }
             notify(fullKey);
         });
         return Promise.resolve();
     });
-
     const txnID = '123';
-    mergeCollection(ONYXKEYS.COLLECTION.TRANSACTION, {
+    mergeCollection(ONYXKEYSMOCK.COLLECTION.TRANSACTION, {
         [txnID]: {
             transactionID: txnID,
             amount: 10402, // cents → $104.02
@@ -85,22 +94,28 @@ jest.mock('react-native-onyx', () => {
         },
     }); // keeps named exports like useOnyx
 
+    const set = jest.fn((key: string, val: unknown) => {
+        store[key] = val;
+        notify(key);
+        return Promise.resolve();
+    });
+        
+
     return {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         __esModule: true,
-        ...actual,
         default: {
-            ...actual.default,
             init: jest.fn(() => undefined),
             multiSet: jest.fn(() => Promise.resolve()),
             multiMerge: jest.fn(() => Promise.resolve()), // <- add this
-            set: jest.fn((key: string, val: unknown) => {
-                store[key] = val;
-                notify(key);
-                return Promise.resolve();
-            }),
+            set,
             merge: jest.fn((key: string, val: unknown) => {
-                store[key] = {...(store[key] || {}), ...val};
+                const existing = store[key];
+                if (typeof existing === 'object' && existing !== null && typeof val === 'object' && val !== null) {
+                    store[key] = {...existing, ...val};
+                } else {
+                    store[key] = val;
+                }
                 notify(key);
                 return Promise.resolve();
             }),
@@ -160,7 +175,8 @@ jest.mock('@src/hooks/useReportWithTransactionsAndViolations', () =>
     }),
 );
 
-jest.mock('@src/libs/Log', () => ({__esModule: true, default: {info: jest.fn(), hmmm: jest.fn(), log: jest.fn()}}));
+// eslint-disable-next-line @typescript-eslint/naming-convention
+jest.mock('@src/libs/Log', () => ({__esModule: true, default: {info: jest.fn(), hmmm: jest.fn(), log: jest.fn(), warn: jest.fn()}}));
 
 // jest.isolateModules(() => {
 //     const {default: persistedRequests} = require('../../src/libs/actions/PersistedRequests');
@@ -230,15 +246,28 @@ const mockSecondTransaction: Transaction = {
     amount: mockTransaction.amount * 2,
     transactionID: mockSecondTransactionID,
 };
+jest.mock('@src/hooks/useOnyx', () => ({
+    __esModule: true,
+    default: jest.fn((key: string) => {
+        // Return mock data based on the key
+        const mockData: Record<string, unknown> = {
+            [`transactions_${mockTransaction.transactionID}`]: mockTransaction,
+            [`transactions_${mockSecondTransactionID}`]: mockSecondTransaction,
+            [`report_${mockChatReport.iouReportID}`]: mockChatReport,
+            // Add other keys as needed
+        };
+        return [mockData[key], jest.fn()]; // [value, setter]
+    }),
+}));
 
 const mockOnyxTransactions: Record<`${typeof ONYXKEYS.COLLECTION.TRANSACTION}${string}`, Transaction> = {
-    [`${ONYXKEYS.COLLECTION.TRANSACTION}${mockTransaction.transactionID}`]: mockTransaction,
-    [`${ONYXKEYS.COLLECTION.TRANSACTION}${mockSecondTransaction.transactionID}`]: mockSecondTransaction,
+    [`${'transactions_'}${mockTransaction.transactionID}`]: mockTransaction,
+    [`${'transactions_'}${mockSecondTransaction.transactionID}`]: mockSecondTransaction,
 };
 
 const mockOnyxViolations: Record<`${typeof ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${string}`, TransactionViolations> = {
-    [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${mockTransaction.transactionID}`]: mockViolations,
-    [`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${mockSecondTransaction.transactionID}`]: mockViolations,
+    [`${'transactionViolations_'}${mockTransaction.transactionID}`]: mockViolations,
+    [`${'transactionViolations_'}${mockSecondTransaction.transactionID}`]: mockViolations,
 };
 
 const arrayOfTransactions = Object.values(mockOnyxTransactions);
@@ -259,11 +288,11 @@ describe('MoneyRequestReportPreview', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
-        jest.spyOn(Log, 'log').mockImplementation(() => {});
         jest.spyOn(Log, 'info').mockImplementation(() => {});
+        jest.spyOn(Log, 'warn').mockImplementation(() => {});
 
         Onyx.mergeCollection(ONYXKEYS.COLLECTION.TRANSACTION, {
-            ['123']: {transactionID: txnID, amount: 10402, currency: 'USD'},
+            '123': {transactionID: '123', amount: 10402, currency: 'USD'},
         });
         // Onyx.merge(ONYXKEYS.NVP_PREFERRED_CURRENCY, 'USD');
         // Onyx.merge(ONYXKEYS.NVP_PREFERRED_LOCALE, 'en-US');

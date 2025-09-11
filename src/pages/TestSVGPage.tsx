@@ -1,38 +1,102 @@
-import React, {useState} from 'react';
-import {FlatList, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import type {ListRenderItem} from 'react-native';
+import {FlatList, StyleSheet, View} from 'react-native';
 import Button from '@components/Button';
 import ImageSVG from '@components/ImageSVG';
 import ScreenWrapper from '@components/ScreenWrapper';
 import Text from '@components/Text';
+import ThemeProvider from '@components/ThemeProvider';
+import ThemeStylesProvider from '@components/ThemeStylesProvider';
 import useThemeStyles from '@hooks/useThemeStyles';
 import colors from '@styles/theme/colors';
-import {svgItems} from '@src/svgAssets';
+import CONST from '@src/CONST';
 import type {SVGItem} from '@src/svgAssets';
+import {svgItems} from '@src/svgAssets';
+import {svgItems as svgItemsCompressed} from '@src/svgAssetsCompressed';
+import type IconAsset from '@src/types/utils/IconAsset';
 
 const backgroundColors = [colors.productDark400, colors.productLight100];
-const svgFillColors = [undefined, colors.green400, colors.productDark700];
+const svgFillColors = [undefined, colors.green400];
+
+type SVGComparisonItem = SVGItem & {
+    compressedComponent: IconAsset;
+};
+
+const createSVGcomparisonArray = (originalSVGItems: SVGItem[], compressedSVGItems: SVGItem[]) => {
+    return originalSVGItems.map((item) => ({
+        ...item,
+        compressedComponent: compressedSVGItems.find((compressedItem) => compressedItem.position === item.position)?.component as IconAsset,
+    }));
+};
+
+const localStyles = StyleSheet.create({
+    itemContainer: {
+        marginVertical: 10,
+        alignItems: 'center',
+    },
+    innerContainer: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingVertical: 10,
+        flex: 1,
+    },
+    imageContainer: {
+        borderWidth: 1,
+        borderColor: 'black',
+        minHeight: 120,
+        width: '47%',
+    },
+});
 
 function TestSVGPage() {
     const styles = useThemeStyles();
     const [backgroundColor, setBackgroundColor] = useState<string>(colors.productDark400);
     const [svgFillColor, setSvgFillColor] = useState<string | undefined>(undefined);
+    const comparisonArray = createSVGcomparisonArray(svgItems, svgItemsCompressed);
 
-    const renderSVGItem = ({item}: {item: SVGItem}) => (
-        <View style={[styles.p2, styles.alignItemsCenter, {width: '25%'}]}>
-            <ImageSVG
-                src={item.component}
-                width="100%"
-                height={70}
-                style={styles.mb2}
-                fill={svgFillColor}
-            />
-            <Text
-                style={[styles.textLabelSupporting, styles.textAlignCenter]}
-                numberOfLines={2}
-            >
-                {item.position}. {item.name}
-            </Text>
-        </View>
+    const renderSVGComparisonItem: ListRenderItem<SVGComparisonItem> = useCallback(
+        ({item}) => (
+            <View style={[localStyles.itemContainer]}>
+                <View style={localStyles.innerContainer}>
+                    <View style={localStyles.imageContainer}>
+                        <ImageSVG
+                            src={item.component as IconAsset}
+                            style={styles.mb2}
+                            fill={svgFillColor}
+                            contentFit="contain"
+                        />
+                        <Text
+                            style={[styles.textLabelSupporting, styles.textAlignCenter]}
+                            numberOfLines={2}
+                        >
+                            original
+                        </Text>
+                    </View>
+
+                    <View style={localStyles.imageContainer}>
+                        <ImageSVG
+                            src={item.compressedComponent}
+                            style={styles.mb2}
+                            fill={svgFillColor}
+                            contentFit="contain"
+                        />
+                        <Text
+                            style={[styles.textLabelSupporting, styles.textAlignCenter]}
+                            numberOfLines={2}
+                        >
+                            compressed
+                        </Text>
+                    </View>
+                </View>
+                <Text
+                    style={[styles.textLabelSupporting, styles.textAlignCenter, {marginTop: 15}]}
+                    numberOfLines={2}
+                >
+                    {item.position}. {item.name}
+                </Text>
+            </View>
+        ),
+        [styles.mb2, styles.textLabelSupporting, styles.textAlignCenter, svgFillColor],
     );
 
     return (
@@ -52,7 +116,7 @@ function TestSVGPage() {
                         }}
                     />
                     <Button
-                        text="Change SVG Fill Color"
+                        text={svgFillColor ? 'Remove SVG Fill Color' : 'Add SVG Fill Color'}
                         onPress={() => {
                             const colorIndex = svgFillColors.indexOf(svgFillColor);
                             const nextColorIndex = colorIndex === svgFillColors.length - 1 ? 0 : colorIndex + 1;
@@ -62,10 +126,11 @@ function TestSVGPage() {
                 </View>
 
                 <FlatList
-                    data={svgItems}
-                    renderItem={renderSVGItem}
+                    // force rerender when svgFillColor changes
+                    key={svgFillColor?.toString() ?? 'default'}
+                    data={comparisonArray}
+                    renderItem={renderSVGComparisonItem}
                     keyExtractor={(item) => item.position.toString()}
-                    numColumns={4}
                     showsVerticalScrollIndicator
                     contentContainerStyle={styles.pb4}
                 />
@@ -74,6 +139,21 @@ function TestSVGPage() {
     );
 }
 
-TestSVGPage.displayName = 'TestSVGPage';
+// WithTheme is a HOC that provides theme-related contexts (e.g. to the SignInPageWrapper component since these contexts are required for variable declarations).
+function WithTheme(Component: React.ComponentType) {
+    return () => (
+        <ThemeProvider theme={CONST.THEME.DARK}>
+            <ThemeStylesProvider>
+                <Component />
+            </ThemeStylesProvider>
+        </ThemeProvider>
+    );
+}
 
-export default TestSVGPage;
+const TestSVGPageThemed = WithTheme(TestSVGPage);
+
+export {TestSVGPageThemed as TestSVGPage};
+
+export default WithTheme(TestSVGPage);
+
+TestSVGPage.displayName = 'TestSVGPage';

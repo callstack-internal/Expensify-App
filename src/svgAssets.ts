@@ -618,8 +618,6 @@ export type SVGItem = {
 
 // Complete SVG items array (605 total)
 export const svgItems: SVGItem[] = [
-    {position: 292, name: 'gear.svg', component: Gear292},
-
     {position: 1, name: 'home-background--ios.svg', component: HomeBackgroundIos1},
     {position: 2, name: 'home-background--desktop.svg', component: HomeBackgroundDesktop2},
     {position: 3, name: 'home-background--mobile.svg', component: HomeBackgroundMobile3},

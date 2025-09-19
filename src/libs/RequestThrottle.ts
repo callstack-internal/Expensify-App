@@ -45,11 +45,29 @@ class RequestThrottle {
         return new Promise((resolve, reject) => {
             if (this.requestRetryCount <= CONST.NETWORK.MAX_REQUEST_RETRIES) {
                 const currentRequestWaitTime = this.getRequestWaitTime();
-                Log.info(
-                    `[RequestThrottle - ${this.name}] Retrying request after error: '${error.name}', '${error.message}', '${error.status}'. Command: ${command}. Retry count:  ${this.requestRetryCount}. Wait time: ${currentRequestWaitTime}`,
-                );
+
+                // Enhanced debugging for throttle behavior
+                Log.info(`[RequestThrottle - ${this.name}] Exponential backoff details`, false, {
+                    command,
+                    errorName: error.name,
+                    errorMessage: error.message,
+                    errorStatus: error.status,
+                    retryCount: this.requestRetryCount,
+                    maxRetries: CONST.NETWORK.MAX_REQUEST_RETRIES,
+                    waitTime: `${currentRequestWaitTime}ms`,
+                    previousWaitTime: this.requestRetryCount > 1 ? `${Math.floor(currentRequestWaitTime / 2)}ms` : 'N/A',
+                    timeoutID: this.timeoutID ? String(this.timeoutID) : 'none',
+                    timestamp: new Date().toISOString(),
+                });
+
                 this.timeoutID = setTimeout(resolve, currentRequestWaitTime);
             } else {
+                Log.info(`[RequestThrottle - ${this.name}] WARNING: Max retries exceeded`, false, {
+                    command,
+                    finalRetryCount: this.requestRetryCount,
+                    maxRetries: CONST.NETWORK.MAX_REQUEST_RETRIES,
+                    finalError: `${error.name}: ${error.message}`,
+                });
                 reject();
             }
         });

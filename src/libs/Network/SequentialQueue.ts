@@ -140,9 +140,39 @@ function process(): Promise<void> {
         return Promise.resolve();
     }
 
+    // Debug logging for queue status and request details
+    const startTime = Date.now();
+    Log.info('[SequentialQueue] Queue status', false, {
+        queueLength: persistedRequests.length,
+        isQueuePaused,
+        isSequentialQueueRunning,
+        isOffline: isOffline(),
+        throttleWaitTime: sequentialQueueRequestThrottle.getLastRequestWaitTime(),
+        timestamp: new Date().toISOString(),
+    });
+
+    Log.info('[SequentialQueue] Starting request', false, {
+        command: requestToProcess.command,
+        requestID: requestToProcess.requestID,
+        queuePosition: 0,
+        hasFailureData: !!requestToProcess.failureData,
+        hasQueueFlushedData: !!requestToProcess.queueFlushedData,
+        timestamp: new Date().toISOString(),
+    });
+
     // Set the current request to a promise awaiting its processing so that getCurrentRequest can be used to take some action after the current request has processed.
     currentRequestPromise = processWithMiddleware(requestToProcess, true)
         .then((response) => {
+            // Debug logging for successful request completion
+            const duration = Date.now() - startTime;
+            Log.info('[SequentialQueue] Request completed successfully', false, {
+                command: requestToProcess.command,
+                duration: `${duration}ms`,
+                throttleWaitTime: sequentialQueueRequestThrottle.getLastRequestWaitTime(),
+                shouldPauseQueue: !!response?.shouldPauseQueue,
+                responseType: response ? typeof response : 'no response',
+            });
+
             // A response might indicate that the queue should be paused. This happens when a gap in onyx updates is detected between the client and the server and
             // that gap needs resolved before the queue can continue.
             if (response?.shouldPauseQueue) {
@@ -162,6 +192,18 @@ function process(): Promise<void> {
             return process();
         })
         .catch((error: RequestError) => {
+            // Debug logging for request failure
+            const duration = Date.now() - startTime;
+            Log.info('[SequentialQueue] Request failed', false, {
+                command: requestToProcess.command,
+                error: error.message,
+                errorName: error.name,
+                errorStatus: error.status,
+                duration: `${duration}ms`,
+                shouldFailAllRequests,
+                timestamp: new Date().toISOString(),
+            });
+
             // On sign out we cancel any in flight requests from the user. Since that user is no longer signed in their requests should not be retried.
             // Duplicate records don't need to be retried as they just mean the record already exists on the server
             if (error.name === CONST.ERROR.REQUEST_CANCELLED || error.message === CONST.ERROR.DUPLICATE_RECORD || shouldFailAllRequests) {
@@ -174,6 +216,14 @@ function process(): Promise<void> {
                 return process();
             }
             rollbackOngoingPersistedRequest();
+
+            // Log retry attempt details
+            Log.info('[SequentialQueue] Will retry request', false, {
+                command: requestToProcess.command,
+                nextWaitTime: `${sequentialQueueRequestThrottle.getRequestWaitTime()}ms`,
+                maxRetries: 10, // CONST.NETWORK.MAX_REQUEST_RETRIES
+            });
+
             return sequentialQueueRequestThrottle
                 .sleep(error, requestToProcess.command)
                 .then(process)
@@ -196,6 +246,29 @@ function process(): Promise<void> {
  * so some cases (e.g., unpausing) require skipping the reset to maintain proper behavior.
  */
 function flush(shouldResetPromise = true) {
+    const queueLength = getAllPersistedRequests().length;
+    const hasOnyxUpdates = !isEmpty();
+
+    // Debug logging for flush attempts
+    Log.info('[SequentialQueue] Flush attempt', false, {
+        queueLength,
+        hasOnyxUpdates,
+        isQueuePaused,
+        isSequentialQueueRunning,
+        isClientLeader: isClientTheLeader(),
+        shouldResetPromise,
+        isOffline: isOffline(),
+        timestamp: new Date().toISOString(),
+    });
+
+    // Monitor queue size growth
+    if (queueLength > 5) {
+        Log.info('[SequentialQueue] WARNING: Queue growing large', false, {
+            queueLength,
+            requests: getAllPersistedRequests().map((req) => ({command: req.command, id: req.requestID})),
+        });
+    }
+
     // When the queue is paused, return early. This will keep an requests in the queue and they will get flushed again when the queue is unpaused
     if (isQueuePaused) {
         Log.info('[SequentialQueue] Unable to flush. Queue is paused.');
@@ -207,7 +280,7 @@ function flush(shouldResetPromise = true) {
         return;
     }
 
-    if (getAllPersistedRequests().length === 0 && isEmpty()) {
+    if (queueLength === 0 && !hasOnyxUpdates) {
         Log.info('[SequentialQueue] Unable to flush. No requests or queued Onyx updates to process.');
         return;
     }
@@ -375,6 +448,34 @@ function resetQueue(): void {
         resolveIsReadyPromise = resolve;
     });
     resolveIsReadyPromise?.();
+}
+
+// Debug utilities for browser console (DEV mode only)
+if (__DEV__ && typeof window !== 'undefined') {
+    // @ts-expect-error - Adding debug utilities to window for development
+    window.debugSequentialQueue = {
+        getQueueLength: () => getAllPersistedRequests().length,
+        getQueueDetails: () =>
+            getAllPersistedRequests().map((req) => ({
+                command: req.command,
+                id: req.requestID,
+                hasFailureData: !!req.failureData,
+            })),
+        getThrottleState: () => ({
+            waitTime: sequentialQueueRequestThrottle.getLastRequestWaitTime(),
+            name: 'SequentialQueue',
+        }),
+        getQueueState: () => ({
+            isRunning: isSequentialQueueRunning,
+            isPaused: isQueuePaused,
+            currentRequest: currentRequestPromise !== null,
+            isOffline: isOffline(),
+        }),
+        pauseQueue: pause,
+        unpauseQueue: unpause,
+        forceFlush: () => flush(true),
+        clearQueue: resetQueue,
+    };
 }
 
 export {

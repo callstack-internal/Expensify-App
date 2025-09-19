@@ -104,12 +104,29 @@ Onyx.connectWithoutView({
             return;
         }
 
+        // Debug logging for network state changes
+        const wasOffline = offline;
+        const nowOffline = !!network.shouldForceOffline || !!network.isOffline;
+
+        if (wasOffline !== nowOffline) {
+            Log.info('[NetworkStore] Network state changed', false, {
+                wasOffline,
+                nowOffline,
+                shouldForceOffline: network.shouldForceOffline,
+                isOffline: network.isOffline,
+                shouldSimulatePoorConnection: network.shouldSimulatePoorConnection,
+                shouldFailAllRequests: network.shouldFailAllRequests,
+                timestamp: new Date().toISOString(),
+            });
+        }
+
         // Client becomes online emit connectivity resumed event
         if (offline && !network.isOffline) {
+            Log.info('[NetworkStore] Triggering reconnection callback due to network coming online');
             triggerReconnectCallback();
         }
 
-        offline = !!network.shouldForceOffline || !!network.isOffline;
+        offline = nowOffline;
     },
 });
 

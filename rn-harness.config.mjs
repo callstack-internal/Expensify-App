@@ -5,8 +5,9 @@ const config = {
         {
             name: 'android',
             platform: 'android',
-            deviceId: 'Pixel_8_API_35',
-            bundleId: 'com.expensify.chat.dev',
+            deviceId: 'Pixel_7',
+            bundleId: 'org.me.mobiexpensifyg.dev',
+            activityName: 'org.me.mobiexpensifyg.ExpensifyActivityBase',
         },
         {
             name: 'ios',

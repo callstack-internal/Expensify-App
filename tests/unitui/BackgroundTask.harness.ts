@@ -1,5 +1,5 @@
 import TaskManager from '@expensify/react-native-background-task';
-import {afterEach, beforeEach, describe, expect, it} from '@react-native-harness/runtime';
+import {afterEach, beforeEach, describe, expect, it} from 'react-native-harness';
 
 const waitForNextTick = async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));

@@ -19,5 +19,5 @@ if (!process.env.EXPO_OS && __DEV__) {
     };
 }
 
-AppRegistry.registerComponent(Config.APP_NAME, () => require('@react-native-harness/runtime').ReactNativeHarness);
+AppRegistry.registerComponent(Config.APP_NAME, () => require('react-native-harness').ReactNativeHarness);
 additionalAppSetup();

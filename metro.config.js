@@ -6,7 +6,7 @@ const defaultAssetExts = require('metro-config/src/defaults/defaults').assetExts
 const {sourceExts: defaultSourceExts, additionalExts} = require('metro-config/src/defaults/defaults');
 const {wrapWithReanimatedMetroConfig} = require('react-native-reanimated/metro-config');
 require('dotenv').config();
-
+const {withRnHarness} = require('react-native-harness/metro');
 const defaultConfig = getReactNativeDefaultConfig(__dirname);
 const expoConfig = getExpoDefaultConfig(__dirname);
 
@@ -24,6 +24,7 @@ const config = {
         assetExts: [...defaultAssetExts, 'lottie'],
         // When we run the e2e tests we want files that have the extension e2e.js to be resolved as source files
         sourceExts: [...(isE2ETesting ? e2eSourceExts : []), ...defaultSourceExts, ...additionalExts, 'jsx'],
+        unstable_enablePackageExports: true,
     },
     // We are merging the default config from Expo and React Native and expo one is overriding the React Native one so inlineRequires is set to false so we want to set it to true
     // for fix cycling dependencies and improve performance of app startup
@@ -36,4 +37,4 @@ const config = {
     },
 };
 
-module.exports = wrapWithReanimatedMetroConfig(mergeConfig(defaultConfig, expoConfig, config));
+module.exports = withRnHarness(wrapWithReanimatedMetroConfig(mergeConfig(defaultConfig, expoConfig, config)));

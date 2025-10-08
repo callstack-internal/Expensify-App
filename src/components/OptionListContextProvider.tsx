@@ -1,5 +1,5 @@
 import React, {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import type {OnyxCollection} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
 import {createOptionFromReport, createOptionList, processReport, shallowOptionsListCompare} from '@libs/OptionsListUtils';
@@ -50,6 +50,7 @@ function OptionsListContextProvider({children}: OptionsListProviderProps) {
     const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {canBeMissing: true});
     const prevReportAttributesLocale = usePrevious(reportAttributes?.locale);
     const [reports, {sourceValue: changedReports}] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: true});
+    const prevReports = usePrevious(reports);
     const [, {sourceValue: changedReportActions}] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {canBeMissing: true});
     const personalDetails = usePersonalDetails();
     const prevPersonalDetails = usePrevious(personalDetails);
@@ -87,16 +88,17 @@ function OptionsListContextProvider({children}: OptionsListProviderProps) {
     }, [prevReportAttributesLocale, loadOptions, reportAttributes?.locale]);
 
     const changedReportsEntries = useMemo(() => {
-        const result: OnyxCollection<Report> = {};
+        const result: OnyxCollection<OnyxEntry<Report> | null> = {};
 
         Object.keys(changedReports ?? {}).forEach((key) => {
-            const report = reports?.[key];
-            if (report) {
-                result[key] = report;
+            let report: Report | null = reports?.[key] ?? null;
+            result[key] = report;
+            if (reports?.[key] === undefined && prevReports?.[key]) {
+                report = null;
             }
         });
         return result;
-    }, [changedReports, reports]);
+    }, [changedReports, reports, prevReports]);
 
     /**
      * This effect is responsible for updating the options only for changed reports
@@ -229,7 +231,7 @@ function OptionsListContextProvider({children}: OptionsListProviderProps) {
 
         // This effect is used to update the options list when personal details change so we ignore all dependencies except personalDetails
         // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
-    }, [personalDetails, reportAttributes?.reports]);
+    }, [personalDetails]);
 
     const initializeOptions = useCallback(() => {
         loadOptions();
@@ -265,11 +267,14 @@ const useOptionsList = (options?: {shouldInitialize: boolean}) => {
     const {initializeOptions, options: optionsList, areOptionsInitialized, resetOptions} = useOptionsListContext();
     const [internalOptions, setInternalOptions] = useState<OptionList>(optionsList);
     const prevOptions = useRef<OptionList>(null);
+    const [areInternalOptionsInitialized, setAreInternalOptionsInitialized] = useState(false);
 
+    const prevIsInitialized = usePrevious(areOptionsInitialized);
     useEffect(() => {
         if (!prevOptions.current) {
             prevOptions.current = optionsList;
             setInternalOptions(optionsList);
+            setAreInternalOptionsInitialized(areOptionsInitialized);
             return;
         }
         /**
@@ -278,11 +283,17 @@ const useOptionsList = (options?: {shouldInitialize: boolean}) => {
          */
         const areOptionsEqual = shallowOptionsListCompare(prevOptions.current, optionsList);
         prevOptions.current = optionsList;
+        const hasInitializedChanged = prevIsInitialized !== areOptionsInitialized;
         if (areOptionsEqual) {
+            if (hasInitializedChanged) {
+                setAreInternalOptionsInitialized(areOptionsInitialized);
+            }
+
             return;
         }
         setInternalOptions(optionsList);
-    }, [optionsList]);
+        setAreInternalOptionsInitialized(areOptionsInitialized);
+    }, [optionsList, areOptionsInitialized, prevIsInitialized]);
 
     useEffect(() => {
         if (!shouldInitialize || areOptionsInitialized) {
@@ -292,14 +303,19 @@ const useOptionsList = (options?: {shouldInitialize: boolean}) => {
         initializeOptions();
     }, [shouldInitialize, initializeOptions, areOptionsInitialized]);
 
+    const resetInternalOptions = useCallback(() => {
+        setAreInternalOptionsInitialized(false);
+        resetOptions();
+    }, [resetOptions]);
+
     return useMemo(
         () => ({
             initializeOptions,
             options: internalOptions,
-            areOptionsInitialized,
-            resetOptions,
+            areOptionsInitialized: areInternalOptionsInitialized,
+            resetOptions: resetInternalOptions,
         }),
-        [initializeOptions, internalOptions, areOptionsInitialized, resetOptions],
+        [initializeOptions, internalOptions, resetInternalOptions, areInternalOptionsInitialized],
     );
 };
 

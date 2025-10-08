@@ -661,15 +661,68 @@ function isBlockedFromConcierge(blockedFromConciergeNVP: OnyxEntry<BlockedFromCo
 }
 
 function triggerNotifications(onyxUpdates: OnyxServerUpdate[]) {
+    // LOG ALL REPORT ACTION UPDATES - including those that don't trigger notifications
     onyxUpdates.forEach((update) => {
-        if (!update.shouldNotify && !update.shouldShowPushNotification) {
+        if (update.key.includes(ONYXKEYS.COLLECTION.REPORT_ACTIONS)) {
+            const reportID = update.key.replace(ONYXKEYS.COLLECTION.REPORT_ACTIONS, '');
+            const reportActions = Object.values((update.value as OnyxCollection<ReportAction>) ?? {});
+            
+            console.log('[User] ALL REPORT ACTIONS UPDATE', {
+                reportID,
+                updateKey: update.key,
+                shouldNotify: update.shouldNotify,
+                shouldShowPushNotification: update.shouldShowPushNotification,
+                actionsCount: reportActions.length,
+                actions: reportActions.map(action => ({
+                    actionName: action?.actionName,
+                    actionID: action?.reportActionID,
+                    actorAccountID: action?.actorAccountID,
+                    created: action?.created,
+                    isWorkspaceInvite: action?.actionName === 'ACTIONABLEJOINREQUEST'
+                }))
+            });
+        }
+    });
+
+    onyxUpdates.forEach((update) => {
+        // TEMPORARY WORKAROUND: Force notifications for workspace welcome whispers
+        // These should have shouldNotify set by server but currently don't
+        const reportActions = Object.values((update.value as OnyxCollection<ReportAction>) ?? {});
+        const hasWorkspaceWelcomeAction = reportActions.some(action => 
+            action?.actionName === 'POLICYEXPENSECHATWELCOMEWHISPER'
+        );
+        
+        if (hasWorkspaceWelcomeAction) {
+            console.log('[User] FORCING notification for workspace welcome whisper (server bug workaround)');
+            // Continue to process notification even though shouldNotify is not set
+        } else if (!update.shouldNotify && !update.shouldShowPushNotification) {
             return;
         }
 
         const reportID = update.key.replace(ONYXKEYS.COLLECTION.REPORT_ACTIONS, '');
-        const reportActions = Object.values((update.value as OnyxCollection<ReportAction>) ?? {});
+        const reportActionsForNotification = Object.values((update.value as OnyxCollection<ReportAction>) ?? {});
 
-        reportActions.forEach((action) => action && showReportActionNotification(reportID, action));
+        console.log('[User] Processing report actions for notifications', {
+            reportID,
+            actionsCount: reportActionsForNotification.length,
+            actions: reportActionsForNotification.map(action => ({
+                actionName: action?.actionName,
+                actionID: action?.reportActionID,
+                actorAccountID: action?.actorAccountID,
+                isWorkspaceInvite: action?.actionName === 'ACTIONABLEJOINREQUEST'
+            }))
+        });
+
+        reportActionsForNotification.forEach((action) => {
+            if (action) {
+                console.log('[User] Triggering notification for action', {
+                    reportID,
+                    actionName: action.actionName,
+                    actionID: action.reportActionID
+                });
+                showReportActionNotification(reportID, action);
+            }
+        });
     });
 }
 

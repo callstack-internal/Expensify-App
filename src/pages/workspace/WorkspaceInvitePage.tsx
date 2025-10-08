@@ -262,6 +262,9 @@ function WorkspaceInvitePage({route, policy}: WorkspaceInvitePageProps) {
         HttpUtils.cancelPendingRequests(READ_COMMANDS.SEARCH_FOR_REPORTS);
 
         const invitedEmailsToAccountIDs: InvitedEmailsToAccountIDs = {};
+
+        console.log('selectedOptions: ', selectedOptions);
+
         selectedOptions.forEach((option) => {
             const login = option.login ?? '';
             const accountID = option.accountID ?? CONST.DEFAULT_NUMBER_ID;
@@ -271,6 +274,9 @@ function WorkspaceInvitePage({route, policy}: WorkspaceInvitePageProps) {
             invitedEmailsToAccountIDs[login] = Number(accountID);
         });
         setWorkspaceInviteMembersDraft(route.params.policyID, invitedEmailsToAccountIDs);
+
+        console.log('invitedEmailsToAccountIDs: ', invitedEmailsToAccountIDs)
+
         Navigation.navigate(ROUTES.WORKSPACE_INVITE_MESSAGE.getRoute(route.params.policyID, Navigation.getActiveRoute()));
     }, [route.params.policyID, selectedOptions]);
 

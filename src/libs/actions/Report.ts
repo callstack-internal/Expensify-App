@@ -3259,6 +3259,19 @@ function shouldShowReportActionNotification(reportID: string, action: ReportActi
     const tag = isRemote ? '[PushNotification]' : '[LocalNotification]';
     const topmostReportID = Navigation.getTopmostReportId();
 
+    // Enhanced logging for workspace invitation debugging
+    console.log(`${tag} shouldShowReportActionNotification called`, {
+        reportID,
+        actionName: action?.actionName,
+        actionID: action?.reportActionID,
+        actorAccountID: action?.actorAccountID,
+        currentUserAccountID,
+        isRemote,
+        topmostReportID,
+        isWorkspaceInvite: action?.actionName === CONST.REPORT.ACTIONS.TYPE.ACTIONABLE_JOIN_REQUEST,
+        timestamp: new Date().toISOString()
+    });
+
     // Due to payload size constraints, some push notifications may have their report action stripped
     // so we must double check that we were provided an action before using it in these checks.
     if (action && ReportActionsUtils.isDeletedAction(action)) {
@@ -3272,10 +3285,28 @@ function shouldShowReportActionNotification(reportID: string, action: ReportActi
     }
 
     // We don't want to send a local notification if the user preference is daily, mute or hidden.
-    const notificationPreference = getReportNotificationPreference(allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`]);
-    if (notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS) {
+    const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
+    const notificationPreference = getReportNotificationPreference(report);
+    
+    // TEMPORARY WORKAROUND: Check if this is a workspace welcome whisper
+    const isWorkspaceWelcomeAction = action?.actionName === 'POLICYEXPENSECHATWELCOMEWHISPER';
+    
+    console.log(`${tag} Checking notification preference`, {
+        reportID,
+        notificationPreference,
+        reportType: report?.type,
+        isWorkspaceWelcomeAction,
+        ALWAYS: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS
+    });
+    
+    if (!isWorkspaceWelcomeAction && notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS) {
         Log.info(`${tag} No notification because user preference is to be notified: ${notificationPreference}`);
+        console.log(`${tag} BLOCKED: Notification preference is not ALWAYS`);
         return false;
+    }
+    
+    if (isWorkspaceWelcomeAction && notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS) {
+        console.log(`${tag} OVERRIDING notification preference for workspace welcome whisper (${notificationPreference} -> ALWAYS)`);
     }
 
     // If this comment is from the current user we don't want to parrot whatever they wrote back to them.
@@ -3299,7 +3330,7 @@ function shouldShowReportActionNotification(reportID: string, action: ReportActi
         return false;
     }
 
-    const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
+    // Check if report exists and is not pending deletion
     if (!report || (report && report.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE)) {
         Log.info(`${tag} No notification because the report does not exist or is pending deleted`, false);
         return false;
@@ -3317,20 +3348,32 @@ function shouldShowReportActionNotification(reportID: string, action: ReportActi
         return false;
     }
 
+    console.log(`${tag} ALLOWING notification - all checks passed`);
     return true;
 }
 
 function showReportActionNotification(reportID: string, reportAction: ReportAction) {
+    console.log('[LocalNotification] showReportActionNotification called', {
+        reportID,
+        actionName: reportAction.actionName,
+        actionID: reportAction.reportActionID,
+        actorAccountID: reportAction.actorAccountID,
+        isWorkspaceInvite: reportAction.actionName === CONST.REPORT.ACTIONS.TYPE.ACTIONABLE_JOIN_REQUEST
+    });
+
     if (!shouldShowReportActionNotification(reportID, reportAction)) {
+        console.log('[LocalNotification] BLOCKED by shouldShowReportActionNotification');
         return;
     }
 
     Log.info('[LocalNotification] Creating notification');
+    console.log('[LocalNotification] PROCEEDING to create notification');
 
     const localReportID = `${ONYXKEYS.COLLECTION.REPORT}${reportID}`;
     const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
     if (!report) {
         Log.hmmm("[LocalNotification] couldn't show report action notification because the report wasn't found", {localReportID, reportActionID: reportAction.reportActionID});
+        console.error('[LocalNotification] Report not found for notification');
         return;
     }
 

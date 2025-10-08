@@ -2,30 +2,13 @@
 
 /* eslint-disable no-console */
 import React, {useState} from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import {useOnyx, withOnyx} from 'react-native-onyx';
+// eslint-disable-next-line no-restricted-imports
+import {useOnyx} from 'react-native-onyx';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import Text from '@components/Text';
 import useThemeStyles from '@hooks/useThemeStyles';
 import ONYXKEYS from '@src/ONYXKEYS';
-
-type AllowStaleDataWithOnyxOnyxProps = {
-    policyID: OnyxEntry<string>;
-};
-
-type AllowStaleDataWithOnyxProps = AllowStaleDataWithOnyxOnyxProps;
-
-const AllowStaleDataWithOnyx = withOnyx<AllowStaleDataWithOnyxProps, AllowStaleDataWithOnyxOnyxProps>({
-    policyID: {
-        key: ONYXKEYS.POLICY_ID,
-        initialValue: 'INITIAL VALUE',
-        allowStaleData: false,
-    },
-})(({policyID}: AllowStaleDataWithOnyxProps) => {
-    console.log(`OnyxPlayground [App] AllowStaleDataWithOnyx policyID '${policyID}'`);
-    return <Text>{policyID}</Text>;
-});
 
 function AllowStaleDataUseOnyx() {
     const policyID = useOnyx(ONYXKEYS.POLICY_ID, {allowStaleData: false});
@@ -58,7 +41,6 @@ function AllowStaleDataTest() {
                     setShouldRender(!shouldRender);
                 }}
             />
-            <Text>AllowStaleDataWithOnyx - {shouldRender ? <AllowStaleDataWithOnyx /> : ''}</Text>
             <Text>AllowStaleDataUseOnyx - {shouldRender ? <AllowStaleDataUseOnyx /> : ''}</Text>
         </>
     );

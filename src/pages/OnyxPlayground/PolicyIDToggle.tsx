@@ -2,22 +2,17 @@
 
 /* eslint-disable rulesdir/prefer-actions-set-data */
 import React from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import Onyx, {withOnyx} from 'react-native-onyx';
+// eslint-disable-next-line no-restricted-imports
+import Onyx, {useOnyx} from 'react-native-onyx';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import Text from '@components/Text';
 import useThemeStyles from '@hooks/useThemeStyles';
 import ONYXKEYS from '@src/ONYXKEYS';
 
-type PolicyIDToggleOnyxProps = {
-    policyID: OnyxEntry<string>;
-};
-
-type PolicyIDToggleProps = PolicyIDToggleOnyxProps;
-
-function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
+function PolicyIDToggle() {
     const styles = useThemeStyles();
+    const [policyID] = useOnyx(ONYXKEYS.POLICY_ID);
 
     return (
         <>
@@ -99,7 +94,7 @@ function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
                 icon={Expensicons.Send}
                 numberOfLinesTitle={2}
                 onPress={() => {
-                    const connection = Onyx.connect({
+                    const connection = Onyx.connectWithoutView({
                         key: ONYXKEYS.COLLECTION.INEXISTENT,
                         callback: (data) => {
                             Object.keys(data ?? {}).forEach((key) => {
@@ -159,8 +154,4 @@ function PolicyIDToggle({policyID}: PolicyIDToggleProps) {
     );
 }
 
-export default withOnyx<PolicyIDToggleProps, PolicyIDToggleOnyxProps>({
-    policyID: {
-        key: ONYXKEYS.POLICY_ID,
-    },
-})(PolicyIDToggle);
+export default PolicyIDToggle;

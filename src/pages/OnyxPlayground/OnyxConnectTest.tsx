@@ -2,26 +2,22 @@
 
 /* eslint-disable rulesdir/prefer-onyx-connect-in-libs */
 import {useEffect} from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import Onyx, {withOnyx} from 'react-native-onyx';
+// eslint-disable-next-line no-restricted-imports
+import Onyx, {useOnyx} from 'react-native-onyx';
 import ONYXKEYS from '@src/ONYXKEYS';
 
-type OnyxConnectTestOnyxProps = {
-    policyID: OnyxEntry<string>;
-};
+function OnyxConnectTest() {
+    const [policyID] = useOnyx(ONYXKEYS.POLICY_ID);
 
-type OnyxConnectTestProps = OnyxConnectTestOnyxProps;
-
-function OnyxConnectTest({policyID}: OnyxConnectTestProps) {
     useEffect(() => {
-        const policyIdConnection = Onyx.connect({
+        const policyIdConnection = Onyx.connectWithoutView({
             key: ONYXKEYS.POLICY_ID,
             callback: (value) => {
                 console.log(`OnyxPlayground [App] OnyxConnectTest ${ONYXKEYS.POLICY_ID}`, value);
             },
         });
 
-        const policiesConnection = Onyx.connect({
+        const policiesConnection = Onyx.connectWithoutView({
             key: ONYXKEYS.COLLECTION.POLICY,
             callback: (value) => {
                 console.log(`OnyxPlayground [App] OnyxConnectTest ${ONYXKEYS.COLLECTION.POLICY}`, value);
@@ -29,7 +25,7 @@ function OnyxConnectTest({policyID}: OnyxConnectTestProps) {
             waitForCollectionCallback: true,
         });
 
-        const policyConnection = Onyx.connect({
+        const policyConnection = Onyx.connectWithoutView({
             key: `${ONYXKEYS.COLLECTION.POLICY}${policyID}`,
             callback: (value) => {
                 console.log(`OnyxPlayground [App] OnyxConnectTest ${ONYXKEYS.COLLECTION.POLICY}${policyID}`, value);
@@ -46,8 +42,4 @@ function OnyxConnectTest({policyID}: OnyxConnectTestProps) {
     return null;
 }
 
-export default withOnyx<OnyxConnectTestProps, OnyxConnectTestOnyxProps>({
-    policyID: {
-        key: ONYXKEYS.POLICY_ID,
-    },
-})(OnyxConnectTest);
+export default OnyxConnectTest;

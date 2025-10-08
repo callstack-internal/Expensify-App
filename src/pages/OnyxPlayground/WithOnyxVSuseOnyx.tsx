@@ -4,9 +4,9 @@
 
 /* eslint-disable no-console */
 import React, {useState} from 'react';
-import type {OnyxCollection, OnyxEntry, UseOnyxResult, WithOnyxState} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry, UseOnyxResult} from 'react-native-onyx';
 // eslint-disable-next-line no-restricted-imports
-import {useOnyx, withOnyx, withOnyxV2} from 'react-native-onyx';
+import {useOnyx} from 'react-native-onyx';
 import * as Expensicons from '@components/Icon/Expensicons';
 import MenuItem from '@components/MenuItem';
 import Text from '@components/Text';
@@ -18,168 +18,10 @@ import mapOnyxCollectionItems from '@src/utils/mapOnyxCollectionItems';
 function testNullUndefined<T>(value: OnyxEntry<T>) {}
 function testNullUndefinedCollection<T>(value: OnyxCollection<T>) {}
 
-type PartialPolicy = Pick<Policy, 'id' | 'name'>;
-
 function SubRenderTest({policy}: {policy: UseOnyxResult<Policy | undefined> | OnyxEntry<Policy>}) {
     console.log('OnyxPlayground [App] SubRenderTest policy', policy);
     return null;
 }
-
-type ComponentWithOnyxHOCOnyxProps = {
-    account: OnyxEntry<Account>;
-
-    testCondition: OnyxEntry<boolean>;
-
-    inexistentCollection: OnyxCollection<{id: string; prop2: string; prop3: string}>;
-
-    policies: OnyxCollection<Policy>;
-
-    policy: OnyxEntry<Policy>;
-
-    policy2: OnyxEntry<PartialPolicy>;
-
-    sessionEmail: OnyxEntry<string>;
-
-    policiesWithSelector: OnyxCollection<PartialPolicy>;
-};
-
-type ComponentWithOnyxHOCProps = ComponentWithOnyxHOCOnyxProps & {
-    policyID: string;
-};
-
-const ComponentWithOnyxHOC = withOnyx<ComponentWithOnyxHOCProps, ComponentWithOnyxHOCOnyxProps>({
-    account: {
-        key: ONYXKEYS.ACCOUNT,
-    },
-    testCondition: {
-        key: ONYXKEYS.TEST_CONDITION,
-        // selector: (v) => true,
-        // initialValue: 'initial value',
-    },
-    inexistentCollection: {
-        key: ONYXKEYS.COLLECTION.INEXISTENT,
-    },
-    policies: {
-        key: ONYXKEYS.COLLECTION.POLICY,
-    },
-    policy: {
-        key: (props) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOC 'policy' prop key`, props, JSON.stringify(props));
-            return `${ONYXKEYS.COLLECTION.POLICY}${props.policyID}`;
-        },
-    },
-    policy2: {
-        key: (props) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOC 'policy2' prop key`, props, JSON.stringify(props));
-            return `${ONYXKEYS.COLLECTION.POLICY}${props.policyID}`;
-        },
-        selector: (selectedPolicy: OnyxEntry<Policy>, state?: WithOnyxState<ComponentWithOnyxHOCOnyxProps>) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOC 'policy2' prop selector`, selectedPolicy, state, JSON.stringify(state));
-            return {
-                id: selectedPolicy?.id ?? '',
-                name: selectedPolicy?.name ?? '',
-            };
-        },
-    },
-    sessionEmail: {
-        key: ONYXKEYS.SESSION,
-        selector: (session, state) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOC 'sessionEmail' prop selector`, session, state, JSON.stringify(state));
-            return session?.email ?? '';
-        },
-    },
-    policiesWithSelector: {
-        key: ONYXKEYS.COLLECTION.POLICY,
-        selector: (policy, state) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOC 'policiesWithSelector' prop selector`, policy, state, JSON.stringify(state));
-            return {id: policy?.id ?? '', name: policy?.name ?? ''};
-        },
-    },
-})(({policyID, account, testCondition: testConditionOnyxValue, inexistentCollection, policies, policy, policy2, sessionEmail, policiesWithSelector}) => {
-    const testConditionValue = testConditionOnyxValue ?? true; // mimics default value assignment
-
-    console.group('OnyxPlayground [App] ComponentWithOnyxHOC');
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC policyID', policyID);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC account', account);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC testConditionOnyxValue', testConditionOnyxValue);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC testConditionValue', testConditionValue);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC inexistentCollection', inexistentCollection);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC policies', policies);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC policy', policy);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC policy2', policy2);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC sessionEmail', sessionEmail);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOC policiesWithSelector', policiesWithSelector);
-    console.groupEnd();
-
-    return <SubRenderTest policy={policy} />;
-});
-
-const ComponentWithOnyxHOCV2 = withOnyxV2<ComponentWithOnyxHOCProps, ComponentWithOnyxHOCOnyxProps>({
-    account: {
-        key: ONYXKEYS.ACCOUNT,
-    },
-    testCondition: {
-        key: ONYXKEYS.TEST_CONDITION,
-        // selector: (v) => true,
-        // initialValue: 'initial value',
-    },
-    inexistentCollection: {
-        key: ONYXKEYS.COLLECTION.INEXISTENT,
-    },
-    policies: {
-        key: ONYXKEYS.COLLECTION.POLICY,
-    },
-    policy: {
-        key: (props) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOCV2 'policy' prop key`, props, JSON.stringify(props));
-            return `${ONYXKEYS.COLLECTION.POLICY}${props.policyID}`;
-        },
-    },
-    policy2: {
-        key: (props) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOCV2 'policy2' prop key`, props, JSON.stringify(props));
-            return `${ONYXKEYS.COLLECTION.POLICY}${props.policyID}`;
-        },
-        selector: (selectedPolicy: OnyxEntry<Policy>, state?: WithOnyxState<ComponentWithOnyxHOCOnyxProps>) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOCV2 'policy2' prop selector`, selectedPolicy, state, JSON.stringify(state));
-            return {
-                id: selectedPolicy?.id ?? '',
-                name: selectedPolicy?.name ?? '',
-            };
-        },
-    },
-    sessionEmail: {
-        key: ONYXKEYS.SESSION,
-        selector: (session, state) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOCV2 'sessionEmail' prop selector`, session, state, JSON.stringify(state));
-            return session?.email ?? '';
-        },
-    },
-    policiesWithSelector: {
-        key: ONYXKEYS.COLLECTION.POLICY,
-        selector: (policy, state) => {
-            console.log(`OnyxPlayground [App] ComponentWithOnyxHOCV2 'policiesWithSelector' prop selector`, policy, state, JSON.stringify(state));
-            return {id: policy?.id ?? '', name: policy?.name ?? ''};
-        },
-    },
-})(({policyID, account, testCondition: testConditionOnyxValue, inexistentCollection, policies, policy, policy2, sessionEmail, policiesWithSelector}) => {
-    const testConditionValue = testConditionOnyxValue ?? true; // mimics default value assignment
-
-    console.group('OnyxPlayground [App] ComponentWithOnyxHOCV2');
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 policyID', policyID);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 account', account);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 testConditionOnyxValue', testConditionOnyxValue);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 testConditionValue', testConditionValue);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 inexistentCollection', inexistentCollection);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 policies', policies);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 policy', policy);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 policy2', policy2);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 sessionEmail', sessionEmail);
-    console.log('OnyxPlayground [App] ComponentWithOnyxHOCV2 policiesWithSelector', policiesWithSelector);
-    console.groupEnd();
-
-    return <SubRenderTest policy={policy} />;
-});
 
 type ComponentWithOnyxHookProps = {
     policyID: string;
@@ -302,17 +144,14 @@ function ComponentWithOnyxHook({policyID}: ComponentWithOnyxHookProps) {
     return <SubRenderTest policy={policy} />;
 }
 
-type WithOnyxVSuseOnyxProps = {
-    policyID: string;
-};
-
-function WithOnyxVSuseOnyx({policyID}: WithOnyxVSuseOnyxProps) {
+function WithOnyxVSuseOnyx() {
     const styles = useThemeStyles();
     const [shouldRender, setShouldRender] = useState(false);
+    const [policyID = 'inexistent1'] = useOnyx(ONYXKEYS.POLICY_ID);
 
     return (
         <>
-            <Text style={[styles.textHeadline, styles.mb2, styles.ph5]}>withOnyx VS useOnyx</Text>
+            <Text style={[styles.textHeadline, styles.mb2, styles.ph5]}>useOnyx</Text>
             <MenuItem
                 wrapperStyle={styles.mb4}
                 title="Show/Hide WithOnyxVSuseOnyx component"
@@ -324,19 +163,12 @@ function WithOnyxVSuseOnyx({policyID}: WithOnyxVSuseOnyxProps) {
             />
             {shouldRender && (
                 <>
-                    <Text>WithOnyxVSuseOnyx</Text>
-                    {/* <ComponentWithOnyxHOC policyID={policyID} /> */}
-                    <ComponentWithOnyxHOCV2 policyID={policyID} />
-                    {/* <ComponentWithOnyxHook policyID={policyID} /> */}
+                    <Text>ComponentWithOnyxHook</Text>
+                    <ComponentWithOnyxHook policyID={policyID} />
                 </>
             )}
         </>
     );
 }
 
-export default withOnyx<WithOnyxVSuseOnyxProps, WithOnyxVSuseOnyxProps>({
-    policyID: {
-        key: ONYXKEYS.POLICY_ID,
-        selector: (value) => value ?? 'inexistent1',
-    },
-})(WithOnyxVSuseOnyx);
+export default WithOnyxVSuseOnyx;

@@ -2,6 +2,7 @@
 import React from 'react';
 import HeaderPageLayout from '@components/HeaderPageLayout';
 import AllowStaleDataTest from './AllowStaleDataTest';
+import DBWriteTest from './DBWriteTest';
 import InitWithStoredValuesTest from './InitWithStoredValuesTest';
 import OnyxConnectTest from './OnyxConnectTest';
 import PolicyIDToggle from './PolicyIDToggle';
@@ -25,6 +26,8 @@ function OnyxPlaygroundPage() {
             <OnyxConnectTest />
 
             <UseOnyxDependencyTest />
+
+            <DBWriteTest />
         </HeaderPageLayout>
     );
 }

@@ -15,6 +15,8 @@ import type DeepValueOf from './types/utils/DeepValueOf';
  * This is a file containing constants for all the top level keys in our store
  */
 const ONYXKEYS = {
+    DB_TEST_DATA: 'dbTestData',
+
     POLICY_ID: 'policyID',
 
     TEST_CONDITION: 'testCondition',
@@ -602,6 +604,7 @@ const ONYXKEYS = {
 
     /** Collection Keys */
     COLLECTION: {
+        DB_COLLECTION_TEST_DATA: 'dbCollectionTestData_',
         INEXISTENT: 'inexistentCollection_',
         DOWNLOAD: 'download_',
         POLICY: 'policy_',
@@ -1029,7 +1032,9 @@ type OnyxFormDraftValuesMapping = {
 };
 
 type OnyxCollectionValuesMapping = {
-    [ONYXKEYS.COLLECTION.INEXISTENT]: {id: string, prop2: string, prop3: string};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [ONYXKEYS.COLLECTION.DB_COLLECTION_TEST_DATA]: any;
+    [ONYXKEYS.COLLECTION.INEXISTENT]: {id: string; prop2: string; prop3: string};
     [ONYXKEYS.COLLECTION.DOWNLOAD]: OnyxTypes.Download;
     [ONYXKEYS.COLLECTION.POLICY]: OnyxTypes.Policy;
     [ONYXKEYS.COLLECTION.POLICY_DRAFTS]: OnyxTypes.Policy;
@@ -1088,6 +1093,8 @@ type OnyxCollectionValuesMapping = {
 };
 
 type OnyxValuesMapping = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [ONYXKEYS.DB_TEST_DATA]: any;
     [ONYXKEYS.POLICY_ID]: string;
     [ONYXKEYS.TEST_CONDITION]: boolean;
     [ONYXKEYS.ACCOUNT]: OnyxTypes.Account;

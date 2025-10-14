@@ -51,8 +51,6 @@ function UseOnyxDependencyTest() {
                     setInternalValue(`internal_${Math.random()}`);
                 }}
             />
-            <Text>InitWithStoredValuesWithOnyx</Text>
-            <Text>InitWithStoredValuesUseOnyx</Text>
         </>
     );
 }

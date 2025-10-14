@@ -55,6 +55,7 @@ export default function () {
             [ONYXKEYS.SUPPORTAL_PERMISSION_DENIED]: null,
         },
         skippableCollectionMemberIDs: CONST.SKIPPABLE_COLLECTION_MEMBER_IDS,
+        enablePerformanceMetrics: true,
     });
 
     initOnyxDerivedValues();

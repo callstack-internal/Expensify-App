@@ -87,22 +87,6 @@ platform :android do
     setGradleOutputsInEnv()
   end
 
-  desc "Generate AdHoc HybridApp apk"
-  lane :build_adhoc_hybrid do
-    ENV["ENVFILE"]="Mobile-Expensify/.env.adhoc.hybridapp.android"
-    gradle(
-      project_dir: 'Mobile-Expensify/Android',
-      task: 'assembleAdhoc',
-      properties: {
-        "android.injected.signing.store.file" => './upload-key.keystore',
-        "android.injected.signing.store.password" => ENV["ANDROID_UPLOAD_KEYSTORE_PASSWORD"],
-        "android.injected.signing.key.alias" => ENV["ANDROID_UPLOAD_KEYSTORE_ALIAS"],
-        "android.injected.signing.key.password" => ENV["ANDROID_UPLOAD_KEY_PASSWORD"],
-      }
-    )
-    setGradleOutputsInEnv()
-  end
-
   desc "Generate a new local APK"
   lane :build_local do
     ENV["ENVFILE"]=".env.production"
@@ -165,23 +149,6 @@ platform :android do
       build_type: 'Release',
     )
     setGradleOutputsInEnv()
-  end
-
-  desc "Upload build to S3"
-  lane :upload_s3 do
-    puts "APK path: #{ENV[KEY_GRADLE_APK_PATH]}"
-    aws_s3(
-      access_key: ENV['S3_ACCESS_KEY'],
-      secret_access_key: ENV['S3_SECRET_ACCESS_KEY'],
-      bucket: ENV['S3_BUCKET'],
-      region: ENV['S3_REGION'],
-      apk: ENV[KEY_GRADLE_APK_PATH],
-      app_directory: "android/#{ENV['PULL_REQUEST_NUMBER']}",
-    )
-    puts "Saving S3 outputs in env..."
-    exportEnvVars({
-      KEY_S3_APK_PATH => lane_context[SharedValues::S3_HTML_OUTPUT_PATH],
-    })
   end
 
   desc "Upload HybridApp to Google Play draft mode"
@@ -394,42 +361,6 @@ platform :ios do
           ENV["APPLE_ID"] => ENV["APPLE_STORE_PROVISIONING_PROFILE_NAME"],
           ENV["APPLE_ID"] + ".SmartScanExtension" => ENV["APPLE_SHARE_PROVISIONING_PROFILE_NAME"],
           ENV["APPLE_ID"] + ".NotificationServiceExtension" => ENV["APPLE_NOTIFICATION_PROVISIONING_PROFILE_NAME"],
-        }
-      }
-    )
-
-    setIOSBuildOutputsInEnv()
-  end
-
-  desc "Build an iOS HybridApp Adhoc build"
-  lane :build_adhoc_hybrid do
-    ENV["ENVFILE"]="Mobile-Expensify/.env.adhoc.hybridapp.ios"
-
-    setupIOSSigningCertificate()
-
-    install_provisioning_profile(
-      path: "./OldApp_AdHoc.mobileprovision"
-    )
-
-    install_provisioning_profile(
-      path: "./OldApp_AdHoc_Share_Extension.mobileprovision"
-    )
-
-    install_provisioning_profile(
-      path: "./OldApp_AdHoc_Notification_Service.mobileprovision"
-    )
-
-    build_app(
-      workspace: "Mobile-Expensify/iOS/Expensify.xcworkspace",
-      scheme: "Expensify AdHoc",
-      output_name: "Expensify.ipa",
-      export_method: "ad-hoc",
-      export_options: {
-        manageAppVersionAndBuildNumber: false,
-        provisioningProfiles: {
-          "com.expensify.expensifylite.adhoc" => "(OldApp) AdHoc",
-          "com.expensify.expensifylite.adhoc.SmartScanExtension" => "(OldApp) AdHoc: Share Extension",
-          "com.expensify.expensifylite.adhoc.NotificationServiceExtension" => "(OldApp) AdHoc: Notification Service",
         }
       }
     )

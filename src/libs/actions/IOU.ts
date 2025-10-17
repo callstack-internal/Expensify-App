@@ -10045,7 +10045,6 @@ function canIOUBePaid(
     const isAutoReimbursable = policy?.reimbursementChoice === CONST.POLICY.REIMBURSEMENT_CHOICES.REIMBURSEMENT_YES ? false : canBeAutoReimbursed(iouReport, policy);
     const shouldBeApproved = canApproveIOU(iouReport, policy, transactions);
     const isPayAtEndExpenseReport = isPayAtEndExpenseReportReportUtils(iouReport ?? undefined, transactions);
-    const isEveryTransactionIsNegative = transactions?.every((transaction) => transaction.amount < 0);
 
     return (
         isPayer &&
@@ -10056,8 +10055,7 @@ function canIOUBePaid(
         !isChatReportArchived &&
         !isAutoReimbursable &&
         (!shouldBeApproved || !shouldCheckApprovedState) &&
-        !isPayAtEndExpenseReport &&
-        !isEveryTransactionIsNegative
+        !isPayAtEndExpenseReport
     );
 }
 

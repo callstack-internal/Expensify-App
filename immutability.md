@@ -1,22 +1,31 @@
-**How other state libraries using Immutability**
+## How other state management libraries handle immutability
 
-Below table which demonstrate state libraries and how it treat immutability :
+The table below demonstrates some popular state management libraries and how they treat immutability:
 
+| Library                    | Default state mutability                     | Mutation allowed at runtime                         | Runtime immutability protection          | Change detection mechanism              | TypeScript immutability enforcement                   | Best practice                                                       |
+|---------------------------|----------------------------------------------|-----------------------------------------------------|------------------------------------------|------------------------------------------|--------------------------------------------------------|----------------------------------------------------------------------|
+| React (useState / useReducer) | ❌ Mutable (must be treated immutably)    | ⚠️ Yes (may break re-render)                        | ❌ None                                  | Shallow reference equality               | ⚠️ Partial — can use `Readonly<T>`                    | Avoid mutation, create new objects                                 |
+| Redux (plain)             | ❌ Mutable (must be treated immutably)        | ⚠️ Yes (may break re-render)                         | ⚠️ Optional dev middleware               | Reference equality                      | ⚠️ Partial — TS doesn’t block mutation               | Always return new objects                                          |
+| Redux Toolkit (RTK)       | ✅ Immutable (via Immer)                      | ❌ No (Immer proxies safely)                         | ✅ Immer Proxy in reducers               | Structural sharing via Immer            | ✅ Strong — types + Immer ensure safety             | “Mutate” safely inside reducers                                     |
+| MobX                      | ✅ Mutable (by design)                        | ✅ Yes (mutations are tracked)                      | ❌ None                                  | Proxy-based observables                 | ❌ None                                               | Mutate directly; MobX tracks updates                               |
+| Zustand                   | ⚠️ Mutable (optional Immer)                   | ✅ Yes (mutates store directly)                     | ⚠️ Optional middleware (`immer`)         | Shallow equality / selector-based       | ⚠️ Partial — can use `Readonly<T>` or Immer         | Optional immutability; can use Immer                               |
+| React Query               | ⚠️ Mutable JS objects (should treat immutably) | ⚠️ Yes (developer discipline)                       | ❌ None                                  | Reference equality                      | ⚠️ Weak — TS types, but no immutability enforcement | Always update cache immutably via `setQueryData`                   |
 
-<img width="1170" height="625" alt="Screenshot 2025-10-08 at 11 27 28" src="https://github.com/user-attachments/assets/35b35f04-51aa-4f8b-ae9d-b7b62b1e9424" />
+### Overview of all the libraries
 
-<img width="826" height="241" alt="Screenshot 2025-10-08 at 11 31 28" src="https://github.com/user-attachments/assets/33e0f0cb-6e61-4aa1-8ebf-c141b2f1c565" />
+| Level                                             | Libraries                         | Description                                    |
+|--------------------------------------------------|-----------------------------------|------------------------------------------------|
+| 🟢 Immutable by runtime & TS                     | Redux Toolkit                     | Safe by design (Immer + TS)                    |
+| 🟡 Immutable by convention / optional TS help     | React, Redux, Zustand, React Query | You must follow discipline; TS can help optionally |
+| 🔴 Mutable by design (no TS protection)           | MobX                              | Mutation is expected and tracked               |
 
+### Conclusions
 
-Most state libraries **don't enforce** immutability, but letting the developer decide on it sometimes with the help of middlewares which can enforce it (e.g Redux or Zustand).  
+Most state management libraries **don't have built-in protections against** immutability, instead letting the developer decide and care about it, sometimes with the help of middlewares which can enforce it (e.g. Redux or Zustand).  
 
-**Adding immutability in Onyx**
+## Adding immutability to Onyx
 
-We will show how to add immutability in 2 ways:
-
-Using [immer.js](http://immer.js) and using Typescript
-
-- Implementing [immer.js](http://immer.js) in Onyx:
+### Using [immer.js](https://immerjs.github.io/immer/)
 
 On [this branch](https://github.com/callstack-internal/react-native-onyx/tree/eliran/immutability-immer) there is a sample of a way to implement [immer.js](http://immer.js) in Onyx codebase.
 
@@ -31,25 +40,24 @@ I ran it in our _perf-test_ and this is the results taken from _current.perf_ af
 
 Difference is around **12x** slower when using _fastMerge_ with immerjs.
 
-Yet this is a test of a very big array , of adding 1000 items to an array of 500 items.
+This is a test of a very big array, of adding 1000 items to an array of 500 items.
 
 Based on this there is few possibility to consider
 
 - Use it by default and get much worse performance for better state handling and potentially less bugs due to mutability.
-- Not using it and letting the developer decide .
-- Make it optional (e.g adding a flag) to _fastMerge_ so the developer can use it if he wants.
+- Not using it and letting the developer decide.
 
-<br/>2\. Adding typescript enforcement that onyx will return only _readOnly_ values
+### Adding TypeScript enforcement to make Onyx return only _readOnly_ values
 
-I implemented this in the 0nyx codebase in [this branch](https://github.com/callstack-internal/react-native-onyx/tree/eliran/typescript-readonly) in Onyx.
+Implementation in 0nyx codebase in [this branch](https://github.com/callstack-internal/react-native-onyx/tree/eliran/typescript-readonly).
 
-To test the implementation on E/App you can use [this branch](https://github.com/callstack-internal/Expensify-App/tree/eliran/typesceipt-readonly-onyx) in E/App
+To test the implementation on E/App you can use [this branch](https://github.com/callstack-internal/Expensify-App/tree/eliran/typesceipt-readonly-onyx).
 
-When using it in E/App there's 2177 ts errors in 495 files.
+**When using it in E/App there's 2177 ts errors in 495 files.**
 
-Further investigations ideas:
+Further investigation ideas:
 
 - Is it worth it to try and fix some of those errors in readonly and this way enforce immutability without affecting performance e.g adding immer ?
-- Adding ts enforcement anyway that developer will know when he mutate state and potentially creating bugs / make it as warning and not error
+- Adding TS enforcement anyway that developer will know when he mutate state and potentially creating bugs / make it as warning and not error
 - Maybe investing more ways to use immutability in Onyx except immer which might have better performance
 - Add immer as an optional - maybe via middleware

@@ -8,6 +8,7 @@ import Animated, {FadeIn} from 'react-native-reanimated';
 import MenuItem from '@components/MenuItem';
 import type {MenuItemWithLink} from '@components/MenuItemList';
 import MenuItemList from '@components/MenuItemList';
+import {useConfirmModal} from '@components/Modal/Global';
 import {usePersonalDetails} from '@components/OnyxListItemProvider';
 import {useProductTrainingContext} from '@components/ProductTrainingContext';
 import {ScrollOffsetContext} from '@components/ScrollOffsetContextProvider';
@@ -15,17 +16,16 @@ import ScrollView from '@components/ScrollView';
 import {useSearchContext} from '@components/Search/SearchContext';
 import type {SearchQueryJSON} from '@components/Search/types';
 import Text from '@components/Text';
-import useDeleteSavedSearch from '@hooks/useDeleteSavedSearch';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useSearchTypeMenuSections from '@hooks/useSearchTypeMenuSections';
 import useSingleExecution from '@hooks/useSingleExecution';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {clearAllFilters} from '@libs/actions/Search';
+import {clearAllFilters, deleteSavedSearch} from '@libs/actions/Search';
 import {mergeCardListWithWorkspaceFeeds} from '@libs/CardUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import {getAllTaxRates} from '@libs/PolicyUtils';
-import {buildSearchQueryJSON, buildUserReadableQueryString} from '@libs/SearchQueryUtils';
+import {buildCannedSearchQuery, buildSearchQueryJSON, buildUserReadableQueryString} from '@libs/SearchQueryUtils';
 import type {SavedSearchMenuItem} from '@libs/SearchUIUtils';
 import {createBaseSavedSearchMenuItem, getOverflowMenu as getOverflowMenuUtil} from '@libs/SearchUIUtils';
 import variables from '@styles/variables';
@@ -57,7 +57,7 @@ function SearchTypeMenu({queryJSON}: SearchTypeMenuProps) {
         CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.RENAME_SAVED_SEARCH,
         !!typeMenuSections.find((section) => section.translationPath === 'search.savedSearchesMenuItemTitle') && isFocused,
     );
-    const {showDeleteModal, DeleteConfirmModal} = useDeleteSavedSearch();
+    const {showConfirmModal} = useConfirmModal();
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
     const personalDetails = usePersonalDetails();
     const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: true});
@@ -67,7 +67,7 @@ function SearchTypeMenu({queryJSON}: SearchTypeMenuProps) {
     const [allFeeds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_DOMAIN_MEMBER, {canBeMissing: true});
     const taxRates = getAllTaxRates();
     const [currentUserAccountID = -1] = useOnyx(ONYXKEYS.SESSION, {selector: accountIDSelector, canBeMissing: false});
-    const {clearSelectedTransactions} = useSearchContext();
+    const {clearSelectedTransactions, currentSearchHash} = useSearchContext();
     const initialSearchKeys = useRef<string[]>([]);
 
     // The first time we render all of the sections the user can see, we need to mark these as 'rendered', such that we
@@ -81,6 +81,34 @@ function SearchTypeMenu({queryJSON}: SearchTypeMenuProps) {
             return section.menuItems.map((item) => item.key);
         });
     }, [typeMenuSections]);
+
+    const showDeleteModal = useCallback(
+        async (hashToDelete: number) => {
+            const result = await showConfirmModal({
+                title: translate('search.deleteSavedSearch'),
+                prompt: translate('search.deleteSavedSearchConfirm'),
+                confirmText: translate('common.delete'),
+                cancelText: translate('common.cancel'),
+                danger: true,
+            });
+
+            console.log('🗑️ [SearchTypeMenu] Modal result:', result);
+
+            if (result.action === 'CONFIRM') {
+                deleteSavedSearch(hashToDelete);
+
+                if (hashToDelete === currentSearchHash) {
+                    clearAllFilters();
+                    Navigation.navigate(
+                        ROUTES.SEARCH_ROOT.getRoute({
+                            query: buildCannedSearchQuery(),
+                        }),
+                    );
+                }
+            }
+        },
+        [showConfirmModal, translate, currentSearchHash],
+    );
 
     const getOverflowMenu = useCallback((itemName: string, itemHash: number, itemQuery: string) => getOverflowMenuUtil(itemName, itemHash, itemQuery, showDeleteModal), [showDeleteModal]);
     const createSavedSearchMenuItem = useCallback(
@@ -221,13 +249,7 @@ function SearchTypeMenu({queryJSON}: SearchTypeMenuProps) {
                         <Text style={styles.sectionTitle}>{translate(section.translationPath)}</Text>
 
                         {section.translationPath === 'search.savedSearchesMenuItemTitle' ? (
-                            <>
-                                {renderSavedSearchesSection(savedSearchesMenuItems)}
-                                {/* DeleteConfirmModal is a stable JSX element returned by the hook.
-                                Returning the element directly keeps the component identity across re-renders so React
-                                can play its exit animation instead of removing it instantly. */}
-                                {DeleteConfirmModal}
-                            </>
+                            renderSavedSearchesSection(savedSearchesMenuItems)
                         ) : (
                             <>
                                 {section.menuItems.map((item, itemIndex) => {

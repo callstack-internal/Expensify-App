@@ -1,6 +1,7 @@
-import React, {useRef} from 'react';
+import {useFocusEffect, useRoute} from '@react-navigation/native';
+import React, {useCallback, useEffect, useRef} from 'react';
 import Button from '@components/Button';
-import PopoverMenu from '@components/PopoverMenu';
+import {useModal, usePopoverMenu} from '@components/Modal/Global';
 import type {SearchQueryJSON} from '@components/Search/types';
 import useSafeAreaPaddings from '@hooks/useSafeAreaPaddings';
 import useSearchTypeMenu from '@hooks/useSearchTypeMenu';
@@ -13,37 +14,44 @@ type SearchTypeMenuNarrowProps = {
 
 function SearchTypeMenuPopover({queryJSON}: SearchTypeMenuNarrowProps) {
     const styles = useThemeStyles();
-    const {isPopoverVisible, delayPopoverMenuFirstRender, openMenu, closeMenu, allMenuItems, DeleteConfirmModal, windowHeight} = useSearchTypeMenu(queryJSON);
+    const route = useRoute();
+    const {delayPopoverMenuFirstRender, allMenuItems, windowHeight} = useSearchTypeMenu(queryJSON, route.key);
+    const {showPopoverMenu} = usePopoverMenu();
+    const {closeModalById} = useModal();
 
     const buttonRef = useRef<HTMLDivElement>(null);
     const {unmodifiedPaddings} = useSafeAreaPaddings();
 
+    const openMenu = useCallback(async () => {
+        if (delayPopoverMenuFirstRender) {
+            return;
+        }
+        await showPopoverMenu({
+            menuItems: allMenuItems,
+            anchorPosition: styles.createMenuPositionSidebar(windowHeight),
+            anchorRef: buttonRef,
+            shouldUseScrollView: true,
+            shouldUseModalPaddingStyle: false,
+            innerContainerStyle: {paddingBottom: unmodifiedPaddings.bottom},
+            shouldAvoidSafariException: true,
+            scrollContainerStyle: styles.pv0,
+            id: `popover:${route.key}`,
+        });
+    }, [delayPopoverMenuFirstRender, showPopoverMenu, allMenuItems, styles, windowHeight, buttonRef, unmodifiedPaddings.bottom, route.key]);
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                closeModalById(`popover:${route.key}`);
+            };
+        }, [closeModalById, route.key]),
+    );
+
     return (
-        <>
-            <Button
-                icon={Expensicons.Menu}
-                onPress={openMenu}
-            />
-            {!delayPopoverMenuFirstRender && (
-                <PopoverMenu
-                    menuItems={allMenuItems}
-                    isVisible={isPopoverVisible}
-                    anchorPosition={styles.createMenuPositionSidebar(windowHeight)}
-                    onClose={closeMenu}
-                    onItemSelected={closeMenu}
-                    anchorRef={buttonRef}
-                    shouldUseScrollView
-                    shouldUseModalPaddingStyle={false}
-                    innerContainerStyle={{paddingBottom: unmodifiedPaddings.bottom}}
-                    shouldAvoidSafariException
-                    scrollContainerStyle={styles.pv0}
-                />
-            )}
-            {/* DeleteConfirmModal is a stable JSX element returned by the hook.
-                Returning the element directly keeps the component identity across re-renders so React
-                can play its exit animation instead of removing it instantly. */}
-            {DeleteConfirmModal}
-        </>
+        <Button
+            icon={Expensicons.Menu}
+            onPress={openMenu}
+        />
     );
 }
 

@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import type {ConfirmModalProps} from '@components/ConfirmModal';
 import ConfirmModal from '@components/ConfirmModal';
 import useActiveElementRole from '@hooks/useActiveElementRole';
@@ -18,16 +18,21 @@ function ConfirmModalWrapper({closeModal, ...props}: ConfirmModalWrapperProps) {
     const activeElementRole = useActiveElementRole();
     const [isClosing, setIsClosing] = useState(false);
     const [closeAction, setCloseAction] = useState<typeof ModalActions.CONFIRM | typeof ModalActions.CLOSE>(ModalActions.CLOSE);
+    const isClosingRef = useRef(false);
 
     const handleConfirm = useCallback(() => {
         setCloseAction(ModalActions.CONFIRM);
         setIsClosing(true);
-    }, []);
+        isClosingRef.current = true;
+        closeModal({action: ModalActions.CONFIRM});
+    }, [closeModal]);
 
     const handleCancel = useCallback(() => {
         setCloseAction(ModalActions.CLOSE);
         setIsClosing(true);
-    }, []);
+        isClosingRef.current = true;
+        closeModal({action: ModalActions.CLOSE});
+    }, [closeModal]);
 
     const handleModalHide = useCallback(() => {
         if (!isClosing) {
@@ -54,7 +59,7 @@ function ConfirmModalWrapper({closeModal, ...props}: ConfirmModalWrapperProps) {
             isVisible={!isClosing}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
-            onModalHide={handleModalHide}
+            // onModalHide={handleModalHide}
         />
     );
 }

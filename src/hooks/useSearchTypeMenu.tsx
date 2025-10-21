@@ -1,15 +1,18 @@
 import {accountIDSelector} from '@selectors/Session';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import type {OnyxCollection} from 'react-native-onyx';
+import {useConfirmModal} from '@components/Modal/Global';
 import {usePersonalDetails} from '@components/OnyxListItemProvider';
 import type {PopoverMenuItem} from '@components/PopoverMenu';
+import {useSearchContext} from '@components/Search/SearchContext';
 import type {SearchQueryJSON} from '@components/Search/types';
 import ThreeDotsMenu from '@components/ThreeDotsMenu';
-import {clearAllFilters} from '@libs/actions/Search';
+import {clearAllFilters, deleteSavedSearch} from '@libs/actions/Search';
 import {mergeCardListWithWorkspaceFeeds} from '@libs/CardUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import {getAllTaxRates} from '@libs/PolicyUtils';
 import {buildSearchQueryJSON, buildUserReadableQueryString} from '@libs/SearchQueryUtils';
+import {buildCannedSearchQuery} from '@libs/SearchQueryUtils';
 import type {SavedSearchMenuItem} from '@libs/SearchUIUtils';
 import {createBaseSavedSearchMenuItem, getOverflowMenu as getOverflowMenuUtil} from '@libs/SearchUIUtils';
 import variables from '@styles/variables';
@@ -19,7 +22,6 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type {Report} from '@src/types/onyx';
 import {getEmptyObject} from '@src/types/utils/EmptyObject';
-import useDeleteSavedSearch from './useDeleteSavedSearch';
 import useLocalize from './useLocalize';
 import useOnyx from './useOnyx';
 import useSearchTypeMenuSections from './useSearchTypeMenuSections';
@@ -28,7 +30,7 @@ import useTheme from './useTheme';
 import useThemeStyles from './useThemeStyles';
 import useWindowDimensions from './useWindowDimensions';
 
-export default function useSearchTypeMenu(queryJSON: SearchQueryJSON) {
+export default function useSearchTypeMenu(queryJSON: SearchQueryJSON, routeKey?: string) {
     const {hash, similarSearchHash} = queryJSON;
 
     const theme = useTheme();
@@ -37,7 +39,8 @@ export default function useSearchTypeMenu(queryJSON: SearchQueryJSON) {
     const {windowHeight} = useWindowDimensions();
     const {translate} = useLocalize();
     const {typeMenuSections} = useSearchTypeMenuSections();
-    const {showDeleteModal, DeleteConfirmModal} = useDeleteSavedSearch();
+    const {showConfirmModal} = useConfirmModal();
+    const {currentSearchHash} = useSearchContext();
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
     const personalDetails = usePersonalDetails();
     const [reports = getEmptyObject<NonNullable<OnyxCollection<Report>>>()] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: true});
@@ -47,7 +50,6 @@ export default function useSearchTypeMenu(queryJSON: SearchQueryJSON) {
     const [savedSearches] = useOnyx(ONYXKEYS.SAVED_SEARCHES, {canBeMissing: true});
     const [currentUserAccountID = -1] = useOnyx(ONYXKEYS.SESSION, {selector: accountIDSelector, canBeMissing: false});
 
-    const [isPopoverVisible, setIsPopoverVisible] = useState(false);
 
     const allCards = useMemo(() => mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, userCardList), [userCardList, workspaceCardFeeds]);
     const [allFeeds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_DOMAIN_MEMBER, {canBeMissing: true});
@@ -61,11 +63,37 @@ export default function useSearchTypeMenu(queryJSON: SearchQueryJSON) {
     }, []);
 
     const closeMenu = useCallback(() => {
-        setIsPopoverVisible(false);
+
     }, []);
 
+    const showDeleteModal = useCallback(
+        async (hashToDelete: number) => {
+            const result = await showConfirmModal({
+                title: translate('search.deleteSavedSearch'),
+                prompt: translate('search.deleteSavedSearchConfirm'),
+                confirmText: translate('common.delete'),
+                cancelText: translate('common.cancel'),
+                danger: true,
+                id: routeKey ? `confirm:${routeKey}` : undefined,
+            });
+
+            if (result.action === 'CONFIRM') {
+                deleteSavedSearch(hashToDelete);
+                if (hashToDelete === currentSearchHash) {
+                    clearAllFilters();
+                    Navigation.navigate(
+                        ROUTES.SEARCH_ROOT.getRoute({
+                            query: buildCannedSearchQuery(),
+                        }),
+                    );
+                }
+            }
+        },
+        [showConfirmModal, translate, currentSearchHash, routeKey],
+    );
+
     const getOverflowMenu = useCallback(
-        (itemName: string, itemHash: number, itemQuery: string) => getOverflowMenuUtil(itemName, itemHash, itemQuery, showDeleteModal, true, closeMenu),
+        (itemName: string, itemHash: number, itemQuery: string) => getOverflowMenuUtil(itemName, itemHash, itemQuery, showDeleteModal),
         [showDeleteModal, closeMenu],
     );
 
@@ -181,16 +209,12 @@ export default function useSearchTypeMenu(queryJSON: SearchQueryJSON) {
     }, [typeMenuSections, savedSearchesMenuItems, translate, styles.textSupporting, activeItemIndex, theme.iconSuccessFill, theme.border, singleExecution]);
 
     const openMenu = useCallback(() => {
-        setIsPopoverVisible(true);
+        // handled by global hook in caller
     }, []);
 
     return {
-        isPopoverVisible,
         delayPopoverMenuFirstRender,
-        openMenu,
-        closeMenu,
         allMenuItems: popoverMenuItems,
-        DeleteConfirmModal,
         theme,
         styles,
         windowHeight,

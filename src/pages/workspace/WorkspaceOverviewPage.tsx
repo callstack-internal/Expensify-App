@@ -13,6 +13,8 @@ import {LockedAccountContext} from '@components/LockedAccountModalProvider';
 import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Section from '@components/Section';
+import TestComponent from '@components/TestComponent';
+import TestComponent1 from '@components/TestComponent1';
 import useCardFeeds from '@hooks/useCardFeeds';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useDefaultFundID from '@hooks/useDefaultFundID';
@@ -363,6 +365,8 @@ function WorkspaceOverviewPage({policyDraft, policy: policyProp, route}: Workspa
         >
             {(hasVBA?: boolean) => (
                 <View style={[styles.flex1, styles.mt3, shouldUseNarrowLayout ? styles.workspaceSectionMobile : styles.workspaceSection]}>
+                    <TestComponent />
+                    <TestComponent1 />
                     {shouldUseNarrowLayout && <View style={[styles.pl5, styles.pr5, styles.pb5]}>{getHeaderButtons()}</View>}
                     <WorkspaceReceiptPartnersPromotionBanner
                         policy={policy}

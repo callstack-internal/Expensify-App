@@ -598,6 +598,7 @@ const ONYXKEYS = {
 
     /** Collection Keys */
     COLLECTION: {
+        TEST_UPDATE: 'testUpdate_',
         DOMAIN: 'domain_',
         DOWNLOAD: 'download_',
         POLICY: 'policy_',
@@ -1025,6 +1026,7 @@ type OnyxFormDraftValuesMapping = {
 };
 
 type OnyxCollectionValuesMapping = {
+    [ONYXKEYS.COLLECTION.TEST_UPDATE]: Record<string, unknown>;
     [ONYXKEYS.COLLECTION.DOMAIN]: OnyxTypes.Domain;
     [ONYXKEYS.COLLECTION.DOWNLOAD]: OnyxTypes.Download;
     [ONYXKEYS.COLLECTION.POLICY]: OnyxTypes.Policy;

@@ -48,7 +48,7 @@ function TestComponent() {
             style={{backgroundColor: 'yellow'}}
             onPress={applyTestUpdates}
         >
-            test ONYX.UPDATE with setCollection
+            test ONYX.UPDATE with mergeCollection
         </Text>
     );
 }

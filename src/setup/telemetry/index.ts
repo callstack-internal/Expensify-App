@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import CONFIG from '@src/CONFIG';
+import CONST from '@src/CONST';
 import pkg from '../../../package.json';
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -7,6 +8,9 @@ const navigationIntegration = Sentry.reactNavigationIntegration({
 });
 
 export default function (): void {
+    if (CONFIG.ENVIRONMENT === CONST.ENVIRONMENT.DEV) {
+        return
+    }
     Sentry.init({
         dsn: CONFIG.SENTRY_DSN,
         tracesSampleRate: 1.0,

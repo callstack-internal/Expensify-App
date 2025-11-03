@@ -10,7 +10,7 @@
 
 /* eslint-disable rulesdir/prefer-onyx-connect-in-libs */
 import type {OnyxCollection, OnyxEntry, OnyxUpdate} from 'react-native-onyx';
-import Onyx, {withOnyx} from 'react-native-onyx';
+import Onyx from 'react-native-onyx';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Account, Report} from '@src/types/onyx';
 
@@ -144,6 +144,7 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment3'}` as const]: {isDownloading: true},
         // [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'account'}, // raises an error, wrong key - correct
         // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment2'}` as const]: false, // raises an error, wrong value - correct
+        // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment4'}` as const]: null, // raises an error, passing null - correct
     });
 
     Onyx.mergeCollection(ONYXKEYS.COLLECTION.REPORT, {
@@ -155,6 +156,26 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
     // }); // raises an error, not a collection - correct
 
     // Onyx.mergeCollection(ONYXKEYS.ACCOUNT, {
+    //     [`${ONYXKEYS.ACCOUNT}${'report1'}` as const]: {id: 'account'},
+    // }); // raises an error, not a collection - correct
+
+    Onyx.setCollection(ONYXKEYS.COLLECTION.DOWNLOAD, {
+        [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}` as const]: {isDownloading: true},
+        [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment3'}` as const]: {isDownloading: true},
+        [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment4'}` as const]: null,
+        // [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'account'}, // raises an error, wrong key - correct
+        // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment2'}` as const]: false, // raises an error, wrong value - correct
+    });
+
+    Onyx.setCollection(ONYXKEYS.COLLECTION.REPORT, {
+        [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {participants: {1: {role: 'admin'}}},
+    });
+
+    // Onyx.setCollection(`${ONYXKEYS.COLLECTION.REPORT}${'report'}`, {
+    //     [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {data: {isRead: true}},
+    // }); // raises an error, not a collection - correct
+
+    // Onyx.setCollection(ONYXKEYS.ACCOUNT, {
     //     [`${ONYXKEYS.ACCOUNT}${'report1'}` as const]: {id: 'account'},
     // }); // raises an error, not a collection - correct
 
@@ -280,9 +301,8 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
             [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}` as const]: {isDownloading: true},
             // [ONYXKEYS.ACTIVE_CLIENTS]: 'wrong value', // raises an error, wrong value - correct
         },
-        safeEvictionKeys: [ONYXKEYS.ACCOUNT, `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`],
+        evictableKeys: [ONYXKEYS.ACCOUNT, `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`],
         maxCachedKeysCount: 1000,
-        debugSetState: true,
         shouldSyncMultipleInstances: true,
     });
 
@@ -318,67 +338,3 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
 
     return null;
 }
-
-export default withOnyx<OnyxTSTestProps, OnyxTSTestOnyxProps>({
-    onyxPropWithStringKey: {
-        key: ONYXKEYS.ACCOUNT,
-        // key: ONYXKEYS.IS_LOADING_PAYMENT_METHODS, // raises an error - correct
-    },
-    onyxPropWithStringKeyAndFunctionSelector: {
-        key: ONYXKEYS.ACCOUNT,
-        selector: (value) => value?.primaryLogin ?? '',
-        // selector: (value) => value?.primaryLogin ?? 1, // raises an error - correct
-    },
-
-    onyxPropWithFunctionKey: {
-        key: ({reportId}) => ONYXKEYS.ACCOUNT,
-        // key: ({reportId}) => ONYXKEYS.IS_LOADING_PAYMENT_METHODS, // raises an error - correct
-    },
-    onyxPropWithFunctionKeyAndFunctionSelector: {
-        key: ({reportId}) => ONYXKEYS.ACCOUNT,
-        // key: ({reportId}) => ONYXKEYS.IS_LOADING_PAYMENT_METHODS, // raises an error - correct
-        selector: (value: OnyxEntry<Account>) => value?.primaryLogin ?? '',
-        // selector: (value: OnyxEntry<Account>) => value?.primaryLogin ?? 1, // raises an error - correct
-        // selector: (value: OnyxEntry<Report>) => value?.reportID ?? '', // raises an error - correct
-    },
-
-    onyxPropWithStringCollectionKey: {
-        key: ONYXKEYS.COLLECTION.REPORT,
-        // key: ONYXKEYS.COLLECTION.DOWNLOAD, // raises an error - correct
-    },
-    onyxPropWithStringCollectionKeyAndFunctionSelector: {
-        key: ONYXKEYS.COLLECTION.REPORT,
-        selector: (value) => value?.reportID ?? '',
-        // selector: (value: OnyxEntry<Account>) => value?.primaryLogin ?? '', // FIXME: don't raises an error - incorrect
-    },
-
-    onyxPropWithStringCollectionRecordKey: {
-        key: `${ONYXKEYS.COLLECTION.REPORT}${`report1`}`,
-        // key: `${ONYXKEYS.COLLECTION.DOWNLOAD}${`report1`}`, // raises an error - correct
-    },
-    onyxPropWithStringCollectionRecordKeyAndFunctionSelector: {
-        key: `${ONYXKEYS.COLLECTION.REPORT}${`report1`}`,
-        selector: (value: OnyxEntry<Report>) => value?.isCancelledIOU ?? false,
-        // selector: (value: OnyxEntry<Account>) => value?.isLoading ?? false, // FIXME: don't raises an error - incorrect
-    },
-
-    onyxPropWithFunctionCollectionKey: {
-        key: ({reportId}) => ONYXKEYS.COLLECTION.REPORT,
-        // key: ({reportId}) => ONYXKEYS.COLLECTION.DOWNLOAD, // raises an error - correct
-    },
-    onyxPropWithFunctionCollectionKeyAndFunctionSelector: {
-        key: ({reportId}) => ONYXKEYS.COLLECTION.REPORT,
-        selector: (value: OnyxEntry<Report>) => value?.isCancelledIOU ?? false,
-        // selector: (value: OnyxEntry<Account>) => value?.isLoading ?? false, // FIXME: don't raises an error - incorrect
-    },
-
-    onyxPropWithFunctionCollectionRecordKey: {
-        key: ({reportId}) => `${ONYXKEYS.COLLECTION.REPORT}${reportId}`,
-        // key: ({reportId}) => `${ONYXKEYS.COLLECTION.DOWNLOAD}${reportId}`, // raises an error - correct
-    },
-    onyxPropWithFunctionCollectionRecordKeyAndFunctionSelector: {
-        key: ({reportId}) => `${ONYXKEYS.COLLECTION.REPORT}${reportId}`,
-        selector: (value: OnyxEntry<Report>) => value?.isCancelledIOU ?? false,
-        // selector: (value: OnyxEntry<Account>) => value?.isLoading ?? false, // FIXME: don't raises an error - incorrect
-    },
-})(OnyxTSTest);

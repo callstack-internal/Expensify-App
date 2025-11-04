@@ -1,52 +1,52 @@
 diff --git a/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js b/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js
-index 79f80d7..4eb7bb0 100644
+index 79f80d7..d6fa288 100644
 --- a/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js
 +++ b/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js
 @@ -26,12 +26,14 @@ export class S3BuildCache {
              region: config.region,
          };
          if (config.accessKeyId && config.secretAccessKey) {
-+            console.log('TEST ACCESS KEY ID AND SECRET ACCESS KEY ACCESS');
++            this.authCase = 'accessKeyIdAndSecretAccessKey';
              s3Config.credentials = {
                  accessKeyId: config.accessKeyId,
                  secretAccessKey: config.secretAccessKey,
              };
          }
          else if (config.roleArn) {
-+            console.log('TEST ROLE ARN ACCESS');
++            this.authCase = 'roleArn';
              // Use STS to assume a role
              s3Config.credentials = fromTemporaryCredentials({
                  params: {
-@@ -46,10 +48,12 @@ export class S3BuildCache {
+@@ -46,10 +48,13 @@ export class S3BuildCache {
              });
          }
          else if (config.profile) {
-+            console.log('TEST PROFILE ACCESS');
++            this.authCase = 'profile';
              // Use shared config file (e.g. ~/.aws/credentials) with a profile
              s3Config.credentials = fromIni({ profile: config.profile });
          }
          else {
-+            console.log('TEST PUBLIC ACCESS');
++            this.authCase = 'public';
++
              // Public access only
              s3Config.signer = {
                  sign: async (request) => request  
-@@ -88,12 +92,19 @@ export class S3BuildCache {
+@@ -88,12 +93,19 @@ export class S3BuildCache {
          return upload.done();
      }
      async list({ artifactName, }) {
 -        const artifacts = await this.s3.send(new clientS3.ListObjectsV2Command({
 -            Bucket: this.bucket,
 -            Prefix: artifactName
--                ? `${this.directory}/${artifactName}.zip`
--                : `${this.directory}/`,
--        }));
-+        console.log('TEST START LIST', JSON.stringify({ artifactName, directory: this.directory }, null, 2));
++        console.error('TEST START LIST', JSON.stringify({ artifactName, directory: this.directory, authCase: this.authCase }, null, 2));
 +        let artifacts;
 +        try{
 +            artifacts = await this.s3.send(new clientS3.ListObjectsV2Command({
 +                Bucket: this.bucket,
 +                Prefix: artifactName
-+                ? `${this.directory}/${artifactName}.zip`
+                 ? `${this.directory}/${artifactName}.zip`
+-                : `${this.directory}/`,
+-        }));
 +                : `${this.directory}`,
 +            }));
 +        } catch (error) {
@@ -56,36 +56,36 @@ index 79f80d7..4eb7bb0 100644
          const results = [];
          for (const artifact of artifacts.Contents ?? []) {
              if (!artifact.Key)
-@@ -105,9 +116,11 @@ export class S3BuildCache {
+@@ -105,9 +117,11 @@ export class S3BuildCache {
              }), { expiresIn: this.linkExpirationTime });
              results.push({ name, url: presignedUrl });
          }
-+        console.log('TEST END LIST. length:', results.length);
++        console.error('TEST END LIST. length:', results.length);
          return results;
      }
      async download({ artifactName, }) {
-+        console.log('TEST START DOWNLOAD', JSON.stringify({ artifactName, directory: this.directory }, null, 2));
++        console.error('TEST START DOWNLOAD', JSON.stringify({ artifactName, directory: this.directory }, null, 2));
          const res = await this.s3.send(new clientS3.GetObjectCommand({
              Bucket: this.bucket,
              Key: `${this.directory}/${artifactName}.zip`,
-@@ -136,10 +149,12 @@ export class S3BuildCache {
+@@ -136,10 +150,12 @@ export class S3BuildCache {
          ];
      }
      async upload({ artifactName, uploadArtifactName, }) {
-+        console.log('TEST START UPLOAD', artifactName, uploadArtifactName);
++        console.error('TEST START UPLOAD', artifactName, uploadArtifactName);
          const key = uploadArtifactName
              ? `${this.directory}/${uploadArtifactName}`
              : `${this.directory}/${artifactName}.zip`;
          const presignedUrl = await getSignedUrl(this.s3, new clientS3.GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: this.linkExpirationTime });
-+        console.log('TEST GET PRESIGNED URL', artifactName, uploadArtifactName, presignedUrl);
++        console.error('TEST GET PRESIGNED URL', artifactName, uploadArtifactName, presignedUrl);
          return {
              name: artifactName,
              url: presignedUrl,
-@@ -147,6 +162,7 @@ export class S3BuildCache {
+@@ -147,6 +163,7 @@ export class S3BuildCache {
                  const bufferToUpload = typeof buffer === 'function'
                      ? buffer(presignedUrl.split('?')[0])
                      : buffer;
-+                console.log('TEST START READABLE STREAM', artifactName, uploadArtifactName, bufferToUpload.length);
++                console.error('TEST START READABLE STREAM', artifactName, uploadArtifactName, bufferToUpload.length);
                  const readable = new ReadableStream({
                      start: (controller) => {
                          let lastEmittedBytes = 0;

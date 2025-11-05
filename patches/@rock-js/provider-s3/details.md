@@ -1,6 +1,6 @@
 # `@rock-js/provider-s3` patches
 
-### [@rock-js+provider-s3+0.11.5+001+support-public-bucket-access.patch](@rock-js+provider-s3+0.11.5+001+support-public-bucket-access.patch)
+### [@rock-js+provider-s3+0.11.7+001+support-public-bucket-access.patch](@rock-js+provider-s3+0.11.7+001+support-public-bucket-access.patch)
 
 - Reason:
 
@@ -17,7 +17,7 @@
 - PR introducing patch: https://github.com/Expensify/App/pull/73525
 
 
-### [@rock-js+provider-s3+0.11.5+002+temporary-test-logs.patch](@rock-js+provider-s3+0.11.5+002+temporary-test-logs.patch)
+### [@rock-js+provider-s3+0.11.7+002+temporary-test-logs.patch](@rock-js+provider-s3+0.11.7+002+temporary-test-logs.patch)
 
 - Reason:
 

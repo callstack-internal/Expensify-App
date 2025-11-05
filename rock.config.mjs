@@ -10,6 +10,8 @@ export default {
     remoteCacheProvider: providerS3({
         bucket: 'ad-hoc-expensify-cash',
         region: 'us-east-1',
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     }),
     bundler: pluginMetro(),
     platforms: {

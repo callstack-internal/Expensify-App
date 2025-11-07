@@ -22,8 +22,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - variant: 'developmentDebug'
-          #   is_hybrid_build: false
+          - variant: 'developmentDebug'
+            is_hybrid_build: false
 
           - variant: 'Debug'
             is_hybrid_build: true

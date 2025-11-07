@@ -1,0 +1,41 @@
+diff --git a/node_modules/@rock-js/tools/dist/src/lib/build-cache/localBuildCache.js b/node_modules/@rock-js/tools/dist/src/lib/build-cache/localBuildCache.js
+index c52d1cf..da8576b 100644
+--- a/node_modules/@rock-js/tools/dist/src/lib/build-cache/localBuildCache.js
++++ b/node_modules/@rock-js/tools/dist/src/lib/build-cache/localBuildCache.js
+@@ -5,11 +5,14 @@ import logger from '../logger.js';
+ import { relativeToCwd } from '../path.js';
+ import { getLocalArtifactPath, getLocalBinaryPath } from './common.js';
+ export function queryLocalBuildCache(artifactName) {
++    console.log('TEST queryLocalBuildCache QUERY LOCAL BUILD CACHE', artifactName);
+     const artifactPath = getLocalArtifactPath(artifactName);
++    console.log('TEST queryLocalBuildCache ARTIFACT PATH', artifactPath);
+     if (!fs.statSync(artifactPath, { throwIfNoEntry: false })?.isDirectory()) {
+         return null;
+     }
+     const binaryPath = getLocalBinaryPath(artifactPath);
++    console.log('TEST queryLocalBuildCache BINARY PATH', binaryPath);
+     if (binaryPath == null || !fs.existsSync(binaryPath)) {
+         return null;
+     }
+@@ -21,16 +24,21 @@ export function queryLocalBuildCache(artifactName) {
+ }
+ export function saveLocalBuildCache(artifactName, binaryPath) {
+     try {
++        console.log('TEST saveLocalBuildCache SAVE LOCAL BUILD CACHE', artifactName, binaryPath);
+         const cachePath = getLocalArtifactPath(artifactName);
++        console.log('TEST saveLocalBuildCache CACHE PATH', cachePath);
+         if (!fs.existsSync(cachePath)) {
++            console.log('TEST saveLocalBuildCache CACHE PATH DOES NOT EXIST, CREATING', cachePath);
+             fs.mkdirSync(cachePath, { recursive: true });
+         }
+         if (fs.statSync(binaryPath).isDirectory()) {
++            console.log('TEST saveLocalBuildCache BINARY PATH IS A DIRECTORY, COPYING', binaryPath);
+             fs.cpSync(binaryPath, path.join(cachePath, path.basename(binaryPath)), {
+                 recursive: true,
+             });
+         }
+         else {
++            console.log('TEST saveLocalBuildCache BINARY PATH IS NOT A DIRECTORY, COPYING', binaryPath);
+             fs.copyFileSync(binaryPath, path.join(cachePath, path.basename(binaryPath)));
+         }
+         logger.debug(`Saved build cache to: ${colorLink(relativeToCwd(cachePath))}`);

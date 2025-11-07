@@ -15,3 +15,19 @@
 - Upstream PR/issue: 🛑 TODO 
 - E/App issue: https://github.com/Expensify/App/issues/62296
 - PR introducing patch: https://github.com/Expensify/App/pull/73525
+
+### [@rock-js+provider-s3+0.11.9+002+add acl param.patch](@rock-js+provider-s3+0.11.9+002+add%20acl%20param.patch)
+
+- Reason:
+
+    ```
+    This patch adds support for setting ACL (Access Control List) when uploading artifacts to S3.
+    Without this patch, uploaded artifacts don't have public-read ACL set, which causes AccessDenied 
+    errors when trying to download them without authentication. This allows artifacts to be publicly accessible for download.
+    ```
+
+- Upstream PR/issue: 🛑 TODO 
+- E/App issue: 🛑 TODO
+- PR introducing patch: 🛑 TODO
+
+### 

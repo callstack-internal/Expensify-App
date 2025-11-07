@@ -1,0 +1,51 @@
+diff --git a/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.d.ts b/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.d.ts
+index 8c4160c..211671e 100644
+--- a/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.d.ts
++++ b/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.d.ts
+@@ -49,6 +49,10 @@ type ProviderConfig = {
+      * External ID when assuming a role (for additional security).
+      */
+     externalId?: string;
++    /**
++     * ACL to use for the S3 server.
++     */
++    acl?: string;
+ };
+ export declare class S3BuildCache implements RemoteBuildCache {
+     name: string;
+@@ -57,6 +61,7 @@ export declare class S3BuildCache implements RemoteBuildCache {
+     bucket: string;
+     config: ProviderConfig;
+     linkExpirationTime: number;
++    acl: string;
+     constructor(config: ProviderConfig);
+     private uploadFileWithProgress;
+     list({ artifactName, }: {
+diff --git a/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js b/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js
+index 79f80d7..ef3328e 100644
+--- a/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js
++++ b/node_modules/@rock-js/provider-s3/dist/src/lib/providerS3.js
+@@ -19,6 +19,7 @@ export class S3BuildCache {
+     bucket;
+     config;
+     linkExpirationTime;
++    acl;
+     constructor(config) {
+         this.config = config;
+         const s3Config = {
+@@ -66,6 +67,7 @@ export class S3BuildCache {
+         this.directory = config.directory ?? this.directory;
+         this.name = config.name ?? this.name;
+         this.linkExpirationTime = config.linkExpirationTime ?? 3600 * 24;
++        this.acl = config.acl ?? this.acl;
+     }
+     async uploadFileWithProgress(key, buffer, contentType, onProgress) {
+         const upload = new Upload({
+@@ -75,6 +77,7 @@ export class S3BuildCache {
+                 Key: key,
+                 Body: buffer,
+                 ContentType: contentType || 'application/octet-stream',
++                ACL: this.acl,
+                 Metadata: {
+                     createdAt: new Date().toISOString(),
+                 },

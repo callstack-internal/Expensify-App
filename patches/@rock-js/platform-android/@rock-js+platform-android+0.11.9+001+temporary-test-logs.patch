@@ -20,10 +20,10 @@ index 873eeff..f0e1a25 100644
          logger.log(`Build available at: ${colorLink(relativeToCwd(outputFilePath))}`);
      }
 diff --git a/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js b/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js
-index 2938c29..ab9b8ac 100644
+index 2938c29..4d555b1 100644
 --- a/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js
 +++ b/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js
-@@ -3,41 +3,62 @@ import { logger, spawn } from '@rock-js/tools';
+@@ -3,41 +3,59 @@ import { logger, spawn } from '@rock-js/tools';
  import { getAdbPath } from './adb.js';
  export async function findOutputFile(androidProject, tasks, device) {
      const { appName, sourceDir } = androidProject;
@@ -58,12 +58,10 @@ index 2938c29..ab9b8ac 100644
 +    console.log('TEST findOutputFile OUTPUT FILE PATH', outputFile ? `${buildDirectory}/${outputFile}` : undefined);
      return outputFile ? `${buildDirectory}/${outputFile}` : undefined;
  }
- async function getInstallOutputFileName(appName, variant, buildDirectory, apkOrAab, device) {
-+    const files = await readdir(buildDirectory);
-+    console.log('TEST getInstallOutputFileName FILES', files);
+-async function getInstallOutputFileName(appName, variant, buildDirectory, apkOrAab, device) {
++export async function getInstallOutputFileName(appName, variant, buildDirectory, apkOrAab, device) {
 +    console.log('TEST getInstallOutputFileName BUILD DIRECTORY', buildDirectory);
 +    console.log('TEST getInstallOutputFileName BUILD DIRECTORY EXISTS', existsSync(buildDirectory));
-+
 +
      const availableCPUs = await getAvailableCPUs(device);
      // check if there is an apk file like app-armeabi-v7a-debug.apk

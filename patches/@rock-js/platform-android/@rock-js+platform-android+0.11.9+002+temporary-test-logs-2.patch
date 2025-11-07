@@ -1,0 +1,42 @@
+diff --git a/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js b/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js
+index 4d555b1..1cc3c26 100644
+--- a/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js
++++ b/node_modules/@rock-js/platform-android/dist/src/lib/commands/runAndroid/findOutputFile.js
+@@ -1,4 +1,5 @@
+ import { existsSync } from 'node:fs';
++import { readdir } from 'node:fs/promises';
+ import { logger, spawn } from '@rock-js/tools';
+ import { getAdbPath } from './adb.js';
+ export async function findOutputFile(androidProject, tasks, device) {
+@@ -38,6 +39,10 @@ export async function getInstallOutputFileName(appName, variant, buildDirectory,
+     console.log('TEST getInstallOutputFileName BUILD DIRECTORY', buildDirectory);
+     console.log('TEST getInstallOutputFileName BUILD DIRECTORY EXISTS', existsSync(buildDirectory));
+ 
++    // list all files in the build directory
++    const files = await readdir(buildDirectory);
++    console.log('TEST getInstallOutputFileName FILES', files);
++
+     const availableCPUs = await getAvailableCPUs(device);
+     // check if there is an apk file like app-armeabi-v7a-debug.apk
+     for (const availableCPU of availableCPUs.concat('universal')) {
+@@ -51,6 +56,7 @@ export async function getInstallOutputFileName(appName, variant, buildDirectory,
+     }
+     // check if there is a default file like app-debug.apk
+     const outputFile = `${appName}-${variant}.${apkOrAab}`;
++    console.log('TEST getInstallOutputFileName OUTPUT FILE NAME TO LOOK FOR:', outputFile);
+     if (existsSync(`${buildDirectory}/${outputFile}`)) {
+         console.log('TEST getInstallOutputFileName OUTPUT FILE EXISTS case2:', outputFile);
+         return outputFile;
+diff --git a/node_modules/@rock-js/platform-android/dist/src/lib/commands/runGradle.js b/node_modules/@rock-js/platform-android/dist/src/lib/commands/runGradle.js
+index d9503d7..7d3163b 100644
+--- a/node_modules/@rock-js/platform-android/dist/src/lib/commands/runGradle.js
++++ b/node_modules/@rock-js/platform-android/dist/src/lib/commands/runGradle.js
+@@ -59,6 +59,8 @@ Tasks     ${color.bold(humanReadableTasks)}`);
+     if (outputFilePath) {
+         console.log('TEST runGradle FIND OUTPUT FILE SAVE LOCAL BUILD CACHE', artifactName, outputFilePath);
+         saveLocalBuildCache(artifactName, outputFilePath);
++    } else {
++        console.log('TEST runGradle CACHE IS NOT SAVED!!!');
+     }
+ }
+ export async function runGradleAar({ tasks, aarProject, variant, }) {

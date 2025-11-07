@@ -1,0 +1,67 @@
+diff --git a/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js b/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js
+index 50937a5..a689061 100644
+--- a/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js
++++ b/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js
+@@ -9,6 +9,7 @@ import { getScheme } from './getScheme.js';
+ import { getValidProjectConfig } from './getValidProjectConfig.js';
+ import { installPodsIfNeeded } from './pods.js';
+ export async function buildApp({ args, projectConfig, pluginConfig, platformName, udid, projectRoot, deviceName, reactNativePath, binaryPath, brownfield, artifactName, fingerprintOptions, deviceOrSimulator, }) {
++    console.log('TEST buildApp BINARY PATH', binaryPath);
+     if (binaryPath) {
+         // @todo Info.plist is hardcoded when reading from binaryPath
+         const infoPlistPath = path.join(binaryPath, 'Info.plist');
+@@ -25,6 +26,8 @@ export async function buildApp({ args, projectConfig, pluginConfig, platformName
+     }
+     let artifactNameToSave = artifactName;
+     let { xcodeProject, sourceDir } = projectConfig;
++    console.log('TEST buildApp ARTIFACT NAME TO SAVE', artifactNameToSave);
++    console.log('TEST buildApp SOURCE DIR', sourceDir);
+     if (args.installPods) {
+         const didInstallPods = await installPodsIfNeeded(projectRoot, platformName, sourceDir, args.newArch, reactNativePath, brownfield);
+         // When the project is not a workspace, we need to get the project config again,
+@@ -47,12 +50,19 @@ export async function buildApp({ args, projectConfig, pluginConfig, platformName
+             });
+         }
+     }
++
++    console.log('TEST buildApp GET INFO',artifactNameToSave);
+     const info = await getInfo(xcodeProject, sourceDir);
+     if (!info) {
+         throw new RockError('Failed to get Xcode project information');
+     }
++    console.log('TEST buildApp INFO',info);
++    console.log('TEST buildApp SCHEME',args.scheme);
++    console.log('TEST buildApp XCODE PROJECT NAME',xcodeProject.name);
+     const scheme = await getScheme(info.schemes, args.scheme, xcodeProject.name);
++    console.log('TEST buildApp SCHEME',scheme);
+     const configuration = await getConfiguration(info.configurations, args.configuration);
++    console.log('TEST buildApp CONFIGURATION',configuration);
+     const destinations = determineDestinations({
+         destination: args.destination,
+         isCatalyst: 'catalyst' in args && args.catalyst,
+@@ -60,6 +70,7 @@ export async function buildApp({ args, projectConfig, pluginConfig, platformName
+         udid,
+         deviceName,
+     });
++    console.log('TEST buildApp DESTINATIONS',destinations);
+     await buildProject({
+         xcodeProject,
+         sourceDir,
+@@ -69,6 +80,7 @@ export async function buildApp({ args, projectConfig, pluginConfig, platformName
+         destinations,
+         args,
+     });
++    console.log('TEST buildApp BUILD PROJECT COMPLETED');
+     const buildSettings = await getBuildSettings({
+         xcodeProject,
+         sourceDir,
+@@ -79,6 +91,9 @@ export async function buildApp({ args, projectConfig, pluginConfig, platformName
+         target: args.target,
+         buildFolder: args.buildFolder,
+     });
++    console.log('TEST buildApp BUILD SETTINGS COMPLETED');
++    console.log('TEST buildApp BUILD SETTINGS APP PATH', buildSettings.appPath);
++    console.log('TEST buildApp ARTIFACT NAME TO SAVE', artifactNameToSave);
+     saveLocalBuildCache(artifactNameToSave, buildSettings.appPath);
+     return {
+         appPath: buildSettings.appPath,

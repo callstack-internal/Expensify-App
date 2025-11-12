@@ -61,8 +61,8 @@ jobs:
           aws-region: us-east-1
 
       - name: Rock Remote Build - iOS
-        # rock v3
-        uses: callstackincubator/ios@08a533dbeda6adec39f94d08d820091514d1f7af
+        # rock v3 - using PR #21 for fingerprint recalculation fix
+        uses: callstackincubator/ios@refs/pull/21/head
         env:
           GITHUB_TOKEN: ${{ github.token }}
           IS_HYBRID_APP: ${{ matrix.is_hybrid_build }}

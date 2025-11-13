@@ -4,6 +4,7 @@ import {pluginMetro} from '@rock-js/plugin-metro';
 import {providerS3} from '@rock-js/provider-s3';
 
 const isHybrid = process.env.IS_HYBRID_APP === 'true';
+const isPublicAccess = !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY;
 
 /** @type {import('@rock-js/config').Config} */
 export default {
@@ -13,6 +14,7 @@ export default {
         acl: 'public-read',
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        publicAccess: isPublicAccess,
     }),
     bundler: pluginMetro(),
     platforms: {

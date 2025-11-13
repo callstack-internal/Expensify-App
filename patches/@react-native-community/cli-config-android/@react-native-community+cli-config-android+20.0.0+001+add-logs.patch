@@ -1,0 +1,22 @@
+diff --git a/node_modules/@react-native-community/cli-config-android/build/config/index.js b/node_modules/@react-native-community/cli-config-android/build/config/index.js
+index 07ebf1a..d0f52e9 100644
+--- a/node_modules/@react-native-community/cli-config-android/build/config/index.js
++++ b/node_modules/@react-native-community/cli-config-android/build/config/index.js
+@@ -85,11 +85,17 @@ function getApplicationId(buildGradlePath, packageName) {
+   return appId;
+ }
+ function getAppName(sourceDir, userConfigAppName) {
++  console.log('TEST getAppName SOURCE DIR', sourceDir);
++  console.log('TEST getAppName USER CONFIG APP NAME', userConfigAppName);
+   let appName = '';
+   if (typeof userConfigAppName === 'string' && _fs().default.existsSync(_path().default.join(sourceDir, userConfigAppName))) {
++    console.log('TEST getAppName USER CONFIG APP NAME EXISTS', userConfigAppName);
+     appName = userConfigAppName;
+   } else if (_fs().default.existsSync(_path().default.join(sourceDir, 'app'))) {
++    console.log('TEST getAppName APP EXISTS', 'app');
+     appName = 'app';
++  } else {
++    console.log('TEST getAppName APP NAME NOT FOUND');
+   }
+   return appName;
+ }

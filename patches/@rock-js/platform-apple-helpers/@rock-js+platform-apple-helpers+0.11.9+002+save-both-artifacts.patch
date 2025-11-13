@@ -1,0 +1,17 @@
+diff --git a/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js b/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js
+index a689061..bec208f 100644
+--- a/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js
++++ b/node_modules/@rock-js/platform-apple-helpers/dist/src/lib/utils/buildApp.js
+@@ -94,7 +94,11 @@ export async function buildApp({ args, projectConfig, pluginConfig, platformName
+     console.log('TEST buildApp BUILD SETTINGS COMPLETED');
+     console.log('TEST buildApp BUILD SETTINGS APP PATH', buildSettings.appPath);
+     console.log('TEST buildApp ARTIFACT NAME TO SAVE', artifactNameToSave);
+-    saveLocalBuildCache(artifactNameToSave, buildSettings.appPath);
++    if (artifactName !== artifactNameToSave) {
++        saveLocalBuildCache(artifactNameToSave, buildSettings.appPath);
++      }
++    saveLocalBuildCache(artifactName, buildSettings.appPath);
++    
+     return {
+         appPath: buildSettings.appPath,
+         infoPlistPath: buildSettings.infoPlistPath,

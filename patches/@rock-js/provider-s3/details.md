@@ -12,3 +12,15 @@
 - Upstream PR/issue: https://github.com/callstackincubator/rock/pull/625
 - E/App issue: https://github.com/Expensify/App/issues/74400
 - PR introducing patch: https://github.com/Expensify/App/pull/73525
+
+### [@rock-js+provider-s3+0.11.9+002+add-acl-upload-param.patch](@rock-js+provider-s3+0.11.9+002+add-acl-upload-param.patch)
+
+- Reason:
+
+    ```
+    This patch adds support for specifying an ACL (Access Control List) parameter when uploading objects to S3. 
+    ```
+
+- Upstream PR/issue: https://github.com/callstackincubator/rock/pull/626
+- E/App issue: https://github.com/Expensify/App/issues/74400
+- PR introducing patch: https://github.com/Expensify/App/pull/73525

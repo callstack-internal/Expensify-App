@@ -10,16 +10,22 @@ import CONST from '@src/CONST';
 import pkg from '../../../package.json';
 
 export default function (): void {
-    if (isDevelopment()) {
-        return;
+    // if (isDevelopment()) {
+    //     return;
+    // }
+
+    const integrations = [navigationIntegration, tracingIntegration, SentryReact.browserProfilingIntegration()];
+    if (browserTracingIntegration) {
+        integrations.push(browserTracingIntegration);
     }
+
     Sentry.init({
         dsn: CONFIG.SENTRY_DSN,
         tracesSampleRate: 1.0,
         profilesSampleRate: Platform.OS === 'android' ? 0 : 1.0,
         enableAutoPerformanceTracing: true,
         enableUserInteractionTracing: true,
-        integrations: [navigationIntegration, tracingIntegration, browserTracingIntegration, SentryReact.browserProfilingIntegration()],
+        integrations,
         environment: CONFIG.ENVIRONMENT,
         release: `${pkg.name}@${pkg.version}`,
         beforeSendTransaction: processBeforeSendTransactions,

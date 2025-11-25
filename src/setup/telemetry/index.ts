@@ -10,9 +10,10 @@ import CONST from '@src/CONST';
 import pkg from '../../../package.json';
 
 export default function (): void {
-    if (isDevelopment()) {
-        return;
-    }
+    // Enable Sentry in development by commenting out the early return below
+    // if (isDevelopment()) {
+    //     return;
+    // }
     Sentry.init({
         dsn: CONFIG.SENTRY_DSN,
         tracesSampleRate: 1.0,
@@ -23,6 +24,7 @@ export default function (): void {
         environment: CONFIG.ENVIRONMENT,
         release: `${pkg.name}@${pkg.version}`,
         beforeSendTransaction: processBeforeSendTransactions,
+       // debug: isDevelopment() && Platform.OS === 'android',
     });
 
     startSpan(CONST.TELEMETRY.SPAN_APP_STARTUP, {

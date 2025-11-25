@@ -1,5 +1,7 @@
 import Onyx from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
+import {AppState} from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import alert from '@components/Alert';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -77,13 +79,51 @@ function processHTTPRequest(url: string, method: RequestType = 'get', body: Form
         abortSignal.addEventListener('abort', () => {
             abortListenerCalled = true;
             abortListenerCallTime = Date.now();
+            const timeSinceStart = abortListenerCallTime - startTime;
+            const appState = AppState.currentState;
+            const isTrackExpense = url.includes('TrackExpense');
+            
             Log.info('[HttpUtils] Abort signal listener triggered', false, {
                 requestId,
                 url,
                 method,
-                timeSinceStart: abortListenerCallTime - startTime,
+                timeSinceStart,
                 abortListenerCallTime,
             });
+            
+            // SENTRY: Track abort signals - History of steps leading to an issue
+            if (isTrackExpense) {
+                Sentry.addBreadcrumb({
+                    message: 'TRACK_EXPENSE request aborted',
+                    level: 'info',
+                    category: 'http',
+                    data: {
+                        requestId,
+                        url,
+                        method,
+                        timeSinceStart,
+                        abortListenerCallTime,
+                        abortArrivedTooLate: timeSinceStart > 100,
+                        appState,
+                    },
+                });
+                
+                // captureMessage: If abort arrived too late, this is unexpected
+                if (timeSinceStart > 100) {
+                    Sentry.captureMessage('TRACK_EXPENSE abort arrived too late', {
+                        level: 'warning',
+                        tags: {
+                            flow: 'receipt_scanning',
+                            event: 'abort_too_late',
+                        },
+                    });
+                    Sentry.setContext('abort', {
+                        abortListenerCallTime,
+                        timeSinceStart,
+                        abortArrivedTooLate: true,
+                    });
+                }
+            }
         });
     }
     
@@ -220,6 +260,7 @@ function processHTTPRequest(url: string, method: RequestType = 'get', body: Form
             promiseRejected = true;
             const errorTime = Date.now();
             const timeToError = errorTime - startTime;
+            const isTrackExpense = url.includes('TrackExpense');
             
             // Check if this is an AbortError
             const isAbortError = error instanceof Error && error.name === 'AbortError';
@@ -241,6 +282,8 @@ function processHTTPRequest(url: string, method: RequestType = 'get', body: Form
                 errorType = typeof error;
             }
             
+            const abortArrivedTooLate = abortListenerCallTime !== null && abortListenerCallTime > startTime + 100;
+            
             Log.warn('[HttpUtils] Fetch promise rejected', {
                 requestId,
                 url,
@@ -257,8 +300,36 @@ function processHTTPRequest(url: string, method: RequestType = 'get', body: Form
                 abortSignalAborted: abortSignal?.aborted ?? false,
                 abortSignalAbortedAtStart: abortSignalAborted,
                 // Check if abort arrived too late (after promise already started resolving)
-                abortArrivedTooLate: abortListenerCallTime !== null && abortListenerCallTime > startTime + 100,
+                abortArrivedTooLate,
             });
+            
+            // SENTRY: Monitor fetch() rejections - Hypothesis: RN's fetch() doesn't reliably reject with AbortError
+            if (isTrackExpense) {
+                // captureMessage: If abort was called but error is NOT AbortError, this is unexpected
+                if (abortSignal?.aborted && !isAbortError && !isDOMExceptionAbort) {
+                    Sentry.captureMessage('TRACK_EXPENSE abort signal set but error is NOT AbortError', {
+                        level: 'warning',
+                        tags: {
+                            flow: 'receipt_scanning',
+                            event: 'abort_mismatch',
+                        },
+                    });
+                    Sentry.setContext('error', {
+                        errorName,
+                        errorMessage,
+                        errorType,
+                        isAbortError,
+                        isDOMExceptionAbort,
+                        appState: AppState.currentState,
+                    });
+                    Sentry.setContext('abort', {
+                        abortSignalAborted: abortSignal?.aborted ?? false,
+                        abortListenerCalled,
+                        abortListenerCallTime: abortListenerCallTime ?? null,
+                        abortArrivedTooLate,
+                    });
+                }
+            }
             
             // Convert AbortError to HttpsError with REQUEST_CANCELLED name
             if (isAbortError || isDOMExceptionAbort || errorName === CONST.ERROR.REQUEST_CANCELLED) {
@@ -290,16 +361,51 @@ function processHTTPRequest(url: string, method: RequestType = 'get', body: Form
             return;
         }
         
+        const timeSinceStart = Date.now() - startTime;
+        const appState = AppState.currentState;
+        const isTrackExpense = url.includes('TrackExpense');
+        
         Log.alert('[HttpUtils] POTENTIAL HANG DETECTED - Promise never resolved or rejected', {
             requestId,
             url,
             method,
-            timeSinceStart: Date.now() - startTime,
+            timeSinceStart,
             hasAbortSignal,
             abortSignalAborted: abortSignal?.aborted ?? false,
             abortListenerCalled,
             abortListenerCallTime: abortListenerCallTime ?? null,
         }, false);
+        
+        // SENTRY: Monitor fetch() hangs - Hypothesis: RN's fetch() sometimes hangs forever
+        if (isTrackExpense) {
+            // captureException: Real error - promise hung forever
+            const hangError = new Error('TRACK_EXPENSE request HANG DETECTED - Promise never resolved/rejected');
+            Sentry.captureException(hangError, {
+                tags: {
+                    flow: 'receipt_scanning',
+                    event: 'request_hang',
+                },
+                contexts: {
+                    request: {
+                        requestId,
+                        url,
+                        method,
+                        timeSinceStart,
+                    },
+                    hang: {
+                        hasAbortSignal,
+                        abortSignalAborted: abortSignal?.aborted ?? false,
+                        abortListenerCalled,
+                        abortListenerCallTime: abortListenerCallTime ?? null,
+                        promiseResolved,
+                        promiseRejected,
+                    },
+                    app: {
+                        appState,
+                    },
+                },
+            });
+        }
     }, HANG_DETECTION_TIMEOUT);
     
     // Clear timeout when promise resolves or rejects

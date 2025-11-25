@@ -48,6 +48,8 @@ import type {
     UnapproveExpenseReportParams,
     UpdateMoneyRequestParams,
 } from '@libs/API/parameters';
+import * as Sentry from '@sentry/react-native';
+import {getOngoingRequest, getAll as getAllPersistedRequests} from './PersistedRequests';
 import {WRITE_COMMANDS} from '@libs/API/types';
 import {convertAmountToDisplayString, convertToDisplayString} from '@libs/CurrencyUtils';
 import DateUtils from '@libs/DateUtils';
@@ -8348,6 +8350,14 @@ function updateMoneyRequestAmountAndCurrency({
     const transaction = allTransactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`];
     const transactionDraft = allTransactionDrafts?.[`${ONYXKEYS.COLLECTION.TRANSACTION_DRAFT}${transactionID}`];
     
+    // Check if TRACK_EXPENSE is still in progress for this transaction
+    const ongoingRequest = getOngoingRequest();
+    const allPersistedRequests = getAllPersistedRequests();
+    const trackExpenseForThisTransaction = allPersistedRequests.find(
+        (req) => req.command === WRITE_COMMANDS.TRACK_EXPENSE && req?.data?.transactionID === transactionID
+    );
+    const isTrackExpenseOngoingForThisTransaction = ongoingRequest?.command === WRITE_COMMANDS.TRACK_EXPENSE && ongoingRequest?.data?.transactionID === transactionID;
+    
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     Log.info('[API_DEBUG] updateMoneyRequestAmountAndCurrency - Making API call', false, {
         command: WRITE_COMMANDS.UPDATE_MONEY_REQUEST_AMOUNT_AND_CURRENCY,
@@ -8360,7 +8370,37 @@ function updateMoneyRequestAmountAndCurrency({
         draftPendingAction: transactionDraft?.pendingAction,
         transactionExists: !!transaction,
         draftExists: !!transactionDraft,
+        isTrackExpenseInProgress: !!trackExpenseForThisTransaction || isTrackExpenseOngoingForThisTransaction,
     });
+    
+    // SENTRY: Monitor edit attempts while TRACK_EXPENSE is in progress - Hypothesis: Edit before TRACK_EXPENSE finishes causes "Unable to find that request"
+    if (trackExpenseForThisTransaction || isTrackExpenseOngoingForThisTransaction) {
+        Sentry.captureMessage('Edit attempted while TRACK_EXPENSE in progress', {
+            level: 'warning',
+            tags: {
+                flow: 'receipt_scanning',
+                event: 'edit_during_scan',
+            },
+        });
+        Sentry.setContext('edit', {
+            command: WRITE_COMMANDS.UPDATE_MONEY_REQUEST_AMOUNT_AND_CURRENCY,
+            transactionID,
+            amount,
+            currency,
+        });
+        Sentry.setContext('trackExpense', {
+            isOngoing: isTrackExpenseOngoingForThisTransaction,
+            isInQueue: !!trackExpenseForThisTransaction,
+            ongoingRequestID: ongoingRequest?.requestID,
+            queueRequestID: trackExpenseForThisTransaction?.requestID,
+        });
+        Sentry.setContext('transaction', {
+            hasTransaction: !!transaction,
+            hasTransactionDraft: !!transactionDraft,
+            transactionPendingAction: transaction?.pendingAction,
+            draftPendingAction: transactionDraft?.pendingAction,
+        });
+    }
     
     API.write(WRITE_COMMANDS.UPDATE_MONEY_REQUEST_AMOUNT_AND_CURRENCY, params, onyxData);
 }

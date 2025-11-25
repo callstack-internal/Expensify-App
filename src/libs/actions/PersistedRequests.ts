@@ -1,5 +1,6 @@
 import {deepEqual} from 'fast-equals';
 import Onyx from 'react-native-onyx';
+import * as Sentry from '@sentry/react-native';
 import {AppState} from 'react-native';
 import {WRITE_COMMANDS} from '@libs/API/types';
 import Log from '@libs/Log';
@@ -59,7 +60,44 @@ Onyx.connectWithoutView({
 Onyx.connectWithoutView({
     key: ONYXKEYS.PERSISTED_ONGOING_REQUESTS,
     callback: (val) => {
+        const previousOngoingRequest = ongoingRequest;
         ongoingRequest = val ?? null;
+        
+        // SENTRY: Monitor ongoingRequest state changes - Hypothesis: ongoingRequest lost on background/network drop
+        if (previousOngoingRequest?.command === WRITE_COMMANDS.TRACK_EXPENSE && !ongoingRequest) {
+            const appState = AppState.currentState;
+            Sentry.captureMessage('TRACK_EXPENSE ongoingRequest cleared from Onyx', {
+                level: 'warning',
+                tags: {
+                    flow: 'receipt_scanning',
+                    event: 'ongoing_request_cleared',
+                },
+            });
+            Sentry.setContext('request', {
+                command: previousOngoingRequest.command,
+                transactionID: previousOngoingRequest?.data?.transactionID,
+                requestID: previousOngoingRequest?.requestID,
+            });
+            Sentry.setContext('app', {
+                appState,
+                timestamp: Date.now(),
+            });
+        }
+        
+        // SENTRY: Detect if ongoingRequest exists in memory but not in Onyx (lost state scenario)
+        if (previousOngoingRequest?.command === WRITE_COMMANDS.TRACK_EXPENSE && val === null && previousOngoingRequest) {
+            // addBreadcrumb: History of steps - state mismatch detected
+            Sentry.addBreadcrumb({
+                message: 'TRACK_EXPENSE ongoingRequest lost - Onyx cleared but may still exist in memory',
+                level: 'warning',
+                category: 'state',
+                data: {
+                    command: previousOngoingRequest.command,
+                    transactionID: previousOngoingRequest?.data?.transactionID,
+                    appState: AppState.currentState,
+                },
+            });
+        }
     },
 });
 
@@ -133,14 +171,34 @@ function endRequestAndRemoveFromQueue(requestToRemove: Request) {
     // Log TRACK_EXPENSE when it's removed from queue with stack trace
     if (requestToRemove.command === WRITE_COMMANDS.TRACK_EXPENSE) {
         const stackTrace = new Error().stack;
+        const appState = AppState.currentState;
+        const queueLengthBefore = getLength();
+        const wasOngoing = ongoingRequest?.command === WRITE_COMMANDS.TRACK_EXPENSE;
+        
         Log.warn('[API_DEBUG] PersistedRequests.endRequestAndRemoveFromQueue - TRACK_EXPENSE removed from queue', {
             command: requestToRemove.command,
             transactionID: requestToRemove?.data?.transactionID,
             requestID: requestToRemove?.requestID,
-            queueLengthBefore: getLength(),
+            queueLengthBefore,
             ongoingRequestCommand: ongoingRequest?.command,
-            isOngoingRequest: ongoingRequest?.command === WRITE_COMMANDS.TRACK_EXPENSE,
+            isOngoingRequest: wasOngoing,
             stackTrace: stackTrace?.split('\n').slice(0, 15).join('\n'), // First 15 lines of stack
+        });
+        
+        // SENTRY: Track TRACK_EXPENSE removal - History of steps
+        Sentry.addBreadcrumb({
+            message: 'TRACK_EXPENSE removed from queue',
+            level: 'info',
+            category: 'queue',
+            data: {
+                command: requestToRemove.command,
+                transactionID: requestToRemove?.data?.transactionID,
+                requestID: requestToRemove?.requestID,
+                queueLengthBefore,
+                wasOngoing,
+                ongoingRequestCommand: ongoingRequest?.command,
+                appState,
+            },
         });
     }
 
@@ -193,12 +251,35 @@ function deleteRequestsByIndices(indices: number[]) {
     if (isTrackExpenseBeingDeleted) {
         const trackExpenseRequest = persistedRequests.at(trackExpenseIndex);
         const stackTrace = new Error().stack;
+        const appState = AppState.currentState;
+        
         Log.warn('[API_DEBUG] PersistedRequests.deleteRequestsByIndices - TRACK_EXPENSE being deleted from queue!', {
             transactionID: trackExpenseRequest?.data?.transactionID,
             trackExpenseIndex,
             indicesBeingDeleted: Array.from(indices),
             queueLength: persistedRequests.length,
             stackTrace: stackTrace?.split('\n').slice(0, 15).join('\n'), // First 15 lines of stack
+        });
+        
+        // SENTRY: Monitor TRACK_EXPENSE deletion - Hypothesis: Request removed inconsistently
+        Sentry.captureMessage('TRACK_EXPENSE deleted from queue by indices', {
+            level: 'warning',
+            tags: {
+                flow: 'receipt_scanning',
+                event: 'request_deleted_by_indices',
+            },
+        });
+        Sentry.setContext('request', {
+            command: trackExpenseRequest?.command,
+            transactionID: trackExpenseRequest?.data?.transactionID,
+            trackExpenseIndex,
+        });
+        Sentry.setContext('queue', {
+            queueLength: persistedRequests.length,
+            indicesBeingDeleted: Array.from(indices),
+        });
+        Sentry.setContext('app', {
+            appState,
         });
     }
 
@@ -221,8 +302,46 @@ function update(oldRequestIndex: number, newRequest: Request) {
 }
 
 function updateOngoingRequest(newRequest: Request) {
+    const previousOngoingRequest = ongoingRequest;
+    const appState = AppState.currentState;
+    
     Log.info('[PersistedRequests] Updating the ongoing request', false, {ongoingRequest, newRequest});
     ongoingRequest = newRequest;
+
+    // SENTRY: Monitor ongoingRequest updates - Hypothesis: ongoingRequest not persisted correctly
+    if (newRequest.command === WRITE_COMMANDS.TRACK_EXPENSE) {
+        Sentry.addBreadcrumb({
+            message: '[SENTRY] TRACK_EXPENSE ongoingRequest updated',
+            level: 'info',
+            data: {
+                transactionID: newRequest?.data?.transactionID,
+                requestID: newRequest?.requestID,
+                persistWhenOngoing: newRequest.persistWhenOngoing,
+                appState,
+                previousCommand: previousOngoingRequest?.command,
+            },
+        });
+        
+        // SENTRY: Alert if TRACK_EXPENSE ongoingRequest is not persisted
+        if (!newRequest.persistWhenOngoing) {
+            Sentry.captureMessage('TRACK_EXPENSE ongoingRequest NOT persisted to Onyx', {
+                level: 'warning',
+                tags: {
+                    flow: 'receipt_scanning',
+                    event: 'ongoing_request_not_persisted',
+                },
+            });
+            Sentry.setContext('request', {
+                command: newRequest.command,
+                transactionID: newRequest?.data?.transactionID,
+                requestID: newRequest?.requestID,
+                persistWhenOngoing: false,
+            });
+            Sentry.setContext('app', {
+                appState,
+            });
+        }
+    }
 
     if (newRequest.persistWhenOngoing) {
         Onyx.set(ONYXKEYS.PERSISTED_ONGOING_REQUESTS, newRequest);
@@ -292,9 +411,9 @@ function rollbackOngoingRequest() {
         return;
     }
 
-    // Prepend ongoingRequest to persistedRequests
-    persistedRequests.unshift({...ongoingRequest, isRollback: true});
-
+    const rolledBackRequest = {...ongoingRequest, isRollback: true};
+    const newPersistedRequests = [rolledBackRequest, ...persistedRequests];
+    const appState = AppState.currentState;
     const isTrackExpense = ongoingRequest.command === WRITE_COMMANDS.TRACK_EXPENSE;
     
     Log.info('[API_DEBUG] PersistedRequests.rollbackOngoingRequest - Rolling back ongoing request', false, {
@@ -309,6 +428,27 @@ function rollbackOngoingRequest() {
             transactionID: ongoingRequest?.data?.transactionID,
             queueLengthBefore: persistedRequests.length,
         });
+        
+        // SENTRY: Monitor rollback - Hypothesis: Rollback happens but request still lost on background
+        Sentry.captureMessage('TRACK_EXPENSE rolled back', {
+            level: 'warning',
+            tags: {
+                flow: 'receipt_scanning',
+                event: 'request_rolled_back',
+            },
+        });
+        Sentry.setContext('request', {
+            command: ongoingRequest.command,
+            transactionID: ongoingRequest?.data?.transactionID,
+            requestID: ongoingRequest?.requestID,
+        });
+        Sentry.setContext('queue', {
+            queueLengthBefore: persistedRequests.length,
+            queueLengthAfter: newPersistedRequests.length,
+        });
+        Sentry.setContext('app', {
+            appState,
+        });
     }
 
     Log.info('[API_DEBUG] Starting persistence', false, {
@@ -316,22 +456,44 @@ function rollbackOngoingRequest() {
         appState: AppState.currentState, // 'active', 'background', 'inactive'
     });
 
-
     // Update in-memory state 
+    persistedRequests = newPersistedRequests;
     ongoingRequest = null;
 
-    Log.info('[API_DEBUG] PersistedRequests.rollbackOngoingRequest - Ongoing request rolled back and saved to Onyx', false, {
-        ongoingRequest,
-        queueLength: persistedRequests.length,
-        isTrackExpense,
-    });
-    
-    if (isTrackExpense) {
-        Log.info('[API_DEBUG] PersistedRequests.rollbackOngoingRequest - TRACK_EXPENSE rolled back and saved to Onyx successfully', false, {
+    Onyx.multiSet({
+        [ONYXKEYS.PERSISTED_REQUESTS]: persistedRequests,
+        [ONYXKEYS.PERSISTED_ONGOING_REQUESTS]: null,
+    }).then(() => {
+        Log.info('[API_DEBUG] PersistedRequests.rollbackOngoingRequest - Ongoing request rolled back and saved to Onyx', false, {
             ongoingRequest,
             queueLength: persistedRequests.length,
+            isTrackExpense,
         });
-    }
+        
+        if (isTrackExpense) {
+            Log.info('[API_DEBUG] PersistedRequests.rollbackOngoingRequest - TRACK_EXPENSE rolled back and saved to Onyx successfully', false, {
+                ongoingRequest,
+                queueLength: persistedRequests.length,
+            });
+            
+            // SENTRY: Confirm rollback saved - History of steps
+            Sentry.addBreadcrumb({
+                message: 'TRACK_EXPENSE rollback saved to Onyx',
+                level: 'info',
+                category: 'queue',
+                data: {
+                    transactionID: rolledBackRequest?.data?.transactionID,
+                    queueLength: persistedRequests.length,
+                    appState,
+                },
+            });
+        }
+
+        Log.info('[API_DEBUG] Persistence completed', false, {
+            operation: 'rollback',
+            appState: AppState.currentState,
+        });
+    });
 }
 
 function getAll(): Request[] {

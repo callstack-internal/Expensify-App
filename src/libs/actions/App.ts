@@ -5,6 +5,7 @@ import type {AppStateStatus} from 'react-native';
 import {AppState} from 'react-native';
 import type {OnyxCollection, OnyxEntry, OnyxUpdate} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
+import * as Sentry from '@sentry/react-native';
 import * as API from '@libs/API';
 import type {GetMissingOnyxMessagesParams, HandleRestrictedEventParams, OpenAppParams, OpenOldDotLinkParams, ReconnectAppParams, UpdatePreferredLocaleParams} from '@libs/API/parameters';
 import {SIDE_EFFECT_REQUEST_COMMANDS, WRITE_COMMANDS} from '@libs/API/types';
@@ -254,6 +255,37 @@ AppState.addEventListener('change', (nextAppState) => {
                 queueLength: allPersistedRequests.length,
             });
         // }
+        
+        // SENTRY: Monitor app backgrounding during TRACK_EXPENSE - History of steps
+        if (trackExpenseInQueue || isTrackExpenseOngoing) {
+            Sentry.addBreadcrumb({
+                message: 'App backgrounding during TRACK_EXPENSE',
+                level: 'info',
+                category: 'app_state',
+                data: {
+                    isOngoing: isTrackExpenseOngoing,
+                    isInQueue: !!trackExpenseInQueue,
+                    ongoingTransactionID: ongoingRequest?.data?.transactionID,
+                    queueTransactionID: trackExpenseInQueue?.data?.transactionID,
+                    ongoingRequestPersisted: ongoingRequest?.persistWhenOngoing,
+                    queueLength: allPersistedRequests.length,
+                    previousState: appState,
+                    newState: nextAppState,
+                },
+            });
+            
+            // captureMessage: If ongoingRequest is not persisted, this is unexpected
+            if (isTrackExpenseOngoing && !ongoingRequest?.persistWhenOngoing) {
+                Sentry.captureMessage('App backgrounding with TRACK_EXPENSE ongoingRequest NOT persisted', {
+                    level: 'warning',
+                    tags: {
+                        flow: 'receipt_scanning',
+                        event: 'app_backgrounded_without_persistence',
+                    },
+                });
+            }
+        }
+        
         saveCurrentPathBeforeBackground();
     }
 
@@ -261,6 +293,9 @@ AppState.addEventListener('change', (nextAppState) => {
     if (nextAppState === 'active' && appState !== 'active') {
         const ongoingRequest = getOngoingRequest();
         const allPersistedRequests = getAll();
+        const trackExpenseInQueue = allPersistedRequests.find((req) => req.command === WRITE_COMMANDS.TRACK_EXPENSE);
+        const wasTrackExpenseOngoing = ongoingRequest?.command === WRITE_COMMANDS.TRACK_EXPENSE;
+        
         Log.info('[API_DEBUG] App became active - checking for pending requests', false, {
             previousState: appState,
             newState: nextAppState,
@@ -270,6 +305,40 @@ AppState.addEventListener('change', (nextAppState) => {
             persistedRequestsCount: allPersistedRequests.length,
             persistedRequestCommands: allPersistedRequests.map((req) => req.command),
         });
+        
+        // SENTRY: Monitor app foregrounding - History of steps
+        if (trackExpenseInQueue || wasTrackExpenseOngoing) {
+            Sentry.addBreadcrumb({
+                message: 'App foregrounded - TRACK_EXPENSE state check',
+                level: 'info',
+                category: 'app_state',
+                data: {
+                    wasOngoing: wasTrackExpenseOngoing,
+                    isInQueue: !!trackExpenseInQueue,
+                    ongoingTransactionID: ongoingRequest?.data?.transactionID,
+                    queueTransactionID: trackExpenseInQueue?.data?.transactionID,
+                    queueLength: allPersistedRequests.length,
+                    persistedRequestCommands: allPersistedRequests.map((req) => req.command),
+                    previousState: appState,
+                    newState: nextAppState,
+                },
+            });
+            
+            // captureException: Real error - TRACK_EXPENSE was ongoing but is now lost
+            if (wasTrackExpenseOngoing && !ongoingRequest) {
+                const lostRequestError = new Error('TRACK_EXPENSE ongoingRequest LOST after foregrounding');
+                Sentry.captureException(lostRequestError, {
+                    tags: {
+                        flow: 'receipt_scanning',
+                        event: 'ongoing_request_lost_on_foreground',
+                    },
+                });
+                Sentry.setContext('app', {
+                    previousState: appState,
+                    newState: nextAppState,
+                });
+            }
+        }
     }
 
     appState = nextAppState;

@@ -15,6 +15,7 @@ import {post} from './Network';
 import {getCredentials, hasReadRequiredDataFromStorage, setAuthToken, setIsAuthenticating} from './Network/NetworkStore';
 import requireParameters from './requireParameters';
 import {checkIfShouldUseNewPartnerName} from './SessionUtils';
+import {endSpan, startSpan} from './telemetry/activeSpans';
 
 type Parameters = {
     useExpensifyLogin?: boolean;
@@ -62,6 +63,16 @@ function Authenticate(parameters: Parameters): Promise<Response | void> {
         requireParameters(['partnerName', 'partnerPassword', 'partnerUserID', 'partnerUserSecret'], parameters, commandName);
     } catch (error) {
         const errorMessage = (error as Error).message;
+        startSpan(CONST.TELEMETRY.SPAN_AUTH_ERROR, {
+            name: CONST.TELEMETRY.SPAN_AUTH_ERROR,
+            op: CONST.TELEMETRY.SPAN_AUTH_ERROR,
+            attributes: {
+                errorType: CONST.TELEMETRY.AUTH_ERROR_TYPE.AUTH_FAILED,
+                errorMessage,
+                command: commandName,
+            },
+        });
+        endSpan(CONST.TELEMETRY.SPAN_AUTH_ERROR);
         Log.hmmm('Redirecting to Sign In because we failed to reauthenticate', {
             error: errorMessage,
         });
@@ -147,12 +158,33 @@ function reauthenticate(command = ''): Promise<boolean> {
             if (response.jsonCode === CONST.JSON_CODE.UNABLE_TO_RETRY) {
                 // When a fetch() fails due to a network issue and an error is thrown we won't log the user out. Most likely they
                 // have a spotty connection and will need to retry reauthenticate when they come back online. Error so it can be handled by the retry mechanism.
+                startSpan(CONST.TELEMETRY.SPAN_AUTH_ERROR, {
+                    name: CONST.TELEMETRY.SPAN_AUTH_ERROR,
+                    op: CONST.TELEMETRY.SPAN_AUTH_ERROR,
+                    attributes: {
+                        errorType: CONST.TELEMETRY.AUTH_ERROR_TYPE.UNABLE_TO_RETRY,
+                        jsonCode: response.jsonCode,
+                        command,
+                    },
+                });
+                endSpan(CONST.TELEMETRY.SPAN_AUTH_ERROR);
                 throw new Error('Unable to retry Authenticate request');
             }
 
             // If authentication fails and we are online then log the user out
             if (response.jsonCode !== 200) {
                 const errorMessage = getAuthenticateErrorMessage(response);
+                startSpan(CONST.TELEMETRY.SPAN_AUTH_ERROR, {
+                    name: CONST.TELEMETRY.SPAN_AUTH_ERROR,
+                    op: CONST.TELEMETRY.SPAN_AUTH_ERROR,
+                    attributes: {
+                        errorType: CONST.TELEMETRY.AUTH_ERROR_TYPE.AUTH_FAILED,
+                        jsonCode: response.jsonCode,
+                        errorMessage,
+                        command,
+                    },
+                });
+                endSpan(CONST.TELEMETRY.SPAN_AUTH_ERROR);
                 setIsAuthenticating(false);
                 Log.hmmm('Redirecting to Sign In because we failed to reauthenticate', {
                     command,

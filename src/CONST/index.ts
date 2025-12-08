@@ -1686,6 +1686,7 @@ const CONST = {
         SPAN_OPEN_CREATE_EXPENSE: 'ManualOpenCreateExpense',
         SPAN_SEND_MESSAGE: 'ManualSendMessage',
         SPAN_SKELETON: 'ManualSkeleton',
+        SPAN_AUTH_ERROR: 'ManualAuthenticationError',
         SPAN_BOOTSPLASH: {
             ROOT: 'BootsplashVisible',
             NAVIGATION: 'BootsplashVisibleNavigation',
@@ -1703,6 +1704,10 @@ const CONST = {
         ATTRIBUTE_ROUTE_TO: 'route_to',
         ATTRIBUTE_MIN_DURATION: 'min_duration',
         ATTRIBUTE_FINISHED_MANUALLY: 'finished_manually',
+        AUTH_ERROR_TYPE: {
+            AUTH_FAILED: 'authentication_failed',
+            UNABLE_TO_RETRY: 'unable_to_retry',
+        },
         CONFIG: {
             SKELETON_MIN_DURATION: 10_000,
         },

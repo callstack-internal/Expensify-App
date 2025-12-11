@@ -575,6 +575,10 @@ export default {
         paddingRight: 0,
     },
 
+    pr0half: {
+        paddingRight: 2,
+    },
+
     pr1: {
         paddingRight: 4,
     },
@@ -833,6 +837,10 @@ export default {
 
     minHeight22: {
         minHeight: 88,
+    },
+
+    minHeight32: {
+        minHeight: 128,
     },
 
     minHeight65: {

@@ -36,10 +36,11 @@ const createEmptyObjectPairs = () =>
         (item, index) => `${ONYXKEYS.COLLECTION.DB_COLLECTION_TEST_DATA}${index}`,
         () => {},
     );
-const createReportActionObjectPairs = () =>
-    createDBPairs<ReportAction>(
-        (item) => `${ONYXKEYS.COLLECTION.DB_COLLECTION_TEST_DATA}${item.reportActionID}`,
-        (index) => createRandomReportAction(index),
+const createReportActionObjectPairs = (shouldCreateNullEntries?: boolean) =>
+    createDBPairs<ReportAction | null>(
+        (item, index) => `${ONYXKEYS.COLLECTION.DB_COLLECTION_TEST_DATA}${item?.reportActionID ?? index}`,
+        // eslint-disable-next-line no-nested-ternary
+        (index) => (shouldCreateNullEntries ? (index % 2 === 0 ? null : createRandomReportAction(index)) : createRandomReportAction(index)),
     );
 
 function DBWriteTest() {
@@ -196,6 +197,15 @@ function DBWriteTest() {
                     performWriteOperation(() => Onyx.storage.multiSet(createReportActionObjectPairs()), 100, 200);
                 }}
             />
+            <MenuItem
+                wrapperStyle={styles.mb4}
+                title="Set sample report object with half nulls"
+                icon={Expensicons.Send}
+                numberOfLinesTitle={2}
+                onPress={() => {
+                    performWriteOperation(() => Onyx.storage.multiSet(createReportActionObjectPairs(true)), 100, 200);
+                }}
+            />
 
             <Text style={[styles.h1, styles.mb2, styles.ph5]}>mergeItem</Text>
             <MenuItem
@@ -288,6 +298,15 @@ function DBWriteTest() {
                 numberOfLinesTitle={2}
                 onPress={() => {
                     performWriteOperation(() => Onyx.storage.multiMerge(createReportActionObjectPairs()), 100, 200);
+                }}
+            />
+            <MenuItem
+                wrapperStyle={styles.mb4}
+                title="Merge sample report object with half nulls"
+                icon={Expensicons.Send}
+                numberOfLinesTitle={2}
+                onPress={() => {
+                    performWriteOperation(() => Onyx.storage.multiMerge(createReportActionObjectPairs(true)), 100, 200);
                 }}
             />
         </>

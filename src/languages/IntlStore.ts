@@ -1,5 +1,6 @@
 import {setDefaultOptions} from 'date-fns';
 import type {Locale as DateUtilsLocale} from 'date-fns';
+import {enGB} from 'date-fns/locale/en-GB';
 import Onyx from 'react-native-onyx';
 import extractModuleDefaultExport from '@libs/extractModuleDefaultExport';
 import {LOCALES} from '@src/CONST/LOCALES';
@@ -7,6 +8,7 @@ import type {Locale} from '@src/CONST/LOCALES';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type DynamicModule from '@src/types/utils/DynamicModule';
 import type de from './de';
+import enTranslations from './en';
 import type en from './en';
 import type es from './es';
 import flattenObject from './flattenObject';
@@ -31,13 +33,28 @@ class IntlStore {
     /**
      * Cache for translations
      */
-    private static cache = new Map<Locale, FlatTranslationsObject>();
+    private static cache = (() => {
+        const flattened = flattenObject(enTranslations);
+        return new Map<Locale, FlatTranslationsObject>([
+            // Pre-populate English translations to make them instantly available
+            [LOCALES.EN, flattened],
+        ]);
+    })();
 
     /**
      * Cache for localized date-fns
      * @private
      */
-    private static dateUtilsCache = new Map<Locale, DateUtilsLocale>();
+    private static dateUtilsCache = new Map<Locale, DateUtilsLocale>([
+        // Pre-populate English date-fns locale
+        [LOCALES.EN, enGB],
+    ]);
+
+    /**
+     * In-flight load promises to prevent duplicate loads
+     * @private
+     */
+    private static loadingPromises = new Map<Locale, Promise<void>>();
 
     /**
      * Set of loaders for each locale.
@@ -60,7 +77,9 @@ class IntlStore {
                 ? Promise.all([Promise.resolve(), Promise.resolve()])
                 : Promise.all([
                       import('./en').then((module: DynamicModule<typeof en>) => {
-                          this.cache.set(LOCALES.EN, flattenObject(extractModuleDefaultExport(module)));
+                          const extracted = extractModuleDefaultExport(module);
+                          const flattened = flattenObject(extracted);
+                          this.cache.set(LOCALES.EN, flattened);
                       }),
                       import('date-fns/locale/en-GB').then((module) => {
                           this.dateUtilsCache.set(LOCALES.EN, module.enGB);
@@ -71,7 +90,9 @@ class IntlStore {
                 ? Promise.all([Promise.resolve(), Promise.resolve()])
                 : Promise.all([
                       import('./es').then((module: DynamicModule<typeof es>) => {
-                          this.cache.set(LOCALES.ES, flattenObject(extractModuleDefaultExport(module)));
+                          const extracted = extractModuleDefaultExport(module);
+                          const flattened = flattenObject(extracted);
+                          this.cache.set(LOCALES.ES, flattened);
                       }),
                       import('date-fns/locale/es').then((module) => {
                           this.dateUtilsCache.set(LOCALES.ES, module.es);
@@ -161,23 +182,56 @@ class IntlStore {
     }
 
     public static load(locale: Locale) {
-        if (this.currentLocale === locale) {
+        // If already loaded and active, return immediately
+        if (this.currentLocale === locale && this.cache.has(locale)) {
             return Promise.resolve();
         }
+
+        // If locale is already in cache (e.g., pre-loaded EN), activate it instantly
+        if (this.cache.has(locale) && this.dateUtilsCache.has(locale)) {
+            this.currentLocale = locale;
+            const dateUtilsLocale = this.dateUtilsCache.get(locale);
+            if (dateUtilsLocale) {
+                setDefaultOptions({locale: dateUtilsLocale});
+            }
+            setAreTranslationsLoading(false);
+            return Promise.resolve();
+        }
+
+        // If already loading this locale, return the existing promise
+        const existingPromise = this.loadingPromises.get(locale);
+        if (existingPromise) {
+            return existingPromise;
+        }
+
         const loaderPromise = this.loaders[locale];
         setAreTranslationsLoading(true);
-        return loaderPromise()
+
+        const loadPromise = loaderPromise()
             .then(() => {
-                this.currentLocale = locale;
-                // Set the default date-fns locale
-                const dateUtilsLocale = this.dateUtilsCache.get(locale);
-                if (dateUtilsLocale) {
-                    setDefaultOptions({locale: dateUtilsLocale});
+                // Only set as current locale if no other locale was activated in the meantime
+                // This prevents race conditions where a newer locale load completes before this one
+                if (!this.currentLocale || this.currentLocale === locale) {
+                    this.currentLocale = locale;
+                    // Set the default date-fns locale
+                    const dateUtilsLocale = this.dateUtilsCache.get(locale);
+                    if (dateUtilsLocale) {
+                        setDefaultOptions({locale: dateUtilsLocale});
+                    }
                 }
             })
             .then(() => {
                 setAreTranslationsLoading(false);
+            })
+            .finally(() => {
+                // Clean up the promise from the cache
+                this.loadingPromises.delete(locale);
             });
+
+        // Store the promise to prevent duplicate loads
+        this.loadingPromises.set(locale, loadPromise);
+
+        return loadPromise;
     }
 
     public static get<TPath extends TranslationPaths>(key: TPath, locale?: Locale) {

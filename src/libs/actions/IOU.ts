@@ -6359,7 +6359,11 @@ function requestMoney(requestMoneyInformation: RequestMoneyInformation): {iouRep
                 testDriveCommentReportActionID,
             };
             // eslint-disable-next-line rulesdir/no-multiple-api-calls
-            API.write(WRITE_COMMANDS.REQUEST_MONEY, parameters, onyxData);
+         //   API.write(WRITE_COMMANDS.REQUEST_MONEY, parameters, onyxData);
+            API.write(WRITE_COMMANDS.REQUEST_MONEY, parameters, {
+                ...onyxData,
+               persistWhenOngoing: true,
+            });
         }
     }
 

@@ -27,7 +27,7 @@ import type * as OnyxTypes from '@src/types/onyx';
 import type Locale from '@src/types/onyx/Locale';
 import type {OnyxData} from '@src/types/onyx/Request';
 import {setShouldForceOffline} from './Network';
-import {getAll, rollbackOngoingRequest, save} from './PersistedRequests';
+import {getAll, getOngoingRequest, rollbackOngoingRequest, save} from './PersistedRequests';
 import {createDraftInitialWorkspace, createWorkspace, generatePolicyID} from './Policy/Policy';
 import {isAnonymousUser} from './Session';
 
@@ -237,6 +237,18 @@ function saveCurrentPathBeforeBackground() {
 let appState: AppStateStatus;
 AppState.addEventListener('change', (nextAppState) => {
     if (nextAppState.match(/inactive|background/) && appState === 'active') {
+        const ongoingRequest = getOngoingRequest();
+        if (ongoingRequest) {
+            Log.info('[App] Ongoing request', false, {
+                command: ongoingRequest.command,
+                commandName: ongoingRequest.commandName,
+                requestID: ongoingRequest.requestID,
+                canCancel: ongoingRequest.data?.canCancel,
+                shouldRetry: ongoingRequest.data?.shouldRetry,
+            });
+
+            rollbackOngoingRequest();
+        }
         Log.info('Flushing logs as app is going inactive', true, {}, true);
         saveCurrentPathBeforeBackground();
     }

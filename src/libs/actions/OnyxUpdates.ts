@@ -37,7 +37,9 @@ function applyHTTPSOnyxUpdates(request: Request, response: Response, lastUpdateI
     // For most requests we can immediately update Onyx. For write requests we queue the updates and apply them after the sequential queue has flushed to prevent a replay effect in
     // the UI. See https://github.com/Expensify/App/issues/12775 for more info.
     const updateHandler: (updates: OnyxUpdate[]) => Promise<unknown> = request?.data?.apiRequestType === CONST.API_REQUEST_TYPE.WRITE ? queueOnyxUpdates : Onyx.update;
-
+    if (request?.command === WRITE_COMMANDS.REQUEST_MONEY || request?.command === WRITE_COMMANDS.OPEN_REPORT) {
+        Log.info('[API_DEBUG] applyHTTPSOnyxUpdates - ENTERED', false, {request, response, lastUpdateID});
+    }
     // First apply any onyx data updates that are being sent back from the API. We wait for this to complete and then
     // apply successData or failureData. This ensures that we do not update any pending, loading, or other UI states contained
     // in successData/failureData until after the component has received and API data.
@@ -60,6 +62,9 @@ function applyHTTPSOnyxUpdates(request: Request, response: Response, lastUpdateI
             if (Platform.OS === 'web' && !isMobile() && response.jsonCode === 200 && response.onyxData?.length) {
                 triggerNotifications(response.onyxData);
             }
+            if (request?.command === WRITE_COMMANDS.REQUEST_MONEY || request?.command === WRITE_COMMANDS.OPEN_REPORT) {
+                Log.info('[API_DEBUG] applyHTTPSOnyxUpdates - SUCCESS DATA', false, {request, response, lastUpdateID});
+            }
             // Handle the request's success/failure data (client-side data)
             if (response.jsonCode === 200 && request.successData) {
                 return updateHandler(request.successData);
@@ -73,12 +78,18 @@ function applyHTTPSOnyxUpdates(request: Request, response: Response, lastUpdateI
                     Log.info('[OnyxUpdateManager] Received 460 status code, not applying failure data');
                     return Promise.resolve();
                 }
+                if (request?.command === WRITE_COMMANDS.REQUEST_MONEY || request?.command === WRITE_COMMANDS.OPEN_REPORT) {
+                    Log.info('[API_DEBUG] applyHTTPSOnyxUpdates - FAILURE DATA', false, {request, response, lastUpdateID});
+                }
                 return updateHandler(request.failureData);
             }
             return Promise.resolve();
         })
         .then(() => {
             if (request.finallyData) {
+                if (request?.command === WRITE_COMMANDS.REQUEST_MONEY || request?.command === WRITE_COMMANDS.OPEN_REPORT) {
+                    Log.info('[API_DEBUG] applyHTTPSOnyxUpdates - FINALLY DATA', false, {request, response, lastUpdateID});
+                }
                 return updateHandler(request.finallyData);
             }
             return Promise.resolve();

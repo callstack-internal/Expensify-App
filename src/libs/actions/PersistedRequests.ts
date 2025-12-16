@@ -24,7 +24,14 @@ function onInitialization(callbackFunction: () => void) {
 Onyx.connectWithoutView({
     key: ONYXKEYS.PERSISTED_REQUESTS,
     callback: (val) => {
-        Log.info('[PersistedRequests] hit Onyx connect callback', false, {isValNullish: val == null});
+        Log.info('[PersistedRequests] hit Onyx connect callback', false, {val});
+        Log.info('[PersistedRequests] ongoingRequest', false, {ongoingRequest});
+
+        if (ongoingRequest && !val?.some((req: Request) => deepEqual(req, ongoingRequest))) {
+            // ongoingRequest is being processed but not yet in Onyx, don't overwrite
+            return;
+        }
+
         persistedRequests = val ?? [];
 
         // Process any pending save operations that were queued before initialization
@@ -58,6 +65,65 @@ Onyx.connectWithoutView({
     key: ONYXKEYS.PERSISTED_ONGOING_REQUESTS,
     callback: (val) => {
         ongoingRequest = val ?? null;
+        const restoredOngoingRequest = val ?? null;
+
+        // If null, just clear ongoingRequest (this happens when we explicitly clear it)
+        if (!restoredOngoingRequest) {
+            // Only clear if there's no ongoingRequest being actively processed
+            // (don't overwrite an active ongoingRequest)
+            if (!ongoingRequest) {
+                ongoingRequest = null;
+            }
+            return;
+        }
+
+        // Helper function to compare requests ignoring isRollback flag
+        const requestsMatch = (req1: Request, req2: Request): boolean => {
+            const req1WithoutRollback = {...req1};
+            delete req1WithoutRollback.isRollback;
+            const req2WithoutRollback = {...req2};
+            delete req2WithoutRollback.isRollback;
+            return deepEqual(req1WithoutRollback, req2WithoutRollback);
+        };
+
+        // Check if there's already an ongoingRequest that matches (being actively processed)
+        if (ongoingRequest && requestsMatch(ongoingRequest, restoredOngoingRequest)) {
+            Log.info('[PersistedRequests] Ongoing request already being processed, skipping rollback', false, {
+                command: restoredOngoingRequest.command,
+                requestID: restoredOngoingRequest.requestID,
+            });
+            // Don't clear PERSISTED_ONGOING_REQUESTS - it's correct as is
+            return;
+        }
+
+        // Check if this request already exists in the queue (ignoring isRollback flag)
+        const requestExistsInQueue = persistedRequests.some((req: Request) => requestsMatch(req, restoredOngoingRequest));
+
+        if (requestExistsInQueue) {
+            Log.info('[PersistedRequests] Ongoing request already rolled back to queue, skipping duplicate rollback', false, {
+                command: restoredOngoingRequest.command,
+                requestID: restoredOngoingRequest.requestID,
+            });
+            // Clear PERSISTED_ONGOING_REQUESTS since it's already in the queue
+            Onyx.set(ONYXKEYS.PERSISTED_ONGOING_REQUESTS, null);
+            ongoingRequest = null;
+            return;
+        }
+
+        // Request doesn't exist in queue and isn't being processed - roll it back
+        Log.info('[PersistedRequests] Restoring ongoing request from storage and rolling back to queue', false, {
+            command: restoredOngoingRequest.command,
+            requestID: restoredOngoingRequest.requestID,
+        });
+
+        // Roll back to queue
+        const rolledBackRequest = {...restoredOngoingRequest, isRollback: true};
+        persistedRequests.unshift(rolledBackRequest);
+        Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, persistedRequests);
+
+        // Clear PERSISTED_ONGOING_REQUESTS
+        Onyx.set(ONYXKEYS.PERSISTED_ONGOING_REQUESTS, null);
+        ongoingRequest = null;
     },
 });
 
@@ -159,8 +225,13 @@ function processNextRequest(): Request | null {
     ongoingRequest = persistedRequests.length > 0 ? (persistedRequests.at(0) ?? null) : null;
 
     // Create a new array without the first element
-    const newPersistedRequests = persistedRequests.slice(1);
+   const newPersistedRequests = persistedRequests.slice(1);
+    Log.info('[PersistedRequests] processNextRequest - persistedRequests', false, {persistedRequests});
+    Log.info('[PersistedRequests] processNextRequest - ongoingRequest', false, {ongoingRequest});
+    Log.info('[PersistedRequests] processNextRequest - newPersistedRequests', false, {newPersistedRequests});
     persistedRequests = newPersistedRequests;
+
+    Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, newPersistedRequests);
 
     if (ongoingRequest && ongoingRequest.persistWhenOngoing) {
         Onyx.set(ONYXKEYS.PERSISTED_ONGOING_REQUESTS, ongoingRequest);
@@ -176,6 +247,18 @@ function rollbackOngoingRequest() {
 
     // Prepend ongoingRequest to persistedRequests
     persistedRequests.unshift({...ongoingRequest, isRollback: true});
+    const rolledBackRequest = {...ongoingRequest, isRollback: true};
+    persistedRequests.unshift(rolledBackRequest);
+
+    // Capture command before clearing
+    const wasPersistedWhenOngoing = ongoingRequest.persistWhenOngoing;
+
+    Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, persistedRequests);
+
+    // Clear PERSISTED_ONGOING_REQUESTS if it was set
+    if (wasPersistedWhenOngoing) {
+        Onyx.set(ONYXKEYS.PERSISTED_ONGOING_REQUESTS, null);
+    }
 
     // Clear the ongoingRequest
     ongoingRequest = null;

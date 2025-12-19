@@ -157,8 +157,7 @@ function prepareRequest<TCommand extends ApiCommand>(
 function processRequest(request: OnyxRequest, type: ApiRequestType): Promise<void | Response> {
     // Write commands can be saved and retried, so push it to the SequentialQueue
     if (type === CONST.API_REQUEST_TYPE.WRITE) {
-        pushToSequentialQueue(request);
-        return Promise.resolve();
+        return pushToSequentialQueue(request) ?? Promise.resolve();
     }
 
     // Read requests are processed right away, but don't return the response to the caller

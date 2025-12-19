@@ -26,7 +26,7 @@ Onyx.connectWithoutView({
     callback: (val) => {
         Log.info('[PersistedRequests] hit Onyx connect callback', false, {isValNullish: val == null});
         persistedRequests = val ?? [];
-
+        console.log('[p] persistedRequests', persistedRequests);
         // Process any pending save operations that were queued before initialization
         if (pendingSaveOperations.length > 0) {
             Log.info(`[PersistedRequests] Processing pending save operations, size: ${pendingSaveOperations.length}`, false);
@@ -75,7 +75,7 @@ function getLength(): number {
     return persistedRequests.length + (ongoingRequest ? 1 : 0);
 }
 
-function save(requestToPersist: Request) {
+function save(requestToPersist: Request): Promise<void> | void {
     // If not initialized yet, queue the request for later processing
     if (!isInitialized) {
         Log.info('[PersistedRequests] Queueing request until initialization completes', false);
@@ -86,7 +86,7 @@ function save(requestToPersist: Request) {
     // If the command is not in the keepLastInstance array, add the new request as usual
     const requests = [...persistedRequests, requestToPersist];
     persistedRequests = requests;
-    Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, requests).then(() => {
+    return Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, requests).then(() => {
         Log.info(`[SequentialQueue] '${requestToPersist.command}' command queued. Queue length is ${getLength()}`);
     });
 }
@@ -114,7 +114,7 @@ function endRequestAndRemoveFromQueue(requestToRemove: Request) {
     });
 }
 
-function deleteRequestsByIndices(indices: number[]) {
+function deleteRequestsByIndices(indices: number[]): Promise<void> {
     // Create a Set from the indices array for efficient lookup
     const indicesSet = new Set(indices);
 
@@ -122,18 +122,18 @@ function deleteRequestsByIndices(indices: number[]) {
     persistedRequests = persistedRequests.filter((_, index) => !indicesSet.has(index));
 
     // Update the persisted requests in storage or state as necessary
-    Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, persistedRequests).then(() => {
+    return Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, persistedRequests).then(() => {
         Log.info(`Multiple (${indices.length}) requests removed from the queue. Queue length is ${persistedRequests.length}`);
     });
 }
 
-function update(oldRequestIndex: number, newRequest: Request) {
+function update(oldRequestIndex: number, newRequest: Request): Promise<void> {
     const requests = [...persistedRequests];
     const oldRequest = requests.at(oldRequestIndex);
     Log.info('[PersistedRequests] Updating a request', false, {oldRequest, newRequest, oldRequestIndex});
     requests.splice(oldRequestIndex, 1, newRequest);
     persistedRequests = requests;
-    Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, requests);
+    return Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, requests);
 }
 
 function updateOngoingRequest(newRequest: Request) {

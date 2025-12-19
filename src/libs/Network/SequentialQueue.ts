@@ -168,6 +168,7 @@ function process(): Promise<void> {
         .catch((error: RequestError) => {
             // On sign out we cancel any in flight requests from the user. Since that user is no longer signed in their requests should not be retried.
             // Duplicate records don't need to be retried as they just mean the record already exists on the server
+            console.log('[p] error', error);
             if (error.name === CONST.ERROR.REQUEST_CANCELLED || error.message === CONST.ERROR.DUPLICATE_RECORD || shouldFailAllRequests) {
                 if (shouldFailAllRequests) {
                     Onyx.update(requestToProcess.failureData ?? []);
@@ -321,26 +322,29 @@ onReconnection(flush);
 // Flush the queue when the persisted requests are initialized
 onPersistedRequestsInitialization(flush);
 
-function handleConflictActions(conflictAction: ConflictData, newRequest: OnyxRequest) {
+function handleConflictActions(conflictAction: ConflictData, newRequest: OnyxRequest): Promise<void> | void {
     if (conflictAction.type === 'push') {
-        savePersistedRequest(newRequest);
+        return savePersistedRequest(newRequest);
     } else if (conflictAction.type === 'replace') {
-        updatePersistedRequest(conflictAction.index, conflictAction.request ?? newRequest);
+        return updatePersistedRequest(conflictAction.index, conflictAction.request ?? newRequest);
     } else if (conflictAction.type === 'delete') {
-        deletePersistedRequestsByIndices(conflictAction.indices);
+        const deletePromise = deletePersistedRequestsByIndices(conflictAction.indices);
         if (conflictAction.pushNewRequest) {
-            savePersistedRequest(newRequest);
+            return deletePromise.then(() => savePersistedRequest(newRequest));
         }
         if (conflictAction.nextAction) {
-            handleConflictActions(conflictAction.nextAction, newRequest);
+            return deletePromise.then(() => handleConflictActions(conflictAction.nextAction!, newRequest));
         }
+        return deletePromise;
     } else {
         Log.info(`[SequentialQueue] No action performed to command ${newRequest.command} and it will be ignored.`);
     }
 }
 
-function push(newRequest: OnyxRequest) {
+function push(newRequest: OnyxRequest): Promise<void> | void {
     const {checkAndFixConflictingRequest} = newRequest;
+
+    let savePromise: Promise<void> | void;
 
     if (checkAndFixConflictingRequest) {
         const requests = getAllPersistedRequests();
@@ -350,24 +354,25 @@ function push(newRequest: OnyxRequest) {
         // don't try to serialize a function.
         // eslint-disable-next-line no-param-reassign
         delete newRequest.checkAndFixConflictingRequest;
-        handleConflictActions(conflictAction, newRequest);
+        savePromise = handleConflictActions(conflictAction, newRequest);
     } else {
         // Add request to Persisted Requests so that it can be retried if it fails
-        savePersistedRequest(newRequest);
+        savePromise = savePersistedRequest(newRequest);
     }
 
     // If we are offline we don't need to trigger the queue to empty as it will happen when we come back online
     if (isOffline()) {
-        return;
+        return savePromise;
     }
 
     // If the queue is running this request will run once it has finished processing the current batch
     if (isSequentialQueueRunning) {
         isReadyPromise.then(() => flush(true));
-        return;
+        return savePromise;
     }
 
     flush(true);
+    return savePromise;
 }
 
 function getCurrentRequest(): Promise<void> {

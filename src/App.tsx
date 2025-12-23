@@ -17,6 +17,7 @@ import {EnvironmentProvider} from './components/EnvironmentContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import FullScreenBlockingViewContextProvider from './components/FullScreenBlockingViewContextProvider';
 import FullScreenLoaderContextProvider from './components/FullScreenLoaderContext';
+import GlobalLoggingFAB from './components/GlobalLoggingFAB';
 import HTMLEngineProvider from './components/HTMLEngineProvider';
 import InitialURLContextProvider from './components/InitialURLContextProvider';
 import {InputBlurContextProvider} from './components/InputBlurContext';
@@ -140,6 +141,7 @@ function App() {
                                             <Expensify />
                                         </ColorSchemeWrapper>
                                     </ErrorBoundary>
+                                    <GlobalLoggingFAB />
                                     <NavigationBar />
                                 </ComposeProviders>
                             </View>

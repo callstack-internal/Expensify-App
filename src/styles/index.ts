@@ -1660,6 +1660,26 @@ const staticStyles = (theme: ThemeColors) =>
             zIndex: 10,
         },
 
+        globalLoggingFABContainer: {
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            zIndex: 1000,
+        },
+
+        globalLoggingFAB: {
+            width: variables.componentSizeNormal,
+            height: variables.componentSizeNormal,
+            borderRadius: variables.componentSizeNormal / 2,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: theme.shadow,
+            shadowOffset: {width: 0, height: 4},
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 5,
+        },
+
         topBarLabel: {
             color: theme.text,
             fontSize: variables.fontSizeXLarge,

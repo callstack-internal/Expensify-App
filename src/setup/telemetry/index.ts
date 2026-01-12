@@ -18,7 +18,7 @@ export default function (): void {
         tracesSampleRate: 1.0,
         profilesSampleRate: Platform.OS === 'android' ? 0 : 1.0,
         enableAutoPerformanceTracing: true,
-        enableUserInteractionTracing: true,
+        enableUserInteractionTracing: false,
         integrations,
         environment: CONFIG.ENVIRONMENT,
         release: `${pkg.name}@${pkg.version}`,

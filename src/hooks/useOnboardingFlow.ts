@@ -3,7 +3,6 @@ import {hasCompletedGuidedSetupFlowSelector, tryNewDotOnyxSelector} from '@selec
 import {emailSelector} from '@selectors/Session';
 import {useEffect, useMemo, useRef} from 'react';
 import {InteractionManager} from 'react-native';
-import {startOnboardingFlow} from '@libs/actions/Welcome/OnboardingFlow';
 import Log from '@libs/Log';
 import getCurrentUrl from '@libs/Navigation/currentUrl';
 import Navigation, {navigationRef} from '@libs/Navigation/Navigation';
@@ -19,7 +18,10 @@ import isLoadingOnyxValue from '@src/types/utils/isLoadingOnyxValue';
 import useOnyx from './useOnyx';
 
 /**
- * Hook to handle redirection to the onboarding flow based on the user's onboarding status
+ * Hook to report the user's onboarding status
+ *
+ * NOTE: This hook no longer triggers navigation. All onboarding redirects
+ * are handled by the OnboardingGuard in RootStackRouter.
  *
  * Warning: This hook should be used only once in the app
  */
@@ -37,8 +39,8 @@ function useOnboardingFlowRouter() {
 
     const [sessionEmail] = useOnyx(ONYXKEYS.SESSION, {canBeMissing: true, selector: emailSelector});
     const isLoggingInAsNewSessionUser = isLoggingInAsNewUser(currentUrl, sessionEmail);
-    const startedOnboardingFlowRef = useRef(false);
     const started2FAFlowRef = useRef(false);
+    const triggeredOnboardingNavigationRef = useRef(false);
     const [tryNewDot, tryNewDotMetadata] = useOnyx(ONYXKEYS.NVP_TRY_NEW_DOT, {
         selector: tryNewDotOnyxSelector,
         canBeMissing: true,
@@ -81,7 +83,6 @@ function useOnboardingFlowRouter() {
 
             if (shouldShowRequire2FAPage) {
                 if (started2FAFlowRef.current) {
-                    startedOnboardingFlowRef.current = false;
                     return;
                 }
                 started2FAFlowRef.current = true;
@@ -106,6 +107,10 @@ function useOnboardingFlowRouter() {
 
             const isOnboardingCompleted = hasCompletedGuidedSetupFlowSelector(onboardingValues) && onboardingValues?.testDriveModalDismissed !== false;
 
+            // Check if we're already on an onboarding screen (e.g., page refresh on onboarding route)
+            // If so, don't trigger navigation to avoid overriding the current onboarding screen
+            const isAlreadyOnOnboarding = currentUrl.includes(`/${ROUTES.ONBOARDING_ROOT.route}`);
+
             if (CONFIG.IS_HYBRID_APP) {
                 // For single entries, such as using the Travel feature from OldDot, we don't want to show onboarding
                 if (isSingleNewDotEntry) {
@@ -117,36 +122,21 @@ function useOnboardingFlowRouter() {
                     Navigation.navigate(ROUTES.EXPLANATION_MODAL_ROOT);
                 }
 
-                // But if the hybrid app onboarding is completed, but NewDot onboarding is not completed, we start NewDot onboarding flow
-                // This is a special case when user created an account from NewDot without finishing the onboarding flow and then logged in from OldDot
-                if (isHybridAppOnboardingCompleted === true && isOnboardingCompleted === false && !startedOnboardingFlowRef.current) {
-                    startedOnboardingFlowRef.current = true;
-                    Log.info('[Onboarding] Hybrid app onboarding is completed, but NewDot onboarding is not completed, starting NewDot onboarding flow');
-                    startOnboardingFlow({
-                        onboardingValuesParam: onboardingValues,
-                        isUserFromPublicDomain: !!account?.isFromPublicDomain,
-                        hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
-                        currentOnboardingCompanySize,
-                        currentOnboardingPurposeSelected,
-                        onboardingInitialPath,
-                        onboardingValues,
-                    });
+                // For HybridApp, trigger navigation if onboarding is incomplete
+                // The OnboardingGuard will intercept and redirect to the appropriate onboarding screen
+                if (isHybridAppOnboardingCompleted === true && isOnboardingCompleted === false && !triggeredOnboardingNavigationRef.current && !isAlreadyOnOnboarding) {
+                    triggeredOnboardingNavigationRef.current = true;
+                    Log.info('[Onboarding] Triggering navigation for incomplete onboarding (guard will redirect)');
+                    Navigation.navigate(ROUTES.HOME);
                 }
             }
 
-            // If the user is not transitioning from OldDot to NewDot, we should start NewDot onboarding flow if it's not completed yet
-            if (!CONFIG.IS_HYBRID_APP && isOnboardingCompleted === false && !startedOnboardingFlowRef.current) {
-                startedOnboardingFlowRef.current = true;
-                Log.info('[Onboarding] Not a hybrid app, NewDot onboarding is not completed, starting NewDot onboarding flow');
-                startOnboardingFlow({
-                    onboardingValuesParam: onboardingValues,
-                    isUserFromPublicDomain: !!account?.isFromPublicDomain,
-                    hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
-                    currentOnboardingCompanySize,
-                    currentOnboardingPurposeSelected,
-                    onboardingInitialPath,
-                    onboardingValues,
-                });
+            // For standalone app, trigger navigation if onboarding is incomplete
+            // The OnboardingGuard will intercept and redirect to the appropriate onboarding screen
+            if (!CONFIG.IS_HYBRID_APP && isOnboardingCompleted === false && !triggeredOnboardingNavigationRef.current && !isAlreadyOnOnboarding) {
+                triggeredOnboardingNavigationRef.current = true;
+                Log.info('[Onboarding] Triggering navigation for incomplete onboarding (guard will redirect)');
+                Navigation.navigate(ROUTES.HOME);
             }
         });
 

@@ -30,9 +30,7 @@ import ROUTES from '@src/ROUTES';
 import type {Account, Report} from '@src/types/onyx';
 import {doneCheckingPublicRoom, navigateToConciergeChat, openReport} from './Report';
 import {canAnonymousUserAccessRoute, isAnonymousUser, signOutAndRedirectToSignIn, waitForUserSignIn} from './Session';
-import {isOnboardingFlowCompleted, setOnboardingErrorMessage} from './Welcome';
-import {startOnboardingFlow} from './Welcome/OnboardingFlow';
-import type {OnboardingCompanySize, OnboardingPurpose} from './Welcome/OnboardingFlow';
+import {setOnboardingErrorMessage} from './Welcome';
 
 let isNetworkOffline = false;
 let networkStatus: NetworkStatus;
@@ -260,14 +258,7 @@ function openLink(href: string, environmentURL: string, isAttachment = false) {
     openExternalLink(href);
 }
 
-function openReportFromDeepLink(
-    url: string,
-    currentOnboardingPurposeSelected: OnyxEntry<OnboardingPurpose>,
-    currentOnboardingCompanySize: OnyxEntry<OnboardingCompanySize>,
-    onboardingInitialPath: OnyxEntry<string>,
-    reports: OnyxCollection<Report>,
-    isAuthenticated: boolean,
-) {
+function openReportFromDeepLink(url: string, reports: OnyxCollection<Report>, isAuthenticated: boolean) {
     const reportID = getReportIDFromLink(url);
 
     if (reportID && !isAuthenticated) {
@@ -393,23 +384,11 @@ function openReportFromDeepLink(
                             handleDeeplinkNavigation();
                             return;
                         }
-                        // We need skip deeplinking if the user hasn't completed the guided setup flow.
-                        isOnboardingFlowCompleted({
-                            onNotCompleted: () => {
-                                Log.info('[Onboarding] User has not completed the guided setup flow, starting onboarding flow from deep link');
-                                startOnboardingFlow({
-                                    onboardingValuesParam: val,
-                                    hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
-                                    isUserFromPublicDomain: !!account?.isFromPublicDomain,
-                                    currentOnboardingPurposeSelected,
-                                    currentOnboardingCompanySize,
-                                    onboardingInitialPath,
-                                    onboardingValues: val,
-                                });
-                            },
-                            onCompleted: handleDeeplinkNavigation,
-                            onCanceled: handleDeeplinkNavigation,
-                        });
+
+                        // NOTE: Onboarding redirects are now handled by the OnboardingGuard in RootStackRouter.
+                        // If the user hasn't completed onboarding, the guard will automatically redirect
+                        // to the appropriate onboarding screen when navigation is attempted.
+                        handleDeeplinkNavigation();
                     });
                 },
             });

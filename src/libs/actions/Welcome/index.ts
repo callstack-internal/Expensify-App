@@ -42,6 +42,17 @@ function onServerDataReady(): Promise<void> {
 }
 
 let isOnboardingInProgress = false;
+
+/**
+ * @deprecated This function has hidden navigation side effects via callbacks.
+ * Use the OnboardingGuard in RootStackRouter instead, which handles all onboarding
+ * redirects automatically without requiring explicit callback handling.
+ *
+ * Migration: Remove calls to this function. The guard system will automatically
+ * redirect to onboarding when navigation is attempted if onboarding is incomplete.
+ *
+ * @see src/libs/Navigation/guards/OnboardingGuard.ts
+ */
 function isOnboardingFlowCompleted({onCompleted, onNotCompleted, onCanceled}: HasCompletedOnboardingFlowProps) {
     isOnboardingFlowStatusKnownPromise.then(() => {
         // Don't trigger onboarding if we are showing the require 2FA page

@@ -1,9 +1,11 @@
-import type {CommonActions, RouterConfigOptions, StackActionType, StackNavigationState} from '@react-navigation/native';
-import {findFocusedRoute, StackRouter} from '@react-navigation/native';
+import {CommonActions, StackRouter} from '@react-navigation/native';
+import type {RouterConfigOptions, StackActionType, StackNavigationState} from '@react-navigation/native';
 import type {ParamListBase} from '@react-navigation/routers';
-import {isFullScreenName, isOnboardingFlowName} from '@libs/Navigation/helpers/isNavigatorName';
+import {createGuardContext, evaluateGuards} from '@libs/Navigation/guards';
+import getAdaptedStateFromPath from '@libs/Navigation/helpers/getAdaptedStateFromPath';
+import {isFullScreenName} from '@libs/Navigation/helpers/isNavigatorName';
 import isSideModalNavigator from '@libs/Navigation/helpers/isSideModalNavigator';
-import * as Welcome from '@userActions/Welcome';
+import {linkingConfig} from '@libs/Navigation/linkingConfig';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
 import {
@@ -56,21 +58,6 @@ function isPreloadAction(action: RootStackNavigatorAction): action is PreloadAct
     return action.type === CONST.NAVIGATION.ACTION_TYPE.PRELOAD;
 }
 
-function shouldPreventReset(state: StackNavigationState<ParamListBase>, action: CommonActions.Action | StackActionType) {
-    if (action.type !== CONST.NAVIGATION_ACTIONS.RESET || !action?.payload) {
-        return false;
-    }
-    const currentFocusedRoute = findFocusedRoute(state);
-    const targetFocusedRoute = findFocusedRoute(action?.payload);
-
-    // We want to prevent the user from navigating back to a non-onboarding screen if they are currently on an onboarding screen
-    if (isOnboardingFlowName(currentFocusedRoute?.name) && !isOnboardingFlowName(targetFocusedRoute?.name)) {
-        Welcome.setOnboardingErrorMessage('onboarding.purpose.errorBackButton');
-        return true;
-    }
-
-    return false;
-}
 
 function isNavigatingToModalFromModal(state: StackNavigationState<ParamListBase>, action: CommonActions.Action | StackActionType): action is PushActionType {
     if (action.type !== CONST.NAVIGATION.ACTION_TYPE.PUSH) {
@@ -90,6 +77,39 @@ function RootStackRouter(options: RootStackNavigatorRouterOptions) {
     return {
         ...stackRouter,
         getStateForAction(state: StackNavigationState<ParamListBase>, action: RootStackNavigatorAction, configOptions: RouterConfigOptions) {
+            // Evaluate navigation guards
+            const guardContext = createGuardContext();
+            const guardResult = evaluateGuards(state, action, guardContext);
+
+            if (guardResult.type === 'BLOCK') {
+                // Block navigation by returning unchanged state
+                syncBrowserHistory(state);
+                return state;
+            }
+
+            if (guardResult.type === 'REDIRECT') {
+                // Convert the route path to a navigation state using the linking config
+                const redirectState = getAdaptedStateFromPath(guardResult.route, linkingConfig.config);
+
+                if (!redirectState || !redirectState.routes) {
+                    // If we can't parse the route, fall back to allowing navigation
+                    return stackRouter.getStateForAction(state, action as CommonActions.Action | StackActionType, configOptions);
+                }
+
+                // Create a RESET action with the redirect state and process it through the stack router
+                // This ensures the state is properly formatted and all required properties are set
+                const resetAction = CommonActions.reset({
+                    index: redirectState.index ?? redirectState.routes.length - 1,
+                    routes: redirectState.routes,
+                });
+
+                // Recursively process the reset action through the stack router
+                // This bypasses guard evaluation to prevent infinite loops
+                return stackRouter.getStateForAction(state, resetAction, configOptions);
+            }
+
+            // Guard result is ALLOW - continue with existing logic
+
             if (isPreloadAction(action) && action.payload.name === state.routes.at(-1)?.name) {
                 return state;
             }
@@ -121,11 +141,8 @@ function RootStackRouter(options: RootStackNavigatorRouterOptions) {
                 return handlePushFullscreenAction(state, action, configOptions, stackRouter);
             }
 
-            // Don't let the user navigate back to a non-onboarding screen if they are currently on an onboarding screen and it's not finished.
-            if (shouldPreventReset(state, action)) {
-                syncBrowserHistory(state);
-                return state;
-            }
+            // NOTE: Onboarding navigation prevention is now handled by OnboardingGuard (see guards/OnboardingGuard.ts)
+            // The guard blocks RESET actions that try to navigate away from onboarding screens
 
             if (isNavigatingToModalFromModal(state, action)) {
                 return handleNavigatingToModalFromModal(state, action, configOptions, stackRouter);

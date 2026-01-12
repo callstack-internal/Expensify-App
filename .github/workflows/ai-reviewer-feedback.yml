@@ -1,0 +1,27 @@
+name: AI Reviewer Feedback Collection
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+on:
+  schedule:
+    # Runs every hour
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  collect-feedback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+
+      - name: Setup Node
+        uses: ./.github/actions/composite/setupNode
+
+      - name: Collect AI Reviewer Feedback
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx ts-node .github/scripts/collectAIReviewerFeedback.ts

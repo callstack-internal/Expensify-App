@@ -61,6 +61,13 @@ const CONST = {
     ACTION_EDIT: 'ACTION_EDIT',
     ACTION_REQUIRED: 'ACTION_REQUIRED',
     ACTION_HIDE_DUPLICATE: 'ACTION_HIDE_DUPLICATE',
+    AI_REVIEWER_FEEDBACK: {
+        LABEL: 'AIReviewerFeedback',
+        MAINTAINERS_TEAM: typeof process.env.AI_REVIEWER_MAINTAINERS_TEAM === 'string' ? process.env.AI_REVIEWER_MAINTAINERS_TEAM : 'ai-reviewer-maintainers',
+        RULE_ID_PATTERN: /[A-Z]+-[0-9]+/,
+        POSITIVE_REACTION: '👍',
+        NEGATIVE_REACTION: '👎',
+    },
 } as const;
 
 export default CONST;

@@ -50,8 +50,12 @@ echo "Comment approved: $COMMENT_STATUS_REASON"
 COMMIT_ID=$(gh api "/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')
 readonly COMMIT_ID
 
+# Append feedback footer to comment body
+FEEDBACK_FOOTER=$'\n\n---\n\nWas this suggestion helpful? React with 👍 or 👎 to help us improve.'
+BODY_WITH_FOOTER="${BODY_ARG}${FEEDBACK_FOOTER}"
+
 PAYLOAD=$(jq -n \
-    --arg body "$BODY_ARG" \
+    --arg body "$BODY_WITH_FOOTER" \
     --arg path "$PATH_ARG" \
     --argjson line "$LINE_ARG" \
     --arg commit_id "$COMMIT_ID" \

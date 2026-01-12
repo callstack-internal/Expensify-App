@@ -28,7 +28,7 @@ const ExpensifyCardContext = createContext<ExpensifyCardContextProviderProps>({
  * Context to display revealed expensify card data and pass it between screens.
  */
 function ExpensifyCardContextProvider({children}: PropsWithChildren) {
-    const [cardList] = useOnyx(ONYXKEYS.CARD_LIST, {selector: filterPersonalCards, canBeMissing: false});
+    const [cardList] = useOnyx(ONYXKEYS.CARD_LIST, {selector: filterPersonalCards, canBeMissing: true});
     const [cardsDetails, setCardsDetails] = useState<Record<number, ExpensifyCardDetails | null>>({});
     const [isCardDetailsLoading, setIsCardDetailsLoading] = useState<Record<number, boolean>>({});
     const [cardsDetailsErrors, setCardsDetailsErrors] = useState<Record<number, string>>({});

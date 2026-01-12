@@ -65,14 +65,15 @@ if (CONFIG.IS_HYBRID_APP) {
 
 /**
  * Registry of all navigation guards
- * Guards are stored in priority order (highest priority first)
+ * Guards are evaluated in the order they are registered
  */
 const guards: NavigationGuard[] = [];
 
 /**
  * Registers a navigation guard
  *
- * Guards are automatically sorted by priority (highest first) after registration.
+ * Guards are evaluated in registration order.
+ * Register critical guards (e.g., 2FA) before less critical ones (e.g., onboarding).
  *
  * @param guard - The guard to register
  *
@@ -80,7 +81,6 @@ const guards: NavigationGuard[] = [];
  * ```typescript
  * registerGuard({
  *   name: 'AuthGuard',
- *   priority: 100,
  *   shouldApply: (state, action, context) => !context.isAuthenticated,
  *   evaluate: (state, action, context) => ({ type: 'REDIRECT', route: ROUTES.SIGN_IN_MODAL })
  * });
@@ -88,8 +88,6 @@ const guards: NavigationGuard[] = [];
  */
 function registerGuard(guard: NavigationGuard): void {
     guards.push(guard);
-    // Sort guards by priority (highest first)
-    guards.sort((a, b) => b.priority - a.priority);
 }
 
 /**
@@ -122,7 +120,7 @@ function createGuardContext(): GuardContext {
 /**
  * Evaluates all registered guards for the given navigation action
  *
- * Guards are evaluated in priority order (highest priority first).
+ * Guards are evaluated in registration order.
  * Evaluation short-circuits on the first BLOCK or REDIRECT result.
  *
  * @param state - Current navigation state
@@ -150,7 +148,7 @@ function createGuardContext(): GuardContext {
  * ```
  */
 function evaluateGuards(state: NavigationState, action: NavigationAction, context: GuardContext): GuardResult {
-    // Evaluate guards in priority order
+    // Evaluate guards in registration order
     for (const guard of guards) {
         // Check if guard applies to this navigation action
         if (!guard.shouldApply(state, action, context)) {
@@ -188,9 +186,10 @@ function clearGuards(): void {
     guards.length = 0;
 }
 
-// Register guards (in priority order for clarity, though they're auto-sorted)
-registerGuard(TwoFactorAuthGuard); // Priority 1000
-registerGuard(OnboardingGuard); // Priority 500
+// Register guards in order of evaluation
+// IMPORTANT: Order matters! Critical guards (2FA) should be registered first
+registerGuard(TwoFactorAuthGuard); // Must run first - blocks all navigation when 2FA required
+registerGuard(OnboardingGuard); // Runs second - redirects to onboarding if not completed
 
 export {registerGuard, createGuardContext, evaluateGuards, getRegisteredGuards, clearGuards};
 export type {NavigationGuard, GuardResult, GuardContext};

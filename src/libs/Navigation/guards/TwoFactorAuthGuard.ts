@@ -56,11 +56,11 @@ function getTargetRouteFromAction(state: NavigationState, action: NavigationActi
  * Prevents navigation when 2FA setup is required, except to routes
  * that are part of the 2FA setup flow.
  *
- * Priority: 1000 (Critical - must run before other guards)
+ * NOTE: This guard must be registered before other guards to ensure
+ * 2FA setup takes precedence over other navigation flows.
  */
 const TwoFactorAuthGuard: NavigationGuard = {
     name: 'TwoFactorAuthGuard',
-    priority: 1000,
 
     shouldApply(state: NavigationState, action: NavigationAction, context: GuardContext): boolean {
         // Only apply if 2FA setup is required

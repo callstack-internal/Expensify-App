@@ -61,14 +61,13 @@ type GuardContext = {
  * - Block navigation entirely (BLOCK)
  * - Redirect to a different route (REDIRECT)
  *
- * Guards are evaluated in priority order (highest first).
+ * Guards are evaluated in registration order.
  * The first guard to return BLOCK or REDIRECT short-circuits evaluation.
  *
  * @example
  * ```typescript
  * const MyGuard: NavigationGuard = {
  *   name: 'MyGuard',
- *   priority: 100,
  *
  *   shouldApply(state, action, context) {
  *     // Return true if this guard should evaluate for this navigation
@@ -85,18 +84,6 @@ type GuardContext = {
 interface NavigationGuard {
     /** Guard name for debugging and logging */
     name: string;
-
-    /**
-     * Guard priority - higher values run first
-     *
-     * Priority Guidelines:
-     * - 1000+: Critical system guards (2FA, account issues)
-     * - 500-999: Onboarding and setup flows
-     * - 100-499: Authentication and authorization
-     * - 50-99: Feature-specific permissions
-     * - 1-49: Fallback and default behaviors
-     */
-    priority: number;
 
     /**
      * Determines if this guard should evaluate for the given navigation action

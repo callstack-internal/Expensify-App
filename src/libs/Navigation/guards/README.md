@@ -4,14 +4,14 @@ This directory contains the centralized navigation guard system that intercepts 
 
 ## Overview
 
-The guard system provides a single architectural point for handling all navigation redirects in the application. Guards are evaluated in priority order before any navigation state changes occur, making navigation behavior predictable and testable.
+The guard system provides a single architectural point for handling all navigation redirects in the application. Guards are evaluated in registration order before any navigation state changes occur, making navigation behavior predictable and testable.
 
 ### Key Benefits
 
 - **Single source of truth**: All redirect logic in one place
 - **No hidden side effects**: Guards explicitly control navigation
 - **Testable**: Guards can be unit tested in isolation
-- **Predictable**: Priority-based execution with clear short-circuit behavior
+- **Predictable**: Registration-order execution with clear short-circuit behavior
 - **Extensible**: Easy to add new guard types for auth, permissions, etc.
 
 ## Architecture
@@ -23,7 +23,7 @@ RootStackRouter.getStateForAction()
     ↓
 evaluateGuards(state, action, context)
     ↓
-For each guard (by priority):
+For each guard (in registration order):
     - shouldApply(state, action, context)  // Should this guard evaluate?
     - evaluate(state, action, context)     // Returns ALLOW | BLOCK | REDIRECT
     ↓
@@ -91,12 +91,9 @@ import type {GuardContext, GuardResult, NavigationGuard} from './types';
  *
  * Redirects unauthenticated users to sign-in when they attempt
  * to access protected routes.
- *
- * Priority: 100 (Authentication and authorization)
  */
 const AuthenticationGuard: NavigationGuard = {
   name: 'AuthenticationGuard',
-  priority: 100,
 
   shouldApply(state: NavigationState, action: NavigationAction, context: GuardContext): boolean {
     // Only apply if user is not authenticated
@@ -131,23 +128,26 @@ import AuthenticationGuard from './AuthenticationGuard';
 
 // ... existing code ...
 
-// Register guards (in priority order for clarity)
-registerGuard(TwoFactorAuthGuard);      // Priority 1000
-registerGuard(OnboardingGuard);         // Priority 500
-registerGuard(AuthenticationGuard);     // Priority 100  ← Add your guard
+// Register guards in order of evaluation
+// IMPORTANT: Order matters! Register critical guards first
+registerGuard(TwoFactorAuthGuard);      // Must run first
+registerGuard(OnboardingGuard);         // Runs second
+registerGuard(AuthenticationGuard);     // ← Add your guard here
 ```
 
 That's it! The guard will automatically be evaluated for all navigation attempts.
 
-## Guard Priority Guidelines
+## Guard Registration Order
 
-Guards are evaluated in priority order (highest first). Use these guidelines:
+Guards are evaluated in the order they are registered. Follow these guidelines:
 
-- **1000+**: Critical system guards (2FA, account issues, system-wide blocks)
-- **500-999**: Onboarding and setup flows
-- **100-499**: Authentication and authorization
-- **50-99**: Feature-specific permissions (workspace access, etc.)
-- **1-49**: Fallback and default behaviors
+1. **Critical system guards** - 2FA, account issues, system-wide blocks (e.g., TwoFactorAuthGuard)
+2. **Onboarding and setup flows** - User onboarding, initial setup (e.g., OnboardingGuard)
+3. **Authentication and authorization** - Login requirements, permissions
+4. **Feature-specific permissions** - Workspace access, feature flags
+5. **Fallback and default behaviors** - Catch-all guards
+
+Register guards in order of importance - the most critical guards should be registered first.
 
 ## Best Practices
 
@@ -282,7 +282,7 @@ You can inspect all registered guards:
 import {getRegisteredGuards} from '@libs/Navigation/guards';
 
 console.log(getRegisteredGuards());
-// Returns array of guards sorted by priority
+// Returns array of guards in registration order
 ```
 
 ### Clear Guards (Testing Only)
@@ -327,7 +327,7 @@ The guard system is designed to handle all redirect scenarios:
 - **Network status**: Prevent navigation when offline
 - **Paywalls**: Redirect free users trying to access premium features
 
-Simply create a new guard following the patterns above and register it with the appropriate priority.
+Simply create a new guard following the patterns above and register it in the appropriate order.
 
 ## Performance
 
@@ -335,7 +335,7 @@ The guard system is designed for minimal performance impact:
 
 - **Synchronous evaluation**: No async operations or promises
 - **Early exit**: `shouldApply()` allows guards to skip evaluation quickly
-- **Priority ordering**: Most common guards can run first
+- **Registration order**: Critical guards run first to short-circuit early
 - **Single context creation**: Context created once per navigation attempt
 - **No re-renders**: Guards don't cause React re-renders
 

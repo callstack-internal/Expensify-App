@@ -106,12 +106,9 @@ function isCurrentlyOnOnboarding(state: NavigationState): boolean {
  * - Redirects to onboarding if not completed
  * - Prevents back navigation during onboarding
  * - Handles HybridApp special cases
- *
- * Priority: 500 (Onboarding and setup flows)
  */
 const OnboardingGuard: NavigationGuard = {
     name: 'OnboardingGuard',
-    priority: 500,
 
     shouldApply(state: NavigationState, action: NavigationAction, context: GuardContext): boolean {
         // Don't apply if still loading

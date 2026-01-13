@@ -105,7 +105,9 @@ function useOnboardingFlowRouter() {
                 return;
             }
 
-            const isOnboardingCompleted = hasCompletedGuidedSetupFlowSelector(onboardingValues) && onboardingValues?.testDriveModalDismissed !== false;
+            // Check only guided setup flow completion, not test drive modal
+            // Test drive modal is a separate overlay and shouldn't block navigation
+            const isOnboardingCompleted = hasCompletedGuidedSetupFlowSelector(onboardingValues);
 
             // Check if we're already on an onboarding screen (e.g., page refresh on onboarding route)
             // If so, don't trigger navigation to avoid overriding the current onboarding screen

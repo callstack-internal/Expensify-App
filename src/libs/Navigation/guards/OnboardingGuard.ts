@@ -144,9 +144,9 @@ const OnboardingGuard: NavigationGuard = {
             return {type: 'ALLOW'};
         }
 
-        // If already on an onboarding screen, allow navigation within onboarding
+        // If already on an onboarding screen, only allow navigation within onboarding
         if (isCurrentlyOnOnboarding(state)) {
-            // Still prevent back navigation away from onboarding
+            // Block back navigation away from onboarding
             if (isNavigatingAwayFromOnboarding(state, action)) {
                 Welcome.setOnboardingErrorMessage('onboarding.purpose.errorBackButton');
                 Log.info('[OnboardingGuard] Blocked navigation away from onboarding');
@@ -156,8 +156,17 @@ const OnboardingGuard: NavigationGuard = {
                 };
             }
 
-            // Allow all other navigation while on onboarding
-            return {type: 'ALLOW'};
+            // Allow navigation TO onboarding screens
+            if (isNavigatingToOnboarding(action)) {
+                return {type: 'ALLOW'};
+            }
+
+            // Block navigation to non-onboarding screens while onboarding incomplete
+            Log.info('[OnboardingGuard] Blocked navigation to non-onboarding screen while onboarding is active');
+            return {
+                type: 'BLOCK',
+                reason: 'Cannot navigate away from onboarding',
+            };
         }
 
         // If already navigating to onboarding, allow it

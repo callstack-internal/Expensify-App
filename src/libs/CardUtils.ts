@@ -146,6 +146,7 @@ function isCardClosed(card: Card) {
 }
 
 function mergeCardListWithWorkspaceFeeds(workspaceFeeds: Record<string, WorkspaceCardsList | undefined>, cardList: CardList | undefined) {
+    console.log('TEST mergeCardListWithWorkspaceFeeds');
     const feedCards: CardList = {};
     for (const card of Object.values(cardList ?? {})) {
         if (!isCard(card)) {
@@ -166,10 +167,10 @@ function mergeCardListWithWorkspaceFeeds(workspaceFeeds: Record<string, Workspac
     return feedCards;
 }
 
-function filterCardsHiddenFromSearch(cardList: CardList | undefined) {
+function filterPersonalCardsHiddenFromSearch(cardList: CardList | undefined) {
     const filteredCardList: CardList = {};
     for (const card of Object.values(cardList ?? {})) {
-        if (!isCard(card) || isCardHiddenFromSearch(card)) {
+        if (!isCard(card) || isCardHiddenFromSearch(card) || !isPersonalCard(card)) {
             continue;
         }
         filteredCardList[card.cardID] = card;
@@ -980,7 +981,7 @@ export {
     isMaskedCardNumberEqual,
     splitMaskedCardNumber,
     isCardAlreadyAssigned,
-    filterCardsHiddenFromSearch,
+    filterPersonalCardsHiddenFromSearch,
 };
 
 export type {CompanyCardFeedIcons, CompanyCardBankIcons};

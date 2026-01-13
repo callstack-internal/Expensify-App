@@ -1,4 +1,4 @@
-import {filterPersonalCards, mergeCardListWithWorkspaceFeeds} from '@libs/CardUtils';
+import {mergeCardListWithWorkspaceFeeds} from '@libs/CardUtils';
 import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDerivedValueConfig';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -12,9 +12,7 @@ const personalAndWorkspaceCardListConfig = createOnyxDerivedValueConfig({
             return currentValue ?? (CONST.EMPTY_OBJECT as CardList);
         }
 
-        const personalCards = filterPersonalCards(cardList);
-
-        return mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, personalCards);
+        return mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, cardList);
     },
 });
 

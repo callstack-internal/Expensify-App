@@ -2,10 +2,11 @@ import {createPoliciesSelector} from '@selectors/Policy';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import {getCardFeedsForDisplay} from '@libs/CardFeedUtils';
+import {filterPersonalCards} from '@libs/CardUtils';
 import {areAllGroupPoliciesExpenseChatDisabled} from '@libs/PolicyUtils';
 import {createTypeMenuSections} from '@libs/SearchUIUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Policy, Session} from '@src/types/onyx';
+import type {CardList, Policy, Session} from '@src/types/onyx';
 import useCardFeedsForDisplay from './useCardFeedsForDisplay';
 import useCreateEmptyReportConfirmation from './useCreateEmptyReportConfirmation';
 import {useMemoizedLazyExpensifyIcons} from './useLazyAsset';
@@ -39,14 +40,22 @@ const currentUserLoginAndAccountIDSelector = (session: OnyxEntry<Session>) => ({
     email: session?.email,
     accountID: session?.accountID,
 });
+
+const selectorDefaultExpensifyCards = (cards: CardList | undefined) => {
+    const filteredCards = filterPersonalCards(cards);
+    const expensifyCards = getCardFeedsForDisplay({}, filteredCards);
+
+    return Object.values(expensifyCards)?.at(0);
+};
 /**
  * Get a list of all search groupings, along with their search items. Also returns the
  * currently focused search, based on the hash
  */
 const useSearchTypeMenuSections = () => {
-    const [allCards] = useOnyx(ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST, {canBeMissing: true});
-    const expensifyCards = useMemo(() => getCardFeedsForDisplay({}, allCards), [allCards]);
-    const defaultExpensifyCard = useMemo(() => Object.values(expensifyCards)?.at(0), [expensifyCards]);
+    const [defaultExpensifyCard] = useOnyx(ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST, {
+        canBeMissing: true,
+        selector: selectorDefaultExpensifyCards,
+    });
 
     const {defaultCardFeed, cardFeedsByPolicy} = useCardFeedsForDisplay();
 

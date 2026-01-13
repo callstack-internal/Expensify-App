@@ -40,7 +40,7 @@ Handle result:
 - **`types.ts`** - TypeScript interfaces and types for the guard system
 - **`index.ts`** - Guard registry, evaluator, and Onyx context management
 - **`OnboardingGuard.ts`** - Handles onboarding flow redirects
-- **`TwoFactorAuthGuard.ts`** - Handles 2FA requirement redirects
+- **`README.md`** - This documentation file
 
 ## Guard Types
 
@@ -130,12 +130,14 @@ import AuthenticationGuard from './AuthenticationGuard';
 
 // Register guards in order of evaluation
 // IMPORTANT: Order matters! Register critical guards first
-registerGuard(TwoFactorAuthGuard);      // Must run first
-registerGuard(OnboardingGuard);         // Runs second
-registerGuard(AuthenticationGuard);     // ← Add your guard here
+// Note: Currently only OnboardingGuard is active. Add future guards here:
+registerGuard(OnboardingGuard);         // Currently the only guard
+registerGuard(AuthenticationGuard);     // ← Add your new guard here
 ```
 
 That's it! The guard will automatically be evaluated for all navigation attempts.
+
+**Note:** TwoFactorAuthGuard was stashed for a future PR to keep this change small and focused.
 
 ## Guard Registration Order
 
@@ -270,8 +272,8 @@ describe('OnboardingGuard', () => {
 Guards log their decisions at the `info` level:
 
 ```
-[TwoFactorAuthGuard] Blocked navigation to /settings because 2FA setup is required
 [OnboardingGuard] Redirecting to onboarding: /onboarding/purpose
+[OnboardingGuard] Blocked navigation away from onboarding
 ```
 
 ### Inspect Registered Guards
@@ -343,10 +345,12 @@ The guard system is designed for minimal performance impact:
 
 For questions or issues with the guard system:
 
-1. Check the existing guards (OnboardingGuard, TwoFactorAuthGuard) for examples
+1. Check the existing OnboardingGuard implementation for examples
 2. Review this README for patterns and best practices
 3. Ask in the #expensify-open-source Slack channel
 4. Create an issue in the GitHub repository
+
+**Note:** TwoFactorAuthGuard will be added in a future PR as an example of adding additional guards.
 
 ---
 

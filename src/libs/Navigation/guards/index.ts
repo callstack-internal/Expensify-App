@@ -1,15 +1,14 @@
 import type {NavigationAction, NavigationState} from '@react-navigation/native';
+import {isSingleNewDotEntrySelector} from '@selectors/HybridApp';
 import Onyx from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
-import {isSingleNewDotEntrySelector} from '@selectors/HybridApp';
 import getCurrentUrl from '@libs/Navigation/currentUrl';
 import {isAnonymousUser} from '@userActions/Session';
 import CONFIG from '@src/CONFIG';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Account, Onboarding, Session} from '@src/types/onyx';
-import type {GuardContext, GuardResult, NavigationGuard} from './types';
 import OnboardingGuard from './OnboardingGuard';
-import TwoFactorAuthGuard from './TwoFactorAuthGuard';
+import type {GuardContext, GuardResult, NavigationGuard} from './types';
 
 /**
  * Module-level Onyx subscriptions for guard context
@@ -187,9 +186,8 @@ function clearGuards(): void {
 }
 
 // Register guards in order of evaluation
-// IMPORTANT: Order matters! Critical guards (2FA) should be registered first
-registerGuard(TwoFactorAuthGuard); // Must run first - blocks all navigation when 2FA required
-registerGuard(OnboardingGuard); // Runs second - redirects to onboarding if not completed
+// IMPORTANT: Order matters! Register critical guards first (e.g., 2FA, then onboarding)
+registerGuard(OnboardingGuard); // Redirects to onboarding if guided setup not completed
 
 export {registerGuard, createGuardContext, evaluateGuards, getRegisteredGuards, clearGuards};
 export type {NavigationGuard, GuardResult, GuardContext};

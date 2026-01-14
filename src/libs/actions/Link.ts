@@ -385,9 +385,6 @@ function openReportFromDeepLink(url: string, reports: OnyxCollection<Report>, is
                             return;
                         }
 
-                        // NOTE: Onboarding redirects are now handled by the OnboardingGuard in RootStackRouter.
-                        // If the user hasn't completed onboarding, the guard will automatically redirect
-                        // to the appropriate onboarding screen when navigation is attempted.
                         handleDeeplinkNavigation();
                     });
                 },

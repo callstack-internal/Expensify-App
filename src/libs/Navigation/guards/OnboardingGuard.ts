@@ -41,7 +41,6 @@ function isNavigatingAwayFromOnboarding(state: NavigationState, action: Navigati
     const currentFocusedRoute = findFocusedRoute(state);
     const targetFocusedRoute = findFocusedRoute(action.payload as NavigationState);
 
-    // Check if currently on onboarding and trying to navigate to non-onboarding
     return isOnboardingFlowName(currentFocusedRoute?.name) && !isOnboardingFlowName(targetFocusedRoute?.name);
 }
 
@@ -55,19 +54,15 @@ function isNavigatingToOnboarding(action: NavigationAction): boolean {
 
     const payload = action.payload as Record<string, unknown>;
 
-    // Check if navigating to ONBOARDING_MODAL_NAVIGATOR
     if ('name' in payload && payload.name === NAVIGATORS.ONBOARDING_MODAL_NAVIGATOR) {
         return true;
     }
 
-    // Check if the route starts with the onboarding prefix
     if ('name' in payload && typeof payload.name === 'string') {
         return payload.name === ROUTES.ONBOARDING_ROOT.route || payload.name.startsWith(`${ROUTES.ONBOARDING_ROOT.route}/`);
     }
 
-    // Check if it's a RESET action with onboarding routes
     if (action.type === 'RESET' && 'routes' in payload && Array.isArray(payload.routes)) {
-        // Check if any route in the RESET action is an onboarding route
         return payload.routes.some((route: unknown) => {
             if (typeof route === 'object' && route !== null && 'name' in route) {
                 const routeName = (route as Record<string, unknown>).name;
@@ -178,18 +173,15 @@ const OnboardingGuard: NavigationGuard = {
             };
         }
 
-        // Check if test drive modal should be shown
         if (shouldShowTestDriveModal(onboarding)) {
             if (isCurrentlyOnTestDriveModal(state)) {
                 return {type: 'ALLOW'};
             }
 
-            // If navigating TO test drive modal, allow it
             if (isNavigatingToOnboarding(action)) {
                 return {type: 'ALLOW'};
             }
 
-            // Not showing yet, redirect to test drive modal
             Log.info('[OnboardingGuard] Redirecting to test drive modal');
             return {
                 type: 'REDIRECT',
@@ -197,7 +189,6 @@ const OnboardingGuard: NavigationGuard = {
             };
         }
 
-        // Onboarding complete and test drive modal dismissed - allow all navigation
         return {type: 'ALLOW'};
     },
 };

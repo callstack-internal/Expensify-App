@@ -1,5 +1,6 @@
 import type {NavigationState} from '@react-navigation/native';
 import {DarkTheme, DefaultTheme, findFocusedRoute, getPathFromState, NavigationContainer} from '@react-navigation/native';
+import {hasCompletedGuidedSetupFlowSelector} from '@selectors/Onboarding';
 import React, {useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import {ScrollOffsetContext} from '@components/ScrollOffsetContextProvider';
 import useCurrentReportID from '@hooks/useCurrentReportID';
@@ -94,14 +95,8 @@ function NavigationRoot({authenticated, lastVisitedPath, initialUrl, onReady}: N
     const {shouldUseNarrowLayout} = useResponsiveLayout();
 
     const [account] = useOnyx(ONYXKEYS.ACCOUNT, {canBeMissing: true});
-    // Keep isOnboardingCompleted for migrated user modal check
     const [isOnboardingCompleted = true] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {
-        selector: (onboarding) => {
-            if (!onboarding || onboarding.hasCompletedGuidedSetupFlow === undefined) {
-                return true;
-            }
-            return onboarding.hasCompletedGuidedSetupFlow;
-        },
+        selector: hasCompletedGuidedSetupFlowSelector,
         canBeMissing: true,
     });
     const previousAuthenticated = usePrevious(authenticated);

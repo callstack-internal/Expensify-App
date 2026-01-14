@@ -20,9 +20,6 @@ import useOnyx from './useOnyx';
 /**
  * Hook to report the user's onboarding status
  *
- * NOTE: This hook no longer triggers navigation. All onboarding redirects
- * are handled by the OnboardingGuard in RootStackRouter.
- *
  * Warning: This hook should be used only once in the app
  */
 function useOnboardingFlowRouter() {
@@ -105,15 +102,7 @@ function useOnboardingFlowRouter() {
                 return;
             }
 
-            // NOTE: Test drive modal navigation is now handled by OnboardingGuard.
-            // After onboarding completes, testDriveModalDismissed is set to false, and the guard
-            // will automatically redirect to the test drive modal.
-
-            // Check only onboarding completion
             const isOnboardingCompleted = hasCompletedGuidedSetupFlowSelector(onboardingValues);
-
-            // Check if we're already on an onboarding screen (e.g., page refresh on onboarding route)
-            // If so, don't trigger navigation to avoid overriding the current onboarding screen
             const isAlreadyOnOnboarding = currentUrl.includes(`/${ROUTES.ONBOARDING_ROOT.route}`);
 
             if (CONFIG.IS_HYBRID_APP) {
@@ -122,13 +111,10 @@ function useOnboardingFlowRouter() {
                     return;
                 }
 
-                // When user is transitioning from OldDot to NewDot, we usually show the explanation modal
                 if (isHybridAppOnboardingCompleted === false) {
                     Navigation.navigate(ROUTES.EXPLANATION_MODAL_ROOT);
                 }
 
-                // For HybridApp, trigger navigation if onboarding is incomplete
-                // The OnboardingGuard will intercept and redirect to the appropriate onboarding screen
                 if (isHybridAppOnboardingCompleted === true && isOnboardingCompleted === false && !triggeredOnboardingNavigationRef.current && !isAlreadyOnOnboarding) {
                     triggeredOnboardingNavigationRef.current = true;
                     Log.info('[Onboarding] Triggering navigation for incomplete onboarding (guard will redirect)');
@@ -136,8 +122,6 @@ function useOnboardingFlowRouter() {
                 }
             }
 
-            // For standalone app, trigger navigation if onboarding is incomplete
-            // The OnboardingGuard will intercept and redirect to the appropriate onboarding screen
             if (!CONFIG.IS_HYBRID_APP && isOnboardingCompleted === false && !triggeredOnboardingNavigationRef.current && !isAlreadyOnOnboarding) {
                 triggeredOnboardingNavigationRef.current = true;
                 Log.info('[Onboarding] Triggering navigation for incomplete onboarding (guard will redirect)');

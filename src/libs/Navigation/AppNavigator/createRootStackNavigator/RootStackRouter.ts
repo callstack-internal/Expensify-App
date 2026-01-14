@@ -89,33 +89,25 @@ function handleNavigationGuards(
     const guardResult = evaluateGuards(state, action, guardContext);
 
     if (guardResult.type === 'BLOCK') {
-        // Block navigation by returning unchanged state
         syncBrowserHistory(state);
         return state;
     }
 
     if (guardResult.type === 'REDIRECT') {
-        // Convert the route path to a navigation state using the linking config
         const redirectState = getAdaptedStateFromPath(guardResult.route, linkingConfig.config);
 
         if (!redirectState || !redirectState.routes) {
-            // If we can't parse the route, fall back to allowing navigation
             return null;
         }
 
-        // Create a RESET action with the redirect state and process it through the stack router
-        // This ensures the state is properly formatted and all required properties are set
         const resetAction = CommonActions.reset({
             index: redirectState.index ?? redirectState.routes.length - 1,
             routes: redirectState.routes,
         });
 
-        // Recursively process the reset action through the stack router
-        // This bypasses guard evaluation to prevent infinite loops
         return stackRouter.getStateForAction(state, resetAction, configOptions);
     }
 
-    // Guard result is ALLOW - return null to continue with normal navigation
     return null;
 }
 
@@ -125,7 +117,7 @@ function RootStackRouter(options: RootStackNavigatorRouterOptions) {
     return {
         ...stackRouter,
         getStateForAction(state: StackNavigationState<ParamListBase>, action: RootStackNavigatorAction, configOptions: RouterConfigOptions) {
-            // Evaluate navigation guards - returns modified state if blocked/redirected, null if allowed
+            // Evaluate navigation guards
             const guardState = handleNavigationGuards(state, action, configOptions, stackRouter);
             if (guardState) {
                 return guardState;

@@ -1,6 +1,9 @@
 import type {NavigationAction, NavigationState} from '@react-navigation/native';
 import {findFocusedRoute} from '@react-navigation/native';
+import {tryNewDotOnyxSelector} from '@selectors/Onboarding';
+import Onyx from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
+import type {ValueOf} from 'type-fest';
 import {getOnboardingInitialPath} from '@libs/actions/Welcome/OnboardingFlow';
 import Log from '@libs/Log';
 import {isOnboardingFlowName} from '@libs/Navigation/helpers/isNavigatorName';
@@ -8,11 +11,65 @@ import * as Welcome from '@userActions/Welcome';
 import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
+import ONYXKEYS from '@src/ONYXKEYS';
 import type {Route} from '@src/ROUTES';
 import ROUTES from '@src/ROUTES';
 import {hasCompletedGuidedSetupFlowSelector} from '@src/selectors/Onboarding';
-import type {Onboarding} from '@src/types/onyx';
+import type {Account, Onboarding} from '@src/types/onyx';
 import type {GuardContext, GuardResult, NavigationGuard} from './types';
+
+type OnboardingPurpose = ValueOf<typeof CONST.ONBOARDING_CHOICES>;
+type OnboardingCompanySize = ValueOf<typeof CONST.ONBOARDING_COMPANY_SIZE>;
+
+let account: OnyxEntry<Account>;
+let onboarding: OnyxEntry<Onboarding>;
+let onboardingPurposeSelected: OnyxEntry<OnboardingPurpose>;
+let onboardingCompanySize: OnyxEntry<OnboardingCompanySize>;
+let onboardingLastVisitedPath: OnyxEntry<string>;
+let isHybridAppOnboardingCompleted: boolean | undefined;
+
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ACCOUNT,
+    callback: (value) => {
+        account = value;
+    },
+});
+
+Onyx.connectWithoutView({
+    key: ONYXKEYS.NVP_ONBOARDING,
+    callback: (value) => {
+        onboarding = value;
+    },
+});
+
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ONBOARDING_PURPOSE_SELECTED,
+    callback: (value) => {
+        onboardingPurposeSelected = value;
+    },
+});
+
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ONBOARDING_COMPANY_SIZE,
+    callback: (value) => {
+        onboardingCompanySize = value;
+    },
+});
+
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ONBOARDING_LAST_VISITED_PATH,
+    callback: (value) => {
+        onboardingLastVisitedPath = value;
+    },
+});
+
+Onyx.connectWithoutView({
+    key: ONYXKEYS.NVP_TRY_NEW_DOT,
+    callback: (value) => {
+        const result = tryNewDotOnyxSelector(value);
+        isHybridAppOnboardingCompleted = result.isHybridAppOnboardingCompleted;
+    },
+});
 
 /**
  * Checks if onboarding is completed
@@ -112,11 +169,11 @@ const OnboardingGuard: NavigationGuard = {
 
     shouldApply(state: NavigationState, action: NavigationAction, context: GuardContext): boolean {
         // Don't apply if still loading
-        if (context.isLoading || context.isLoadingApp) {
+        if (context.isLoading) {
             return false;
         }
 
-        if (context.account?.needsTwoFactorAuthSetup && !context.account?.requiresTwoFactorAuth) {
+        if (account?.needsTwoFactorAuthSetup && !account?.requiresTwoFactorAuth) {
             return false;
         }
 
@@ -133,8 +190,6 @@ const OnboardingGuard: NavigationGuard = {
     },
 
     evaluate(state: NavigationState, action: NavigationAction, context: GuardContext): GuardResult {
-        const {onboarding, account, isHybridAppOnboardingCompleted} = context;
-
         if (CONFIG.IS_HYBRID_APP && isHybridAppOnboardingCompleted === false) {
             if (isCurrentlyOnExplanationModal(state)) {
                 return {type: 'ALLOW'};
@@ -182,9 +237,9 @@ const OnboardingGuard: NavigationGuard = {
                 isUserFromPublicDomain: !!account?.isFromPublicDomain,
                 hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
                 onboardingValuesParam: onboarding,
-                currentOnboardingPurposeSelected: context.onboardingPurposeSelected,
-                currentOnboardingCompanySize: context.onboardingCompanySize,
-                onboardingInitialPath: context.onboardingLastVisitedPath ?? '',
+                currentOnboardingPurposeSelected: onboardingPurposeSelected,
+                currentOnboardingCompanySize: onboardingCompanySize,
+                onboardingInitialPath: onboardingLastVisitedPath ?? '',
                 onboardingValues: onboarding,
             });
 

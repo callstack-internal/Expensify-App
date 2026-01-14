@@ -51,10 +51,6 @@ describe('Navigation Guards System', () => {
         it('should create a guard context with required properties', () => {
             const context = Guards.createGuardContext();
 
-            expect(context).toHaveProperty('account');
-            expect(context).toHaveProperty('onboarding');
-            expect(context).toHaveProperty('session');
-            expect(context).toHaveProperty('isLoadingApp');
             expect(context).toHaveProperty('isAuthenticated');
             expect(context).toHaveProperty('isAnonymous');
             expect(context).toHaveProperty('currentUrl');
@@ -79,20 +75,11 @@ describe('Navigation Guards System', () => {
         };
 
         const mockContext: GuardContext = {
-            account: undefined,
-            onboarding: undefined,
-            session: undefined,
-            isLoadingApp: false,
             isAuthenticated: false,
             isAnonymous: true,
             currentUrl: '',
             isSingleNewDotEntry: false,
             isLoading: false,
-            onboardingPurposeSelected: undefined,
-            onboardingCompanySize: undefined,
-            onboardingLastVisitedPath: undefined,
-            isHybridAppOnboardingCompleted: undefined,
-            hasBeenAddedToNudgeMigration: false,
         };
 
         it('should return ALLOW when no guards are registered', () => {

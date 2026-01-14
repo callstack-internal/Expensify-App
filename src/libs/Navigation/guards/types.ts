@@ -1,28 +1,9 @@
 import type {NavigationAction, NavigationState} from '@react-navigation/native';
-import type {OnyxEntry} from 'react-native-onyx';
-import type {ValueOf} from 'type-fest';
-import CONST from '@src/CONST';
 import type {Route} from '@src/ROUTES';
-import type {Account, Onboarding, Session} from '@src/types/onyx';
-
-type OnboardingPurpose = ValueOf<typeof CONST.ONBOARDING_CHOICES>;
-type OnboardingCompanySize = ValueOf<typeof CONST.ONBOARDING_COMPANY_SIZE>;
 
 type GuardResult = {type: 'ALLOW'} | {type: 'BLOCK'; reason?: string} | {type: 'REDIRECT'; route: Route; params?: Record<string, unknown>};
 
 type GuardContext = {
-    /** Account data from Onyx */
-    account: OnyxEntry<Account>;
-
-    /** Onboarding status data from Onyx */
-    onboarding: OnyxEntry<Onboarding>;
-
-    /** Session data from Onyx */
-    session: OnyxEntry<Session>;
-
-    /** Whether the app is currently loading */
-    isLoadingApp: boolean;
-
     /** Whether the user is authenticated */
     isAuthenticated: boolean;
 
@@ -37,21 +18,6 @@ type GuardContext = {
 
     /** Whether data is still loading */
     isLoading: boolean;
-
-    /** Currently selected onboarding purpose from Onyx */
-    onboardingPurposeSelected: OnyxEntry<OnboardingPurpose>;
-
-    /** Currently selected onboarding company size from Onyx */
-    onboardingCompanySize: OnyxEntry<OnboardingCompanySize>;
-
-    /** Last visited path during onboarding from Onyx */
-    onboardingLastVisitedPath: OnyxEntry<string>;
-
-    /** Whether HybridApp onboarding (explanation modal) has been completed */
-    isHybridAppOnboardingCompleted: boolean | undefined;
-
-    /** Whether user has been added to nudge migration cohort */
-    hasBeenAddedToNudgeMigration: boolean;
 };
 interface NavigationGuard {
     /** Guard name for debugging and logging */

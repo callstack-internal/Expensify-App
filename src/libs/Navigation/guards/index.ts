@@ -1,50 +1,22 @@
 import type {NavigationAction, NavigationState} from '@react-navigation/native';
 import {isSingleNewDotEntrySelector} from '@selectors/HybridApp';
-import {tryNewDotOnyxSelector} from '@selectors/Onboarding';
 import Onyx from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
-import type {ValueOf} from 'type-fest';
 import getCurrentUrl from '@libs/Navigation/currentUrl';
 import {isAnonymousUser} from '@userActions/Session';
 import CONFIG from '@src/CONFIG';
-import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Account, Onboarding, Session} from '@src/types/onyx';
+import type {Session} from '@src/types/onyx';
 import OnboardingGuard from './OnboardingGuard';
 import type {GuardContext, GuardResult, NavigationGuard} from './types';
 
-type OnboardingPurpose = ValueOf<typeof CONST.ONBOARDING_CHOICES>;
-type OnboardingCompanySize = ValueOf<typeof CONST.ONBOARDING_COMPANY_SIZE>;
-
 /**
- * Module-level Onyx subscriptions for guard context
- * These provide synchronous access to Onyx data during guard evaluation
+ * Module-level Onyx subscriptions for common guard context values
+ * These provide synchronous access to shared data used by multiple guards
  */
-let account: OnyxEntry<Account>;
-let onboarding: OnyxEntry<Onboarding>;
 let session: OnyxEntry<Session>;
 let isLoadingApp = true;
 let isSingleNewDotEntry = false;
-let onboardingPurposeSelected: OnyxEntry<OnboardingPurpose>;
-let onboardingCompanySize: OnyxEntry<OnboardingCompanySize>;
-let onboardingLastVisitedPath: OnyxEntry<string>;
-let isHybridAppOnboardingCompleted: boolean | undefined;
-let hasBeenAddedToNudgeMigration = false;
-
-Onyx.connectWithoutView({
-    key: ONYXKEYS.ACCOUNT,
-    callback: (value) => {
-        account = value;
-    },
-});
-
-Onyx.connectWithoutView({
-    key: ONYXKEYS.NVP_ONBOARDING,
-    callback: (value) => {
-        onboarding = value;
-    },
-});
-
 Onyx.connectWithoutView({
     key: ONYXKEYS.SESSION,
     callback: (value) => {
@@ -68,36 +40,6 @@ if (CONFIG.IS_HYBRID_APP) {
     });
 }
 
-Onyx.connectWithoutView({
-    key: ONYXKEYS.ONBOARDING_PURPOSE_SELECTED,
-    callback: (value) => {
-        onboardingPurposeSelected = value;
-    },
-});
-
-Onyx.connectWithoutView({
-    key: ONYXKEYS.ONBOARDING_COMPANY_SIZE,
-    callback: (value) => {
-        onboardingCompanySize = value;
-    },
-});
-
-Onyx.connectWithoutView({
-    key: ONYXKEYS.ONBOARDING_LAST_VISITED_PATH,
-    callback: (value) => {
-        onboardingLastVisitedPath = value;
-    },
-});
-
-Onyx.connectWithoutView({
-    key: ONYXKEYS.NVP_TRY_NEW_DOT,
-    callback: (value) => {
-        const result = tryNewDotOnyxSelector(value);
-        isHybridAppOnboardingCompleted = result.isHybridAppOnboardingCompleted;
-        hasBeenAddedToNudgeMigration = result.hasBeenAddedToNudgeMigration;
-    },
-});
-
 /**
  * Registry of all navigation guards
  * Guards are evaluated in the order they are registered
@@ -112,9 +54,10 @@ function registerGuard(guard: NavigationGuard): void {
 }
 
 /**
- * Creates a guard context with current Onyx data and computed flags
+ * Creates a guard context with common computed values
+ * Guards access specific Onyx data directly via their own subscriptions
  *
- * @returns Guard context with Onyx data and helper flags
+ * @returns Guard context with common helper flags
  */
 function createGuardContext(): GuardContext {
     const isAuthenticated = !!session?.authToken;
@@ -123,20 +66,11 @@ function createGuardContext(): GuardContext {
     const isLoading = isLoadingApp;
 
     return {
-        account,
-        onboarding,
-        session,
-        isLoadingApp,
         isAuthenticated,
         isAnonymous,
         currentUrl,
         isSingleNewDotEntry,
         isLoading,
-        onboardingPurposeSelected,
-        onboardingCompanySize,
-        onboardingLastVisitedPath,
-        isHybridAppOnboardingCompleted,
-        hasBeenAddedToNudgeMigration,
     };
 }
 

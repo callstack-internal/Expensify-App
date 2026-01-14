@@ -105,22 +105,11 @@ function useOnboardingFlowRouter() {
                 return;
             }
 
-            // Check if we need to show the test drive modal
-            // The value `undefined` should not be used here because `testDriveModalDismissed` may not always exist in `onboarding`.
-            // So we only compare it to `false` to avoid unintentionally opening the test drive modal.
-            if (onboardingValues?.testDriveModalDismissed === false) {
-                const navigationState = navigationRef.getRootState();
-                const lastRoute = navigationState.routes.at(-1);
-                // Prevent duplicate navigation if the test drive modal is already shown
-                if (lastRoute?.name !== NAVIGATORS.TEST_DRIVE_MODAL_NAVIGATOR) {
-                    Log.info('[Onboarding] Showing test drive modal');
-                    Navigation.navigate(ROUTES.TEST_DRIVE_MODAL_ROOT.route);
-                }
-                return;
-            }
+            // NOTE: Test drive modal navigation is now handled by OnboardingGuard.
+            // After onboarding completes, testDriveModalDismissed is set to false, and the guard
+            // will automatically redirect to the test drive modal.
 
-            // Check only guided setup flow completion, not test drive modal
-            // Test drive modal is a separate overlay and shouldn't block navigation
+            // Check only onboarding completion
             const isOnboardingCompleted = hasCompletedGuidedSetupFlowSelector(onboardingValues);
 
             // Check if we're already on an onboarding screen (e.g., page refresh on onboarding route)

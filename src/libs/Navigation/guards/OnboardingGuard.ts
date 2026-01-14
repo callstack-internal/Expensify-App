@@ -2,8 +2,8 @@ import type {NavigationAction, NavigationState} from '@react-navigation/native';
 import {findFocusedRoute} from '@react-navigation/native';
 import type {OnyxEntry} from 'react-native-onyx';
 import {getOnboardingInitialPath} from '@libs/actions/Welcome/OnboardingFlow';
-import {isOnboardingFlowName} from '@libs/Navigation/helpers/isNavigatorName';
 import Log from '@libs/Log';
+import {isOnboardingFlowName} from '@libs/Navigation/helpers/isNavigatorName';
 import * as Welcome from '@userActions/Welcome';
 import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
@@ -16,12 +16,18 @@ import type {GuardContext, GuardResult, NavigationGuard} from './types';
 
 /**
  * Checks if onboarding is completed
- *
- * Note: This only checks if the guided setup flow is complete.
- * The test drive modal is shown separately and should not block navigation.
  */
 function isOnboardingCompleted(onboarding: OnyxEntry<Onboarding>): boolean {
     return hasCompletedGuidedSetupFlowSelector(onboarding) === true;
+}
+
+/**
+ * Checks if test drive modal should be shown
+ */
+function shouldShowTestDriveModal(onboarding: OnyxEntry<Onboarding>): boolean {
+    // The value `undefined` should not be used here because `testDriveModalDismissed` may not always exist in `onboarding`.
+    // So we only compare it to `false` to avoid unintentionally opening the test drive modal.
+    return onboarding?.testDriveModalDismissed === false;
 }
 
 /**
@@ -100,10 +106,18 @@ function isCurrentlyOnOnboarding(state: NavigationState): boolean {
 }
 
 /**
+ * Checks if the current navigation state is already showing the test drive modal
+ */
+function isCurrentlyOnTestDriveModal(state: NavigationState): boolean {
+    return state.routes.some((route) => route.name === NAVIGATORS.TEST_DRIVE_MODAL_NAVIGATOR);
+}
+
+/**
  * Onboarding Guard
  *
  * Manages onboarding flow redirects:
  * - Redirects to onboarding if not completed
+ * - Redirects to test drive modal after onboarding completes (if not dismissed)
  * - Prevents back navigation during onboarding
  * - Handles HybridApp special cases
  */
@@ -139,58 +153,81 @@ const OnboardingGuard: NavigationGuard = {
     evaluate(state: NavigationState, action: NavigationAction, context: GuardContext): GuardResult {
         const {onboarding, account} = context;
 
-        // Check if onboarding is completed
-        if (isOnboardingCompleted(onboarding)) {
-            return {type: 'ALLOW'};
-        }
+        // PRIORITY 1: If onboarding NOT complete, enforce onboarding flow
+        if (!isOnboardingCompleted(onboarding)) {
+            // If already on an onboarding screen, only allow navigation within onboarding
+            if (isCurrentlyOnOnboarding(state)) {
+                // Block back navigation away from onboarding
+                if (isNavigatingAwayFromOnboarding(state, action)) {
+                    Welcome.setOnboardingErrorMessage('onboarding.purpose.errorBackButton');
+                    Log.info('[OnboardingGuard] Blocked navigation away from onboarding');
+                    return {
+                        type: 'BLOCK',
+                        reason: 'Cannot navigate back during onboarding',
+                    };
+                }
 
-        // If already on an onboarding screen, only allow navigation within onboarding
-        if (isCurrentlyOnOnboarding(state)) {
-            // Block back navigation away from onboarding
-            if (isNavigatingAwayFromOnboarding(state, action)) {
-                Welcome.setOnboardingErrorMessage('onboarding.purpose.errorBackButton');
-                Log.info('[OnboardingGuard] Blocked navigation away from onboarding');
+                // Allow navigation TO onboarding screens
+                if (isNavigatingToOnboarding(action)) {
+                    return {type: 'ALLOW'};
+                }
+
+                // Block navigation to non-onboarding screens while onboarding incomplete
+                Log.info('[OnboardingGuard] Blocked navigation to non-onboarding screen while onboarding is active');
                 return {
                     type: 'BLOCK',
-                    reason: 'Cannot navigate back during onboarding',
+                    reason: 'Cannot navigate away from onboarding',
                 };
             }
 
-            // Allow navigation TO onboarding screens
+            // If already navigating to onboarding, allow it
             if (isNavigatingToOnboarding(action)) {
                 return {type: 'ALLOW'};
             }
 
-            // Block navigation to non-onboarding screens while onboarding incomplete
-            Log.info('[OnboardingGuard] Blocked navigation to non-onboarding screen while onboarding is active');
+            // Not on onboarding yet, redirect to appropriate onboarding screen
+            const onboardingPath = getOnboardingInitialPath({
+                isUserFromPublicDomain: !!account?.isFromPublicDomain,
+                hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
+                onboardingValuesParam: onboarding,
+                currentOnboardingPurposeSelected: undefined, // Will be loaded from Onyx by the function
+                currentOnboardingCompanySize: undefined, // Will be loaded from Onyx by the function
+                onboardingInitialPath: undefined, // Will be loaded from Onyx by the function
+                onboardingValues: onboarding,
+            });
+
+            Log.info(`[OnboardingGuard] Redirecting to onboarding: ${onboardingPath}`);
+
             return {
-                type: 'BLOCK',
-                reason: 'Cannot navigate away from onboarding',
+                type: 'REDIRECT',
+                route: onboardingPath as Route,
             };
         }
 
-        // If already navigating to onboarding, allow it
-        if (isNavigatingToOnboarding(action)) {
-            return {type: 'ALLOW'};
+        // PRIORITY 2: Onboarding complete - check if test drive modal should be shown
+        // Note: testDriveModalDismissed is set to false when onboarding completes (in completeOnboarding function)
+        if (shouldShowTestDriveModal(onboarding)) {
+            // Check if already showing test drive modal
+            if (isCurrentlyOnTestDriveModal(state)) {
+                // Already showing test drive modal, allow navigation
+                return {type: 'ALLOW'};
+            }
+
+            // If navigating TO test drive modal, allow it
+            if (isNavigatingToOnboarding(action)) {
+                return {type: 'ALLOW'};
+            }
+
+            // Not showing yet, redirect to test drive modal
+            Log.info('[OnboardingGuard] Redirecting to test drive modal');
+            return {
+                type: 'REDIRECT',
+                route: ROUTES.TEST_DRIVE_MODAL_ROOT.route as Route,
+            };
         }
 
-        // Determine which onboarding screen to redirect to
-        const onboardingPath = getOnboardingInitialPath({
-            isUserFromPublicDomain: !!account?.isFromPublicDomain,
-            hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
-            onboardingValuesParam: onboarding,
-            currentOnboardingPurposeSelected: undefined, // Will be loaded from Onyx by the function
-            currentOnboardingCompanySize: undefined, // Will be loaded from Onyx by the function
-            onboardingInitialPath: undefined, // Will be loaded from Onyx by the function
-            onboardingValues: onboarding,
-        });
-
-        Log.info(`[OnboardingGuard] Redirecting to onboarding: ${onboardingPath}`);
-
-        return {
-            type: 'REDIRECT',
-            route: onboardingPath as Route,
-        };
+        // Onboarding complete and test drive modal dismissed - allow all navigation
+        return {type: 'ALLOW'};
     },
 };
 

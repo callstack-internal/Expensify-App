@@ -2,13 +2,18 @@ import type {NavigationAction, NavigationState} from '@react-navigation/native';
 import {isSingleNewDotEntrySelector} from '@selectors/HybridApp';
 import Onyx from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
+import type {ValueOf} from 'type-fest';
 import getCurrentUrl from '@libs/Navigation/currentUrl';
 import {isAnonymousUser} from '@userActions/Session';
 import CONFIG from '@src/CONFIG';
+import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Account, Onboarding, Session} from '@src/types/onyx';
 import OnboardingGuard from './OnboardingGuard';
 import type {GuardContext, GuardResult, NavigationGuard} from './types';
+
+type OnboardingPurpose = ValueOf<typeof CONST.ONBOARDING_CHOICES>;
+type OnboardingCompanySize = ValueOf<typeof CONST.ONBOARDING_COMPANY_SIZE>;
 
 /**
  * Module-level Onyx subscriptions for guard context
@@ -19,6 +24,9 @@ let onboarding: OnyxEntry<Onboarding>;
 let session: OnyxEntry<Session>;
 let isLoadingApp = true;
 let isSingleNewDotEntry = false;
+let onboardingPurposeSelected: OnyxEntry<OnboardingPurpose>;
+let onboardingCompanySize: OnyxEntry<OnboardingCompanySize>;
+let onboardingLastVisitedPath: OnyxEntry<string>;
 
 // Subscribe to account data
 Onyx.connectWithoutView({
@@ -61,6 +69,30 @@ if (CONFIG.IS_HYBRID_APP) {
         },
     });
 }
+
+// Subscribe to onboarding purpose selected
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ONBOARDING_PURPOSE_SELECTED,
+    callback: (value) => {
+        onboardingPurposeSelected = value;
+    },
+});
+
+// Subscribe to onboarding company size
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ONBOARDING_COMPANY_SIZE,
+    callback: (value) => {
+        onboardingCompanySize = value;
+    },
+});
+
+// Subscribe to onboarding last visited path
+Onyx.connectWithoutView({
+    key: ONYXKEYS.ONBOARDING_LAST_VISITED_PATH,
+    callback: (value) => {
+        onboardingLastVisitedPath = value;
+    },
+});
 
 /**
  * Registry of all navigation guards
@@ -113,13 +145,14 @@ function createGuardContext(): GuardContext {
         currentUrl,
         isSingleNewDotEntry,
         isLoading,
+        onboardingPurposeSelected,
+        onboardingCompanySize,
+        onboardingLastVisitedPath,
     };
 }
 
 /**
  * Evaluates all registered guards for the given navigation action
- *
- * Guards are evaluated in registration order.
  * Evaluation short-circuits on the first BLOCK or REDIRECT result.
  *
  * @param state - Current navigation state
@@ -132,19 +165,9 @@ function createGuardContext(): GuardContext {
  * const context = createGuardContext();
  * const result = evaluateGuards(state, action, context);
  *
- * if (result.type === 'BLOCK') {
- *   // Block navigation, return unchanged state
- *   return state;
- * }
- *
- * if (result.type === 'REDIRECT') {
- *   // Create redirect action and process it
- *   const redirectAction = createNavigateAction(result.route, result.params);
- *   return stackRouter.getStateForAction(state, redirectAction, configOptions);
- * }
- *
- * // result.type === 'ALLOW' - continue with normal navigation
- * ```
+ * BLOCK - block navigation, return unchanged state
+ * REDIRECT - create redirect action and process it
+ * ALLOW - continue with normal navigation
  */
 function evaluateGuards(state: NavigationState, action: NavigationAction, context: GuardContext): GuardResult {
     // Evaluate guards in registration order

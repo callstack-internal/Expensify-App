@@ -61,10 +61,6 @@ function isNavigatingToOnboarding(action: NavigationAction): boolean {
     }
 
     // Check if the route starts with the onboarding prefix
-    // This catches all /onboarding/* routes including:
-    // - personal-details, purpose, accounting, employees, work-email, etc.
-    // - workspace-*, interested-features, private-domain, etc.
-    // - test-drive modal
     if ('name' in payload && typeof payload.name === 'string') {
         return payload.name === ROUTES.ONBOARDING_ROOT.route || payload.name.startsWith(`${ROUTES.ONBOARDING_ROOT.route}/`);
     }
@@ -108,12 +104,6 @@ function isCurrentlyOnTestDriveModal(state: NavigationState): boolean {
 
 /**
  * Onboarding Guard
- *
- * Manages onboarding flow redirects:
- * - Redirects to onboarding if not completed
- * - Redirects to test drive modal after onboarding completes (if not dismissed)
- * - Prevents back navigation during onboarding
- * - Handles HybridApp special cases
  */
 const OnboardingGuard: NavigationGuard = {
     name: 'OnboardingGuard',
@@ -124,34 +114,27 @@ const OnboardingGuard: NavigationGuard = {
             return false;
         }
 
-        // Don't apply if 2FA is required (higher priority guard handles this)
         if (context.account?.needsTwoFactorAuthSetup && !context.account?.requiresTwoFactorAuth) {
             return false;
         }
 
-        // Don't apply if on transition route
         if (isTransitionRoute(context.currentUrl)) {
             return false;
         }
 
-        // Don't apply for HybridApp single entry
         if (CONFIG.IS_HYBRID_APP && context.isSingleNewDotEntry) {
             Log.info('[OnboardingGuard] Skipping for HybridApp single entry');
             return false;
         }
 
-        // Apply the guard
         return true;
     },
 
     evaluate(state: NavigationState, action: NavigationAction, context: GuardContext): GuardResult {
         const {onboarding, account} = context;
 
-        // PRIORITY 1: If onboarding NOT complete, enforce onboarding flow
         if (!isOnboardingCompleted(onboarding)) {
-            // If already on an onboarding screen, only allow navigation within onboarding
             if (isCurrentlyOnOnboarding(state)) {
-                // Block back navigation away from onboarding
                 if (isNavigatingAwayFromOnboarding(state, action)) {
                     Welcome.setOnboardingErrorMessage('onboarding.purpose.errorBackButton');
                     Log.info('[OnboardingGuard] Blocked navigation away from onboarding');
@@ -161,12 +144,10 @@ const OnboardingGuard: NavigationGuard = {
                     };
                 }
 
-                // Allow navigation TO onboarding screens
                 if (isNavigatingToOnboarding(action)) {
                     return {type: 'ALLOW'};
                 }
 
-                // Block navigation to non-onboarding screens while onboarding incomplete
                 Log.info('[OnboardingGuard] Blocked navigation to non-onboarding screen while onboarding is active');
                 return {
                     type: 'BLOCK',
@@ -174,7 +155,6 @@ const OnboardingGuard: NavigationGuard = {
                 };
             }
 
-            // If already navigating to onboarding, allow it
             if (isNavigatingToOnboarding(action)) {
                 return {type: 'ALLOW'};
             }
@@ -184,9 +164,9 @@ const OnboardingGuard: NavigationGuard = {
                 isUserFromPublicDomain: !!account?.isFromPublicDomain,
                 hasAccessiblePolicies: !!account?.hasAccessibleDomainPolicies,
                 onboardingValuesParam: onboarding,
-                currentOnboardingPurposeSelected: undefined, // Will be loaded from Onyx by the function
-                currentOnboardingCompanySize: undefined, // Will be loaded from Onyx by the function
-                onboardingInitialPath: undefined, // Will be loaded from Onyx by the function
+                currentOnboardingPurposeSelected: context.onboardingPurposeSelected,
+                currentOnboardingCompanySize: context.onboardingCompanySize,
+                onboardingInitialPath: context.onboardingLastVisitedPath ?? '',
                 onboardingValues: onboarding,
             });
 
@@ -198,12 +178,9 @@ const OnboardingGuard: NavigationGuard = {
             };
         }
 
-        // PRIORITY 2: Onboarding complete - check if test drive modal should be shown
-        // Note: testDriveModalDismissed is set to false when onboarding completes (in completeOnboarding function)
+        // Check if test drive modal should be shown
         if (shouldShowTestDriveModal(onboarding)) {
-            // Check if already showing test drive modal
             if (isCurrentlyOnTestDriveModal(state)) {
-                // Already showing test drive modal, allow navigation
                 return {type: 'ALLOW'};
             }
 

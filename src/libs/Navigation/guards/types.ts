@@ -1,7 +1,12 @@
 import type {NavigationAction, NavigationState} from '@react-navigation/native';
 import type {OnyxEntry} from 'react-native-onyx';
+import type {ValueOf} from 'type-fest';
+import CONST from '@src/CONST';
 import type {Route} from '@src/ROUTES';
 import type {Account, Onboarding, Session} from '@src/types/onyx';
+
+type OnboardingPurpose = ValueOf<typeof CONST.ONBOARDING_CHOICES>;
+type OnboardingCompanySize = ValueOf<typeof CONST.ONBOARDING_COMPANY_SIZE>;
 
 /**
  * Result of a navigation guard evaluation
@@ -51,6 +56,15 @@ type GuardContext = {
 
     /** Whether data is still loading */
     isLoading: boolean;
+
+    /** Currently selected onboarding purpose from Onyx */
+    onboardingPurposeSelected: OnyxEntry<OnboardingPurpose>;
+
+    /** Currently selected onboarding company size from Onyx */
+    onboardingCompanySize: OnyxEntry<OnboardingCompanySize>;
+
+    /** Last visited path during onboarding from Onyx */
+    onboardingLastVisitedPath: OnyxEntry<string>;
 };
 
 /**

@@ -164,9 +164,6 @@ function RootStackRouter(options: RootStackNavigatorRouterOptions) {
                 return handlePushFullscreenAction(state, action, configOptions, stackRouter);
             }
 
-            // NOTE: Onboarding navigation prevention is now handled by OnboardingGuard (see guards/OnboardingGuard.ts)
-            // The guard blocks RESET actions that try to navigate away from onboarding screens
-
             if (isNavigatingToModalFromModal(state, action)) {
                 return handleNavigatingToModalFromModal(state, action, configOptions, stackRouter);
             }

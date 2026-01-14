@@ -88,6 +88,9 @@ describe('Navigation Guards System', () => {
             currentUrl: '',
             isSingleNewDotEntry: false,
             isLoading: false,
+            onboardingPurposeSelected: undefined,
+            onboardingCompanySize: undefined,
+            onboardingLastVisitedPath: undefined,
         };
 
         it('should return ALLOW when no guards are registered', () => {

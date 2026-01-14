@@ -133,10 +133,6 @@ function NavigationRoot({authenticated, lastVisitedPath, initialUrl, onReady}: N
             return undefined;
         }
 
-        // NOTE: Onboarding redirects are now handled by the OnboardingGuard in RootStackRouter.
-        // The guard will automatically redirect to onboarding when navigation is attempted
-        // if the user hasn't completed onboarding.
-
         if (shouldOpenLastVisitedPath(lastVisitedPath) && authenticated) {
             // Only skip restoration if there's a specific deep link that's not the root
             // This allows restoration when app is killed and reopened without a deep link

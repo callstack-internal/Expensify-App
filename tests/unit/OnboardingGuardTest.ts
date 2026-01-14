@@ -32,6 +32,9 @@ describe('OnboardingGuard', () => {
         currentUrl: '',
         isSingleNewDotEntry: false,
         isLoading: false,
+        onboardingPurposeSelected: undefined,
+        onboardingCompanySize: undefined,
+        onboardingLastVisitedPath: undefined,
         ...overrides,
     });
 

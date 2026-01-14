@@ -11,7 +11,7 @@ import NAVIGATORS from '@src/NAVIGATORS';
 import type {Route} from '@src/ROUTES';
 import ROUTES from '@src/ROUTES';
 import {hasCompletedGuidedSetupFlowSelector} from '@src/selectors/Onboarding';
-import type {Account, Onboarding} from '@src/types/onyx';
+import type {Onboarding} from '@src/types/onyx';
 import type {GuardContext, GuardResult, NavigationGuard} from './types';
 
 /**
@@ -60,19 +60,13 @@ function isNavigatingToOnboarding(action: NavigationAction): boolean {
         return true;
     }
 
-    // Check if the route starts with onboarding paths
+    // Check if the route starts with the onboarding prefix
+    // This catches all /onboarding/* routes including:
+    // - personal-details, purpose, accounting, employees, work-email, etc.
+    // - workspace-*, interested-features, private-domain, etc.
+    // - test-drive modal
     if ('name' in payload && typeof payload.name === 'string') {
-        const onboardingRoutes = [
-            ROUTES.ONBOARDING_ROOT.route,
-            ROUTES.ONBOARDING_PERSONAL_DETAILS.route,
-            ROUTES.ONBOARDING_PURPOSE.route,
-            ROUTES.ONBOARDING_ACCOUNTING.route,
-            ROUTES.ONBOARDING_EMPLOYEES.route,
-            ROUTES.ONBOARDING_WORK_EMAIL.route,
-            ROUTES.TEST_DRIVE_MODAL_ROOT.route,
-        ];
-
-        return onboardingRoutes.some((route) => payload.name === route || (typeof payload.name === 'string' && payload.name.startsWith(route)));
+        return payload.name === ROUTES.ONBOARDING_ROOT.route || payload.name.startsWith(`${ROUTES.ONBOARDING_ROOT.route}/`);
     }
 
     // Check if it's a RESET action with onboarding routes

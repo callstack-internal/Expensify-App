@@ -111,10 +111,6 @@ function useOnboardingFlowRouter() {
                     return;
                 }
 
-                if (isHybridAppOnboardingCompleted === false) {
-                    Navigation.navigate(ROUTES.EXPLANATION_MODAL_ROOT);
-                }
-
                 if (isHybridAppOnboardingCompleted === true && isOnboardingCompleted === false && !triggeredOnboardingNavigationRef.current && !isAlreadyOnOnboarding) {
                     triggeredOnboardingNavigationRef.current = true;
                     Log.info('[Onboarding] Triggering navigation for incomplete onboarding (guard will redirect)');

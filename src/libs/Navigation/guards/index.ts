@@ -1,5 +1,6 @@
 import type {NavigationAction, NavigationState} from '@react-navigation/native';
 import {isSingleNewDotEntrySelector} from '@selectors/HybridApp';
+import {tryNewDotOnyxSelector} from '@selectors/Onboarding';
 import Onyx from 'react-native-onyx';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
@@ -27,6 +28,8 @@ let isSingleNewDotEntry = false;
 let onboardingPurposeSelected: OnyxEntry<OnboardingPurpose>;
 let onboardingCompanySize: OnyxEntry<OnboardingCompanySize>;
 let onboardingLastVisitedPath: OnyxEntry<string>;
+let isHybridAppOnboardingCompleted: boolean | undefined;
+let hasBeenAddedToNudgeMigration = false;
 
 Onyx.connectWithoutView({
     key: ONYXKEYS.ACCOUNT,
@@ -86,6 +89,15 @@ Onyx.connectWithoutView({
     },
 });
 
+Onyx.connectWithoutView({
+    key: ONYXKEYS.NVP_TRY_NEW_DOT,
+    callback: (value) => {
+        const result = tryNewDotOnyxSelector(value);
+        isHybridAppOnboardingCompleted = result.isHybridAppOnboardingCompleted;
+        hasBeenAddedToNudgeMigration = result.hasBeenAddedToNudgeMigration;
+    },
+});
+
 /**
  * Registry of all navigation guards
  * Guards are evaluated in the order they are registered
@@ -123,6 +135,8 @@ function createGuardContext(): GuardContext {
         onboardingPurposeSelected,
         onboardingCompanySize,
         onboardingLastVisitedPath,
+        isHybridAppOnboardingCompleted,
+        hasBeenAddedToNudgeMigration,
     };
 }
 

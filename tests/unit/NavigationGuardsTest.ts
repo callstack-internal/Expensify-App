@@ -91,6 +91,8 @@ describe('Navigation Guards System', () => {
             onboardingPurposeSelected: undefined,
             onboardingCompanySize: undefined,
             onboardingLastVisitedPath: undefined,
+            isHybridAppOnboardingCompleted: undefined,
+            hasBeenAddedToNudgeMigration: false,
         };
 
         it('should return ALLOW when no guards are registered', () => {

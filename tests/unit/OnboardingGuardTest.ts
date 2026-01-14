@@ -35,6 +35,8 @@ describe('OnboardingGuard', () => {
         onboardingPurposeSelected: undefined,
         onboardingCompanySize: undefined,
         onboardingLastVisitedPath: undefined,
+        isHybridAppOnboardingCompleted: undefined,
+        hasBeenAddedToNudgeMigration: false,
         ...overrides,
     });
 

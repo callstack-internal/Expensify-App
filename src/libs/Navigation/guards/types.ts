@@ -46,6 +46,12 @@ type GuardContext = {
 
     /** Last visited path during onboarding from Onyx */
     onboardingLastVisitedPath: OnyxEntry<string>;
+
+    /** Whether HybridApp onboarding (explanation modal) has been completed */
+    isHybridAppOnboardingCompleted: boolean | undefined;
+
+    /** Whether user has been added to nudge migration cohort */
+    hasBeenAddedToNudgeMigration: boolean;
 };
 interface NavigationGuard {
     /** Guard name for debugging and logging */

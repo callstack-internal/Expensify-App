@@ -98,6 +98,13 @@ function isCurrentlyOnTestDriveModal(state: NavigationState): boolean {
 }
 
 /**
+ * Checks if the current navigation state is already showing the explanation modal
+ */
+function isCurrentlyOnExplanationModal(state: NavigationState): boolean {
+    return state.routes.some((route) => route.name === NAVIGATORS.EXPLANATION_MODAL_NAVIGATOR);
+}
+
+/**
  * Onboarding Guard
  */
 const OnboardingGuard: NavigationGuard = {
@@ -126,7 +133,23 @@ const OnboardingGuard: NavigationGuard = {
     },
 
     evaluate(state: NavigationState, action: NavigationAction, context: GuardContext): GuardResult {
-        const {onboarding, account} = context;
+        const {onboarding, account, isHybridAppOnboardingCompleted} = context;
+
+        if (CONFIG.IS_HYBRID_APP && isHybridAppOnboardingCompleted === false) {
+            if (isCurrentlyOnExplanationModal(state)) {
+                return {type: 'ALLOW'};
+            }
+
+            if (isNavigatingToOnboarding(action)) {
+                return {type: 'ALLOW'};
+            }
+
+            Log.info('[OnboardingGuard] Redirecting to HybridApp explanation modal');
+            return {
+                type: 'REDIRECT',
+                route: ROUTES.EXPLANATION_MODAL_ROOT as Route,
+            };
+        }
 
         if (!isOnboardingCompleted(onboarding)) {
             if (isCurrentlyOnOnboarding(state)) {

@@ -7,6 +7,7 @@ import {AppState, Linking, Platform} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
 import ConfirmModal from './components/ConfirmModal';
+import DeepLinkHandler from './components/DeepLinkHandler';
 import EmojiPicker from './components/EmojiPicker/EmojiPicker';
 import GrowlNotification from './components/GrowlNotification';
 import {InitialURLContext} from './components/InitialURLContextProvider';
@@ -30,7 +31,6 @@ import Timing from './libs/actions/Timing';
 import * as User from './libs/actions/User';
 import * as ActiveClientManager from './libs/ActiveClientManager';
 import {isSafari} from './libs/Browser';
-import './libs/DeepLinkHandler';
 import * as Environment from './libs/Environment/Environment';
 import FS from './libs/Fullstory';
 import Growl, {growlRef} from './libs/Growl';
@@ -285,7 +285,7 @@ function Expensify() {
         appStateChangeListener.current = AppState.addEventListener('change', initializeClient);
 
         setIsAuthenticatedAtStartup(isAuthenticated);
-        // Get initial URL for NavigationRoot (deep link handling is done by DeepLinkHandler module)
+        // Check for initial URL first, then conditionally load DeepLinkHandler component
         Linking.getInitialURL().then((url) => {
             setInitialUrl(url as Route);
             if (!url) {
@@ -367,12 +367,20 @@ function Expensify() {
 
             <AppleAuthWrapper />
             {hasAttemptedToOpenPublicRoom && (
-                <NavigationRoot
-                    onReady={setNavigationReady}
-                    authenticated={isAuthenticated}
-                    lastVisitedPath={lastVisitedPath as Route}
-                    initialUrl={initialUrl}
-                />
+                <>
+                    {initialUrl !== null && (
+                        <DeepLinkHandler
+                            initialUrl={initialUrl}
+                            isAuthenticated={isAuthenticated}
+                        />
+                    )}
+                    <NavigationRoot
+                        onReady={setNavigationReady}
+                        authenticated={isAuthenticated}
+                        lastVisitedPath={lastVisitedPath as Route}
+                        initialUrl={initialUrl}
+                    />
+                </>
             )}
             {shouldHideSplash && <SplashScreenHider onHide={onSplashHide} />}
         </>

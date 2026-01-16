@@ -288,7 +288,7 @@ function Expensify() {
         // Get initial URL for NavigationRoot (deep link handling is done by DeepLinkHandler module)
         Linking.getInitialURL().then((url) => {
             setInitialUrl(url as Route);
-            if (!url) {
+            if (!url || isAuthenticated) {
                 Report.doneCheckingPublicRoom();
             }
         });

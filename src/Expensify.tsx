@@ -288,7 +288,7 @@ function Expensify() {
         // Check for initial URL first, then conditionally load DeepLinkHandler component
         Linking.getInitialURL().then((url) => {
             setInitialUrl(url as Route);
-            if (!url) {
+            if (!url || isAuthenticated) {
                 Report.doneCheckingPublicRoom();
             }
         });

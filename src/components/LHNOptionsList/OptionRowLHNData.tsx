@@ -111,6 +111,8 @@ function OptionRowLHNData({
         isReportArchived,
         movedFromReport,
         movedToReport,
+        lastAction,
+        lastActionReport,
     ]);
 
     return (

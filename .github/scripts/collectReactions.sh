@@ -213,14 +213,19 @@ echo ""
 echo "Per-rule statistics:"
 echo "$RULE_STATS" | jq -r '.[] | "  \(.ruleId): \(.violations) violations, +\(.thumbsUp)/-\(.thumbsDown), efficiency: \(if .efficiency then "\(.efficiency)%" else "N/A" end)"'
 
-# Build full data store JSON
+# Save records to temp file to avoid "argument list too long" error
+RECORDS_JSON_FILE=$(mktemp)
+echo "$RECORDS" > "$RECORDS_JSON_FILE"
+trap "rm -f $RECORDS_FILE $RECORDS_JSON_FILE" EXIT
+
+# Build full data store JSON (using slurpfile to handle large records)
 DATA_STORE=$(jq -n \
     --arg version "$DATA_VERSION" \
     --arg lastUpdated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg targetUser "$TARGET_USER" \
     --arg repository "$REPOSITORY" \
     --argjson windowDays "$DAYS" \
-    --argjson records "$RECORDS" \
+    --slurpfile records "$RECORDS_JSON_FILE" \
     '{
         version: $version,
         lastUpdated: $lastUpdated,
@@ -229,7 +234,7 @@ DATA_STORE=$(jq -n \
             repository: $repository,
             windowDays: $windowDays
         },
-        records: $records
+        records: $records[0]
     }')
 
 if [[ "$DRY_RUN" == "true" ]]; then
@@ -320,43 +325,26 @@ $(echo "$DATA_STORE" | jq '.')
 echo "$ISSUE_BODY" | gh issue edit "$EXISTING_ISSUE" --repo "$ISSUE_OWNER/$ISSUE_REPO_NAME" --body-file -
 echo "Updated issue #$EXISTING_ISSUE body"
 
-# Generate run comment table rows
-COMMENT_TABLE=""
-if [[ "$TOTAL_COMMENTS" -gt 0 ]]; then
-    COMMENT_TABLE=$(echo "$RECORDS" | jq -r '.[] | "| \(.prefixTags | if length > 0 then join(", ") else "N/A" end) | #\(.prNumber) | \(.reactions.thumbsUp) | \(.reactions.thumbsDown) | [View](\(.commentUrl | gsub("github.com"; "redirect.github.com"))) |"')
+# Generate list of comments with negative feedback (thumbsDown > 0)
+NEGATIVE_FEEDBACK_LIST=$(echo "$RECORDS" | jq -r '
+    [.[] | select(.reactions.thumbsDown > 0)] |
+    if length > 0 then
+        .[] | "- [ ] [\(.prefixTags | if length > 0 then .[0] else "N/A" end)] [\(.prTitle)#\(.prNumber)](\(.commentUrl | gsub("github.com"; "redirect.github.com")))"
+    else
+        empty
+    end
+')
+
+# Only post comment if there are comments with negative feedback
+if [[ -n "$NEGATIVE_FEEDBACK_LIST" ]]; then
+    COMMENT_BODY="Negative feedback received at $(date -u +%Y-%m-%dT%H:%M:%SZ)
+$NEGATIVE_FEEDBACK_LIST"
+
+    gh issue comment "$EXISTING_ISSUE" --repo "$ISSUE_OWNER/$ISSUE_REPO_NAME" --body "$COMMENT_BODY"
+    echo "Posted negative feedback comment to issue #$EXISTING_ISSUE"
 else
-    COMMENT_TABLE="| - | - | - | - | - |"
+    echo "No negative feedback found - skipping comment"
 fi
-
-# Generate rule statistics table for run comment
-RUN_RULE_STATS_TABLE=""
-if [[ "$TOTAL_COMMENTS" -gt 0 ]]; then
-    RUN_RULE_STATS_TABLE=$(echo "$RULE_STATS" | jq -r '.[] | "| \(.ruleId) | \(.violations) | \(.thumbsUp) | \(.thumbsDown) | \(.violationsWithFeedback)% | \(if .efficiency then "\(.efficiency)%" else "N/A" end) |"')
-fi
-if [[ -z "$RUN_RULE_STATS_TABLE" ]]; then
-    RUN_RULE_STATS_TABLE="| - | - | - | - | - | - |"
-fi
-
-# Generate run comment
-COMMENT_BODY="## Collection Run: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-**Summary:** $TOTAL_COMMENTS violations, ${APPROVAL_RATE}% approval rate
-
-### Statistics by Rule
-
-| Rule ID | # of violations | 👍 | 👎 | Violations with feedback | Efficiency |
-|---------|-----------------|----|----|--------------------------|------------|
-$RUN_RULE_STATS_TABLE
-
-### All Comments
-
-| Rule | PR | +1 | -1 | Link |
-|------|----|----|----|------|
-$COMMENT_TABLE"
-
-# Post comment
-gh issue comment "$EXISTING_ISSUE" --repo "$ISSUE_OWNER/$ISSUE_REPO_NAME" --body "$COMMENT_BODY"
-echo "Posted run comment to issue #$EXISTING_ISSUE"
 
 echo ""
 echo "Done! View the data issue: https://github.com/$ISSUE_OWNER/$ISSUE_REPO_NAME/issues/$EXISTING_ISSUE"

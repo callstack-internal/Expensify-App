@@ -1,0 +1,74 @@
+name: Collect AI Reviewer Reactions
+
+on:
+    schedule:
+        # Daily at 6 AM UTC
+        - cron: '0 6 * * *'
+    workflow_dispatch:
+        inputs:
+            repositories:
+                description: 'Comma-separated repos (overrides default)'
+                type: string
+            target_user:
+                description: 'GitHub username (overrides default)'
+                type: string
+            days:
+                description: 'Number of days to look back'
+                default: '30'
+                type: string
+            dry_run:
+                description: 'Dry run (do not update issue)'
+                type: boolean
+                default: false
+
+env:
+    # Default configuration - edit these values to change tracked repos/user
+    DEFAULT_TRACKED_REPOS: '["Expensify/App"]'
+    DEFAULT_TARGET_USER: 'github-actions[bot]'
+
+jobs:
+    setup:
+        runs-on: ubuntu-latest
+        outputs:
+            repos: ${{ steps.parse.outputs.repos }}
+            target_user: ${{ steps.parse.outputs.target_user }}
+        steps:
+            - name: Parse configuration
+              id: parse
+              run: |
+                  # Use input if provided, otherwise fall back to env default
+                  if [[ -n "${{ inputs.repositories }}" ]]; then
+                      # Convert comma-separated to JSON array
+                      REPOS=$(echo "${{ inputs.repositories }}" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+                  else
+                      REPOS='${{ env.DEFAULT_TRACKED_REPOS }}'
+                  fi
+                  echo "repos=$REPOS" >> "$GITHUB_OUTPUT"
+
+                  # Target user: input > env default
+                  TARGET_USER="${{ inputs.target_user }}"
+                  if [[ -z "$TARGET_USER" ]]; then
+                      TARGET_USER="${{ env.DEFAULT_TARGET_USER }}"
+                  fi
+                  echo "target_user=$TARGET_USER" >> "$GITHUB_OUTPUT"
+
+    collect:
+        needs: setup
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                repo: ${{ fromJson(needs.setup.outputs.repos) }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Collect Reactions for ${{ matrix.repo }}
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  ./.github/scripts/collectReactions.sh \
+                      --user="${{ needs.setup.outputs.target_user }}" \
+                      --repo="${{ matrix.repo }}" \
+                      --days="${{ inputs.days || '30' }}" \
+                      ${{ inputs.dry_run && '--dry-run' || '' }}

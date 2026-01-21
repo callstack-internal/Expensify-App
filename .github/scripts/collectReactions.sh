@@ -12,7 +12,6 @@
 set -euo pipefail
 
 # Configuration
-DATA_ISSUE_LABEL="AIReviewerReactionsData"
 DATA_VERSION="1.0"
 
 # Parse arguments
@@ -265,8 +264,10 @@ DATA_ISSUE_TITLE="AI Reviewer Reactions Data [$REPOSITORY]"
 echo ""
 echo "Updating data issue in $ISSUE_OWNER/$ISSUE_REPO_NAME..."
 
-# Find existing issue by title (to distinguish between repos)
-EXISTING_ISSUE=$(gh api "repos/$ISSUE_OWNER/$ISSUE_REPO_NAME/issues?state=open&per_page=100" --jq ".[] | select(.title == \"$DATA_ISSUE_TITLE\") | .number" 2>/dev/null | head -1 || echo "")
+# Find an existing issue
+ENCODED_TITLE=$(echo "$DATA_ISSUE_TITLE" | jq -sRr @uri)
+SEARCH_QUERY="repo:$ISSUE_REPO+is:issue+is:open+in:title+\"$DATA_ISSUE_TITLE\""
+EXISTING_ISSUE=$(gh api "search/issues?q=$SEARCH_QUERY" --jq ".items[] | select(.title == \"$DATA_ISSUE_TITLE\") | .number" 2>/dev/null | head -1 || echo "")
 
 if [[ -z "$EXISTING_ISSUE" ]]; then
     echo "Creating new data issue for $REPOSITORY..."

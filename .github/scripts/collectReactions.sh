@@ -194,13 +194,19 @@ RULE_STATS=$(echo "$RECORDS" | jq '
     })
     # Add calculated ratios
     | map(. + {
-        # Violations with feedback = (thumbsUp + thumbsDown) / violations * 100
-        violationsWithFeedback: (if .violations > 0 then ((.thumbsUp + .thumbsDown) / .violations * 100 | . * 10 | floor / 10) else 0 end),
+        # Engagement Rate = (violations with any reaction) / violations * 100
+        engagementRate: (if .violations > 0 then ((.thumbsUp + .thumbsDown) / .violations * 100 | . * 10 | floor / 10) else 0 end),
         # Efficiency = thumbsUp / (thumbsUp + thumbsDown) * 100 (0-100% scale)
-        efficiency: (if (.thumbsUp + .thumbsDown) > 0 then (.thumbsUp / (.thumbsUp + .thumbsDown) * 100 | . * 10 | floor / 10) else null end)
+        efficiency: (if (.thumbsUp + .thumbsDown) > 0 then (.thumbsUp / (.thumbsUp + .thumbsDown) * 100 | . * 10 | floor / 10) else null end),
+        # False Positive Rate = thumbsDown / violations * 100
+        falsePositiveRate: (if .violations > 0 then (.thumbsDown / .violations * 100 | . * 10 | floor / 10) else 0 end),
+        # Signal Strength = (thumbsUp - thumbsDown) / violations (range -1 to +1)
+        signalStrength: (if .violations > 0 then ((.thumbsUp - .thumbsDown) / .violations | . * 100 | floor / 100) else 0 end),
+        # Controversy Score = min(thumbsUp, thumbsDown) / max(thumbsUp, thumbsDown) (range 0 to 1)
+        controversyScore: (if ((.thumbsUp > 0) or (.thumbsDown > 0)) then (([.thumbsUp, .thumbsDown] | min) / ([.thumbsUp, .thumbsDown] | max) | . * 100 | floor / 100) else null end)
     })
-    # Sort by efficiency descending (nulls last)
-    | sort_by(-(if .efficiency then .efficiency else -1 end))
+    # Sort by signal strength ascending (worst rules first)
+    | sort_by(.signalStrength)
 ')
 
 echo ""
@@ -210,8 +216,8 @@ echo "  Thumbs Up: $TOTAL_THUMBS_UP"
 echo "  Thumbs Down: $TOTAL_THUMBS_DOWN"
 echo "  Approval Rate: ${APPROVAL_RATE}%"
 echo ""
-echo "Per-rule statistics:"
-echo "$RULE_STATS" | jq -r '.[] | "  \(.ruleId): \(.violations) violations, +\(.thumbsUp)/-\(.thumbsDown), efficiency: \(if .efficiency then "\(.efficiency)%" else "N/A" end)"'
+echo "Per-rule statistics (sorted by signal strength, worst first):"
+echo "$RULE_STATS" | jq -r '.[] | "  \(.ruleId): \(.violations) violations, +\(.thumbsUp)/-\(.thumbsDown), signal: \(.signalStrength), FP rate: \(.falsePositiveRate)%, efficiency: \(if .efficiency then "\(.efficiency)%" else "N/A" end)"'
 
 # Save records to temp file to avoid "argument list too long" error
 RECORDS_JSON_FILE=$(mktemp)
@@ -259,15 +265,14 @@ DATA_ISSUE_TITLE="AI Reviewer Reactions Data [$REPOSITORY]"
 echo ""
 echo "Updating data issue in $ISSUE_OWNER/$ISSUE_REPO_NAME..."
 
-# Find existing issue by label AND title (to distinguish between repos)
-EXISTING_ISSUE=$(gh api "repos/$ISSUE_OWNER/$ISSUE_REPO_NAME/issues?labels=$DATA_ISSUE_LABEL&state=open" --jq ".[] | select(.title == \"$DATA_ISSUE_TITLE\") | .number" 2>/dev/null | head -1 || echo "")
+# Find existing issue by title (to distinguish between repos)
+EXISTING_ISSUE=$(gh api "repos/$ISSUE_OWNER/$ISSUE_REPO_NAME/issues?state=open&per_page=100" --jq ".[] | select(.title == \"$DATA_ISSUE_TITLE\") | .number" 2>/dev/null | head -1 || echo "")
 
 if [[ -z "$EXISTING_ISSUE" ]]; then
     echo "Creating new data issue for $REPOSITORY..."
     EXISTING_ISSUE=$(gh issue create \
         --repo "$ISSUE_OWNER/$ISSUE_REPO_NAME" \
         --title "$DATA_ISSUE_TITLE" \
-        --label "$DATA_ISSUE_LABEL" \
         --body "Initializing..." \
         | grep -oE '[0-9]+$')
     echo "Created issue #$EXISTING_ISSUE"
@@ -278,10 +283,40 @@ fi
 # Generate rule statistics table for issue body
 RULE_STATS_TABLE=""
 if [[ "$TOTAL_COMMENTS" -gt 0 ]]; then
-    RULE_STATS_TABLE=$(echo "$RULE_STATS" | jq -r '.[] | "| \(.ruleId) | \(.violations) | \(.thumbsUp) | \(.thumbsDown) | \(.violationsWithFeedback)% | \(if .efficiency then "\(.efficiency)%" else "N/A" end) |"')
+    RULE_STATS_TABLE=$(echo "$RULE_STATS" | jq -r '.[] | "| \(.ruleId) | \(.violations) | \(.thumbsUp) | \(.thumbsDown) | \(.engagementRate)% | \(if .efficiency then "\(.efficiency)%" else "N/A" end) | \(.falsePositiveRate)% | \(.signalStrength) | \(if .controversyScore then "\(.controversyScore)" else "N/A" end) |"')
 fi
 if [[ -z "$RULE_STATS_TABLE" ]]; then
-    RULE_STATS_TABLE="| - | - | - | - | - | - |"
+    RULE_STATS_TABLE="| - | - | - | - | - | - | - | - | - |"
+fi
+
+# Generate Top Offenders section (rules that need attention)
+TOP_OFFENDERS=""
+if [[ "$TOTAL_COMMENTS" -gt 0 ]]; then
+    # Lowest efficiency (with at least some feedback)
+    LOWEST_EFFICIENCY=$(echo "$RULE_STATS" | jq -r '[.[] | select(.efficiency != null and .efficiency < 50)] | sort_by(.efficiency) | .[0:3] | if length > 0 then "**Lowest Efficiency:**\n" + (map("- \(.ruleId): \(.efficiency)% efficiency (+\(.thumbsUp)/-\(.thumbsDown))") | join("\n")) else empty end')
+
+    # Highest false positive rate
+    HIGHEST_FP=$(echo "$RULE_STATS" | jq -r '[.[] | select(.falsePositiveRate > 0)] | sort_by(-.falsePositiveRate) | .[0:3] | if length > 0 then "**Highest False Positive Rate:**\n" + (map("- \(.ruleId): \(.falsePositiveRate)% (\(.thumbsDown) thumbs down / \(.violations) violations)") | join("\n")) else empty end')
+
+    # Most negative feedback (absolute)
+    MOST_NEGATIVE=$(echo "$RULE_STATS" | jq -r '[.[] | select(.thumbsDown > 0)] | sort_by(-.thumbsDown) | .[0:3] | if length > 0 then "**Most Negative Feedback:**\n" + (map("- \(.ruleId): \(.thumbsDown) thumbs down (\(.violations) violations)") | join("\n")) else empty end')
+
+    # Negative signal strength (rule causing more harm than good)
+    NEGATIVE_SIGNAL=$(echo "$RULE_STATS" | jq -r '[.[] | select(.signalStrength < 0)] | sort_by(.signalStrength) | .[0:3] | if length > 0 then "**Negative Signal (consider disabling):**\n" + (map("- \(.ruleId): signal \(.signalStrength) (+\(.thumbsUp)/-\(.thumbsDown))") | join("\n")) else empty end')
+
+    # Most controversial (high controversy score with feedback)
+    MOST_CONTROVERSIAL=$(echo "$RULE_STATS" | jq -r '[.[] | select(.controversyScore != null and .controversyScore > 0.5)] | sort_by(-.controversyScore) | .[0:3] | if length > 0 then "**Most Controversial (mixed opinions):**\n" + (map("- \(.ruleId): controversy \(.controversyScore) (+\(.thumbsUp)/-\(.thumbsDown))") | join("\n")) else empty end')
+
+    # Combine non-empty sections
+    for section in "$LOWEST_EFFICIENCY" "$HIGHEST_FP" "$MOST_NEGATIVE" "$NEGATIVE_SIGNAL" "$MOST_CONTROVERSIAL"; do
+        if [[ -n "$section" ]]; then
+            TOP_OFFENDERS="${TOP_OFFENDERS}${section}\n\n"
+        fi
+    done
+fi
+
+if [[ -z "$TOP_OFFENDERS" ]]; then
+    TOP_OFFENDERS="No rules requiring attention at this time."
 fi
 
 # Generate issue body
@@ -304,14 +339,25 @@ ISSUE_BODY="# AI Reviewer Reactions Data
 | Thumbs Down | $TOTAL_THUMBS_DOWN |
 | Approval Rate | ${APPROVAL_RATE}% |
 
+## Top Offenders
+
+$(echo -e "$TOP_OFFENDERS")
+
 ## Statistics by Rule
 
-| Rule ID | # of violations | 👍 | 👎 | Violations with feedback | Efficiency |
-|---------|-----------------|----|----|--------------------------|------------|
+| Rule ID | Violations | 👍 | 👎 | Engagement | Efficiency | FP Rate | Signal | Controversy |
+|---------|------------|----|----|------------|------------|---------|--------|-------------|
 $RULE_STATS_TABLE
 
-> **Violations with feedback** = (👍 + 👎) / # of violations × 100%
-> **Efficiency** = 👍 / (👍 + 👎) × 100% (0% = all negative, 100% = all positive)
+### Metric Definitions
+
+| Metric | Formula | Interpretation |
+|--------|---------|----------------|
+| **Engagement** | (👍 + 👎) / violations × 100% | How often users react to this rule |
+| **Efficiency** | 👍 / (👍 + 👎) × 100% | Sentiment of feedback (100% = all positive) |
+| **FP Rate** | 👎 / violations × 100% | How often the rule is wrong |
+| **Signal** | (👍 - 👎) / violations | Net value per violation (-1 to +1, negative = harmful) |
+| **Controversy** | min(👍,👎) / max(👍,👎) | Opinion split (1 = evenly divided) |
 
 ---
 

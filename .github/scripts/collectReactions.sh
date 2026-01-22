@@ -59,6 +59,42 @@ echo "  Days: $DAYS"
 echo "  Dry Run: $DRY_RUN"
 echo ""
 
+# Get repository info for API calls
+# GITHUB_REPOSITORY is set automatically in GitHub Actions (e.g., "Expensify/App")
+# Fall back to the target repo if not running in GitHub Actions
+ISSUE_REPO="${GITHUB_REPOSITORY:-$REPOSITORY}"
+ISSUE_OWNER=$(echo "$ISSUE_REPO" | cut -d'/' -f1)
+ISSUE_REPO_NAME=$(echo "$ISSUE_REPO" | cut -d'/' -f2)
+
+# Include target repo in title to distinguish between repos
+DATA_ISSUE_TITLE="AI Reviewer Reactions Data [$REPOSITORY]"
+
+# Find or create the data issue early to fail fast
+echo "Finding/creating data issue in $ISSUE_OWNER/$ISSUE_REPO_NAME..."
+
+# Use GitHub Search API to find existing issue (searches ALL issues, not just recent ones)
+SEARCH_QUERY="repo:$ISSUE_REPO+is:issue+is:open+in:title+\"$DATA_ISSUE_TITLE\""
+EXISTING_ISSUE=$(gh api "search/issues?q=$SEARCH_QUERY" --jq ".items[] | select(.title == \"$DATA_ISSUE_TITLE\") | .number" 2>/dev/null | head -1 || echo "")
+
+if [[ -z "$EXISTING_ISSUE" ]]; then
+    echo "Creating new data issue for $REPOSITORY..."
+    EXISTING_ISSUE=$(gh issue create \
+        --repo "$ISSUE_OWNER/$ISSUE_REPO_NAME" \
+        --title "$DATA_ISSUE_TITLE" \
+        --body "Initializing..." \
+        | grep -oE '[0-9]+$')
+    echo "Created issue #$EXISTING_ISSUE"
+else
+    echo "Found existing issue #$EXISTING_ISSUE"
+fi
+
+if [[ -z "$EXISTING_ISSUE" ]]; then
+    echo "Error: Failed to find or create data issue"
+    exit 1
+fi
+
+echo ""
+
 # Calculate date range (macOS vs Linux compatible)
 if date -v-1d &>/dev/null; then
     # macOS
@@ -251,35 +287,8 @@ if [[ "$DRY_RUN" == "true" ]]; then
     exit 0
 fi
 
-# Get repository info for API calls
-# GITHUB_REPOSITORY is set automatically in GitHub Actions (e.g., "Expensify/App")
-# Fall back to the target repo if not running in GitHub Actions
-ISSUE_REPO="${GITHUB_REPOSITORY:-$REPOSITORY}"
-ISSUE_OWNER=$(echo "$ISSUE_REPO" | cut -d'/' -f1)
-ISSUE_REPO_NAME=$(echo "$ISSUE_REPO" | cut -d'/' -f2)
-
-# Include target repo in title to distinguish between repos
-DATA_ISSUE_TITLE="AI Reviewer Reactions Data [$REPOSITORY]"
-
 echo ""
-echo "Updating data issue in $ISSUE_OWNER/$ISSUE_REPO_NAME..."
-
-# Find an existing issue
-ENCODED_TITLE=$(echo "$DATA_ISSUE_TITLE" | jq -sRr @uri)
-SEARCH_QUERY="repo:$ISSUE_REPO+is:issue+is:open+in:title+\"$DATA_ISSUE_TITLE\""
-EXISTING_ISSUE=$(gh api "search/issues?q=$SEARCH_QUERY" --jq ".items[] | select(.title == \"$DATA_ISSUE_TITLE\") | .number" 2>/dev/null | head -1 || echo "")
-
-if [[ -z "$EXISTING_ISSUE" ]]; then
-    echo "Creating new data issue for $REPOSITORY..."
-    EXISTING_ISSUE=$(gh issue create \
-        --repo "$ISSUE_OWNER/$ISSUE_REPO_NAME" \
-        --title "$DATA_ISSUE_TITLE" \
-        --body "Initializing..." \
-        | grep -oE '[0-9]+$')
-    echo "Created issue #$EXISTING_ISSUE"
-else
-    echo "Found existing issue #$EXISTING_ISSUE"
-fi
+echo "Updating issue #$EXISTING_ISSUE..."
 
 # Generate rule statistics table for issue body
 RULE_STATS_TABLE=""

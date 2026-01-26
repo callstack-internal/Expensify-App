@@ -1,5 +1,4 @@
 /* eslint-disable rulesdir/prefer-onyx-connect-in-libs */
-
 /* eslint-disable rulesdir/prefer-actions-set-data */
 import React from 'react';
 // eslint-disable-next-line no-restricted-imports
@@ -97,9 +96,9 @@ function PolicyIDToggle() {
                     const connection = Onyx.connectWithoutView({
                         key: ONYXKEYS.COLLECTION.INEXISTENT,
                         callback: (data) => {
-                            Object.keys(data ?? {}).forEach((key) => {
+                            for (const key of Object.keys(data ?? {})) {
                                 Onyx.set(key as `${typeof ONYXKEYS.COLLECTION.INEXISTENT}${string}`, null);
-                            });
+                            }
 
                             Onyx.disconnect(connection);
                         },

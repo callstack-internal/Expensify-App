@@ -135,6 +135,7 @@ function FloatingActionButtonAndPopover({onHideCreateMenu, onShowCreateMenu, ref
         'Cash',
         'Transfer',
         'MoneyCircle',
+        'Bolt',
     ] as const);
     const styles = useThemeStyles();
     const theme = useTheme();
@@ -676,7 +677,7 @@ function FloatingActionButtonAndPopover({onHideCreateMenu, onShowCreateMenu, ref
               ]
             : []),
         {
-            icon: Expensicons.Bolt,
+            icon: icons.Bolt,
             text: 'Onyx Playground',
             onSelected: () => interceptAnonymousUser(() => Navigation.navigate(ROUTES.ONYX_PLAYGROUND)),
         },

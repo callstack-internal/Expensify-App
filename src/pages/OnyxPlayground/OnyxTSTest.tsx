@@ -1,13 +1,9 @@
+/* eslint-disable rulesdir/no-onyx-connect */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
 /* eslint-disable @typescript-eslint/naming-convention */
-
 /* eslint-disable react/no-unused-prop-types */
-
 /* eslint-disable no-console */
-
 /* eslint-disable rulesdir/prefer-actions-set-data */
-
 /* eslint-disable rulesdir/prefer-onyx-connect-in-libs */
 import type {OnyxCollection, OnyxEntry, OnyxUpdate} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';

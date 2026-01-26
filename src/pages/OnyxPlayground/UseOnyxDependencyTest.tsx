@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable rulesdir/prefer-actions-set-data */
 import React, {useState} from 'react';
 // eslint-disable-next-line no-restricted-imports
@@ -12,7 +13,9 @@ import mapOnyxCollectionItems from '@src/utils/mapOnyxCollectionItems';
 function UseOnyxDependencyTest() {
     const styles = useThemeStyles();
     const [policyID] = useOnyx(ONYXKEYS.POLICY_ID);
+    // eslint-disable-next-line react-hooks/purity
     const [internalValue, setInternalValue] = useState(`internal_${Math.random()}`);
+    // eslint-disable-next-line rulesdir/no-inline-useOnyx-selector
     const [policies] = useOnyx(
         ONYXKEYS.COLLECTION.POLICY,
         {

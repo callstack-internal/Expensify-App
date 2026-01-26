@@ -1,7 +1,6 @@
+/* eslint-disable rulesdir/no-inline-useOnyx-selector */
 /* eslint-disable arrow-body-style */
-
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
 /* eslint-disable no-console */
 import React, {useState} from 'react';
 import type {OnyxCollection, OnyxEntry, UseOnyxResult} from 'react-native-onyx';
@@ -38,7 +37,7 @@ function ComponentWithOnyxHook({policyID}: ComponentWithOnyxHookProps) {
 
     const betas = useOnyx(ONYXKEYS.BETAS);
     const [betasValue] = betas;
-    testNullUndefined<Readonly<Beta[]>>(betasValue);
+    testNullUndefined<readonly Beta[]>(betasValue);
 
     const testCondition = useOnyx(ONYXKEYS.TEST_CONDITION);
     const [testConditionOnyxValue = true] = testCondition;

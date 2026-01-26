@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-
 /* eslint-disable rulesdir/prefer-onyx-connect-in-libs */
 import {useEffect} from 'react';
 // eslint-disable-next-line no-restricted-imports

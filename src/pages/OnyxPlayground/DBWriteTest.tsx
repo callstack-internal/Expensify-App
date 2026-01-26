@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-
 /* eslint-disable rulesdir/prefer-actions-set-data */
 import React, {useState} from 'react';
 import {View} from 'react-native';

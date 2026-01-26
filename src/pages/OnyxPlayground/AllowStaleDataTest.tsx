@@ -1,5 +1,4 @@
 /* eslint-disable rulesdir/prefer-actions-set-data */
-
 /* eslint-disable no-console */
 import React, {useState} from 'react';
 // eslint-disable-next-line no-restricted-imports

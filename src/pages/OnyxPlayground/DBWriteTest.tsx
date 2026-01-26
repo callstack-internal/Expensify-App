@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable rulesdir/prefer-actions-set-data */
 import React, {useState} from 'react';
-import {View} from 'react-native';
+import {Alert, View} from 'react-native';
 // eslint-disable-next-line no-restricted-imports
 import Onyx, {useOnyx} from 'react-native-onyx';
 import type {StorageKeyList} from 'react-native-onyx/dist/storage/providers/types';
@@ -58,6 +58,8 @@ function DBWriteTest() {
                 // eslint-disable-next-line no-await-in-loop
                 await sleep(sleepTime);
             }
+
+            Alert.alert('Write 1000x finished!');
         } else {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const result = await operation();

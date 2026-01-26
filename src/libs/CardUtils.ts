@@ -876,6 +876,19 @@ function isCardAlreadyAssigned(cardNumberToCheck: string, workspaceCardFeeds: On
     });
 }
 
+const getPersonalBankCardDetailsImage = (bank: ValueOf<typeof CONST.PERSONAL_CARDS.BANKS>, illustrations: IllustrationsType, companyCardIllustrations: CompanyCardBankIcons): IconAsset => {
+    const iconMap: Record<ValueOf<typeof CONST.PERSONAL_CARDS.BANKS>, IconAsset> = {
+        [CONST.COMPANY_CARDS.BANKS.AMEX]: companyCardIllustrations.AmexCardCompanyCardDetail,
+        [CONST.COMPANY_CARDS.BANKS.BANK_OF_AMERICA]: companyCardIllustrations.BankOfAmericaCompanyCardDetail,
+        [CONST.COMPANY_CARDS.BANKS.CAPITAL_ONE]: companyCardIllustrations.CapitalOneCompanyCardDetail,
+        [CONST.COMPANY_CARDS.BANKS.CHASE]: companyCardIllustrations.ChaseCompanyCardDetail,
+        [CONST.COMPANY_CARDS.BANKS.CITI_BANK]: companyCardIllustrations.CitibankCompanyCardDetail,
+        [CONST.COMPANY_CARDS.BANKS.WELLS_FARGO]: companyCardIllustrations.WellsFargoCompanyCardDetail,
+        [CONST.COMPANY_CARDS.BANKS.OTHER]: illustrations.GenericCompanyCard,
+    };
+    return iconMap[bank];
+};
+
 export {
     getAssignedCardSortKey,
     isExpensifyCard,
@@ -920,6 +933,7 @@ export {
     hasIssuedExpensifyCard,
     isExpensifyCardFullySetUp,
     filterInactiveCards,
+    getPersonalBankCardDetailsImage,
     isCardPendingIssue,
     isCardPendingActivate,
     hasPendingExpensifyCardAction,

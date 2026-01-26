@@ -24,7 +24,7 @@ import type {Country, IOUAction, IOUType} from '@src/CONST';
 import type NAVIGATORS from '@src/NAVIGATORS';
 import type {Route as ExpensifyRoute, Route as Routes} from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
-import type {CompanyCardFeedWithDomainID} from '@src/types/onyx';
+import type {CompanyCardFeedWithDomainID, PersonalCardFeedWithDomainID} from '@src/types/onyx';
 import type {ConnectionName, SageIntacctMappingName} from '@src/types/onyx/Policy';
 import type {CustomFieldType} from '@src/types/onyx/PolicyEmployee';
 import type {FileObject} from '@src/types/utils/Attachment';
@@ -212,6 +212,10 @@ type SettingsNavigatorParamList = {
     };
     [SCREENS.SETTINGS.WALLET.SHARE_BANK_ACCOUNT]: {
         bankAccountID: string;
+    };
+    [SCREENS.SETTINGS.WALLET.PERSONAL_CARD_ADD_NEW]: undefined;
+    [SCREENS.SETTINGS.WALLET.PERSONAL_CARD_BANK_CONNECTION]: {
+        feed: PersonalCardFeedWithDomainID;
     };
     [SCREENS.SETTINGS.ADD_DEBIT_CARD]: undefined;
     [SCREENS.SETTINGS.ADD_BANK_ACCOUNT]: undefined;

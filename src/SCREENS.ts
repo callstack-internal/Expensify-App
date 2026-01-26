@@ -190,6 +190,8 @@ const SCREENS = {
             UNSHARE_BANK_ACCOUNT: 'Settings_Wallet_Unshare_Bank_Account',
             ENABLE_GLOBAL_REIMBURSEMENTS: 'Settings_Wallet_Enable_Global_Reimbursements',
             SHARE_BANK_ACCOUNT: 'Settings_Wallet_Share_Bank_Account',
+            PERSONAL_CARD_BANK_CONNECTION: 'Settings_Wallet_PersonalCard_BankConnection',
+            PERSONAL_CARD_ADD_NEW: 'Settings_Wallet_PersonalCard_New',
         },
 
         EXIT_SURVEY: {

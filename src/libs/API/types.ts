@@ -5,6 +5,7 @@ import type {EmptyObject} from '@src/types/utils/EmptyObject';
 // We have to disable eslint for this import because otherwise the import will be 300 lines long
 // eslint-disable-next-line no-restricted-syntax
 import type * as Parameters from './parameters';
+import ImportPersonalPlaidAccountsParams from './parameters/ImportPersonalPlaidAccountsParams';
 import type SignInUserParams from './parameters/SignInUserParams';
 import type UpdateBeneficialOwnersForBankAccountParams from './parameters/UpdateBeneficialOwnersForBankAccountParams';
 
@@ -521,6 +522,7 @@ const WRITE_COMMANDS = {
     TRAVEL_SIGNUP_REQUEST: 'RequestTravelAccess',
     DELETE_VACATION_DELEGATE: 'DeleteVacationDelegate',
     IMPORT_PLAID_ACCOUNTS: 'ImportPlaidAccounts',
+    IMPORT_PERSONAL_PLAID_ACCOUNTS: 'ImportPersonalPlaidAccounts',
     ASSIGN_REPORT_TO_ME: 'AssignReportToMe',
     ADD_REPORT_APPROVER: 'AddReportApprover',
     REQUEST_UNLOCK_ACCOUNT: 'RequestUnlockAccount',
@@ -1073,6 +1075,7 @@ type WriteCommandParameters = {
 
     [WRITE_COMMANDS.PAY_AND_DOWNGRADE]: null;
     [WRITE_COMMANDS.IMPORT_PLAID_ACCOUNTS]: Parameters.ImportPlaidAccountsParams;
+    [WRITE_COMMANDS.IMPORT_PERSONAL_PLAID_ACCOUNTS]: Parameters.ImportPersonalPlaidAccountsParams;
 
     // Change transaction report
     [WRITE_COMMANDS.CHANGE_TRANSACTIONS_REPORT]: Parameters.ChangeTransactionsReportParams;

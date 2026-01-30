@@ -10,7 +10,7 @@ function sleep(ms: number): Promise<void> {
     });
 }
 
-function createCollection<T>(createKey: (item: T, index: number) => string | number, createItem: (index: number) => T, length = 1000): Record<string, T> {
+function createCollection<T>(createKey: (item: T, index: number) => string | number, createItem: (index: number) => T, length: number): Record<string, T> {
     const map: Record<string, T> = {};
 
     for (let i = 1; i <= length; i++) {
@@ -22,7 +22,7 @@ function createCollection<T>(createKey: (item: T, index: number) => string | num
     return map;
 }
 
-function createDBPairs<T>(createKey: (item: T, index: number) => string | number, createItem: (index: number) => T, length = 1000): StorageKeyValuePair[] {
+function createDBPairs<T>(createKey: (item: T, index: number) => string | number, createItem: (index: number) => T, length: number): StorageKeyValuePair[] {
     const pairs: StorageKeyValuePair[] = [];
 
     for (let i = 1; i <= length; i++) {

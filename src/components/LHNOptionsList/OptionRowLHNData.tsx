@@ -5,8 +5,6 @@ import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromR
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
 import SidebarUtils from '@libs/SidebarUtils';
-import CONST from '@src/CONST';
-import {getMovedReportID} from '@src/libs/ModifiedExpenseMessage';
 import type {OptionData} from '@src/libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import OptionRowLHN from './OptionRowLHN';
@@ -24,23 +22,18 @@ function OptionRowLHNData({
     reportAttributes,
     oneTransactionThreadReport,
     reportNameValuePairs,
-    reportActions,
     personalDetails = {},
-    preferredLocale = CONST.LOCALES.DEFAULT,
     policy,
     invoiceReceiverPolicy,
-    receiptTransactions,
     parentReportAction,
-    iouReportReportActions,
-    transaction,
-    lastReportActionTransaction,
-    transactionViolations,
     lastMessageTextFromReport,
     localeCompare,
     translate,
     isReportArchived = false,
     lastAction,
     lastActionReport,
+    movedFromReport,
+    movedToReport,
     currentUserAccountID,
     ...propsToForward
 }: OptionRowLHNDataProps) {
@@ -48,9 +41,6 @@ function OptionRowLHNData({
     const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
     const isReportFocused = isOptionFocused && currentReportIDValue === reportID;
     const optionItemRef = useRef<OptionData | undefined>(undefined);
-
-    const [movedFromReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.FROM)}`, {canBeMissing: true});
-    const [movedToReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.TO)}`, {canBeMissing: true});
     const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {canBeMissing: true});
     // Check the report errors equality to avoid re-rendering when there are no changes
     const prevReportErrors = usePrevious(reportAttributes?.reportErrors);
@@ -98,18 +88,14 @@ function OptionRowLHNData({
         areReportErrorsEqual,
         oneTransactionThreadReport,
         reportNameValuePairs,
-        lastReportActionTransaction,
-        reportActions,
         personalDetails,
-        preferredLocale,
         policy,
         parentReportAction,
-        iouReportReportActions,
-        transaction,
-        receiptTransactions,
         invoiceReceiverPolicy,
         lastMessageTextFromReport,
         card,
+        lastAction,
+        lastActionReport,
         translate,
         localeCompare,
         isReportArchived,

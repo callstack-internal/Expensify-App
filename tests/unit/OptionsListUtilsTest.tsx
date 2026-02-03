@@ -41,7 +41,7 @@ import {
     sortAlphabetically,
 } from '@libs/OptionsListUtils';
 import Parser from '@libs/Parser';
-import {getChangedApproverActionMessage, getDynamicExternalWorkflowRoutedMessage} from '@libs/ReportActionsUtils';
+import {clearSortedReportActionsCache, getChangedApproverActionMessage, getDynamicExternalWorkflowRoutedMessage} from '@libs/ReportActionsUtils';
 import {
     canCreateTaskInReport,
     canUserPerformWriteAction,
@@ -3188,6 +3188,10 @@ describe('OptionsListUtils', () => {
     });
 
     describe('getLastMessageTextForReport', () => {
+        beforeEach(() => {
+            clearSortedReportActionsCache();
+        });
+
         describe('getReportPreviewMessage', () => {
             it('should format report preview message correctly for non-policy expense chat with IOU action', async () => {
                 const iouReport: Report = {

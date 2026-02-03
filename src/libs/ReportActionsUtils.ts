@@ -144,6 +144,17 @@ getEnvironmentURL().then((url: string) => (environmentURL = url));
 let oldDotEnvironmentURL: string;
 getOldDotEnvironmentURL().then((url: string) => (oldDotEnvironmentURL = url));
 
+type SortedReportActionsCacheEntry = {
+    sortedActions: ReportAction[];
+    lastAccessed: number;
+};
+
+const SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE = 1000;
+
+const sortedReportActionsCacheAscending = new Map<string, SortedReportActionsCacheEntry>();
+const sortedReportActionsCacheDescending = new Map<string, SortedReportActionsCacheEntry>();
+const shouldReportActionBeVisibleAsLastActionCache = new WeakMap<ReportAction, Map<boolean, boolean>>();
+
 /*
  * Url to the Xero non reimbursable expenses list
  */
@@ -609,6 +620,46 @@ function isTransactionThread(parentReportAction: OnyxInputOrEntry<ReportAction>)
 }
 
 /**
+ * Clears the sorted report actions caches. Exposed for tests to avoid cross-test cache pollution
+ * when different tests use the same reportActionIDs with different metadata (created, actionName).
+ */
+function clearSortedReportActionsCache(): void {
+    sortedReportActionsCacheAscending.clear();
+    sortedReportActionsCacheDescending.clear();
+}
+
+/**
+ * Generates a cache key based on reportActionIDs (sorted for consistency).
+ * This allows us to cache sorted results even when we receive new array references.
+ */
+function getCacheKeyForReportActions(reportActions: ReportAction[]): string {
+    return reportActions
+        .map((action) => action.reportActionID)
+        .sort()
+        .join(',');
+}
+
+/**
+ * Ensures cache doesn't exceed max size by removing least recently used entries (LRU).
+ */
+function evictOldestCacheEntries(cache: Map<string, SortedReportActionsCacheEntry>): void {
+    if (cache.size <= SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE) {
+        return;
+    }
+
+    const entries = Array.from(cache.entries());
+    entries.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
+
+    const entriesToRemove = cache.size - SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE;
+    for (let i = 0; i < entriesToRemove; i++) {
+        const entry = entries.at(i);
+        if (entry !== undefined) {
+            cache.delete(entry[0]);
+        }
+    }
+}
+
+/**
  * Sort an array of reportActions by their created timestamp first, and reportActionID second
  * This gives us a stable order even in the case of multiple reportActions created on the same millisecond
  *
@@ -618,9 +669,23 @@ function getSortedReportActions(reportActions: ReportAction[] | null, shouldSort
         throw new Error(`ReportActionsUtils.getSortedReportActions requires an array, received ${typeof reportActions}`);
     }
 
+    const filteredActions = reportActions.filter(Boolean);
+    if (filteredActions.length === 0) {
+        return [];
+    }
+
+    const cache = shouldSortInDescendingOrder ? sortedReportActionsCacheDescending : sortedReportActionsCacheAscending;
+    const cacheKey = getCacheKeyForReportActions(filteredActions);
+    const cachedEntry = cache.get(cacheKey);
+
+    if (cachedEntry) {
+        cachedEntry.lastAccessed = Date.now();
+        return [...cachedEntry.sortedActions];
+    }
+
     const invertedMultiplier = shouldSortInDescendingOrder ? -1 : 1;
 
-    const sortedActions = reportActions?.filter(Boolean).sort((first, second) => {
+    const sortedActions = [...filteredActions].sort((first, second) => {
         // First sort by action type, ensuring that `CREATED` actions always come first if they have the same or even a later timestamp as another action type
         if ((first.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED || second.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED) && first.actionName !== second.actionName) {
             return (first.actionName === CONST.REPORT.ACTIONS.TYPE.CREATED ? -1 : 1) * invertedMultiplier;
@@ -647,6 +712,11 @@ function getSortedReportActions(reportActions: ReportAction[] | null, shouldSort
         return (first.reportActionID < second.reportActionID ? -1 : 1) * invertedMultiplier;
     });
 
+    evictOldestCacheEntries(cache);
+    cache.set(cacheKey, {
+        sortedActions,
+        lastAccessed: Date.now(),
+    });
     return sortedActions;
 }
 
@@ -1165,17 +1235,41 @@ function shouldReportActionBeVisibleAsLastAction(reportAction: OnyxInputOrEntry<
         return false;
     }
 
+    const canWrite = canUserPerformWriteAction ?? false;
+    let actionCache = shouldReportActionBeVisibleAsLastActionCache.get(reportAction);
+    if (!actionCache) {
+        actionCache = new Map<boolean, boolean>();
+        shouldReportActionBeVisibleAsLastActionCache.set(reportAction, actionCache);
+    }
+
+    const cached = actionCache.get(canWrite);
+    if (cached !== undefined) {
+        return cached;
+    }
+
     if (Object.keys(reportAction.errors ?? {}).length > 0) {
+        actionCache.set(canWrite, false);
         return false;
     }
 
-    // If a whisper action is the REPORT_PREVIEW action, we are displaying it.
-    // If the action's message text is empty and it is not a deleted parent with visible child actions, hide it. Else, consider the action to be displayable.
-    return (
-        shouldReportActionBeVisible(reportAction, reportAction.reportActionID, canUserPerformWriteAction) &&
-        (!(isWhisperAction(reportAction) && !isReportPreviewAction(reportAction) && !isMoneyRequestAction(reportAction)) || isActionableMentionWhisper(reportAction)) &&
-        !(isDeletedAction(reportAction) && !isDeletedParentAction(reportAction) && !isPendingHide(reportAction))
-    );
+    if (!shouldReportActionBeVisible(reportAction, reportAction.reportActionID, canUserPerformWriteAction)) {
+        actionCache.set(canWrite, false);
+        return false;
+    }
+
+    const isWhisper = isWhisperAction(reportAction) && !isReportPreviewAction(reportAction) && !isMoneyRequestAction(reportAction);
+    if (isWhisper && !isActionableMentionWhisper(reportAction)) {
+        actionCache.set(canWrite, false);
+        return false;
+    }
+
+    if (isDeletedAction(reportAction) && !isDeletedParentAction(reportAction) && !isPendingHide(reportAction)) {
+        actionCache.set(canWrite, false);
+        return false;
+    }
+
+    actionCache.set(canWrite, true);
+    return true;
 }
 
 /**
@@ -1419,6 +1513,12 @@ function withDEWRoutedActionsObject(reportActions: OnyxEntry<ReportActions>): On
  * The report actions need to be sorted by created timestamp first, and reportActionID second
  * to ensure they will always be displayed in the same order (in case multiple actions have the same timestamp).
  * This is all handled with getSortedReportActions() which is used by several other methods to keep the code DRY.
+ *
+ * @param reportActions - The report actions to process (either OnyxEntry or array)
+ * @param canUserPerformWriteAction - Whether the user can perform write actions
+ * @param shouldIncludeInvisibleActions - Whether to include invisible actions
+ * @param preFilteredActions - Optional pre-filtered actions array to avoid redundant filtering
+ * @returns Sorted array of report actions ready for display
  */
 function getSortedReportActionsForDisplay(
     reportActions: OnyxEntry<ReportActions> | ReportAction[],
@@ -1426,14 +1526,17 @@ function getSortedReportActionsForDisplay(
     shouldIncludeInvisibleActions = false,
     visibleReportActionsData?: VisibleReportActionsDerivedValue,
     reportID?: string,
+    preFilteredActions?: ReportAction[],
 ): ReportAction[] {
-    let filteredReportActions: ReportAction[] = [];
     if (!reportActions) {
         return [];
     }
 
-    if (shouldIncludeInvisibleActions) {
-        filteredReportActions = Object.values(reportActions).filter(Boolean);
+    let filteredReportActions: ReportAction[];
+    if (preFilteredActions) {
+        filteredReportActions = preFilteredActions;
+    } else if (shouldIncludeInvisibleActions) {
+        filteredReportActions = Array.isArray(reportActions) ? reportActions : Object.values(reportActions).filter(Boolean);
     } else {
         filteredReportActions = Object.entries(reportActions)
             .filter(([collectionKey, reportAction]) => {
@@ -3927,6 +4030,7 @@ function hasReasoning(action: OnyxInputOrEntry<ReportAction>): boolean {
 }
 
 export {
+    clearSortedReportActionsCache,
     doesReportHaveVisibleActions,
     extractLinksFromMessageHtml,
     formatLastMessageText,

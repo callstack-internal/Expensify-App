@@ -338,6 +338,8 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
                 />
             );
         },
+        // Intentionally omit reports, reportActions, etc. – read via refs to keep callback stable
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [
             reportAttributes,
             policyForMovingExpensesID,
@@ -360,37 +362,47 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
         ],
     );
 
+    const reportActionsKeysLength = Object.keys(reportActions ?? {}).length;
+    const reportsKeysLength = Object.keys(reports ?? {}).length;
+    const reportAttributesKeysLength = Object.keys(reportAttributes ?? {}).length;
+    const reportNameValuePairsKeysLength = Object.keys(reportNameValuePairs ?? {}).length;
+    const transactionViolationsKeysLength = Object.keys(transactionViolations ?? {}).length;
+    const policyKeysLength = Object.keys(policy ?? {}).length;
+    const personalDetailsKeysLength = Object.keys(personalDetails ?? {}).length;
+    const draftCommentsKeysLength = Object.keys(draftComments ?? {}).length;
+    const transactionsKeysLength = Object.keys(transactions ?? {}).length;
+
     const extraData = useMemo(
         () => [
-            Object.keys(reportActions ?? {}).length,
-            Object.keys(reports ?? {}).length,
-            Object.keys(reportAttributes ?? {}).length,
-            Object.keys(reportNameValuePairs ?? {}).length,
-            Object.keys(transactionViolations ?? {}).length,
-            Object.keys(policy ?? {}).length,
-            Object.keys(personalDetails ?? {}).length,
+            reportActionsKeysLength,
+            reportsKeysLength,
+            reportAttributesKeysLength,
+            reportNameValuePairsKeysLength,
+            transactionViolationsKeysLength,
+            policyKeysLength,
+            personalDetailsKeysLength,
             data.length,
-            Object.keys(draftComments ?? {}).length,
+            draftCommentsKeysLength,
             optionMode,
             preferredLocale,
-            Object.keys(transactions ?? {}).length,
+            transactionsKeysLength,
             isOffline,
             isScreenFocused,
             isReportsSplitNavigatorLast,
         ],
         [
-            Object.keys(reportActions ?? {}).length,
-            Object.keys(reports ?? {}).length,
-            Object.keys(reportAttributes ?? {}).length,
-            Object.keys(reportNameValuePairs ?? {}).length,
-            Object.keys(transactionViolations ?? {}).length,
-            Object.keys(policy ?? {}).length,
-            Object.keys(personalDetails ?? {}).length,
+            reportActionsKeysLength,
+            reportsKeysLength,
+            reportAttributesKeysLength,
+            reportNameValuePairsKeysLength,
+            transactionViolationsKeysLength,
+            policyKeysLength,
+            personalDetailsKeysLength,
             data.length,
-            Object.keys(draftComments ?? {}).length,
+            draftCommentsKeysLength,
             optionMode,
             preferredLocale,
-            Object.keys(transactions ?? {}).length,
+            transactionsKeysLength,
             isOffline,
             isScreenFocused,
             isReportsSplitNavigatorLast,

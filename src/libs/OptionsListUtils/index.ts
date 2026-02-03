@@ -92,6 +92,8 @@ import {
     isTaskAction,
     isThreadParentMessage,
     isUnapprovedAction,
+    isWhisperAction,
+    shouldReportActionBeVisible,
     withDEWRoutedActionsArray,
 } from '@libs/ReportActionsUtils';
 import {computeReportName} from '@libs/ReportNameUtils';
@@ -231,6 +233,76 @@ Onyx.connect({
 });
 
 let allReportNameValuePairsOnyxConnect: OnyxCollection<ReportNameValuePairs>;
+
+const lastReportActions: ReportActions = {};
+const allSortedReportActions: Record<string, ReportAction[]> = {};
+let allReportActions: OnyxCollection<ReportActions>;
+const lastVisibleReportActions: ReportActions = {};
+const filteredReportActionsCache: Record<string, ReportAction[]> = {};
+const lastMessageTextCache: Record<string, string> = {};
+
+/**
+ * Invalidates and recomputes cache entries for a specific report.
+ * This is called when report actions, metadata, or archived status changes.
+ *
+ * @param reportID - The ID of the report to invalidate cache for
+ */
+function invalidateCacheForReport(reportID: string) {
+    if (!reportID) {
+        return;
+    }
+
+    delete lastMessageTextCache[reportID];
+    delete filteredReportActionsCache[reportID];
+
+    if (allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`]) {
+        const reportActionsArray = Object.values(allReportActions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`] ?? {});
+        const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
+        const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${report?.chatReportID}`];
+        const transactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, allReportActions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`]);
+
+        let sortedReportActions = getSortedReportActions(withDEWRoutedActionsArray(reportActionsArray), true);
+        if (transactionThreadReportID) {
+            const transactionThreadReportActionsArray = Object.values(allReportActions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${transactionThreadReportID}`] ?? {});
+            sortedReportActions = getCombinedReportActions(sortedReportActions, transactionThreadReportID, transactionThreadReportActionsArray, reportID);
+        }
+        allSortedReportActions[reportID] = sortedReportActions;
+
+        const reportNameValuePairs = allReportNameValuePairsOnyxConnect?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`];
+        const isReportArchived = !!reportNameValuePairs?.private_isArchived;
+        const isWriteActionAllowed = canUserPerformWriteAction(report, isReportArchived);
+
+        const reportActionsForDisplay = sortedReportActions.filter(
+            (reportAction) =>
+                (!(isWhisperAction(reportAction) && !isReportPreviewAction(reportAction) && !isMoneyRequestAction(reportAction)) || isActionableMentionWhisper(reportAction)) &&
+                shouldReportActionBeVisible(reportAction, reportAction.reportActionID, isWriteActionAllowed) &&
+                reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED &&
+                reportAction.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
+        );
+        filteredReportActionsCache[reportID] = reportActionsForDisplay;
+
+        const reportActionForDisplay = reportActionsForDisplay.at(0);
+        if (!reportActionForDisplay) {
+            delete lastVisibleReportActions[reportID];
+            return;
+        }
+        lastVisibleReportActions[reportID] = reportActionForDisplay;
+
+        const lastActorAccountID = report?.lastActorAccountID;
+        let lastActorDetails: Partial<PersonalDetails> | null = lastActorAccountID && allPersonalDetails?.[lastActorAccountID] ? allPersonalDetails[lastActorAccountID] : null;
+
+        if (!lastActorDetails && reportActionForDisplay) {
+            const lastActorDisplayName = reportActionForDisplay.person?.[0]?.text;
+            lastActorDetails = lastActorDisplayName
+                ? {
+                      displayName: lastActorDisplayName,
+                      accountID: lastActorAccountID,
+                  }
+                : null;
+        }
+    }
+}
+
 Onyx.connect({
     key: ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
     waitForCollectionCallback: true,
@@ -239,9 +311,43 @@ Onyx.connect({
     },
 });
 
-const lastReportActions: ReportActions = {};
-const allSortedReportActions: Record<string, ReportAction[]> = {};
-let allReportActions: OnyxCollection<ReportActions>;
+Onyx.connect({
+    key: ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
+    callback: (value, key) => {
+        if (!key) {
+            return;
+        }
+        const reportID = key.split('_').at(1);
+        if (reportID) {
+            invalidateCacheForReport(reportID);
+        }
+    },
+});
+
+// Stored for collection callback ordering; may be read by other code in this module
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let allReportMetadata: OnyxCollection<ReportMetadata>;
+Onyx.connect({
+    key: ONYXKEYS.COLLECTION.REPORT_METADATA,
+    waitForCollectionCallback: true,
+    callback: (value) => {
+        allReportMetadata = value;
+    },
+});
+
+Onyx.connect({
+    key: ONYXKEYS.COLLECTION.REPORT_METADATA,
+    callback: (value, key) => {
+        if (!key) {
+            return;
+        }
+        const reportID = key.split('_').at(1);
+        if (reportID) {
+            invalidateCacheForReport(reportID);
+        }
+    },
+});
+
 Onyx.connect({
     key: ONYXKEYS.COLLECTION.REPORT_ACTIONS,
     waitForCollectionCallback: true,
@@ -265,7 +371,7 @@ Onyx.connect({
             const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
             const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${report?.chatReportID}`];
 
-            // If the report is a one-transaction report and has , we need to return the combined reportActions so that the LHN can display modifications
+            // If the report is a one-transaction report, we need to return the combined reportActions so that the LHN can display modifications
             // to the transaction thread or the report itself
             const transactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, actions[reportActions[0]]);
             if (transactionThreadReportID) {
@@ -280,6 +386,7 @@ Onyx.connect({
             } else {
                 lastReportActions[reportID] = firstReportAction;
             }
+            invalidateCacheForReport(reportID);
         }
     },
 });
@@ -319,6 +426,27 @@ function getPersonalDetailsForAccountIDs(accountIDs: number[] | undefined, perso
         }
     }
     return personalDetailsForAccountIDs;
+}
+
+function getCachedReportActionsForDisplay(reportID: string): ReportAction[] {
+    return filteredReportActionsCache[reportID] ?? [];
+}
+
+/**
+ * Get cached last message text for a report, or compute and cache it if missing.
+ * This uses lazy computation to avoid using deprecated translateLocal in module-level Onyx.connect callbacks.
+ *
+ * @param reportID - The report ID to get cached message text for
+ * @param computeFn - Optional function to compute the message text if cache miss. If provided, result will be cached.
+ * @returns Cached message text, or undefined if cache miss and no computeFn provided
+ */
+function getCachedLastMessageText(reportID: string, computeFn?: () => string): string | undefined {
+    let cached = lastMessageTextCache[reportID];
+    if (!cached && computeFn) {
+        cached = computeFn();
+        lastMessageTextCache[reportID] = cached;
+    }
+    return cached;
 }
 
 /**
@@ -3216,6 +3344,8 @@ export {
     getLastActorDisplayName,
     getLastActorDisplayNameFromLastVisibleActions,
     getLastMessageTextForReport,
+    getCachedReportActionsForDisplay,
+    getCachedLastMessageText,
     getManagerMcTestParticipant,
     getMemberInviteOptions,
     getParticipantsOption,

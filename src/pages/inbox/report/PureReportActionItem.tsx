@@ -1,6 +1,5 @@
 /* eslint-disable rulesdir/no-deep-equal-in-memo */
 import {deepEqual} from 'fast-equals';
-import mapValues from 'lodash/mapValues';
 import React, {memo, use, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import type {GestureResponderEvent, TextInput} from 'react-native';
 import {InteractionManager, Keyboard, View} from 'react-native';
@@ -616,9 +615,7 @@ function PureReportActionItem({
 
     const onClose = useCallback(() => {
         const errors = linkedTransactionRouteError ?? getLatestErrorMessageField(action as OnyxDataWithErrors);
-        const errorEntries = Object.entries(errors ?? {});
-        const errorMessages = mapValues(Object.fromEntries(errorEntries), (error) => error);
-        const hasReceiptError = Object.values(errorMessages).some((error) => isReceiptError(error));
+        const hasReceiptError = Object.values(errors ?? {}).some((error) => isReceiptError(error));
 
         if (hasReceiptError) {
             showDismissReceiptErrorModal();

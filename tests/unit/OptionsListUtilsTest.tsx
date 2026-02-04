@@ -3188,8 +3188,11 @@ describe('OptionsListUtils', () => {
     });
 
     describe('getLastMessageTextForReport', () => {
-        beforeEach(() => {
+        beforeEach(async () => {
             clearSortedReportActionsCache();
+            await act(async () => {
+                await Onyx.clear();
+            });
         });
 
         describe('getReportPreviewMessage', () => {

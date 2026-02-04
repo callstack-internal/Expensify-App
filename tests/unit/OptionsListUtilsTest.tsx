@@ -3188,8 +3188,11 @@ describe('OptionsListUtils', () => {
     });
 
     describe('getLastMessageTextForReport', () => {
-        beforeEach(() => {
+        beforeEach(async () => {
             clearSortedReportActionsCache();
+            await act(async () => {
+                await Onyx.clear();
+            });
         });
 
         describe('getReportPreviewMessage', () => {
@@ -3266,6 +3269,7 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                 [movedTransactionAction.reportActionID]: movedTransactionAction,
             });
+            await waitForBatchedUpdates();
             const lastMessage = getLastMessageTextForReport({
                 translate: translateLocal,
                 report,
@@ -3290,6 +3294,7 @@ describe('OptionsListUtils', () => {
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                     [submittedAction.reportActionID]: submittedAction,
                 });
+                await waitForBatchedUpdates();
                 const lastMessage = getLastMessageTextForReport({
                     translate: translateLocal,
                     report,
@@ -3316,6 +3321,7 @@ describe('OptionsListUtils', () => {
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                     [approvedAction.reportActionID]: approvedAction,
                 });
+                await waitForBatchedUpdates();
                 const lastMessage = getLastMessageTextForReport({
                     translate: translateLocal,
                     report,
@@ -3342,6 +3348,7 @@ describe('OptionsListUtils', () => {
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                     [forwardedAction.reportActionID]: forwardedAction,
                 });
+                await waitForBatchedUpdates();
                 const lastMessage = getLastMessageTextForReport({
                     translate: translateLocal,
                     report,
@@ -3365,6 +3372,7 @@ describe('OptionsListUtils', () => {
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                     [corporateForceUpgradeAction.reportActionID]: corporateForceUpgradeAction,
                 });
+                await waitForBatchedUpdates();
                 const lastMessage = getLastMessageTextForReport({
                     translate: translateLocal,
                     report,
@@ -3387,6 +3395,7 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                 [takeControlAction.reportActionID]: takeControlAction,
             });
+            await waitForBatchedUpdates();
             const lastMessage = getLastMessageTextForReport({
                 translate: translateLocal,
                 report,
@@ -3407,6 +3416,7 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                 [rerouteAction.reportActionID]: rerouteAction,
             });
+            await waitForBatchedUpdates();
             const lastMessage = getLastMessageTextForReport({
                 translate: translateLocal,
                 report,
@@ -3427,6 +3437,7 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                 [movedAction.reportActionID]: movedAction,
             });
+            await waitForBatchedUpdates();
             const lastMessage = getLastMessageTextForReport({
                 translate: translateLocal,
                 report,
@@ -3449,6 +3460,7 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
                 [action.reportActionID]: action,
             });
+            await waitForBatchedUpdates();
 
             // When getting the last message text for the report
             const lastMessage = getLastMessageTextForReport({

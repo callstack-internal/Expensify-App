@@ -2,7 +2,6 @@ import type {ListRenderItemInfo} from '@react-native/virtualized-lists/Lists/Vir
 import {useIsFocused, useRoute} from '@react-navigation/native';
 import {isUserValidatedSelector} from '@selectors/Account';
 import {tierNameSelector} from '@selectors/UserWallet';
-import {deepEqual} from 'fast-equals';
 import React, {memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent} from 'react-native';
 import {DeviceEventEmitter, InteractionManager, View} from 'react-native';
@@ -180,14 +179,6 @@ function ReportActionsList({
 
     const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: false});
     const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
-    const policiesRef = useRef(policies);
-    // Stabilize policies - only update ref when content actually changes
-    const stablePolicies = useMemo(() => {
-        if (!deepEqual(policiesRef.current, policies)) {
-            policiesRef.current = policies;
-        }
-        return policiesRef.current;
-    }, [policies]);
     const [transactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {canBeMissing: true});
     const transactionsArray = useMemo(() => Object.values(transactions ?? {}), [transactions]);
     const isReportArchived = useReportIsArchived(report?.reportID);
@@ -702,7 +693,7 @@ function ReportActionsList({
             return (
                 <ReportActionsListItemRenderer
                     allReports={allReports}
-                    policies={stablePolicies}
+                    policies={policies}
                     reportAction={reportAction}
                     reportActions={sortedReportActions}
                     parentReportAction={parentReportAction}
@@ -742,7 +733,7 @@ function ReportActionsList({
             draftMessage,
             emojiReactions,
             allReports,
-            stablePolicies,
+            policies,
             sortedReportActions,
             parentReportAction,
             parentReportActionForTransactionThread,

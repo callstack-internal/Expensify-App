@@ -109,6 +109,7 @@ import {
     isTagModificationAction,
     isTaskAction,
     isTransactionThread,
+    setSortedReportActionsCacheMaxSize,
 } from './ReportActionsUtils';
 import type {OptionData} from './ReportUtils';
 import {
@@ -273,6 +274,10 @@ function getReportsToDisplayInLHN(
 ) {
     const isInFocusMode = priorityMode === CONST.PRIORITY_MODE.GSD;
     const allReportsDictValues = reports ?? {};
+    // Adjust the size of the sorted report actions cache to roughly match
+    // the current number of reports, while still respecting the global cap
+    // inside ReportActionsUtils to guard against excessive memory usage.
+    setSortedReportActionsCacheMaxSize(Object.keys(allReportsDictValues).length);
     const reportsToDisplay: ReportsToDisplayInLHN = {};
 
     for (const [reportID, report] of Object.entries(allReportsDictValues)) {

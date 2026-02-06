@@ -149,7 +149,8 @@ type SortedReportActionsCacheEntry = {
     lastAccessed: number;
 };
 
-const SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE = 1000;
+const DEFAULT_SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE = 1000;
+let sortedReportActionsCacheMaxSize = DEFAULT_SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE;
 
 const sortedReportActionsCacheAscending = new Map<string, SortedReportActionsCacheEntry>();
 const sortedReportActionsCacheDescending = new Map<string, SortedReportActionsCacheEntry>();
@@ -643,20 +644,37 @@ function getCacheKeyForReportActions(reportActions: ReportAction[]): string {
  * Ensures cache doesn't exceed max size by removing least recently used entries (LRU).
  */
 function evictOldestCacheEntries(cache: Map<string, SortedReportActionsCacheEntry>): void {
-    if (cache.size <= SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE) {
+    if (cache.size <= sortedReportActionsCacheMaxSize) {
         return;
     }
 
     const entries = Array.from(cache.entries());
     entries.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
 
-    const entriesToRemove = cache.size - SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE;
+    const entriesToRemove = cache.size - sortedReportActionsCacheMaxSize;
     for (let i = 0; i < entriesToRemove; i++) {
         const entry = entries.at(i);
         if (entry !== undefined) {
             cache.delete(entry[0]);
         }
     }
+}
+
+/**
+ * Adjust the maximum size for the sorted report actions cache.
+ * Used by callers that know the current number of reports (e.g. LHN),
+ * while still enforcing a global hard cap for safety.
+ */
+function setSortedReportActionsCacheMaxSize(newSize: number): void {
+    if (!Number.isFinite(newSize) || newSize <= 0) {
+        sortedReportActionsCacheMaxSize = DEFAULT_SORTED_REPORT_ACTIONS_CACHE_MAX_SIZE;
+    } else {
+        sortedReportActionsCacheMaxSize = newSize;
+    }
+
+    // Immediately evict if current caches are above the new limit.
+    evictOldestCacheEntries(sortedReportActionsCacheAscending);
+    evictOldestCacheEntries(sortedReportActionsCacheDescending);
 }
 
 /**
@@ -4030,6 +4048,7 @@ function hasReasoning(action: OnyxInputOrEntry<ReportAction>): boolean {
 }
 
 export {
+    setSortedReportActionsCacheMaxSize,
     clearSortedReportActionsCache,
     doesReportHaveVisibleActions,
     extractLinksFromMessageHtml,

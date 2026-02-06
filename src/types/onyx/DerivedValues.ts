@@ -232,8 +232,30 @@ type TodosDerivedValue = {
     transactionsByReportID: Record<string, Transaction[]>;
 };
 
+/**
+ * The derived value for last message text per report.
+ * A lazy derived value: computed on demand per report, not for all reports at once.
+ */
+type LastMessageTextDerivedValue = Record<string, string>;
+
+/**
+ * The derived value for report last action IDs per report.
+ * A lazy derived value: computed on demand per report, not for all reports at once.
+ */
+type ReportLastActionIDsDerivedValue = Record<
+    string,
+    {
+        /** The ID of the last visible action (excluding CREATED), sorted ascending */
+        lastVisibleActionID: string | undefined;
+        /** The ID of the last report action from getSortedReportActionsForDisplay, sorted descending */
+        lastReportActionID: string | undefined;
+    }
+>;
+
 export default ReportAttributesDerivedValue;
 export type {
+    LastMessageTextDerivedValue,
+    ReportLastActionIDsDerivedValue,
     ReportAttributes,
     ReportAttributesDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,

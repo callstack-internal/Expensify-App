@@ -11,18 +11,34 @@ import Log from '@libs/Log';
 import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ObjectUtils from '@src/types/utils/ObjectUtils';
+import {initLazyDerivedValue} from './LazyDerivedValueStore';
 import ONYX_DERIVED_VALUES from './ONYX_DERIVED_VALUES';
-import type {DerivedValueContext} from './types';
+import type {DerivedValueContext, OnyxDerivedValueConfig} from './types';
 import {setDerivedValue} from './utils';
 
 /**
  * Initialize all Onyx derived values, store them in Onyx, and setup listeners to update them when dependencies change.
  * Using connectWithoutView in this function since this is only executed once while initializing the App.
+ *
+ * Supports two types of derived values:
+ * - Eager (default): Computed immediately on startup and recomputed on every dependency change.
+ * - Lazy (lazy: true): Only sets up invalidation listeners. Values are computed on demand per-item.
  */
 function init() {
-    for (const [key, {compute, dependencies}] of ObjectUtils.typedEntries(ONYX_DERIVED_VALUES)) {
+    for (const [key, config] of ObjectUtils.typedEntries(ONYX_DERIVED_VALUES)) {
+        if ('lazy' in config && config.lazy) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+            initLazyDerivedValue(config as any);
+            continue;
+        }
+
+        // After the lazy check + continue, we know this is an eager config.
+        // TypeScript can't narrow union types past continue, so we assert.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        const {compute, dependencies} = config as OnyxDerivedValueConfig<typeof key, any>;
         let areAllConnectionsSet = false;
         let connectionsEstablishedCount = 0;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
         const totalConnections = dependencies.length;
         const connectionInitializedFlags = new Array(totalConnections).fill(false);
 
@@ -41,7 +57,6 @@ function init() {
                         sourceValues: undefined,
                         areAllConnectionsSet: false,
                     };
-                    // @ts-expect-error TypeScript can't confirm the shape of dependencyValues matches the compute function's parameters
                     derivedValue = compute(dependencyValues, initialContext);
                     dependencyValues = values;
                     setDerivedValue(key, derivedValue ?? null);
@@ -79,19 +94,21 @@ function init() {
 
                 context.currentValue = derivedValue;
                 context.areAllConnectionsSet = areAllConnectionsSet;
-                context.sourceValues = sourceKey && sourceValue !== undefined ? {[sourceKey]: sourceValue} : undefined;
+                context.sourceValues = sourceKey && sourceValue !== undefined ? ({[sourceKey]: sourceValue} as typeof context.sourceValues) : undefined;
 
-                // @ts-expect-error TypeScript can't confirm the shape of dependencyValues matches the compute function's parameters
                 const newDerivedValue = compute(dependencyValues, context);
                 Log.info(`[OnyxDerived] updating value for ${key} in Onyx`);
                 derivedValue = newDerivedValue;
                 setDerivedValue(key, derivedValue);
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             for (let i = 0; i < dependencies.length; i++) {
                 const dependencyIndex = i;
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 const dependencyOnyxKey = dependencies[dependencyIndex];
 
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 if (OnyxUtils.isCollectionKey(dependencyOnyxKey)) {
                     Onyx.connectWithoutView({
                         key: dependencyOnyxKey,
@@ -120,6 +137,7 @@ function init() {
                             }
                             Log.info(`[OnyxDerived] dependency ${dependencyOnyxKey} for derived key ${key} changed, recomputing`);
                             setDependencyValue(dependencyIndex, localeValue as Parameters<typeof compute>[0][typeof dependencyIndex]);
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                             recomputeDerivedValue(dependencyOnyxKey, localeValue, dependencyIndex);
                         },
                     });
@@ -130,6 +148,7 @@ function init() {
                             Log.info(`[OnyxDerived] dependency ${dependencyOnyxKey} for derived key ${key} changed, recomputing`);
                             setDependencyValue(dependencyIndex, value as Parameters<typeof compute>[0][typeof dependencyIndex]);
                             // if the dependency is not a collection, pass the entire value as the source value
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                             recomputeDerivedValue(dependencyOnyxKey, value, dependencyIndex);
                         },
                     });

@@ -42,9 +42,11 @@ import type {CurrencyList} from './Currency';
 import type CustomStatusDraft from './CustomStatusDraft';
 import type {
     CardFeedErrorsDerivedValue,
+    LastMessageTextDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
     OutstandingReportsByPolicyIDDerivedValue,
     ReportAttributesDerivedValue,
+    ReportLastActionIDsDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,
     TodoMetadata,
     TodosDerivedValue,
@@ -336,6 +338,8 @@ export type {
     CardFeedErrorsDerivedValue,
     TodosDerivedValue,
     TodoMetadata,
+    LastMessageTextDerivedValue,
+    ReportLastActionIDsDerivedValue,
     ScheduleCallDraft,
     ValidateUserAndGetAccessiblePolicies,
     VacationDelegate,

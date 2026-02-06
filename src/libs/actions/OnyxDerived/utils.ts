@@ -26,3 +26,4 @@ const setDerivedValue = (key: OnyxDerivedKey, value: OnyxInput<OnyxDerivedKey>) 
     });
 
 export {hasKeyTriggeredCompute, setDerivedValue};
+export {computeLazyDerivedItem} from './LazyDerivedValueStore';

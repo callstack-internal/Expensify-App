@@ -93,9 +93,6 @@ type OptionRowLHNDataProps = {
     /** The transaction from the parent report action */
     transaction: OnyxEntry<Transaction>;
 
-    /** The transaction linked to the report's last action */
-    lastReportActionTransaction?: OnyxEntry<Transaction>;
-
     /** Whether a report contains a draft */
     hasDraftComment: boolean;
 
@@ -121,9 +118,6 @@ type OptionRowLHNDataProps = {
 
     /** Toggle between compact and default view */
     viewMode?: OptionMode;
-
-    /** The last message text from the report */
-    lastMessageTextFromReport: string;
 
     /** A function that is called when an option is selected. Selected option is passed as a param */
     onSelectRow?: (optionItem: OptionData, popoverAnchor: RefObject<View | null>) => void;
@@ -151,11 +145,6 @@ type OptionRowLHNDataProps = {
 
     /** Whether the report is archived */
     isReportArchived: boolean;
-
-    /** The last action should be displayed */
-    lastAction: ReportAction | undefined;
-
-    lastActionReport: OnyxEntry<Report> | undefined;
 
     /** The current user's account ID */
     currentUserAccountID: number;

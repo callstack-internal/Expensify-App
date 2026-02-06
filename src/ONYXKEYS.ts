@@ -1009,6 +1009,8 @@ const ONYXKEYS = {
         NON_PERSONAL_AND_WORKSPACE_CARD_LIST: 'nonPersonalAndWorkspaceCardList',
         CARD_FEED_ERRORS: 'cardFeedErrors',
         TODOS: 'todos',
+        LAST_MESSAGE_TEXT: 'lastMessageText',
+        REPORT_LAST_ACTION_IDS: 'reportLastActionIDs',
     },
 
     /** Stores HybridApp specific state required to interoperate with OldDot */
@@ -1430,6 +1432,8 @@ type OnyxDerivedValuesMapping = {
     [ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST]: OnyxTypes.NonPersonalAndWorkspaceCardListDerivedValue;
     [ONYXKEYS.DERIVED.CARD_FEED_ERRORS]: OnyxTypes.CardFeedErrorsDerivedValue;
     [ONYXKEYS.DERIVED.TODOS]: OnyxTypes.TodosDerivedValue;
+    [ONYXKEYS.DERIVED.LAST_MESSAGE_TEXT]: OnyxTypes.LastMessageTextDerivedValue;
+    [ONYXKEYS.DERIVED.REPORT_LAST_ACTION_IDS]: OnyxTypes.ReportLastActionIDsDerivedValue;
 };
 
 type OnyxValues = OnyxValuesMapping & OnyxCollectionValuesMapping & OnyxFormValuesMapping & OnyxFormDraftValuesMapping & OnyxDerivedValuesMapping;

@@ -5,11 +5,13 @@ import nonPersonalAndWorkspaceCardListConfig from './configs/nonPersonalAndWorks
 import outstandingReportsByPolicyIDConfig from './configs/outstandingReportsByPolicyID';
 import reportAttributesConfig from './configs/reportAttributes';
 import reportTransactionsAndViolationsConfig from './configs/reportTransactionsAndViolations';
+import lastMessageTextConfig from './configs/lastMessageText';
+import reportLastActionIDsConfig from './configs/reportLastActionIDs';
 import todosConfig from './configs/todos';
-import type {OnyxDerivedValueConfig} from './types';
+import type {OnyxDerivedValueConfig, OnyxLazyDerivedValueConfig} from './types';
 
 /**
- * Global map of derived configs.
+ * Global map of derived configs (both eager and lazy).
  * This object holds our derived value configurations.
  */
 const ONYX_DERIVED_VALUES = {
@@ -19,9 +21,11 @@ const ONYX_DERIVED_VALUES = {
     [ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST]: nonPersonalAndWorkspaceCardListConfig,
     [ONYXKEYS.DERIVED.CARD_FEED_ERRORS]: cardFeedErrorsConfig,
     [ONYXKEYS.DERIVED.TODOS]: todosConfig,
+    [ONYXKEYS.DERIVED.LAST_MESSAGE_TEXT]: lastMessageTextConfig,
+    [ONYXKEYS.DERIVED.REPORT_LAST_ACTION_IDS]: reportLastActionIDsConfig,
 } as const satisfies {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [Key in ValueOf<typeof ONYXKEYS.DERIVED>]: OnyxDerivedValueConfig<Key, any>;
+    [Key in ValueOf<typeof ONYXKEYS.DERIVED>]: OnyxDerivedValueConfig<Key, any> | OnyxLazyDerivedValueConfig<Key, any>;
 };
 
 export default ONYX_DERIVED_VALUES;

@@ -37,4 +37,52 @@ type OnyxDerivedValueConfig<Key extends ValueOf<typeof ONYXKEYS.DERIVED>, Deps e
     ) => OnyxDerivedValuesMapping[Key];
 };
 
-export type {OnyxDerivedValueConfig, DerivedValueContext};
+type DependencyValuesTuple<Deps extends NonEmptyTuple<OnyxKey>> = {
+    [Index in keyof Deps]: OnyxValue<Deps[Index]>;
+};
+
+/**
+ * Extracts the item value type from a Record-based derived value.
+ * For example, if the derived value is Record<string, string>, this extracts string.
+ */
+type LazyDerivedItemValue<Key extends ValueOf<typeof ONYXKEYS.DERIVED>> = OnyxDerivedValuesMapping[Key] extends Record<string, infer V> ? V : never;
+
+type LazyDerivedValueContext<Key extends ValueOf<typeof ONYXKEYS.DERIVED>> = {
+    currentItemValue?: LazyDerivedItemValue<Key>;
+};
+
+/**
+ * A lazy derived value configuration. Unlike eager configs, lazy configs:
+ *  - Do NOT compute at app startup
+ *  - Set up dependency listeners only for invalidation tracking
+ *  - Compute per-item on demand when explicitly requested
+ *  - Cache results and only recompute when specific items are invalidated
+ *
+ * The Onyx value for a lazy derived key must be a Record<string, V>.
+ */
+type OnyxLazyDerivedValueConfig<Key extends ValueOf<typeof ONYXKEYS.DERIVED>, Deps extends NonEmptyTuple<Exclude<OnyxKey, Key>>> = {
+    key: Key;
+    dependencies: Deps;
+    lazy: true;
+
+    /**
+     * Given a dependency change, return which item keys should be invalidated.
+     * Return undefined to invalidate ALL cached items (e.g., on locale change).
+     */
+    getInvalidatedItems: (
+        changedDependencyKey: Deps[number],
+        sourceValues: DerivedSourceValues<Deps> | undefined,
+        dependencyValues: DependencyValuesTuple<Deps>,
+    ) => Set<string> | undefined;
+
+    /**
+     * Compute the derived value for a single item. Called on demand, not eagerly.
+     */
+    computeItem: (
+        itemKey: string,
+        args: DependencyValuesTuple<Deps>,
+        context: LazyDerivedValueContext<Key>,
+    ) => LazyDerivedItemValue<Key>;
+};
+
+export type {OnyxDerivedValueConfig, OnyxLazyDerivedValueConfig, DerivedValueContext, LazyDerivedValueContext, DerivedSourceValues, DependencyValuesTuple, LazyDerivedItemValue};

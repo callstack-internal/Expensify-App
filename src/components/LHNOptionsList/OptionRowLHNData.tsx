@@ -2,11 +2,13 @@ import {deepEqual} from 'fast-equals';
 import React, {useMemo, useRef} from 'react';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromReportAction';
+import useLazyDerivedValue from '@hooks/useLazyDerivedValue';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
+import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
+import {getOriginalMessage, isInviteOrRemovedAction, isMoneyRequestAction} from '@libs/ReportActionsUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
-import {getMovedReportID} from '@src/libs/ModifiedExpenseMessage';
 import type {OptionData} from '@src/libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import OptionRowLHN from './OptionRowLHN';
@@ -33,21 +35,33 @@ function OptionRowLHNData({
     parentReportAction,
     iouReportReportActions,
     transaction,
-    lastReportActionTransaction,
     transactionViolations,
-    lastMessageTextFromReport,
     localeCompare,
     translate,
     isReportArchived = false,
-    lastAction,
-    lastActionReport,
     currentUserAccountID,
     ...propsToForward
 }: OptionRowLHNDataProps) {
     const reportID = propsToForward.reportID;
     const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
+    const lazyLastMessageText = useLazyDerivedValue(ONYXKEYS.DERIVED.LAST_MESSAGE_TEXT, reportID);
+    const actionIDs = useLazyDerivedValue(ONYXKEYS.DERIVED.REPORT_LAST_ACTION_IDS, reportID);
     const isReportFocused = isOptionFocused && currentReportIDValue === reportID;
     const optionItemRef = useRef<OptionData | undefined>(undefined);
+
+    // Derive lastAction and lastReportAction from the lazy derived action IDs
+    const lastAction = actionIDs?.lastVisibleActionID ? reportActions?.[actionIDs.lastVisibleActionID] : undefined;
+    const lastReportAction = actionIDs?.lastReportActionID ? reportActions?.[actionIDs.lastReportActionID] : undefined;
+
+    // Compute lastReportActionTransaction locally
+    const lastReportActionTransactionID = isMoneyRequestAction(lastReportAction)
+        ? (getOriginalMessage(lastReportAction)?.IOUTransactionID ?? CONST.DEFAULT_NUMBER_ID)
+        : CONST.DEFAULT_NUMBER_ID;
+    const lastReportActionTransaction = receiptTransactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${lastReportActionTransactionID}`];
+
+    // Compute lastActionReport via useOnyx
+    const lastActionReportID = isInviteOrRemovedAction(lastAction) ? (getOriginalMessage(lastAction) as {reportID?: string})?.reportID : undefined;
+    const [lastActionReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${lastActionReportID}`, {canBeMissing: true});
 
     const [movedFromReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.FROM)}`, {canBeMissing: true});
     const [movedToReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.TO)}`, {canBeMissing: true});
@@ -67,7 +81,7 @@ function OptionRowLHNData({
             personalDetails,
             policy,
             parentReportAction,
-            lastMessageTextFromReport,
+            lastMessageTextFromReport: lazyLastMessageText,
             invoiceReceiverPolicy,
             card,
             lastAction,
@@ -106,7 +120,7 @@ function OptionRowLHNData({
         transaction,
         receiptTransactions,
         invoiceReceiverPolicy,
-        lastMessageTextFromReport,
+        lazyLastMessageText,
         card,
         translate,
         localeCompare,

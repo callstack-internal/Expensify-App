@@ -6,7 +6,6 @@ import {FlashList} from '@shopify/flash-list';
 import type {ReactElement} from 'react';
 import React, {memo, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import {StyleSheet, View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import type {BlockingViewProps} from '@components/BlockingViews/BlockingView';
 import BlockingView from '@components/BlockingViews/BlockingView';
 import Icon from '@components/Icon';
@@ -18,7 +17,6 @@ import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
-import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
 import usePrevious from '@hooks/usePrevious';
 import useRootNavigationState from '@hooks/useRootNavigationState';
 import useScrollEventEmitter from '@hooks/useScrollEventEmitter';
@@ -26,23 +24,13 @@ import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import getPlatform from '@libs/getPlatform';
 import Log from '@libs/Log';
-import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
-import {getIOUReportIDOfLastAction, getLastMessageTextForReport} from '@libs/OptionsListUtils';
-import {
-    getOneTransactionThreadReportID,
-    getOriginalMessage,
-    getSortedReportActions,
-    getSortedReportActionsForDisplay,
-    isInviteOrRemovedAction,
-    isMoneyRequestAction,
-    shouldReportActionBeVisibleAsLastAction,
-} from '@libs/ReportActionsUtils';
-import {canUserPerformWriteAction as canUserPerformWriteActionUtil} from '@libs/ReportUtils';
+import {getIOUReportIDOfLastAction} from '@libs/OptionsListUtils';
+import {getOneTransactionThreadReportID, getOriginalMessage, isMoneyRequestAction} from '@libs/ReportActionsUtils';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetails, Report, ReportAction} from '@src/types/onyx';
+import type {Report} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import OptionRowLHNData from './OptionRowLHNData';
 import OptionRowRendererComponent from './OptionRowRendererComponent';
@@ -62,7 +50,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
     const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: false});
     const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector, canBeMissing: true});
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {canBeMissing: true});
-    const [reportMetadataCollection] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const [reportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {canBeMissing: false});
     const [policy] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: false});
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {canBeMissing: true});
@@ -74,7 +61,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
     const [onboarding] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {canBeMissing: true});
     const [isFullscreenVisible] = useOnyx(ONYXKEYS.FULLSCREEN_VISIBILITY, {canBeMissing: true});
     const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
-    const {policyForMovingExpensesID} = usePolicyForMovingExpenses();
 
     const theme = useTheme();
     const styles = useThemeStyles();
@@ -172,205 +158,96 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
     /**
      * Function which renders a row in the list
      */
-    const renderItem = useCallback(
-        ({item, index}: RenderItemProps): ReactElement => {
-            const reportID = item.reportID;
-            const itemParentReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${item.parentReportID}`];
-            const itemReportNameValuePairs = reportNameValuePairs?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`];
-            const chatReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${item.chatReportID}`];
-            const itemReportActions = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`];
-            const itemOneTransactionThreadReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${getOneTransactionThreadReportID(item, chatReport, itemReportActions, isOffline)}`];
-            const itemParentReportActions = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${item?.parentReportID}`];
-            const itemParentReportAction = item?.parentReportActionID ? itemParentReportActions?.[item?.parentReportActionID] : undefined;
-            const itemReportAttributes = reportAttributes?.[reportID];
+    const renderItem = ({item, index}: RenderItemProps): ReactElement => {
+        const reportID = item.reportID;
+        const itemParentReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${item.parentReportID}`];
+        const itemReportNameValuePairs = reportNameValuePairs?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`];
+        const chatReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${item.chatReportID}`];
+        const itemReportActions = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`];
+        const itemOneTransactionThreadReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${getOneTransactionThreadReportID(item, chatReport, itemReportActions, isOffline)}`];
+        const itemParentReportActions = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${item?.parentReportID}`];
+        const itemParentReportAction = item?.parentReportActionID ? itemParentReportActions?.[item?.parentReportActionID] : undefined;
+        const itemReportAttributes = reportAttributes?.[reportID];
 
-            let invoiceReceiverPolicyID = '-1';
-            if (item?.invoiceReceiver && 'policyID' in item.invoiceReceiver) {
-                invoiceReceiverPolicyID = item.invoiceReceiver.policyID;
-            }
-            if (itemParentReport?.invoiceReceiver && 'policyID' in itemParentReport.invoiceReceiver) {
-                invoiceReceiverPolicyID = itemParentReport.invoiceReceiver.policyID;
-            }
-            const itemInvoiceReceiverPolicy = policy?.[`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`];
+        let invoiceReceiverPolicyID = '-1';
+        if (item?.invoiceReceiver && 'policyID' in item.invoiceReceiver) {
+            invoiceReceiverPolicyID = item.invoiceReceiver.policyID;
+        }
+        if (itemParentReport?.invoiceReceiver && 'policyID' in itemParentReport.invoiceReceiver) {
+            invoiceReceiverPolicyID = itemParentReport.invoiceReceiver.policyID;
+        }
+        const itemInvoiceReceiverPolicy = policy?.[`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`];
 
-            const iouReportIDOfLastAction = getIOUReportIDOfLastAction(item);
-            const itemIouReportReportActions = iouReportIDOfLastAction ? reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${iouReportIDOfLastAction}`] : undefined;
+        const iouReportIDOfLastAction = getIOUReportIDOfLastAction(item);
+        const itemIouReportReportActions = iouReportIDOfLastAction ? reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${iouReportIDOfLastAction}`] : undefined;
 
-            const itemPolicy = policy?.[`${ONYXKEYS.COLLECTION.POLICY}${item?.policyID}`];
-            const transactionID = isMoneyRequestAction(itemParentReportAction)
-                ? (getOriginalMessage(itemParentReportAction)?.IOUTransactionID ?? CONST.DEFAULT_NUMBER_ID)
-                : CONST.DEFAULT_NUMBER_ID;
-            const itemTransaction = transactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`];
-            const hasDraftComment =
-                !!draftComments?.[`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`] &&
-                !draftComments?.[`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`]?.match(CONST.REGEX.EMPTY_COMMENT);
+        const itemPolicy = policy?.[`${ONYXKEYS.COLLECTION.POLICY}${item?.policyID}`];
+        const transactionID = isMoneyRequestAction(itemParentReportAction)
+            ? (getOriginalMessage(itemParentReportAction)?.IOUTransactionID ?? CONST.DEFAULT_NUMBER_ID)
+            : CONST.DEFAULT_NUMBER_ID;
+        const itemTransaction = transactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`];
+        const hasDraftComment =
+            !!draftComments?.[`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`] &&
+            !draftComments?.[`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`]?.match(CONST.REGEX.EMPTY_COMMENT);
 
-            const isReportArchived = !!itemReportNameValuePairs?.private_isArchived;
-            const canUserPerformWrite = canUserPerformWriteActionUtil(item, isReportArchived);
-            const sortedReportActions = getSortedReportActionsForDisplay(itemReportActions, canUserPerformWrite);
-            const lastReportAction = sortedReportActions.at(0);
+        const isReportArchived = !!itemReportNameValuePairs?.private_isArchived;
 
-            // Get the transaction for the last report action
-            const lastReportActionTransactionID = isMoneyRequestAction(lastReportAction)
-                ? (getOriginalMessage(lastReportAction)?.IOUTransactionID ?? CONST.DEFAULT_NUMBER_ID)
-                : CONST.DEFAULT_NUMBER_ID;
-            const lastReportActionTransaction = transactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${lastReportActionTransactionID}`];
+        const shouldShowRBRorGBRTooltip = firstReportIDWithGBRorRBR === reportID;
 
-            // SidebarUtils.getOptionData in OptionRowLHNData does not get re-evaluated when the linked task report changes, so we have the lastMessageTextFromReport evaluation logic here
-            let lastActorDetails: Partial<PersonalDetails> | null = item?.lastActorAccountID && personalDetails?.[item.lastActorAccountID] ? personalDetails[item.lastActorAccountID] : null;
-            if (!lastActorDetails && lastReportAction) {
-                const lastActorDisplayName = lastReportAction?.person?.[0]?.text;
-                lastActorDetails = lastActorDisplayName
-                    ? {
-                          displayName: lastActorDisplayName,
-                          accountID: item?.lastActorAccountID,
-                      }
-                    : null;
-            }
-            const movedFromReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastReportAction, CONST.REPORT.MOVE_TYPE.FROM)}`];
-            const movedToReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastReportAction, CONST.REPORT.MOVE_TYPE.TO)}`];
-            const itemReportMetadata = reportMetadataCollection?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`];
-            const lastMessageTextFromReport = getLastMessageTextForReport({
-                translate,
-                report: item,
-                lastActorDetails,
-                movedFromReport,
-                movedToReport,
-                policy: itemPolicy,
-                isReportArchived: !!itemReportNameValuePairs?.private_isArchived,
-                policyForMovingExpensesID,
-                reportMetadata: itemReportMetadata,
-                currentUserAccountID,
-            });
+        return (
+            <OptionRowLHNData
+                reportID={reportID}
+                fullReport={item}
+                reportAttributes={itemReportAttributes}
+                oneTransactionThreadReport={itemOneTransactionThreadReport}
+                reportNameValuePairs={itemReportNameValuePairs}
+                reportActions={itemReportActions}
+                parentReportAction={itemParentReportAction}
+                iouReportReportActions={itemIouReportReportActions}
+                policy={itemPolicy}
+                invoiceReceiverPolicy={itemInvoiceReceiverPolicy}
+                personalDetails={personalDetails ?? {}}
+                transaction={itemTransaction}
+                receiptTransactions={transactions}
+                viewMode={optionMode}
+                isOptionFocused={!shouldDisableFocusOptions}
+                onSelectRow={onSelectRow}
+                preferredLocale={preferredLocale}
+                hasDraftComment={hasDraftComment}
+                transactionViolations={transactionViolations}
+                onLayout={onLayoutItem}
+                shouldShowRBRorGBRTooltip={shouldShowRBRorGBRTooltip}
+                activePolicyID={activePolicyID}
+                onboardingPurpose={introSelected?.choice}
+                onboarding={onboarding}
+                isFullscreenVisible={isFullscreenVisible}
+                isReportsSplitNavigatorLast={isReportsSplitNavigatorLast}
+                isScreenFocused={isScreenFocused}
+                localeCompare={localeCompare}
+                translate={translate}
+                testID={index}
+                isReportArchived={isReportArchived}
+                currentUserAccountID={currentUserAccountID}
+            />
+        );
+    };
 
-            const shouldShowRBRorGBRTooltip = firstReportIDWithGBRorRBR === reportID;
-
-            let lastAction: ReportAction | undefined;
-            if (!itemReportActions || !item) {
-                lastAction = undefined;
-            } else {
-                const canUserPerformWriteAction = canUserPerformWriteActionUtil(item, isReportArchived);
-                const actionsArray = getSortedReportActions(Object.values(itemReportActions));
-                const reportActionsForDisplay = actionsArray.filter(
-                    (reportAction) => shouldReportActionBeVisibleAsLastAction(reportAction, canUserPerformWriteAction) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
-                );
-                lastAction = reportActionsForDisplay.at(-1);
-            }
-
-            let lastActionReport: OnyxEntry<Report> | undefined;
-            if (isInviteOrRemovedAction(lastAction)) {
-                const lastActionOriginalMessage = lastAction?.actionName ? getOriginalMessage(lastAction) : null;
-                lastActionReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${lastActionOriginalMessage?.reportID}`];
-            }
-
-            return (
-                <OptionRowLHNData
-                    reportID={reportID}
-                    fullReport={item}
-                    reportAttributes={itemReportAttributes}
-                    oneTransactionThreadReport={itemOneTransactionThreadReport}
-                    reportNameValuePairs={itemReportNameValuePairs}
-                    reportActions={itemReportActions}
-                    parentReportAction={itemParentReportAction}
-                    iouReportReportActions={itemIouReportReportActions}
-                    policy={itemPolicy}
-                    invoiceReceiverPolicy={itemInvoiceReceiverPolicy}
-                    personalDetails={personalDetails ?? {}}
-                    transaction={itemTransaction}
-                    lastReportActionTransaction={lastReportActionTransaction}
-                    receiptTransactions={transactions}
-                    viewMode={optionMode}
-                    isOptionFocused={!shouldDisableFocusOptions}
-                    lastMessageTextFromReport={lastMessageTextFromReport}
-                    onSelectRow={onSelectRow}
-                    preferredLocale={preferredLocale}
-                    hasDraftComment={hasDraftComment}
-                    transactionViolations={transactionViolations}
-                    onLayout={onLayoutItem}
-                    shouldShowRBRorGBRTooltip={shouldShowRBRorGBRTooltip}
-                    activePolicyID={activePolicyID}
-                    onboardingPurpose={introSelected?.choice}
-                    onboarding={onboarding}
-                    isFullscreenVisible={isFullscreenVisible}
-                    isReportsSplitNavigatorLast={isReportsSplitNavigatorLast}
-                    isScreenFocused={isScreenFocused}
-                    localeCompare={localeCompare}
-                    translate={translate}
-                    testID={index}
-                    isReportArchived={isReportArchived}
-                    lastAction={lastAction}
-                    lastActionReport={lastActionReport}
-                    currentUserAccountID={currentUserAccountID}
-                />
-            );
-        },
-        [
-            reports,
-            reportNameValuePairs,
-            reportActions,
-            reportMetadataCollection,
-            isOffline,
-            reportAttributes,
-            policy,
-            transactions,
-            draftComments,
-            personalDetails,
-            policyForMovingExpensesID,
-            firstReportIDWithGBRorRBR,
-            optionMode,
-            shouldDisableFocusOptions,
-            onSelectRow,
-            preferredLocale,
-            transactionViolations,
-            onLayoutItem,
-            activePolicyID,
-            introSelected?.choice,
-            onboarding,
-            isFullscreenVisible,
-            isReportsSplitNavigatorLast,
-            isScreenFocused,
-            localeCompare,
-            translate,
-            currentUserAccountID,
-        ],
-    );
-
-    const extraData = useMemo(
-        () => [
-            reportActions,
-            reports,
-            reportAttributes,
-            reportNameValuePairs,
-            transactionViolations,
-            policy,
-            personalDetails,
-            data.length,
-            draftComments,
-            optionMode,
-            preferredLocale,
-            transactions,
-            isOffline,
-            isScreenFocused,
-            isReportsSplitNavigatorLast,
-        ],
-        [
-            reportActions,
-            reports,
-            reportAttributes,
-            reportNameValuePairs,
-            transactionViolations,
-            policy,
-            personalDetails,
-            data.length,
-            draftComments,
-            optionMode,
-            preferredLocale,
-            transactions,
-            isOffline,
-            isScreenFocused,
-            isReportsSplitNavigatorLast,
-        ],
-    );
+    const extraData = () => [
+        reportActions,
+        reports,
+        reportNameValuePairs,
+        transactionViolations,
+        policy,
+        personalDetails,
+        data.length,
+        draftComments,
+        optionMode,
+        preferredLocale,
+        transactions,
+        isOffline,
+        isScreenFocused,
+        isReportsSplitNavigatorLast,
+    ];
 
     const previousOptionMode = usePrevious(optionMode);
 

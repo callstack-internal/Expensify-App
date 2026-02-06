@@ -672,7 +672,6 @@ function setSortedReportActionsCacheMaxSize(newSize: number): void {
         sortedReportActionsCacheMaxSize = newSize;
     }
 
-    // Immediately evict if current caches are above the new limit.
     evictOldestCacheEntries(sortedReportActionsCacheAscending);
     evictOldestCacheEntries(sortedReportActionsCacheDescending);
 }

@@ -1,7 +1,13 @@
 import {getLastClosedReportAction} from '@selectors/ReportAction';
 import Onyx from 'react-native-onyx';
 import {measureFunction} from 'reassure';
-import {getLastVisibleAction, getLastVisibleMessage, getMostRecentIOURequestActionID, getSortedReportActionsForDisplay} from '@libs/ReportActionsUtils';
+import {
+    getLastVisibleAction,
+    getLastVisibleMessage,
+    getMostRecentIOURequestActionID,
+    getSortedReportActions,
+    getSortedReportActionsForDisplay,
+} from '@libs/ReportActionsUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportActions} from '@src/types/onyx/ReportAction';
@@ -35,6 +41,7 @@ const reportActions = createCollection<ReportAction>(
 );
 
 const reportId = '1';
+const ACTIONS_COUNT_CACHE = 100;
 
 describe('ReportActionsUtils', () => {
     beforeAll(() => {
@@ -139,5 +146,34 @@ describe('ReportActionsUtils', () => {
     test('[ReportActionsUtils] getLastClosedReportAction on 10k ReportActions', async () => {
         await waitForBatchedUpdates();
         await measureFunction(() => getLastClosedReportAction(reportActions));
+    });
+
+    test('[ReportActionsUtils] getSortedReportActions cache hit performance', async () => {
+        const reportActionsForCache = createCollection<ReportAction>(
+            (item) => `${item.reportActionID}`,
+            (index) => createRandomReportAction(index),
+            ACTIONS_COUNT_CACHE,
+        );
+        const actionsArray = Object.values(reportActionsForCache);
+
+        await measureFunction(() => getSortedReportActions(actionsArray, true), {
+            runs: 20,
+            warmupRuns: 5,
+        });
+    });
+
+    test('[ReportActionsUtils] getSortedReportActions cache hit with different array references', async () => {
+        const reportActionsForCache = createCollection<ReportAction>(
+            (item) => `${item.reportActionID}`,
+            (index) => createRandomReportAction(index),
+            ACTIONS_COUNT_CACHE,
+        );
+        const actionsArray = Object.values(reportActionsForCache);
+        const newArrayRef = [...actionsArray];
+
+        await measureFunction(() => getSortedReportActions(newArrayRef, true), {
+            runs: 20,
+            warmupRuns: 5,
+        });
     });
 });

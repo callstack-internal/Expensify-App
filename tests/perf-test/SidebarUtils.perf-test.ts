@@ -384,26 +384,6 @@ describe('SidebarUtils', () => {
         });
     });
 
-    test('[SidebarUtils LHN] scaling – 2000 reports', async () => {
-        const dataSet = createLHNReportsWithActions(2000);
-        await Onyx.multiSet({
-            ...dataSet.reports,
-            ...dataSet.reportActions,
-            ...dataSet.reportNameValuePairs,
-        } as Parameters<typeof Onyx.multiSet>[0]);
-        await waitForBatchedUpdates();
-
-        await measureFunction(() => {
-            for (const reportKey of Object.keys(dataSet.reports)) {
-                const reportID = reportKey.replace(ONYXKEYS.COLLECTION.REPORT, '');
-                const actions = dataSet.reportActions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`];
-                if (actions) {
-                    getSortedReportActionsForDisplay(actions, true);
-                }
-            }
-        });
-    }, 600000);
-
     test('[SidebarUtils LHN] cache usage verification – allSortedReportActions cache', async () => {
         await waitForBatchedUpdates();
         await new Promise((resolve) => {

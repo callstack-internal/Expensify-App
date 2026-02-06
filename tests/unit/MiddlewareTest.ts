@@ -404,6 +404,7 @@ describe('Middleware', () => {
                 }),
             }));
 
+            (global.fetch as jest.Mock).mockClear();
             SequentialQueue.unpause();
             await waitForBatchedUpdates();
 

@@ -28,12 +28,13 @@ describe('ReportActionsUtils Cache Performance', () => {
 
         const actionsArray = Object.values(reportActions);
 
-        getSortedReportActions(actionsArray, true);
-
-        await measureFunction(() => getSortedReportActions(actionsArray, true), {runs: 20});
+        await measureFunction(() => getSortedReportActions(actionsArray, true), {
+            runs: 20,
+            warmupRuns: 5,
+        });
     });
 
-    test('[ReportActionsUtils] getSortedReportActions with different array references', async () => {
+    test('[ReportActionsUtils] getSortedReportActions cache hit with different array references', async () => {
         const reportActions = createCollection<ReportAction>(
             (item) => `${item.reportActionID}`,
             (index) => createRandomReportAction(index),
@@ -41,11 +42,12 @@ describe('ReportActionsUtils Cache Performance', () => {
         );
 
         const actionsArray = Object.values(reportActions);
-
-        getSortedReportActions(actionsArray, true);
-
         const newArrayRef = [...actionsArray];
 
-        await measureFunction(() => getSortedReportActions(newArrayRef, true), {runs: 20});
+        await measureFunction(() => getSortedReportActions(newArrayRef, true), {
+            runs: 20,
+            warmupRuns: 5,
+        });
     });
 });
+

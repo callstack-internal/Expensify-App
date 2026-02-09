@@ -199,13 +199,13 @@ import type {
  */
 
 let allPersonalDetails: OnyxEntry<PersonalDetailsList>;
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.PERSONAL_DETAILS_LIST,
     callback: (value) => (allPersonalDetails = isEmptyObject(value) ? {} : value),
 });
 
 const policies: OnyxCollection<Policy> = {};
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.POLICY,
     callback: (policy, key) => {
         if (!policy || !key || !policy.name) {
@@ -217,14 +217,14 @@ Onyx.connect({
 });
 
 let allPolicies: OnyxCollection<Policy> = {};
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.POLICY,
     waitForCollectionCallback: true,
     callback: (val) => (allPolicies = val),
 });
 
 let allReports: OnyxCollection<Report>;
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.REPORT,
     waitForCollectionCallback: true,
     callback: (value) => {
@@ -303,7 +303,7 @@ function invalidateCacheForReport(reportID: string) {
     }
 }
 
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
     waitForCollectionCallback: true,
     callback: (value) => {
@@ -311,31 +311,7 @@ Onyx.connect({
     },
 });
 
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
-    callback: (value, key) => {
-        if (!key) {
-            return;
-        }
-        const reportID = key.split('_').at(1);
-        if (reportID) {
-            invalidateCacheForReport(reportID);
-        }
-    },
-});
-
-// Stored for collection callback ordering; may be read by other code in this module
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-let allReportMetadata: OnyxCollection<ReportMetadata>;
-Onyx.connect({
-    key: ONYXKEYS.COLLECTION.REPORT_METADATA,
-    waitForCollectionCallback: true,
-    callback: (value) => {
-        allReportMetadata = value;
-    },
-});
-
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.REPORT_METADATA,
     callback: (value, key) => {
         if (!key) {
@@ -348,7 +324,7 @@ Onyx.connect({
     },
 });
 
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.COLLECTION.REPORT_ACTIONS,
     waitForCollectionCallback: true,
     callback: (actions) => {
@@ -392,7 +368,7 @@ Onyx.connect({
 });
 
 let activePolicyID: OnyxEntry<string>;
-Onyx.connect({
+Onyx.connectWithoutView({
     key: ONYXKEYS.NVP_ACTIVE_POLICY_ID,
     callback: (value) => (activePolicyID = value),
 });

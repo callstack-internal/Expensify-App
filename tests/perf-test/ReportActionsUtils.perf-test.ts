@@ -2,6 +2,7 @@ import {getLastClosedReportAction} from '@selectors/ReportAction';
 import Onyx from 'react-native-onyx';
 import {measureFunction} from 'reassure';
 import {
+    clearSortedReportActionsCache,
     getLastVisibleAction,
     getLastVisibleMessage,
     getMostRecentIOURequestActionID,
@@ -174,6 +175,69 @@ describe('ReportActionsUtils', () => {
         await measureFunction(() => getSortedReportActions(newArrayRef, true), {
             runs: 20,
             warmupRuns: 5,
+        });
+    });
+
+    /**
+     * Measures getSortedReportActions with cache MISS every run (cold path).
+     * Clears cache before each call – so we measure: clear + sort + cache set.
+     * Compare with "cache hit performance" to see total impact; use "cache miss (natural)"
+     * for pure sort+set without clear.
+     */
+    test('[ReportActionsUtils] getSortedReportActions cache miss (cold) – clear + sort + set', async () => {
+        const reportActionsForCache = createCollection<ReportAction>(
+            (item) => `${item.reportActionID}`,
+            (index) => createRandomReportAction(index),
+            ACTIONS_COUNT_CACHE,
+        );
+        const actionsArray = Object.values(reportActionsForCache);
+
+        await measureFunction(() => {
+            clearSortedReportActionsCache();
+            return getSortedReportActions(actionsArray, true);
+        }, {
+            runs: 20,
+            warmupRuns: 2,
+        });
+    });
+
+    /**
+     * Measures only clearSortedReportActionsCache() to see its cost vs sort+set.
+     * Enables "pure miss" = (cache miss with clear) − (clear only).
+     */
+    test('[ReportActionsUtils] clearSortedReportActionsCache() only', async () => {
+        await measureFunction(() => {
+            clearSortedReportActionsCache();
+        }, {
+            runs: 20,
+            warmupRuns: 2,
+        });
+    });
+
+    /**
+     * Cache MISS without calling clear – each run uses a different dataset (different cache key).
+     * Measures only: sort + cache set (no clear). Same size (100 actions) as cache hit tests.
+     */
+    test('[ReportActionsUtils] getSortedReportActions cache miss (natural) – sort + set only', async () => {
+        const NUM_SETS = 25;
+        const actionSets: ReportAction[][] = [];
+        for (let s = 0; s < NUM_SETS; s += 1) {
+            const offset = s * (ACTIONS_COUNT_CACHE + 1);
+            const coll = createCollection<ReportAction>(
+                (item) => `${item.reportActionID}`,
+                (index) => createRandomReportAction(offset + index),
+                ACTIONS_COUNT_CACHE,
+            );
+            actionSets.push(Object.values(coll));
+        }
+        let runIndex = 0;
+        await measureFunction(() => {
+            const arr = actionSets[runIndex % NUM_SETS];
+            runIndex += 1;
+            return getSortedReportActions(arr, true);
+        }, {
+            runs: 20,
+            warmupRuns: 2,
         });
     });
 });

@@ -353,6 +353,13 @@ function formatBadgeText(count: number): string {
     return count > CONST.SEARCH.TODO_BADGE_MAX_COUNT ? `${CONST.SEARCH.TODO_BADGE_MAX_COUNT}+` : count.toString();
 }
 
+function formatGroupBadgeText(count: number): string {
+    if (count === 0) {
+        return '';
+    }
+    return count > 999 ? '999+' : count.toString();
+}
+
 function getExpenseStatusOptions(translate: LocalizedTranslate): Array<MultiSelectItem<SingularSearchStatus>> {
     return [
         {text: translate('common.unreported'), value: CONST.SEARCH.STATUS.EXPENSE.UNREPORTED},

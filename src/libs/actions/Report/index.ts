@@ -485,6 +485,18 @@ function subscribeToReportTypingEvents(reportID: string, currentUserAccountID: n
     });
 }
 
+/** Initialize our pusher subscriptions to listen for report field changes. */
+function subscribeToReportFieldEvents(reportID: string) {
+    if (!reportID) {
+        return;
+    }
+
+    const pusherChannelName = getReportChannelName(reportID);
+    Pusher.subscribe(pusherChannelName, Pusher.TYPE.REPORT_FIELDS_CHANGED, (fields: Record<string, string>) => {
+        Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {reportFields: fields});
+    }).catch(() => {});
+}
+
 /** Initialize our pusher subscriptions to listen for someone leaving a room. */
 function subscribeToReportLeavingEvents(reportID: string | undefined, currentUserAccountID: number) {
     if (!reportID) {

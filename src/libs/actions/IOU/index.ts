@@ -1000,6 +1000,16 @@ Onyx.connect({
     callback: (val) => (deprecatedRecentWaypoints = val ?? []),
 });
 
+/**
+ * Returns the pending transactions for a given report, excluding deleted ones.
+ */
+function getPendingTransactionsForReport(reportID: string): OnyxTypes.Transaction[] {
+    return Object.values(allTransactions)
+        .filter((t): t is OnyxTypes.Transaction => !!t)
+        .filter((t) => t.reportID === reportID)
+        .filter((t) => !!t.pendingAction && t.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE);
+}
+
 function getAllPersonalDetails(): OnyxTypes.PersonalDetailsList {
     return allPersonalDetails;
 }

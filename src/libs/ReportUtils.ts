@@ -1569,6 +1569,13 @@ function isOpenExpenseReport(report: OnyxInputOrEntry<Report>): boolean {
 }
 
 /**
+ * Checks if the report is in a submitted state waiting for approval.
+ */
+function isReportAwaitingApproval(report: OnyxInputOrEntry<Report>): boolean {
+    return isExpenseReport(report) && report?.stateNum === 1 && report?.statusNum === 1;
+}
+
+/**
  * Checks if the supplied report has a member with the array passed in params.
  */
 function hasParticipantInArray(report: OnyxEntry<Report>, memberAccountIDs: number[]) {

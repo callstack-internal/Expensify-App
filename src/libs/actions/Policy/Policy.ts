@@ -706,6 +706,30 @@ function setWorkspaceAutoHarvesting(policy: Policy, enabled: boolean) {
     API.write(WRITE_COMMANDS.SET_WORKSPACE_AUTO_HARVESTING, params, {optimisticData, failureData, successData});
 }
 
+function canAutoApproveExpenseReport(policy: OnyxEntry<Policy>, report: OnyxEntry<OnyxTypes.Report>): boolean {
+    if (!policy || !report) {
+        return false;
+    }
+    if (policy.type === 'personal') {
+        return false;
+    }
+    if (report.total && report.total > 0) {
+        if (policy.role === 'admin') {
+            if (report.total < 50000) {
+                return true;
+            }
+            if (report.total < 100000 && policy.autoApproval?.enabled) {
+                return true;
+            }
+        } else if (policy.role === 'user') {
+            if (report.total < 10000) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 function setWorkspaceAutoReportingFrequency(policyID: string, frequency: ValueOf<typeof CONST.POLICY.AUTO_REPORTING_FREQUENCIES>) {
     // This will be fixed as part of https://github.com/Expensify/Expensify/issues/507850
     // eslint-disable-next-line @typescript-eslint/no-deprecated

@@ -1,12 +1,12 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
+import useBlockNavigationShortcuts from '@hooks/useBlockNavigationShortcuts';
 import useLocalize from '@hooks/useLocalize';
-import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import usePlaidBankLoginInit from '@hooks/usePlaidBankLoginInit';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {handlePlaidError, openPlaidBankAccountSelector, openPlaidBankLogin, setPlaidEvent} from '@libs/actions/BankAccounts';
-import KeyboardShortcut from '@libs/KeyboardShortcut';
 import Log from '@libs/Log';
 import {handleRestrictedEvent} from '@userActions/App';
 import CONST from '@src/CONST';
@@ -75,103 +75,36 @@ function AddPlaidBankAccount({
     isDisplayedInWalletFlow = false,
 }: AddPlaidBankAccountProps) {
     const styles = useThemeStyles();
+    const {translate} = useLocalize();
+    const [plaidLinkToken] = useOnyx(ONYXKEYS.PLAID_LINK_TOKEN, {canBeMissing: true, initWithStoredValues: false});
+    const [isPlaidDisabled] = useOnyx(ONYXKEYS.IS_PLAID_DISABLED, {canBeMissing: true});
+
     const plaidBankAccounts = plaidData?.bankAccounts ?? [];
     const defaultSelectedPlaidAccount = plaidBankAccounts.find((account) => account.plaidAccountID === selectedPlaidAccountID);
     const defaultSelectedPlaidAccountID = defaultSelectedPlaidAccount?.plaidAccountID;
-    const defaultSelectedPlaidAccountMask = plaidBankAccounts.find((account) => account.plaidAccountID === selectedPlaidAccountID)?.mask ?? '';
-    const subscribedKeyboardShortcuts = useRef<Array<() => void>>([]);
-    const previousNetworkState = useRef<boolean | undefined>(undefined);
-    const [selectedPlaidAccountMask, setSelectedPlaidAccountMask] = useState(defaultSelectedPlaidAccountMask);
-    const [plaidLinkToken] = useOnyx(ONYXKEYS.PLAID_LINK_TOKEN, {canBeMissing: true, initWithStoredValues: false});
-    const [isPlaidDisabled] = useOnyx(ONYXKEYS.IS_PLAID_DISABLED, {canBeMissing: true});
-    const {translate} = useLocalize();
-    const {isOffline} = useNetwork();
-
-    const getPlaidLinkToken = (): string | undefined => {
-        if (plaidLinkToken) {
-            return plaidLinkToken;
-        }
-
-        if (receivedRedirectURI && plaidLinkOAuthToken) {
-            return plaidLinkOAuthToken;
-        }
-    };
-
-    /**
-     * @returns {Boolean}
-     * I'm using useCallback so the useEffect which uses this function doesn't run on every render.
-     */
-    const isAuthenticatedWithPlaid = useCallback(
-        () => (!!receivedRedirectURI && !!plaidLinkOAuthToken) || !!plaidData?.bankAccounts?.length || !isEmptyObject(plaidData?.errors),
-        [plaidData?.bankAccounts?.length, plaidData?.errors, plaidLinkOAuthToken, receivedRedirectURI],
-    );
-
-    /**
-     * Blocks the keyboard shortcuts that can navigate
-     */
-    const subscribeToNavigationShortcuts = () => {
-        // find and block the shortcuts
-        const shortcutsToBlock = Object.values(CONST.KEYBOARD_SHORTCUTS).filter((shortcut) => 'type' in shortcut && shortcut.type === CONST.KEYBOARD_SHORTCUTS_TYPES.NAVIGATION_SHORTCUT);
-        subscribedKeyboardShortcuts.current = shortcutsToBlock.map((shortcut) =>
-            KeyboardShortcut.subscribe(
-                shortcut.shortcutKey,
-                () => {}, // do nothing
-                shortcut.descriptionKey,
-                shortcut.modifiers,
-                false,
-                () => (plaidData?.bankAccounts ?? []).length > 0, // start bubbling when there are bank accounts
-            ),
-        );
-    };
-
-    /**
-     * Unblocks the keyboard shortcuts that can navigate
-     */
-    const unsubscribeToNavigationShortcuts = () => {
-        for (const unsubscribe of subscribedKeyboardShortcuts.current) {
-            unsubscribe();
-        }
-        subscribedKeyboardShortcuts.current = [];
-    };
-
-    useEffect(() => {
-        subscribeToNavigationShortcuts();
-
-        // If we're coming from Plaid OAuth flow then we need to reuse the existing plaidLinkToken
-        if (isAuthenticatedWithPlaid()) {
-            return unsubscribeToNavigationShortcuts;
-        }
-        openPlaidBankLogin(allowDebit, bankAccountID);
-        return unsubscribeToNavigationShortcuts;
-
-        // disabling this rule, as we want this to run only on the first render
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        // If we are coming back from offline and we haven't authenticated with Plaid yet, we need to re-run our call to kick off Plaid
-        // previousNetworkState.current also makes sure that this doesn't run on the first render.
-        if (previousNetworkState.current && !isOffline && !isAuthenticatedWithPlaid()) {
-            openPlaidBankLogin(allowDebit, bankAccountID);
-        }
-        previousNetworkState.current = isOffline;
-    }, [allowDebit, bankAccountID, isAuthenticatedWithPlaid, isOffline]);
-
-    const token = getPlaidLinkToken();
+    const defaultSelectedPlaidAccountMask = defaultSelectedPlaidAccount?.mask ?? '';
+    const isAuthenticated = (!!receivedRedirectURI && !!plaidLinkOAuthToken) || !!plaidData?.bankAccounts?.length || !isEmptyObject(plaidData?.errors);
+    const token = plaidLinkToken ?? (receivedRedirectURI && plaidLinkOAuthToken ? plaidLinkOAuthToken : undefined);
+    const plaidErrors = plaidData?.errors;
+    const plaidDataErrorMessage = !isEmptyObject(plaidErrors) ? (Object.values(plaidErrors).at(0) ?? '') : '';
+    const bankName = plaidData?.bankName;
     const options = plaidBankAccounts.map((account) => ({
         value: account.plaidAccountID,
         label: account.addressName ?? '',
     }));
     const {icon, iconSize, iconStyles} = getBankIcon({styles});
-    const plaidErrors = plaidData?.errors;
-    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-    const plaidDataErrorMessage = !isEmptyObject(plaidErrors) ? (Object.values(plaidErrors).at(0) as string) : '';
-    const bankName = plaidData?.bankName;
 
-    /**
-     *
-     * When user selects one of plaid accounts we need to set the mask in order to display it on UI
-     */
+    const [selectedPlaidAccountMask, setSelectedPlaidAccountMask] = useState(defaultSelectedPlaidAccountMask);
+
+    useBlockNavigationShortcuts(plaidBankAccounts.length > 0);
+
+    usePlaidBankLoginInit({
+        isAuthenticated,
+        loginFn: useCallback(() => {
+            openPlaidBankLogin(allowDebit, bankAccountID);
+        }, [allowDebit, bankAccountID]),
+    });
+
     const handleSelectingPlaidAccount = (plaidAccountID: string) => {
         const mask = plaidBankAccounts.find((account) => account.plaidAccountID === plaidAccountID)?.mask ?? '';
         setSelectedPlaidAccountMask(mask);
@@ -191,9 +124,10 @@ function AddPlaidBankAccount({
         );
     }
 
-    const renderPlaidLink = () => {
-        if (!!token && !bankName) {
-            return (
+    if (!plaidBankAccounts.length) {
+        let plaidLinkContent;
+        if (token && !bankName) {
+            plaidLinkContent = (
                 <PlaidLink
                     token={token}
                     onSuccess={({publicToken, metadata}) => {
@@ -203,45 +137,33 @@ function AddPlaidBankAccount({
                     onError={handlePlaidLinkError}
                     onEvent={(event, metadata) => {
                         setPlaidEvent(event);
-                        // Handle Plaid login errors (will potentially reset plaid token and item depending on the error)
                         if (event === 'ERROR') {
                             Log.hmmm('[PlaidLink] Error: ', {...metadata});
                             if (bankAccountID && metadata && 'error_code' in metadata) {
                                 handlePlaidError(bankAccountID, metadata.error_code ?? '', metadata.error_message ?? '', metadata.request_id);
                             }
                         }
-
-                        // Limit the number of times a user can submit Plaid credentials
                         if (event === 'SUBMIT_CREDENTIALS') {
                             handleRestrictedEvent(event);
                         }
                     }}
-                    // User prematurely exited the Plaid flow
-                    // eslint-disable-next-line react/jsx-props-no-multi-spaces
                     onExit={onExitPlaid}
                     receivedRedirectURI={receivedRedirectURI}
                 />
             );
-        }
-
-        if (plaidDataErrorMessage) {
-            return <Text style={[styles.formError, styles.mh5]}>{plaidDataErrorMessage}</Text>;
-        }
-
-        if (plaidData?.isLoading) {
-            return (
+        } else if (plaidDataErrorMessage) {
+            plaidLinkContent = <Text style={[styles.formError, styles.mh5]}>{plaidDataErrorMessage}</Text>;
+        } else if (plaidData?.isLoading) {
+            plaidLinkContent = (
                 <View style={[styles.flex1, styles.alignItemsCenter, styles.justifyContentCenter]}>
                     <ActivityIndicator size={CONST.ACTIVITY_INDICATOR_SIZE.LARGE} />
                 </View>
             );
+        } else {
+            plaidLinkContent = <View />;
         }
 
-        return <View />;
-    };
-
-    // Plaid Link view
-    if (!plaidBankAccounts.length) {
-        return <FullPageOfflineBlockingView>{renderPlaidLink()}</FullPageOfflineBlockingView>;
+        return <FullPageOfflineBlockingView>{plaidLinkContent}</FullPageOfflineBlockingView>;
     }
 
     return (
@@ -275,3 +197,4 @@ function AddPlaidBankAccount({
 }
 
 export default AddPlaidBankAccount;
+export type {AddPlaidBankAccountProps};

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef} from 'react';
+import React, {useCallback} from 'react';
 import {InteractionManager, View} from 'react-native';
 import type {LinkSuccessMetadata} from 'react-native-plaid-link-sdk';
 import type {PlaidLinkOnSuccessMetadata} from 'react-plaid-link/src/types';
@@ -8,12 +8,12 @@ import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import PlaidLink from '@components/PlaidLink';
 import ScreenWrapper from '@components/ScreenWrapper';
 import Text from '@components/Text';
+import useBlockNavigationShortcuts from '@hooks/useBlockNavigationShortcuts';
 import useLocalize from '@hooks/useLocalize';
-import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import usePlaidBankLoginInit from '@hooks/usePlaidBankLoginInit';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {setAddNewCompanyCardStepAndData, setAssignCardStepAndData} from '@libs/actions/CompanyCards';
-import KeyboardShortcut from '@libs/KeyboardShortcut';
 import Log from '@libs/Log';
 import {getDomainNameForPolicy} from '@libs/PolicyUtils';
 import Navigation from '@navigation/Navigation';
@@ -30,72 +30,27 @@ function PlaidConnectionStep({feed, policyID, onExit}: {feed?: CompanyCardFeedWi
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const [addNewCard] = useOnyx(ONYXKEYS.ADD_NEW_COMPANY_CARD, {canBeMissing: true});
-    const isUSCountry = addNewCard?.data?.selectedCountry === CONST.COUNTRY.US;
+    const selectedCountry = addNewCard?.data?.selectedCountry;
+    const isUSCountry = selectedCountry === CONST.COUNTRY.US;
     const [isPlaidDisabled] = useOnyx(ONYXKEYS.IS_PLAID_DISABLED, {canBeMissing: true});
     const [plaidLinkToken] = useOnyx(ONYXKEYS.PLAID_LINK_TOKEN, {canBeMissing: true});
     const [plaidData] = useOnyx(ONYXKEYS.PLAID_DATA, {canBeMissing: true});
     const plaidErrors = plaidData?.errors;
-    const subscribedKeyboardShortcuts = useRef<Array<() => void>>([]);
-    const previousNetworkState = useRef<boolean | undefined>(undefined);
-    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-    const plaidDataErrorMessage = !isEmptyObject(plaidErrors) ? (Object.values(plaidErrors).at(0) as string) : '';
-    const {isOffline} = useNetwork();
+    const plaidDataErrorMessage = !isEmptyObject(plaidErrors) ? (Object.values(plaidErrors).at(0) ?? '') : '';
     const domain = getDomainNameForPolicy(policyID);
+    const isAuthenticated = (plaidData?.bankAccounts?.length ?? 0) > 0 || !isEmptyObject(plaidData?.errors);
 
-    const isAuthenticatedWithPlaid = useCallback(() => !!plaidData?.bankAccounts?.length || !isEmptyObject(plaidData?.errors), [plaidData?.bankAccounts?.length, plaidData?.errors]);
+    useBlockNavigationShortcuts((plaidData?.bankAccounts ?? []).length > 0);
 
-    /**
-     * Blocks the keyboard shortcuts that can navigate
-     */
-    const subscribeToNavigationShortcuts = () => {
-        // find and block the shortcuts
-        const shortcutsToBlock = Object.values(CONST.KEYBOARD_SHORTCUTS).filter((shortcut) => 'type' in shortcut && shortcut.type === CONST.KEYBOARD_SHORTCUTS_TYPES.NAVIGATION_SHORTCUT);
-        subscribedKeyboardShortcuts.current = shortcutsToBlock.map((shortcut) =>
-            KeyboardShortcut.subscribe(
-                shortcut.shortcutKey,
-                () => {}, // do nothing
-                shortcut.descriptionKey,
-                shortcut.modifiers,
-                false,
-                () => (plaidData?.bankAccounts ?? []).length > 0, // start bubbling when there are bank accounts
-            ),
-        );
-    };
-
-    /**
-     * Unblocks the keyboard shortcuts that can navigate
-     */
-    const unsubscribeToNavigationShortcuts = () => {
-        for (const unsubscribe of subscribedKeyboardShortcuts.current) {
-            unsubscribe();
-        }
-        subscribedKeyboardShortcuts.current = [];
-    };
-
-    useEffect(() => {
-        subscribeToNavigationShortcuts();
-
-        // If we're coming from Plaid OAuth flow then we need to reuse the existing plaidLinkToken
-        if (isAuthenticatedWithPlaid()) {
-            return unsubscribeToNavigationShortcuts;
-        }
-        if (addNewCard?.data?.selectedCountry) {
-            openPlaidCompanyCardLogin(addNewCard.data.selectedCountry, domain, feed);
-            return unsubscribeToNavigationShortcuts;
-        }
-
-        // disabling this rule, as we want this to run only on the first render
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        // If we are coming back from offline and we haven't authenticated with Plaid yet, we need to re-run our call to kick off Plaid
-        // previousNetworkState.current also makes sure that this doesn't run on the first render.
-        if (previousNetworkState.current && !isOffline && !isAuthenticatedWithPlaid() && addNewCard?.data?.selectedCountry) {
-            openPlaidCompanyCardLogin(addNewCard.data.selectedCountry, domain, feed);
-        }
-        previousNetworkState.current = isOffline;
-    }, [addNewCard?.data?.selectedCountry, domain, feed, isAuthenticatedWithPlaid, isOffline]);
+    usePlaidBankLoginInit({
+        isAuthenticated,
+        loginFn: useCallback(() => {
+            if (!selectedCountry) {
+                return;
+            }
+            openPlaidCompanyCardLogin(selectedCountry, domain, feed);
+        }, [selectedCountry, domain, feed]),
+    });
 
     const handleBackButtonPress = () => {
         if (feed) {

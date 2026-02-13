@@ -14,11 +14,11 @@ import type {
     Report,
     ReportAction,
     ReportActions,
-    ReportAttributesDerivedValue,
     ReportMetadata,
     ReportNameValuePairs,
     Transaction,
 } from '@src/types/onyx';
+import {computeLazyDerivedItem} from '@userActions/OnyxDerived/utils';
 import type {SelectedParticipant} from '@src/types/onyx/NewGroupChatDraft';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import {convertToDisplayString} from './CurrencyUtils';
@@ -826,17 +826,14 @@ function computeReportName(
 }
 
 /**
- * Check for existence of report name in derived values first, then fall back to the report object
- *
- * @param report
- * @param reportAttributesDerivedValue
+ * Check for existence of report name in lazy derived value first, then fall back to the report object
  */
-function getReportName(report?: Report, reportAttributesDerivedValue?: ReportAttributesDerivedValue['reports']): string {
+function getReportName(report?: Report): string {
     if (!report || !report.reportID) {
         return '';
     }
 
-    return reportAttributesDerivedValue?.[report.reportID]?.reportName ?? report.reportName ?? '';
+    return (computeLazyDerivedItem(ONYXKEYS.DERIVED.REPORT_NAME, report.reportID) as string) || report.reportName || '';
 }
 
 export {

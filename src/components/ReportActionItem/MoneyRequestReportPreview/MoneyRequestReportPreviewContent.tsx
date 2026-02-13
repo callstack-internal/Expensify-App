@@ -1,7 +1,6 @@
 import React, {useCallback, useContext, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {FlatList, View} from 'react-native';
 import type {ListRenderItemInfo, ViewToken} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import Animated, {useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming} from 'react-native-reanimated';
 import ActivityIndicator from '@components/ActivityIndicator';
 import AnimatedSubmitButton from '@components/AnimatedSubmitButton';
@@ -24,6 +23,7 @@ import {showContextMenuForReport} from '@components/ShowContextMenuContext';
 import Text from '@components/Text';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
+import useLazyDerivedValue from '@hooks/useLazyDerivedValue';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -86,13 +86,11 @@ import CONST from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
-import type {ReportAttributesDerivedValue, Transaction} from '@src/types/onyx';
+import type {Transaction} from '@src/types/onyx';
 import type {PaymentMethodType} from '@src/types/onyx/OriginalMessage';
 import AccessMoneyRequestReportPreviewPlaceHolder from './AccessMoneyRequestReportPreviewPlaceHolder';
 import EmptyMoneyRequestReportPreview from './EmptyMoneyRequestReportPreview';
 import type {MoneyRequestReportPreviewContentProps} from './types';
-
-const reportAttributesSelector = (c: OnyxEntry<ReportAttributesDerivedValue>) => c?.reports;
 
 function MoneyRequestReportPreviewContent({
     iouReportID,
@@ -217,13 +215,12 @@ function MoneyRequestReportPreviewContent({
     const shouldShowRTERViolationMessage = numberOfRequests === 1 && hasPendingUI(lastTransaction, lastTransactionViolations);
     const shouldShowOnlyPayElsewhere = useMemo(() => !canIOUBePaid && getCanIOUBePaid(true), [canIOUBePaid, getCanIOUBePaid]);
 
-    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {canBeMissing: true, selector: reportAttributesSelector});
+    const lazyReportName = useLazyDerivedValue(ONYXKEYS.DERIVED.REPORT_NAME, iouReport?.reportID ?? '');
 
-    const currentReportName = iouReport?.reportID ? reportAttributes?.[iouReport.reportID]?.reportName : undefined;
     const reportPreviewName = useMemo(() => {
-        return getMoneyReportPreviewName(action, iouReport, isInvoice, reportAttributes);
+        return getMoneyReportPreviewName(action, iouReport, isInvoice);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [action, iouReport, isInvoice, currentReportName]);
+    }, [action, iouReport, isInvoice, lazyReportName]);
 
     const hasReceipts = transactionsWithReceipts.length > 0;
     const isScanning = hasReceipts && areAllRequestsBeingSmartScanned;

@@ -1011,6 +1011,7 @@ const ONYXKEYS = {
         TODOS: 'todos',
         LAST_MESSAGE_TEXT: 'lastMessageText',
         REPORT_LAST_ACTION_IDS: 'reportLastActionIDs',
+        REPORT_NAME: 'reportName',
     },
 
     /** Stores HybridApp specific state required to interoperate with OldDot */
@@ -1434,6 +1435,7 @@ type OnyxDerivedValuesMapping = {
     [ONYXKEYS.DERIVED.TODOS]: OnyxTypes.TodosDerivedValue;
     [ONYXKEYS.DERIVED.LAST_MESSAGE_TEXT]: OnyxTypes.LastMessageTextDerivedValue;
     [ONYXKEYS.DERIVED.REPORT_LAST_ACTION_IDS]: OnyxTypes.ReportLastActionIDsDerivedValue;
+    [ONYXKEYS.DERIVED.REPORT_NAME]: OnyxTypes.ReportNameDerivedValue;
 };
 
 type OnyxValues = OnyxValuesMapping & OnyxCollectionValuesMapping & OnyxFormValuesMapping & OnyxFormDraftValuesMapping & OnyxDerivedValuesMapping;

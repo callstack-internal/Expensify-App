@@ -1,5 +1,4 @@
 import {useIsFocused} from '@react-navigation/native';
-import reportsSelector from '@selectors/Attributes';
 import React, {useEffect, useRef, useState} from 'react';
 import {InteractionManager, View} from 'react-native';
 import type {ValueOf} from 'type-fest';
@@ -79,7 +78,6 @@ function ReportParticipantsPage({report, route}: ReportParticipantsPageProps) {
     const [userSearchPhrase] = useOnyx(ONYXKEYS.ROOM_MEMBERS_USER_SEARCH_PHRASE, {canBeMissing: true});
     const isReportArchived = useReportIsArchived(report?.reportID);
     const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report?.reportID}`, {canBeMissing: false});
-    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector, canBeMissing: true});
     const isMobileSelectionModeEnabled = useMobileSelectionMode();
     const [session] = useOnyx(ONYXKEYS.SESSION, {canBeMissing: false});
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {canBeMissing: false});
@@ -341,8 +339,7 @@ function ReportParticipantsPage({report, route}: ReportParticipantsPageProps) {
                             Navigation.goBack(ROUTES.REPORT_WITH_ID_DETAILS.getRoute(report.reportID, backTo));
                         }
                     }}
-                    // eslint-disable-next-line @typescript-eslint/no-deprecated
-                    subtitle={StringUtils.lineBreaksToSpaces(getReportName(report, reportAttributes))}
+                    subtitle={StringUtils.lineBreaksToSpaces(getReportName(report))}
                 />
                 <View style={[styles.pl5, styles.pr5]}>
                     {isGroupChat && (

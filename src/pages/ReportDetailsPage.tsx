@@ -1,5 +1,4 @@
 import {StackActions} from '@react-navigation/native';
-import reportsSelector from '@selectors/Attributes';
 import {Str} from 'expensify-common';
 import React, {useCallback, useEffect, useMemo} from 'react';
 import {View} from 'react-native';
@@ -312,7 +311,6 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
     const {currentSearchHash} = useSearchContext();
     const isCardTransactionCanBeDeleted = canDeleteCardTransactionByLiabilityType(iouTransaction);
     const shouldShowDeleteButton = shouldShowTaskDeleteButton || (canDeleteRequest && isCardTransactionCanBeDeleted) || isDemoTransaction(iouTransaction);
-    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {canBeMissing: true, selector: reportsSelector});
     const isWorkspaceChat = useMemo(() => isWorkspaceChatUtil(report?.chatType ?? ''), [report?.chatType]);
 
     useEffect(() => {
@@ -353,8 +351,8 @@ function ReportDetailsPage({policy, report, route, reportMetadata}: ReportDetail
     const shouldShowGoToWorkspace = shouldShowPolicy(policy, false, currentUserPersonalDetails?.email) && !policy?.isJoinRequestPending;
     const reportForHeader = useMemo(() => getReportForHeader(report), [report]);
     const reportName = isGroupChat
-        ? getReportNameFromReportNameUtils(reportForHeader, reportAttributes)
-        : Parser.htmlToText(getReportNameFromReportNameUtils(reportForHeader, reportAttributes));
+        ? getReportNameFromReportNameUtils(reportForHeader)
+        : Parser.htmlToText(getReportNameFromReportNameUtils(reportForHeader));
     const additionalRoomDetails =
         (isPolicyExpenseChat && !!report?.isOwnPolicyExpenseChat) || isExpenseReportUtil(report) || isPolicyExpenseChat || isInvoiceRoom
             ? chatRoomSubtitle

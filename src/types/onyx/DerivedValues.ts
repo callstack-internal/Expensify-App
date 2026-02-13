@@ -14,10 +14,6 @@ import type TransactionViolations from './TransactionViolation';
  */
 type ReportAttributes = {
     /**
-     * The name of the report.
-     */
-    reportName: string;
-    /**
      * Whether the report is empty (has no visible messages).
      */
     isEmpty: boolean;
@@ -233,6 +229,12 @@ type TodosDerivedValue = {
 };
 
 /**
+ * The derived value for report names per report.
+ * A lazy derived value: computed on demand per report, not for all reports at once.
+ */
+type ReportNameDerivedValue = Record<string, string>;
+
+/**
  * The derived value for last message text per report.
  * A lazy derived value: computed on demand per report, not for all reports at once.
  */
@@ -256,6 +258,7 @@ export default ReportAttributesDerivedValue;
 export type {
     LastMessageTextDerivedValue,
     ReportLastActionIDsDerivedValue,
+    ReportNameDerivedValue,
     ReportAttributes,
     ReportAttributesDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,

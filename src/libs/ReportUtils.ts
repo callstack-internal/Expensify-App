@@ -104,6 +104,7 @@ import {createDraftWorkspace} from './actions/Policy/Policy';
 import {hasCreditBankAccount} from './actions/ReimbursementAccount/store';
 import {openUnreportedExpense} from './actions/Report';
 import type {GuidedSetupData, TaskForParameters} from './actions/Report';
+import {computeLazyDerivedItem} from './actions/OnyxDerived/utils';
 import {isAnonymousUser as isAnonymousUserSession} from './actions/Session';
 import {removeDraftTransactions} from './actions/TransactionEdit';
 import {getOnboardingMessages} from './actions/Welcome/OnboardingFlow';
@@ -5660,10 +5661,11 @@ function getReportName(
     // Check if we can use report name in derived values - only when we have report but no other params
     const canUseDerivedValue =
         report && policy === undefined && parentReportActionParam === undefined && personalDetails === undefined && invoiceReceiverPolicy === undefined && isReportArchived === undefined;
-    const attributes = reportAttributes ?? reportAttributesDerivedValue;
-    const derivedNameExists = report && !!attributes?.[report.reportID]?.reportName;
-    if (canUseDerivedValue && derivedNameExists) {
-        return attributes[report.reportID].reportName;
+    if (canUseDerivedValue) {
+        const lazyName = computeLazyDerivedItem(ONYXKEYS.DERIVED.REPORT_NAME, report.reportID) as string | undefined;
+        if (lazyName) {
+            return lazyName;
+        }
     }
 
     let formattedName: string | undefined;
@@ -5994,7 +5996,7 @@ function getPendingChatMembers(accountIDs: number[], previousPendingChatMembers:
 /**
  * Gets the parent navigation subtitle for the report
  */
-function getParentNavigationSubtitle(report: OnyxEntry<Report>, isParentReportArchived = false, reportAttributes?: ReportAttributesDerivedValue['reports']): ParentNavigationSummaryParams {
+function getParentNavigationSubtitle(report: OnyxEntry<Report>, isParentReportArchived = false): ParentNavigationSummaryParams {
     const parentReport = getParentReport(report);
 
     if (isEmptyObject(parentReport)) {
@@ -6033,7 +6035,7 @@ function getParentNavigationSubtitle(report: OnyxEntry<Report>, isParentReportAr
     return {
         // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
         // eslint-disable-next-line @typescript-eslint/no-deprecated
-        reportName: getReportName(parentReport, undefined, undefined, undefined, undefined, reportAttributes),
+        reportName: getReportName(parentReport),
         workspaceName: getPolicyName({report: parentReport, returnEmptyIfNotFound: true}),
     };
 }
@@ -12460,7 +12462,7 @@ function hasReportBeenRetracted(report: OnyxEntry<Report>, reportActions?: OnyxE
     return reportActionList.some((action) => isRetractedAction(action));
 }
 
-function getMoneyReportPreviewName(action: ReportAction, iouReport: OnyxEntry<Report>, isInvoice?: boolean, reportAttributes?: ReportAttributesDerivedValue['reports']) {
+function getMoneyReportPreviewName(action: ReportAction, iouReport: OnyxEntry<Report>, isInvoice?: boolean) {
     if (isInvoice && isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW)) {
         const originalMessage = getOriginalMessage(action);
         // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -12468,7 +12470,7 @@ function getMoneyReportPreviewName(action: ReportAction, iouReport: OnyxEntry<Re
     }
     // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
     // eslint-disable-next-line @typescript-eslint/no-deprecated
-    return getReportName(iouReport, undefined, undefined, undefined, undefined, reportAttributes) || action.childReportName;
+    return getReportName(iouReport) || action.childReportName;
 }
 
 function selectFilteredReportActions(

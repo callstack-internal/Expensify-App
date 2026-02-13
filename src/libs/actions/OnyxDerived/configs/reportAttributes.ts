@@ -1,5 +1,4 @@
 import type {OnyxEntry} from 'react-native-onyx';
-import {computeReportName} from '@libs/ReportNameUtils';
 import {generateIsEmptyReport, generateReportAttributes, isArchivedReport, isValidReport} from '@libs/ReportUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDerivedValueConfig';
@@ -220,9 +219,6 @@ export default createOnyxDerivedValueConfig({
             }
 
             acc[report.reportID] = {
-                reportName: report
-                    ? computeReportName(report, reports, policies, transactions, reportNameValuePairs, personalDetails, reportActions, session?.accountID ?? CONST.DEFAULT_NUMBER_ID)
-                    : '',
                 isEmpty: generateIsEmptyReport(report, isReportArchived),
                 brickRoadStatus,
                 requiresAttention,

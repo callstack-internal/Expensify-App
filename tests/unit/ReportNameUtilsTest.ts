@@ -13,7 +13,7 @@ import {
 import CONST from '@src/CONST';
 import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetailsList, Policy, Report, ReportAction, ReportActions, ReportAttributesDerivedValue, ReportNameValuePairs, Transaction} from '@src/types/onyx';
+import type {PersonalDetailsList, Policy, Report, ReportAction, ReportActions, ReportNameValuePairs, Transaction} from '@src/types/onyx';
 import {createAdminRoom, createPolicyExpenseChat, createRegularChat, createRegularTaskReport, createSelfDM, createWorkspaceThread} from '../utils/collections/reports';
 import {fakePersonalDetails} from '../utils/LHNTestUtils';
 import {formatPhoneNumber} from '../utils/TestHelper';
@@ -362,28 +362,8 @@ describe('ReportNameUtils', () => {
         });
     });
 
-    describe('getReportName (derived value vs fallback)', () => {
-        test('Returns derived value when provided', () => {
-            const report: Report = {
-                ...createPolicyExpenseChat(60, true),
-                reportID: '60',
-                ownerAccountID: 1,
-            };
-
-            const derived: ReportAttributesDerivedValue['reports'] = {
-                [report.reportID]: {
-                    reportName: "Ragnar Lothbrok's expenses",
-                    isEmpty: false,
-                    brickRoadStatus: undefined,
-                    requiresAttention: false,
-                    reportErrors: {},
-                },
-            };
-
-            expect(getSimpleReportName(report, derived)).toBe("Ragnar Lothbrok's expenses");
-        });
-
-        test('Falls back to report.reportName when derived missing', () => {
+    describe('getReportName (fallback behavior)', () => {
+        test('Falls back to report.reportName when lazy derived value is not available', () => {
             const report: Report = {
                 ...createRegularChat(61, [currentUserAccountID, 1]),
                 reportID: '61',
@@ -391,10 +371,10 @@ describe('ReportNameUtils', () => {
                 ownerAccountID: currentUserAccountID,
             };
 
-            expect(getSimpleReportName(report, {} as never)).toBe('Custom Report Name');
+            expect(getSimpleReportName(report)).toBe('Custom Report Name');
         });
 
-        test('Returns empty string when neither present', () => {
+        test('Returns empty string when report name not present', () => {
             const report: Report = {
                 ...createRegularChat(62, [currentUserAccountID, 1]),
                 reportID: '62',
@@ -402,7 +382,7 @@ describe('ReportNameUtils', () => {
                 reportName: undefined,
             };
 
-            expect(getSimpleReportName(report, {} as never)).toBe('');
+            expect(getSimpleReportName(report)).toBe('');
         });
     });
 

@@ -45,6 +45,7 @@ function OptionRowLHNData({
     const reportID = propsToForward.reportID;
     const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
     const lazyLastMessageText = useLazyDerivedValue(ONYXKEYS.DERIVED.LAST_MESSAGE_TEXT, reportID);
+    const lazyReportName = useLazyDerivedValue(ONYXKEYS.DERIVED.REPORT_NAME, reportID);
     const actionIDs = useLazyDerivedValue(ONYXKEYS.DERIVED.REPORT_LAST_ACTION_IDS, reportID);
     const isReportFocused = isOptionFocused && currentReportIDValue === reportID;
     const optionItemRef = useRef<OptionData | undefined>(undefined);
@@ -106,7 +107,6 @@ function OptionRowLHNData({
     }, [
         fullReport,
         reportAttributes?.brickRoadStatus,
-        reportAttributes?.reportName,
         areReportErrorsEqual,
         oneTransactionThreadReport,
         reportNameValuePairs,
@@ -121,6 +121,7 @@ function OptionRowLHNData({
         receiptTransactions,
         invoiceReceiverPolicy,
         lazyLastMessageText,
+        lazyReportName,
         card,
         translate,
         localeCompare,

@@ -7,6 +7,7 @@ import reportAttributesConfig from './configs/reportAttributes';
 import reportTransactionsAndViolationsConfig from './configs/reportTransactionsAndViolations';
 import lastMessageTextConfig from './configs/lastMessageText';
 import reportLastActionIDsConfig from './configs/reportLastActionIDs';
+import reportNameConfig from './configs/reportName';
 import todosConfig from './configs/todos';
 import type {OnyxDerivedValueConfig, OnyxLazyDerivedValueConfig} from './types';
 
@@ -23,6 +24,7 @@ const ONYX_DERIVED_VALUES = {
     [ONYXKEYS.DERIVED.TODOS]: todosConfig,
     [ONYXKEYS.DERIVED.LAST_MESSAGE_TEXT]: lastMessageTextConfig,
     [ONYXKEYS.DERIVED.REPORT_LAST_ACTION_IDS]: reportLastActionIDsConfig,
+    [ONYXKEYS.DERIVED.REPORT_NAME]: reportNameConfig,
 } as const satisfies {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [Key in ValueOf<typeof ONYXKEYS.DERIVED>]: OnyxDerivedValueConfig<Key, any> | OnyxLazyDerivedValueConfig<Key, any>;

@@ -12,10 +12,10 @@ import {PressableWithFeedback} from '@components/Pressable';
 import SectionList from '@components/SectionList';
 import Text from '@components/Text';
 import TextInput from '@components/TextInput';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useActiveElementRole from '@hooks/useActiveElementRole';
 import useArrowKeyFocusManager from '@hooks/useArrowKeyFocusManager';
 import useKeyboardShortcut from '@hooks/useKeyboardShortcut';
-import useKeyboardState from '@hooks/useKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import usePrevious from '@hooks/usePrevious';
 import useSafeAreaPaddings from '@hooks/useSafeAreaPaddings';
@@ -161,7 +161,7 @@ function BaseSelectionListWithSections<TItem extends ListItem>({
     const scrollEnabled = useScrollEnabled();
     const [maxToRenderPerBatch, setMaxToRenderPerBatch] = useState(shouldUseDynamicMaxToRenderPerBatch ? 0 : CONST.MAX_TO_RENDER_PER_BATCH.DEFAULT);
     const [isInitialSectionListRender, setIsInitialSectionListRender] = useState(true);
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const [itemsToHighlight, setItemsToHighlight] = useState<Set<string> | null>(null);
     const itemFocusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isItemSelected = useCallback(

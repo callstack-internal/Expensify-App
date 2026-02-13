@@ -7,11 +7,11 @@ import type {TextInputKeyPressEvent} from 'react-native';
 import {View} from 'react-native';
 import OptionsListSkeletonView from '@components/OptionsListSkeletonView';
 import type {BaseTextInputRef} from '@components/TextInput/BaseTextInput/types';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useActiveElementRole from '@hooks/useActiveElementRole';
 import useArrowKeyFocusManager from '@hooks/useArrowKeyFocusManager';
 import useDebounce from '@hooks/useDebounce';
 import useKeyboardShortcut from '@hooks/useKeyboardShortcut';
-import useKeyboardState from '@hooks/useKeyboardState';
 import useSafeAreaPaddings from '@hooks/useSafeAreaPaddings';
 import useScrollEnabled from '@hooks/useScrollEnabled';
 import useSingleExecution from '@hooks/useSingleExecution';
@@ -96,7 +96,7 @@ function BaseSelectionList<TItem extends ListItem>({
     const scrollEnabled = useScrollEnabled();
     const {singleExecution} = useSingleExecution();
     const activeElementRole = useActiveElementRole();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const {safeAreaPaddingBottomStyle} = useSafeAreaPaddings();
 
     const innerTextInputRef = useRef<BaseTextInputRef | null>(null);

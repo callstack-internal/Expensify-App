@@ -35,7 +35,7 @@ import type {
     TransactionYearGroupListItemType,
 } from '@components/SelectionListWithSections/types';
 import Text from '@components/Text';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
@@ -337,7 +337,7 @@ function SearchList({
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
     const listRef = useRef<FlashListRef<SearchListItem>>(null);
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const {safeAreaPaddingBottomStyle} = useSafeAreaPaddings();
     const prevDataLength = usePrevious(data.length);
     // We need to use isSmallScreenWidth instead of shouldUseNarrowLayout here because there is a race condition that causes shouldUseNarrowLayout to change indefinitely in this component

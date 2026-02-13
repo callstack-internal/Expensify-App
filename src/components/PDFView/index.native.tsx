@@ -5,7 +5,7 @@ import PDF from 'react-native-pdf';
 import KeyboardAvoidingView from '@components/KeyboardAvoidingView';
 import LoadingIndicator from '@components/LoadingIndicator';
 import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeedback';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -49,7 +49,7 @@ function PDFView({onToggleKeyboard, onLoadComplete, fileName, onPress, isFocused
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const {translate} = useLocalize();
     const themeStyles = useThemeStyles();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const StyleUtils = useStyleUtils();
 
     const [activePolicyID] = useOnyx(ONYXKEYS.NVP_ACTIVE_POLICY_ID, {canBeMissing: true});

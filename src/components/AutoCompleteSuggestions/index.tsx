@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardState} from '@components/withKeyboardState';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSafeAreaInsets from '@hooks/useSafeAreaInsets';
 import useStyleUtils from '@hooks/useStyleUtils';

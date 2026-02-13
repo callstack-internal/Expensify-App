@@ -3,7 +3,7 @@ import {Keyboard, View} from 'react-native';
 import Button from '@components/Button';
 import FormHelpMessage from '@components/FormHelpMessage';
 import Text from '@components/Text';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
@@ -26,7 +26,7 @@ type ChooseSSOOrMagicCodeProps = {
 
 function ChooseSSOOrMagicCode({setIsUsingMagicCode}: ChooseSSOOrMagicCodeProps) {
     const styles = useThemeStyles();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
     const {shouldUseNarrowLayout} = useResponsiveLayout();

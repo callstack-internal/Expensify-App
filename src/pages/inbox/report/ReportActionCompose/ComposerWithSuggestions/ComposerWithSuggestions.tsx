@@ -12,8 +12,8 @@ import type {MeasureParentContainerAndCursorCallback} from '@components/AutoComp
 import Composer from '@components/Composer';
 import type {CustomSelectionChangeEvent, TextSelection} from '@components/Composer/types';
 import {useWideRHPState} from '@components/WideRHPContextProvider';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import useKeyboardState from '@hooks/useKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
@@ -242,7 +242,7 @@ function ComposerWithSuggestions({
     forwardedFSClass,
 }: ComposerWithSuggestionsProps) {
     const route = useRoute();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const theme = useTheme();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();

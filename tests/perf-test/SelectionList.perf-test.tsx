@@ -1,13 +1,11 @@
 import {fireEvent} from '@testing-library/react-native';
 import type {RenderResult} from '@testing-library/react-native';
 import React, {useState} from 'react';
-import type {ComponentType} from 'react';
 import {measureRenders} from 'reassure';
 // eslint-disable-next-line no-restricted-imports
 import SelectionList from '@components/SelectionListWithSections';
 import RadioListItem from '@components/SelectionListWithSections/RadioListItem';
 import type {ListItem} from '@components/SelectionListWithSections/types';
-import type {KeyboardStateContextValue} from '@components/withKeyboardState';
 import variables from '@styles/variables';
 
 type SelectionListWrapperProps = {
@@ -30,19 +28,11 @@ jest.mock('@hooks/useNetwork', () =>
     })),
 );
 
-jest.mock('@components/withKeyboardState', () => <TProps extends KeyboardStateContextValue>(Component: ComponentType<TProps>) => {
-    function WrappedComponent(props: Omit<TProps, keyof KeyboardStateContextValue>) {
-        return (
-            <Component
-                // eslint-disable-next-line react/jsx-props-no-spreading
-                {...(props as TProps)}
-                isKeyboardShown={false}
-            />
-        );
-    }
-    WrappedComponent.displayName = `WrappedComponent`;
-    return WrappedComponent;
-});
+jest.mock('@components/withKeyboardState', () => ({
+    useKeyboardShown: jest.fn(() => ({isKeyboardShown: false})),
+    useKeyboardState: jest.fn(() => ({isKeyboardActive: false, keyboardHeight: 0, keyboardActiveHeight: 0, isKeyboardAnimatingRef: {current: false}})),
+    KeyboardStateProvider: ({children}: {children: React.ReactNode}) => children,
+}));
 
 jest.mock('@react-navigation/stack', () => ({
     useCardAnimation: () => {},
@@ -52,15 +42,6 @@ jest.mock('@react-navigation/native', () => ({
     useFocusEffect: () => {},
     useIsFocused: () => true,
     createNavigationContainerRef: jest.fn(),
-}));
-
-jest.mock('../../src/hooks/useKeyboardState', () => ({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    __esModule: true,
-    default: jest.fn(() => ({
-        isKeyboardShown: false,
-        keyboardHeight: 0,
-    })),
 }));
 
 jest.mock('../../src/hooks/useScreenWrapperTransitionStatus', () => ({

@@ -15,11 +15,11 @@ import ListItemRenderer from '@components/SelectionList/ListItem/ListItemRendere
 import type {ButtonOrCheckBoxRoles} from '@components/SelectionList/types';
 import Text from '@components/Text';
 import type {BaseTextInputRef} from '@components/TextInput/BaseTextInput/types';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useActiveElementRole from '@hooks/useActiveElementRole';
 import useArrowKeyFocusManager from '@hooks/useArrowKeyFocusManager';
 import useDebounce from '@hooks/useDebounce';
 import useKeyboardShortcut from '@hooks/useKeyboardShortcut';
-import useKeyboardState from '@hooks/useKeyboardState';
 import useSafeAreaPaddings from '@hooks/useSafeAreaPaddings';
 import useScrollEnabled from '@hooks/useScrollEnabled';
 import useSingleExecution from '@hooks/useSingleExecution';
@@ -78,7 +78,7 @@ function BaseSelectionListWithSections<TItem extends ListItem>({
     const isTextInputFocusedRef = useRef<boolean>(false);
     const hasKeyBeenPressed = useRef(false);
     const activeElementRole = useActiveElementRole();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const {safeAreaPaddingBottomStyle} = useSafeAreaPaddings();
 
     const paddingBottomStyle = !isKeyboardShown && !footerContent && safeAreaPaddingBottomStyle;

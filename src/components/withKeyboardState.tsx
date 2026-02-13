@@ -1,15 +1,17 @@
 import type {ReactElement, RefObject} from 'react';
-import React, {createContext, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {KeyboardEvents, useKeyboardHandler} from 'react-native-keyboard-controller';
 import {scheduleOnRN} from 'react-native-worklets';
 import useSafeAreaInsets from '@hooks/useSafeAreaInsets';
 import getKeyboardHeight from '@libs/getKeyboardHeight';
 import type ChildrenProps from '@src/types/utils/ChildrenProps';
 
-type KeyboardStateContextValue = {
+type KeyboardShownContextValue = {
     /** Whether the keyboard is open */
     isKeyboardShown: boolean;
+};
 
+type KeyboardStateContextValue = {
     /** Whether the keyboard is animating or shown */
     isKeyboardActive: boolean;
 
@@ -23,8 +25,11 @@ type KeyboardStateContextValue = {
     isKeyboardAnimatingRef: RefObject<boolean>;
 };
 
-const KeyboardStateContext = createContext<KeyboardStateContextValue>({
+const KeyboardShownContext = createContext<KeyboardShownContextValue>({
     isKeyboardShown: false,
+});
+
+const KeyboardStateContext = createContext<KeyboardStateContextValue>({
     isKeyboardActive: false,
     keyboardHeight: 0,
     keyboardActiveHeight: 0,
@@ -84,18 +89,37 @@ function KeyboardStateProvider({children}: ChildrenProps): ReactElement | null {
         [],
     );
 
-    const contextValue = useMemo(
+    const shownValue = useMemo(
+        () => ({
+            isKeyboardShown: keyboardHeight !== 0,
+        }),
+        [keyboardHeight],
+    );
+
+    const stateValue = useMemo(
         () => ({
             keyboardHeight,
             keyboardActiveHeight,
-            isKeyboardShown: keyboardHeight !== 0,
             isKeyboardAnimatingRef,
             isKeyboardActive,
         }),
         [isKeyboardActive, keyboardActiveHeight, keyboardHeight],
     );
-    return <KeyboardStateContext.Provider value={contextValue}>{children}</KeyboardStateContext.Provider>;
+
+    return (
+        <KeyboardStateContext.Provider value={stateValue}>
+            <KeyboardShownContext.Provider value={shownValue}>{children}</KeyboardShownContext.Provider>
+        </KeyboardStateContext.Provider>
+    );
 }
 
-export type {KeyboardStateContextValue};
-export {KeyboardStateProvider, KeyboardStateContext};
+function useKeyboardShown(): KeyboardShownContextValue {
+    return useContext(KeyboardShownContext);
+}
+
+function useKeyboardState(): KeyboardStateContextValue {
+    return useContext(KeyboardStateContext);
+}
+
+export type {KeyboardShownContextValue, KeyboardStateContextValue};
+export {KeyboardStateProvider, useKeyboardShown, useKeyboardState};

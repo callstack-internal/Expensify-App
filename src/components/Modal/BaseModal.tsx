@@ -6,7 +6,7 @@ import {Animated, DeviceEventEmitter, View} from 'react-native';
 import ColorSchemeWrapper from '@components/ColorSchemeWrapper';
 import NavigationBar from '@components/NavigationBar';
 import ScreenWrapperOfflineIndicatorContext from '@components/ScreenWrapper/ScreenWrapperOfflineIndicatorContext';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardState} from '@components/withKeyboardState';
 import usePrevious from '@hooks/usePrevious';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSafeAreaInsets from '@hooks/useSafeAreaInsets';

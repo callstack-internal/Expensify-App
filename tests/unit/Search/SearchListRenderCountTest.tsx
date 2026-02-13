@@ -33,13 +33,10 @@ jest.mock('@hooks/useNetwork', () =>
     })),
 );
 
-jest.mock('@hooks/useKeyboardState', () => ({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    __esModule: true,
-    default: jest.fn(() => ({
-        isKeyboardShown: false,
-        keyboardHeight: 0,
-    })),
+jest.mock('@components/withKeyboardState', () => ({
+    useKeyboardShown: jest.fn(() => ({isKeyboardShown: false})),
+    useKeyboardState: jest.fn(() => ({isKeyboardActive: false, keyboardHeight: 0, keyboardActiveHeight: 0, isKeyboardAnimatingRef: {current: false}})),
+    KeyboardStateProvider: ({children}: {children: React.ReactNode}) => children,
 }));
 
 jest.mock('@hooks/useResponsiveLayout', () => ({

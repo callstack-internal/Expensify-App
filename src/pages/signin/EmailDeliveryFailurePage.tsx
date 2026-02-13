@@ -3,7 +3,7 @@ import {Keyboard, View} from 'react-native';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import RenderHTML from '@components/RenderHTML';
 import Text from '@components/Text';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -14,7 +14,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 function EmailDeliveryFailurePage() {
     const [credentials] = useOnyx(ONYXKEYS.CREDENTIALS, {canBeMissing: true});
     const styles = useThemeStyles();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const {translate} = useLocalize();
 
     const login = normalizeLogin(credentials?.login);

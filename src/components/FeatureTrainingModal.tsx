@@ -6,7 +6,6 @@ import {Image, InteractionManager, View} from 'react-native';
 import type {ImageResizeMode, ImageSourcePropType, LayoutChangeEvent, ScrollView as RNScrollView, StyleProp, TextStyle, ViewStyle} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import type {MergeExclusive} from 'type-fest';
-import useKeyboardState from '@hooks/useKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -34,6 +33,7 @@ import RenderHTML from './RenderHTML';
 import ScrollView from './ScrollView';
 import Text from './Text';
 import VideoPlayer from './VideoPlayer';
+import {useKeyboardState} from './withKeyboardState';
 
 // Aspect ratio and height of the video.
 // Useful before video loads to reserve space.

@@ -3,7 +3,7 @@ import {Keyboard, View} from 'react-native';
 import Button from '@components/Button';
 import FormAlertWithSubmitButton from '@components/FormAlertWithSubmitButton';
 import Text from '@components/Text';
-import useKeyboardState from '@hooks/useKeyboardState';
+import {useKeyboardShown} from '@components/withKeyboardState';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -16,7 +16,7 @@ import Terms from './Terms';
 
 function SMSDeliveryFailurePage() {
     const styles = useThemeStyles();
-    const {isKeyboardShown} = useKeyboardState();
+    const {isKeyboardShown} = useKeyboardShown();
     const {translate} = useLocalize();
     const [credentials] = useOnyx(ONYXKEYS.CREDENTIALS, {canBeMissing: true});
     const [account] = useOnyx(ONYXKEYS.ACCOUNT, {canBeMissing: true});

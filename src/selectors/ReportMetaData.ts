@@ -10,7 +10,7 @@ const isActionLoadingMapSelector = (all: OnyxCollection<ReportMetadata>): IsActi
     if (!all) {
         return map;
     }
-    
+
     for (const [key, value] of Object.entries(all)) {
         if (value?.isActionLoading) {
             map[key] = true;
@@ -19,7 +19,5 @@ const isActionLoadingMapSelector = (all: OnyxCollection<ReportMetadata>): IsActi
     return map;
 };
 
-
-export type { IsActionLoadingMap };
-export { isActionLoadingSelector, isActionLoadingMapSelector };
-
+export type {IsActionLoadingMap};
+export {isActionLoadingSelector, isActionLoadingMapSelector};

@@ -44,7 +44,7 @@ import {mergeProhibitedViolations, shouldShowViolation} from '@libs/TransactionU
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import {isActionLoadingSetSelector} from '@src/selectors/ReportMetaData';
+import {isActionLoadingMapSelector} from '@src/selectors/ReportMetaData';
 import type {ReportAction, ReportActions, Transaction, TransactionViolation, TransactionViolations} from '@src/types/onyx';
 import CardListItemHeader from './CardListItemHeader';
 import CategoryListItemHeader from './CategoryListItemHeader';
@@ -112,7 +112,7 @@ function TransactionGroupListItem<TItem extends ListItem>({
     const isExpenseReportType = searchType === CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT;
     const [transactionsVisibleLimit, setTransactionsVisibleLimit] = useState(CONST.TRANSACTION.RESULTS_PAGE_SIZE as number);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isActionLoadingSet = CONST.EMPTY_SET] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}`, {canBeMissing: true, selector: isActionLoadingSetSelector});
+    const [isActionLoadingMap = CONST.EMPTY_OBJECT] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}`, {canBeMissing: true, selector: isActionLoadingMapSelector});
     const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST, {canBeMissing: true});
     const [cardFeeds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_DOMAIN_MEMBER, {canBeMissing: true});
@@ -132,7 +132,7 @@ function TransactionGroupListItem<TItem extends ListItem>({
             translate,
             formatPhoneNumber,
             bankAccountList,
-            isActionLoadingSet,
+            isActionLoadingMap,
             allReportMetadata,
             cardFeeds,
         }) as [TransactionListItemType[], number];
@@ -149,7 +149,7 @@ function TransactionGroupListItem<TItem extends ListItem>({
         selectedTransactionIDsSet,
         currentUserDetails.email,
         currentUserDetails.accountID,
-        isActionLoadingSet,
+        isActionLoadingMap,
         bankAccountList,
         allReportMetadata,
         cardFeeds,

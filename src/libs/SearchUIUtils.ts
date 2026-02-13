@@ -81,6 +81,7 @@ import type {
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import type IconAsset from '@src/types/utils/IconAsset';
 import arraysEqual from '@src/utils/arraysEqual';
+import type { IsActionLoadingMap } from '@src/selectors/ReportMetaData';
 import {hasSynchronizationErrorMessage} from './actions/connections';
 import {canApproveIOU, canIOUBePaid, canSubmitReport, startMoneyRequest} from './actions/IOU';
 import {setIsOpenConfirmNavigateExpensifyClassicModalOpen} from './actions/isOpenConfirmNavigateExpensifyClassicModal';
@@ -194,7 +195,7 @@ type GetReportSectionsParams = {
     currentUserEmail: string;
     translate: LocalizedTranslate;
     formatPhoneNumber: LocaleContextProps['formatPhoneNumber'];
-    isActionLoadingSet: ReadonlySet<string> | undefined;
+    isActionLoadingMap: IsActionLoadingMap | undefined;
     isOffline: boolean | undefined;
     allTransactionViolations: OnyxCollection<OnyxTypes.TransactionViolation[]>;
     bankAccountList: OnyxEntry<OnyxTypes.BankAccountList>;
@@ -208,7 +209,7 @@ type GetTransactionSectionsParams = {
     currentAccountID: number;
     currentUserEmail: string;
     formatPhoneNumber: LocaleContextProps['formatPhoneNumber'];
-    isActionLoadingSet: ReadonlySet<string> | undefined;
+    isActionLoadingMap: IsActionLoadingMap | undefined;
     bankAccountList: OnyxEntry<OnyxTypes.BankAccountList>;
     allReportMetadata: OnyxCollection<OnyxTypes.ReportMetadata>;
     reportActions?: Record<string, OnyxTypes.ReportAction[]>;
@@ -478,7 +479,7 @@ type GetSectionsParams = {
     currentSearch?: SearchKey;
     archivedReportsIDList?: ArchivedReportsIDSet;
     queryJSON?: SearchQueryJSON;
-    isActionLoadingSet?: ReadonlySet<string>;
+    isActionLoadingMap?: IsActionLoadingMap;
     isOffline?: boolean;
     cardFeeds?: OnyxCollection<OnyxTypes.CardFeeds>;
     customCardNames?: Record<number, string>;
@@ -1539,7 +1540,7 @@ function getTransactionsSections({
     currentAccountID,
     currentUserEmail,
     formatPhoneNumber,
-    isActionLoadingSet,
+    isActionLoadingMap,
     bankAccountList,
     allReportMetadata,
     reportActions = {},
@@ -1572,7 +1573,7 @@ function getTransactionsSections({
 
         let shouldShow = true;
 
-        const isActionLoading = isActionLoadingSet?.has(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${transactionItem.reportID}`);
+        const isActionLoading = isActionLoadingMap?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${transactionItem.reportID}`];
         if (currentQueryJSON && !isActionLoading) {
             if (currentQueryJSON.type === CONST.SEARCH.DATA_TYPES.EXPENSE) {
                 const status = currentQueryJSON.status;
@@ -2024,7 +2025,7 @@ function getReportSections({
     translate,
     isOffline,
     formatPhoneNumber,
-    isActionLoadingSet,
+    isActionLoadingMap,
     allTransactionViolations,
     bankAccountList,
     reportActions = {},
@@ -2080,7 +2081,7 @@ function getReportSections({
 
             let shouldShow = true;
 
-            const isActionLoading = isActionLoadingSet?.has(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportItem.reportID}`);
+            const isActionLoading = isActionLoadingMap?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportItem.reportID}`];
             if (queryJSON && !isActionLoading) {
                 if (queryJSON.type === CONST.SEARCH.DATA_TYPES.EXPENSE) {
                     const status = queryJSON.status;
@@ -2739,7 +2740,7 @@ function getSections({
     currentSearch = CONST.SEARCH.SEARCH_KEYS.EXPENSES,
     archivedReportsIDList,
     queryJSON,
-    isActionLoadingSet,
+    isActionLoadingMap,
     isOffline,
     cardFeeds,
     customCardNames,
@@ -2763,7 +2764,7 @@ function getSections({
             translate,
             isOffline,
             formatPhoneNumber,
-            isActionLoadingSet,
+            isActionLoadingMap,
             allTransactionViolations,
             bankAccountList,
             reportActions,
@@ -2804,7 +2805,7 @@ function getSections({
         currentAccountID,
         currentUserEmail,
         formatPhoneNumber,
-        isActionLoadingSet,
+        isActionLoadingMap,
         bankAccountList,
         allReportMetadata,
         reportActions,

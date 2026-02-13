@@ -87,7 +87,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import {columnsSelector} from '@src/selectors/AdvancedSearchFiltersForm';
-import {isActionLoadingSetSelector} from '@src/selectors/ReportMetaData';
+import {isActionLoadingMapSelector} from '@src/selectors/ReportMetaData';
 import type {OutstandingReportsByPolicyIDDerivedValue, Transaction} from '@src/types/onyx';
 import type SearchResults from '@src/types/onyx/SearchResults';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
@@ -265,7 +265,7 @@ function Search({
     const [violations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS, {canBeMissing: true});
     const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {canBeMissing: true});
     const {accountID, email, login} = useCurrentUserPersonalDetails();
-    const [isActionLoadingSet = CONST.EMPTY_SET] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}`, {canBeMissing: true, selector: isActionLoadingSetSelector});
+    const [isActionLoadingMap = CONST.EMPTY_OBJECT] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}`, {canBeMissing: true, selector: isActionLoadingMapSelector});
     const [allReportMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {canBeMissing: true});
     const [visibleColumns] = useOnyx(ONYXKEYS.FORMS.SEARCH_ADVANCED_FILTERS_FORM, {canBeMissing: true, selector: columnsSelector});
     const [customCardNames] = useOnyx(ONYXKEYS.NVP_EXPENSIFY_COMPANY_CARDS_CUSTOM_NAMES, {canBeMissing: true});
@@ -442,7 +442,7 @@ function Search({
             currentSearch: searchKey,
             archivedReportsIDList: archivedReportsIdSet,
             queryJSON,
-            isActionLoadingSet,
+            isActionLoadingMap,
             cardFeeds,
             isOffline,
             allTransactionViolations: violations,
@@ -464,7 +464,7 @@ function Search({
         accountID,
         queryJSON,
         email,
-        isActionLoadingSet,
+        isActionLoadingMap,
         cardFeeds,
         policies,
         bankAccountList,
@@ -505,7 +505,7 @@ function Search({
                 bankAccountList,
                 translate,
                 formatPhoneNumber,
-                isActionLoadingSet,
+                isActionLoadingMap,
                 cardFeeds,
                 allReportMetadata,
             });
@@ -522,7 +522,7 @@ function Search({
         email,
         translate,
         formatPhoneNumber,
-        isActionLoadingSet,
+        isActionLoadingMap,
         cardFeeds,
         bankAccountList,
         allReportMetadata,

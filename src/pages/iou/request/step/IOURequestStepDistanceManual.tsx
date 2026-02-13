@@ -29,7 +29,7 @@ import Navigation from '@libs/Navigation/Navigation';
 import {roundToTwoDecimalPlaces} from '@libs/NumberUtils';
 import {isArchivedReport, isPolicyExpenseChat as isPolicyExpenseChatUtils} from '@libs/ReportUtils';
 import shouldUseDefaultExpensePolicyUtil from '@libs/shouldUseDefaultExpensePolicy';
-import {getRateID} from '@libs/TransactionUtils';
+import {getDistanceInMeters, getRateID} from '@libs/TransactionUtils';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -101,8 +101,16 @@ function IOURequestStepDistanceManual({
     const shouldUseDefaultExpensePolicy = useMemo(() => shouldUseDefaultExpensePolicyUtil(iouType, defaultExpensePolicy), [iouType, defaultExpensePolicy]);
 
     const customUnitRateID = getRateID(transaction);
-    const unit = DistanceRequestUtils.getRate({transaction, policy: shouldUseDefaultExpensePolicy ? defaultExpensePolicy : policy}).unit;
-    const distance = typeof transaction?.comment?.customUnit?.quantity === 'number' ? roundToTwoDecimalPlaces(transaction.comment.customUnit.quantity) : undefined;
+    // to make sure the correct distance amount and unit will be shown we use distance unit
+    // from defaultExpensePolicy or current report's policy instead of from transaction and
+    // then we use transaction data (distanceUnit and quantity) for conversions
+    const unit = DistanceRequestUtils.getRate({
+        transaction,
+        policy: shouldUseDefaultExpensePolicy ? defaultExpensePolicy : policy,
+        useTransactionDistanceUnit: false,
+    }).unit;
+    const distanceInMeters = getDistanceInMeters(transaction, transaction?.comment?.customUnit?.distanceUnit ? transaction.comment.customUnit.distanceUnit : unit);
+    const distance = typeof transaction?.comment?.customUnit?.quantity === 'number' ? roundToTwoDecimalPlaces(DistanceRequestUtils.convertDistanceUnit(distanceInMeters, unit)) : undefined;
     const isASAPSubmitBetaEnabled = isBetaEnabled(CONST.BETAS.ASAP_SUBMIT);
 
     useEffect(() => {
@@ -149,10 +157,17 @@ function IOURequestStepDistanceManual({
     const navigateToNextPage = useCallback(
         (amount: string) => {
             const distanceAsFloat = roundToTwoDecimalPlaces(parseFloat(amount));
-            setMoneyRequestDistance(transactionID, distanceAsFloat, isTransactionDraft);
+            setMoneyRequestDistance(transactionID, distanceAsFloat, isTransactionDraft, unit);
 
             if (action === CONST.IOU.ACTION.EDIT) {
-                if (distance !== distanceAsFloat) {
+                const transactionDistanceUnit = transaction?.comment?.customUnit?.distanceUnit;
+
+                const isDistanceChanged = distance !== distanceAsFloat;
+                const isDistanceUnitChanged = transactionDistanceUnit && transactionDistanceUnit !== unit;
+
+                const shouldUpdateTransaction = isDistanceChanged || isDistanceUnitChanged;
+
+                if (shouldUpdateTransaction) {
                     updateMoneyRequestDistance({
                         transactionID: transaction?.transactionID,
                         transactionThreadReport: report,
@@ -243,6 +258,7 @@ function IOURequestStepDistanceManual({
             policyCategories,
             parentReportNextStep,
             recentWaypoints,
+            unit,
             selfDMReport,
             betas,
         ],
@@ -315,6 +331,7 @@ function IOURequestStepDistanceManual({
                         onPress={submitAndNavigateToNextPage}
                         text={buttonText}
                         testID="next-button"
+                        sentryLabel={CONST.SENTRY_LABEL.IOU_REQUEST_STEP.DISTANCE_MANUAL_NEXT_BUTTON}
                     />
                 }
             />

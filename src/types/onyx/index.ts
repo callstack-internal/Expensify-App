@@ -21,8 +21,10 @@ import type CardContinuousReconciliation from './CardContinuousReconciliation';
 import type CardFeeds from './CardFeeds';
 import type {
     AddNewCompanyCardFeed,
+    CardFeed,
     CardFeedsStatus,
     CardFeedsStatusByDomainID,
+    CardFeedWithDomainID,
     CombinedCardFeed,
     CombinedCardFeeds,
     CompanyCardFeed,
@@ -52,6 +54,7 @@ import type {
     TodoMetadata,
     TodosDerivedValue,
 } from './DerivedValues';
+import type DeviceBiometrics from './DeviceBiometrics';
 import type DismissedProductTraining from './DismissedProductTraining';
 import type DismissedReferralBanners from './DismissedReferralBanners';
 import type Domain from './Domain';
@@ -78,6 +81,8 @@ import type LastExportMethod from './LastExportMethod';
 import type {LastPaymentMethod, LastPaymentMethodType} from './LastPaymentMethod';
 import type LastSelectedDistanceRates from './LastSelectedDistanceRates';
 import type Locale from './Locale';
+import type LocalPasskeyCredentialsEntry from './LocalPasskeyCredentialsEntry';
+import type {PasskeyCredential, PasskeyTransport} from './LocalPasskeyCredentialsEntry';
 import type LockAccountDetails from './LockAccountDetails';
 import type {LoginList} from './Login';
 import type Login from './Login';
@@ -89,7 +94,7 @@ import type NewGroupChatDraft from './NewGroupChatDraft';
 import type Onboarding from './Onboarding';
 import type OnboardingRHPVariant from './OnboardingRHPVariant';
 import type OnyxInputOrEntry from './OnyxInputOrEntry';
-import type {OnyxUpdateEvent, OnyxUpdatesFromServer} from './OnyxUpdatesFromServer';
+import type {AnyOnyxUpdatesFromServer, OnyxUpdateEvent, OnyxUpdatesFromServer} from './OnyxUpdatesFromServer';
 import type {DecisionName, OriginalMessageIOU} from './OriginalMessage';
 import type Pages from './Pages';
 import type {PendingContactAction} from './PendingContactAction';
@@ -151,7 +156,7 @@ import type Transaction from './Transaction';
 import type {TransactionViolation, ViolationName} from './TransactionViolation';
 import type TransactionViolations from './TransactionViolation';
 import type TravelProvisioning from './TravelProvisioning';
-import type {TravelSettings} from './TravelSettings';
+import type {TravelSettings, WorkspaceTravelSettings} from './TravelSettings';
 import type TryNewDot from './TryNewDot';
 import type UnshareBankAccount from './UnshareBankAccount';
 import type UserLocation from './UserLocation';
@@ -210,11 +215,16 @@ export type {
     CombinedCardFeeds,
     CardContinuousReconciliation,
     CompanyCardFeedWithDomainID,
+    CardFeed,
+    CardFeedWithDomainID,
     LastExportMethod,
     Locale,
+    LocalPasskeyCredentialsEntry,
     LockAccountDetails,
     Login,
     LoginList,
+    PasskeyCredential,
+    PasskeyTransport,
     PendingContactAction,
     MapboxAccessToken,
     Modal,
@@ -222,6 +232,7 @@ export type {
     OnyxInputOrEntry,
     OnyxUpdateEvent,
     OnyxUpdatesFromServer,
+    AnyOnyxUpdatesFromServer,
     Pages,
     PersonalBankAccount,
     PersonalDetails,
@@ -276,6 +287,7 @@ export type {
     TransactionViolation,
     TransactionViolations,
     TravelSettings,
+    WorkspaceTravelSettings,
     UserLocation,
     UserMetadata,
     UserWallet,
@@ -355,4 +367,5 @@ export type {
     DomainSecurityGroup,
     CodingRuleMatchingTransaction,
     UserSecurityGroupData,
+    DeviceBiometrics,
 };

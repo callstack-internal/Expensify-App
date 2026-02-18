@@ -8,6 +8,7 @@ import {useIsOnSearch} from '@components/Search/SearchScopeProvider';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {SearchResults} from '@src/types/onyx';
+import {ENABLE_SNAPSHOT_METRICS, recordGetKeyDataCall, recordNonSnapshotCall, recordSnapshotCall} from './useOnyxSnapshotMetrics';
 
 type OriginalUseOnyx = typeof originalUseOnyx;
 
@@ -48,6 +49,8 @@ const getKeyData = <TKey extends OnyxKey, TReturnValue>(snapshotData: SearchResu
  * Custom hook for accessing and subscribing to Onyx data with search snapshot support
  */
 const useOnyx: OriginalUseOnyx = <TKey extends OnyxKey, TReturnValue = OnyxValue<TKey>>(key: TKey, options?: UseOnyxOptions<TKey, TReturnValue>, dependencies?: DependencyList) => {
+    const t0 = ENABLE_SNAPSHOT_METRICS ? performance.now() : 0;
+
     const isSnapshotCompatibleKey = useMemo(() => !key.startsWith(ONYXKEYS.COLLECTION.SNAPSHOT) && CONST.SEARCH.SNAPSHOT_ONYX_KEYS.some((snapshotKey) => key.startsWith(snapshotKey)), [key]);
     const isOnSearch = useIsOnSearch();
 
@@ -71,7 +74,14 @@ const useOnyx: OriginalUseOnyx = <TKey extends OnyxKey, TReturnValue = OnyxValue
             return selectorProp;
         }
 
-        return (data: OnyxValue<OnyxKey> | undefined) => selectorProp(getKeyData(data as SearchResults, key));
+        return (data: OnyxValue<OnyxKey> | undefined) => {
+            const gkdStart = ENABLE_SNAPSHOT_METRICS ? performance.now() : 0;
+            const keyData = getKeyData(data as SearchResults, key);
+            if (ENABLE_SNAPSHOT_METRICS) {
+                recordGetKeyDataCall(performance.now() - gkdStart);
+            }
+            return selectorProp(keyData);
+        };
     }, [selectorProp, shouldUseSnapshot, key]);
 
     const onyxOptions: UseOnyxOptions<OnyxKey, OnyxValue<OnyxKey>> = {...optionsWithoutSelector, selector, allowDynamicKey: true};
@@ -86,9 +96,22 @@ const useOnyx: OriginalUseOnyx = <TKey extends OnyxKey, TReturnValue = OnyxValue
             return originalResult as UseOnyxResult<TReturnValue>;
         }
 
+        const gkdStart = ENABLE_SNAPSHOT_METRICS ? performance.now() : 0;
         const keyData = getKeyData(originalResult[0] as SearchResults, key);
+        if (ENABLE_SNAPSHOT_METRICS) {
+            recordGetKeyDataCall(performance.now() - gkdStart);
+        }
         return [keyData, originalResult[1]] as UseOnyxResult<TReturnValue>;
     }, [shouldUseSnapshot, originalResult, key, selector]);
+
+    if (ENABLE_SNAPSHOT_METRICS) {
+        const duration = performance.now() - t0;
+        if (shouldUseSnapshot) {
+            recordSnapshotCall(duration);
+        } else {
+            recordNonSnapshotCall(duration);
+        }
+    }
 
     return result;
 };

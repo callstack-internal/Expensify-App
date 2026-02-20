@@ -1856,10 +1856,13 @@ function initSplitExpenseItemData(
 /**
  * Create a draft transaction to set up split expense details for the split expense flow
  */
-function initSplitExpense(transactions: OnyxCollection<OnyxTypes.Transaction>, reports: OnyxCollection<OnyxTypes.Report>, transaction: OnyxEntry<OnyxTypes.Transaction>) {
+function initSplitExpense(transaction: OnyxEntry<OnyxTypes.Transaction>) {
     if (!transaction) {
         return;
     }
+
+    const transactions = getAllTransactions();
+    const reports = getAllReports();
 
     const reportID = transaction.reportID ?? String(CONST.DEFAULT_NUMBER_ID);
     const originalTransactionID = transaction?.comment?.originalTransactionID;

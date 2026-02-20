@@ -2598,7 +2598,7 @@ describe('initSplitExpense', () => {
             },
         });
 
-        initSplitExpense(allTransactions, allReports, transaction);
+        initSplitExpense(transaction);
         await waitForBatchedUpdates();
 
         const draftTransaction = await getOnyxValue(`${ONYXKEYS.COLLECTION.SPLIT_TRANSACTION_DRAFT}${transaction.transactionID}`);
@@ -2641,7 +2641,7 @@ describe('initSplitExpense', () => {
             },
         });
 
-        initSplitExpense(allTransactions, allReports, transaction);
+        initSplitExpense(transaction);
         await waitForBatchedUpdates();
 
         expect(transaction).toBeFalsy();
@@ -2682,7 +2682,7 @@ describe('initSplitExpense', () => {
             },
         });
 
-        initSplitExpense(allTransactions, allReports, transaction);
+        initSplitExpense(transaction);
         await waitForBatchedUpdates();
 
         const draftTransaction = await getOnyxValue(`${ONYXKEYS.COLLECTION.SPLIT_TRANSACTION_DRAFT}${transaction.transactionID}`);

@@ -950,7 +950,7 @@ describe('actions/Duplicate', () => {
                 isSelfTourViewed: false,
                 customUnitPolicyID: '',
                 targetPolicy: mockPolicy,
-                targetPolicyCategories: fakePolicyCategories,
+
                 targetReport: policyExpenseChat,
                 betas: [CONST.BETAS.ALL],
                 personalDetails: {},
@@ -1010,7 +1010,7 @@ describe('actions/Duplicate', () => {
                 isSelfTourViewed: false,
                 customUnitPolicyID: '',
                 targetPolicy: mockPolicy,
-                targetPolicyCategories: fakePolicyCategories,
+
                 targetReport: policyExpenseChat,
                 betas: [CONST.BETAS.ALL],
                 personalDetails: {},
@@ -1070,7 +1070,7 @@ describe('actions/Duplicate', () => {
                 isSelfTourViewed: false,
                 customUnitPolicyID: '',
                 targetPolicy: mockPolicy,
-                targetPolicyCategories: fakePolicyCategories,
+
                 targetReport: policyExpenseChat,
                 betas: [CONST.BETAS.ALL],
                 personalDetails: {},
@@ -1147,7 +1147,7 @@ describe('actions/Duplicate', () => {
                 isSelfTourViewed: false,
                 customUnitPolicyID: '',
                 targetPolicy: mockPolicy,
-                targetPolicyCategories: fakePolicyCategories,
+
                 targetReport: policyExpenseChat,
                 betas: [CONST.BETAS.ALL],
                 personalDetails: {},
@@ -1193,7 +1193,6 @@ describe('actions/Duplicate', () => {
                 isSelfTourViewed: false,
                 customUnitPolicyID: '',
                 targetPolicy: undefined,
-                targetPolicyCategories: undefined,
                 targetReport: undefined,
                 betas: [CONST.BETAS.ALL],
                 personalDetails: {},
@@ -1250,7 +1249,7 @@ describe('actions/Duplicate', () => {
                 isSelfTourViewed: false,
                 customUnitPolicyID: '',
                 targetPolicy: mockPolicy,
-                targetPolicyCategories: fakePolicyCategories,
+
                 targetReport: policyExpenseChat,
                 betas: [CONST.BETAS.ALL],
                 personalDetails: {},

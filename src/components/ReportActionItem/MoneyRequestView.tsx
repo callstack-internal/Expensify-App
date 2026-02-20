@@ -181,8 +181,6 @@ function MoneyRequestView({
     const {getReportRHPActiveRoute} = useActiveRoute();
     const [lastVisitedPath] = useOnyx(ONYXKEYS.LAST_VISITED_PATH, {canBeMissing: true});
 
-    const [allTransactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {canBeMissing: false});
-
     const {currentSearchResults} = useSearchContext();
 
     const reportAttributes = useReportAttributes();
@@ -622,7 +620,7 @@ function MoneyRequestView({
                         }
 
                         if (isExpenseSplit && isSplitAvailable) {
-                            initSplitExpense(allTransactions, allReports, transaction);
+                            initSplitExpense(transaction);
                             return;
                         }
 
@@ -675,7 +673,7 @@ function MoneyRequestView({
                         }
 
                         if (isExpenseSplit && isSplitAvailable) {
-                            initSplitExpense(allTransactions, allReports, transaction);
+                            initSplitExpense(transaction);
                             return;
                         }
 
@@ -867,7 +865,7 @@ function MoneyRequestView({
                             }
 
                             if (isExpenseSplit && isSplitAvailable) {
-                                initSplitExpense(allTransactions, allReports, transaction);
+                                initSplitExpense(transaction);
                                 return;
                             }
 

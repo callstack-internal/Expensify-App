@@ -1,5 +1,5 @@
 import {format} from 'date-fns';
-import type {NullishDeep, OnyxEntry, OnyxUpdate} from 'react-native-onyx';
+import type {NullishDeep, OnyxCollection, OnyxEntry, OnyxUpdate} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
 import type {PartialDeep} from 'type-fest';
 import * as API from '@libs/API';
@@ -40,6 +40,13 @@ import {
     submitPerDiemExpense,
     trackExpense,
 } from '.';
+
+let allPolicyCategories: OnyxCollection<OnyxTypes.PolicyCategories>;
+Onyx.connectWithoutView({
+    key: ONYXKEYS.COLLECTION.POLICY_CATEGORIES,
+    waitForCollectionCallback: true,
+    callback: (value) => (allPolicyCategories = value),
+});
 
 /**
  * @deprecated This function uses Onyx.connect and should be replaced with useOnyx for reactive data access.
@@ -500,7 +507,6 @@ type DuplicateExpenseTransactionParams = {
     isSelfTourViewed: boolean;
     customUnitPolicyID?: string;
     targetPolicy?: OnyxEntry<OnyxTypes.Policy>;
-    targetPolicyCategories?: OnyxEntry<OnyxTypes.PolicyCategories>;
     targetReport?: OnyxTypes.Report;
     betas: OnyxEntry<OnyxTypes.Beta[]>;
     personalDetails: OnyxEntry<OnyxTypes.PersonalDetailsList>;
@@ -519,7 +525,6 @@ function duplicateExpenseTransaction({
     isSelfTourViewed,
     customUnitPolicyID,
     targetPolicy,
-    targetPolicyCategories,
     targetReport,
     betas,
     personalDetails,
@@ -614,7 +619,7 @@ function duplicateExpenseTransaction({
         // TODO: remove `allPolicyTags` from this file https://github.com/Expensify/App/issues/80049
         // eslint-disable-next-line @typescript-eslint/no-deprecated
         policyTagList: getPolicyTagsData(targetPolicy.id) ?? {},
-        policyCategories: targetPolicyCategories ?? {},
+        policyCategories: allPolicyCategories?.[`${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}${targetPolicy.id}`] ?? {},
     };
 
     const transactionType = getTransactionType(transaction);

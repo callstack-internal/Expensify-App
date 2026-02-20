@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 import type {OnyxCollection} from 'react-native-onyx';
+import Onyx from 'react-native-onyx';
 import {deleteMoneyRequest, getIOURequestPolicyID} from '@libs/actions/IOU';
 import {getIOUActionForTransactions} from '@libs/actions/IOU/Duplicate';
 import {initSplitExpenseItemData, updateSplitTransactions} from '@libs/actions/IOU/Split';
@@ -13,6 +14,20 @@ import useArchivedReportsIdSet from './useArchivedReportsIdSet';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useOnyx from './useOnyx';
 import usePermissions from './usePermissions';
+
+let allTransactionsCollection: OnyxCollection<Transaction>;
+Onyx.connectWithoutView({
+    key: ONYXKEYS.COLLECTION.TRANSACTION,
+    waitForCollectionCallback: true,
+    callback: (value) => (allTransactionsCollection = value),
+});
+
+let allReportsCollection: OnyxCollection<Report>;
+Onyx.connectWithoutView({
+    key: ONYXKEYS.COLLECTION.REPORT,
+    waitForCollectionCallback: true,
+    callback: (value) => (allReportsCollection = value),
+});
 
 type UseDeleteTransactionsParams = {
     /** Report object (optional, can be used for context) */
@@ -28,8 +43,6 @@ type UseDeleteTransactionsParams = {
  * All data must be provided through function parameters
  */
 function useDeleteTransactions({report, reportActions, policy}: UseDeleteTransactionsParams) {
-    const [allTransactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {canBeMissing: false});
-    const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {canBeMissing: true});
     const [policyCategories] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}${getNonEmptyStringOnyxID(report?.policyID)}`, {canBeMissing: true});
     const [allPolicyRecentlyUsedCategories] = useOnyx(ONYXKEYS.COLLECTION.POLICY_RECENTLY_USED_CATEGORIES, {canBeMissing: true});
     const [allReportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {canBeMissing: true});
@@ -63,6 +76,9 @@ function useDeleteTransactions({report, reportActions, policy}: UseDeleteTransac
             if (!transactionIDs.length) {
                 return [];
             }
+
+            const allTransactions = allTransactionsCollection;
+            const allReports = allReportsCollection;
 
             const iouActions = reportActions.filter((action) => isMoneyRequestAction(action));
 
@@ -193,8 +209,6 @@ function useDeleteTransactions({report, reportActions, policy}: UseDeleteTransac
         [
             allPolicyRecentlyUsedCategories,
             allReportNameValuePairs,
-            allReports,
-            allTransactions,
             archivedReportsIdSet,
             currentUserPersonalDetails,
             iouReportNextStep,

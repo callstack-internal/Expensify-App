@@ -1,8 +1,10 @@
 import type {StartSpanOptions} from '@sentry/core';
 import * as Sentry from '@sentry/react-native';
+import Log from '@libs/Log';
 import CONST from '@src/CONST';
 
 const activeSpans = new Map<string, ReturnType<typeof Sentry.startInactiveSpan>>();
+const spanStartTimes = new Map<string, number>();
 
 type StartSpanExtraOptions = Partial<{
     /**
@@ -21,6 +23,7 @@ function startSpan(spanId: string, options: StartSpanOptions, extraOptions: Star
         span.setAttribute(CONST.TELEMETRY.ATTRIBUTE_MIN_DURATION, extraOptions.minDuration);
     }
     activeSpans.set(spanId, span);
+    spanStartTimes.set(spanId, options.startTime ? Number(options.startTime) * 1000 : Date.now());
 
     return span;
 }
@@ -34,7 +37,14 @@ function endSpan(spanId: string) {
     span.setStatus({code: 1});
     span.setAttribute(CONST.TELEMETRY.ATTRIBUTE_FINISHED_MANUALLY, true);
     span.end();
+    if (__DEV__) {
+        const startTime = spanStartTimes.get(spanId);
+        if (startTime !== undefined) {
+            Log.info(`[Telemetry] Span "${spanId}" duration: ${Date.now() - startTime}ms`);
+        }
+    }
     activeSpans.delete(spanId);
+    spanStartTimes.delete(spanId);
 }
 
 function cancelSpan(spanId: string) {

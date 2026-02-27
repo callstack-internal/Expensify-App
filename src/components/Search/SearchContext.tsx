@@ -236,15 +236,15 @@ function SearchContextProvider({children}: ChildrenProps) {
         selectAllMatchingItems(false);
     };
 
-    const {selectedTransactionIDs, selectedTransactions} = searchContextData;
-
     const removeTransaction: SearchActionsContextValue['removeTransaction'] = (transactionID) => {
         if (!transactionID) {
             return;
         }
 
-        if (!isEmptyObject(selectedTransactions)) {
-            const newSelectedTransactions = Object.entries(selectedTransactions).reduce((acc, [key, value]) => {
+        const {selectedTransactionIDs: currentSelectedTransactionIDs, selectedTransactions: currentSelectedTransactions} = searchContextDataRef.current;
+
+        if (!isEmptyObject(currentSelectedTransactions)) {
+            const newSelectedTransactions = Object.entries(currentSelectedTransactions).reduce((acc, [key, value]) => {
                 if (key === transactionID) {
                     return acc;
                 }
@@ -258,10 +258,10 @@ function SearchContextProvider({children}: ChildrenProps) {
             }));
         }
 
-        if (selectedTransactionIDs.length > 0) {
+        if (currentSelectedTransactionIDs.length > 0) {
             setSearchContextData((prevState) => ({
                 ...prevState,
-                selectedTransactionIDs: selectedTransactionIDs.filter((ID) => transactionID !== ID),
+                selectedTransactionIDs: currentSelectedTransactionIDs.filter((ID) => transactionID !== ID),
             }));
         }
     };

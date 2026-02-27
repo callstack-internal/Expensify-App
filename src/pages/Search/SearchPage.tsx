@@ -38,7 +38,7 @@ function SearchPage({route}: SearchPageProps) {
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const styles = useThemeStyles();
     const theme = useTheme();
-    const {selectedTransactions, lastSearchType, areAllMatchingItemsSelected, currentSearchKey, currentSearchResults} = useSearchStateContext();
+    const {selectedTransactions, areAllMatchingItemsSelected, currentSearchKey, currentSearchResults} = useSearchStateContext();
     const {clearSelectedTransactions, setLastSearchType} = useSearchActionsContext();
     const isMobileSelectionModeEnabled = useMobileSelectionMode(clearSelectedTransactions);
 
@@ -65,7 +65,7 @@ function SearchPage({route}: SearchPageProps) {
         if (currentSearchResults.data) {
             lastNonEmptySearchResults.current = currentSearchResults;
         }
-    }, [lastSearchType, queryJSON, setLastSearchType, currentSearchResults]);
+    }, [queryJSON, setLastSearchType, currentSearchResults]);
 
     const selectedTransactionsKeys = Object.keys(selectedTransactions ?? {});
 

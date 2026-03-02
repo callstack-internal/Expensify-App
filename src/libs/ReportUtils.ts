@@ -1077,6 +1077,16 @@ Onyx.connect({
     },
 });
 
+let allPolicyTags: OnyxCollection<PolicyTagLists>;
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- Onyx.connectWithoutView is being removed in https://github.com/Expensify/App/issues/66336
+Onyx.connectWithoutView({
+    key: ONYXKEYS.COLLECTION.POLICY_TAGS,
+    waitForCollectionCallback: true,
+    callback: (value) => {
+        allPolicyTags = value ?? {};
+    },
+});
+
 let allPolicyDrafts: OnyxCollection<Policy>;
 Onyx.connect({
     key: ONYXKEYS.COLLECTION.POLICY_DRAFTS,
@@ -5819,14 +5829,19 @@ function getReportName(reportNameInformation: GetReportNameParams): string {
         }
         if (!isEmptyObject(parentReportAction) && isModifiedExpenseAction(parentReportAction)) {
             const policyID = report?.policyID;
+            const policyTags = policyID ? allPolicyTags?.[`${ONYXKEYS.COLLECTION.POLICY_TAGS}${policyID}`] : undefined;
 
             const movedFromReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(parentReportAction, CONST.REPORT.MOVE_TYPE.FROM)}`];
             const movedToReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(parentReportAction, CONST.REPORT.MOVE_TYPE.TO)}`];
             const modifiedMessage = getForReportAction({
+                // eslint-disable-next-line @typescript-eslint/no-deprecated -- translateLocal is deprecated; getReportName is non-React code that cannot use the translate hook
+                translate: translateLocal,
                 reportAction: parentReportAction,
-                policyID,
+                policy: reportPolicy,
+                policyTags,
                 movedFromReport,
                 movedToReport,
+                currentUserLogin: currentUserEmail ?? '',
             });
             return formatReportLastMessageText(modifiedMessage);
         }

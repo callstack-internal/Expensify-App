@@ -385,8 +385,6 @@ function computeReportNameBasedOnReportAction(
     report: Report | undefined,
     reportPolicy: Policy | undefined,
     parentReport: Report | undefined,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _policyTags?: OnyxEntry<PolicyTagLists>,
 ): string | undefined {
     if (!parentReportAction) {
         return undefined;
@@ -675,6 +673,7 @@ function computeChatThreadReportName(
     reports: OnyxCollection<Report>,
     parentReportAction?: ReportAction,
     policyTags?: OnyxEntry<PolicyTagLists>,
+    policy?: OnyxEntry<Policy>,
 ): string | undefined {
     if (!isChatThread(report)) {
         return undefined;
@@ -743,6 +742,10 @@ function computeChatThreadReportName(
                   movedFromReport,
                   movedToReport,
                   policyTags,
+                  policy,
+                  // currentUserLogin is not threaded through this call chain yet; the empty string
+                  // causes policy-admin checks to fall back to the non-admin message path.
+                  // This will be addressed as part of the broader Onyx.connect migration.
                   currentUserLogin: '',
               })
             : getForReportAction({
@@ -807,7 +810,7 @@ function computeReportName(
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     const policyTags = allPolicyTags?.[`${ONYXKEYS.COLLECTION.POLICY_TAGS}${report.policyID}`];
-    const chatThreadReportName = computeChatThreadReportName(translateLocal, !!privateIsArchivedValue, report, reports ?? {}, parentReportAction, policyTags);
+    const chatThreadReportName = computeChatThreadReportName(translateLocal, !!privateIsArchivedValue, report, reports ?? {}, parentReportAction, policyTags, reportPolicy);
     if (chatThreadReportName) {
         return chatThreadReportName;
     }

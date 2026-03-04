@@ -134,7 +134,6 @@ import {
     excludeParticipantsForDisplay,
     formatReportLastMessageText,
     getAllReportActionsErrorsAndReportActionThatRequiresAttention,
-    getChatRoomSubtitle,
     getDisplayNameForParticipant,
     getDisplayNamesWithTooltips,
     getIcons,
@@ -147,7 +146,6 @@ import {
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     getReportName,
     getReportNotificationPreference,
-    getReportParticipantsTitle,
     getReportSubtitlePrefix,
     getUnreportedTransactionMessage,
     getWorkspaceNameUpdatedMessage,
@@ -162,12 +160,10 @@ import {
     isDeprecatedGroupDM,
     isDomainRoom,
     isExpenseReport,
-    isExpenseRequest,
     isGroupChat as isGroupChatUtil,
     isHiddenForCurrentUser,
     isInvoiceReport,
     isInvoiceRoom,
-    isIOUOwnedByCurrentUser,
     isJoinRequestInAdminRoom,
     isMoneyRequestReport,
     isOneOnOneChat,
@@ -178,10 +174,8 @@ import {
     isTaskReport,
     isThread,
     isUnread,
-    isUnreadWithMention,
     shouldDisplayViolationsRBRInLHN,
     shouldReportBeInOptionList,
-    shouldReportShowSubscript,
 } from './ReportUtils';
 import {getTaskReportActionMessage} from './TaskUtils';
 
@@ -732,39 +726,20 @@ function getOptionData({
         alternateText: undefined,
         allReportErrors: reportAttributes?.reportErrors,
         brickRoadIndicator: null,
-        tooltipText: null,
-        subtitle: undefined,
-        login: undefined,
-        accountID: undefined,
         reportID: '',
-        phoneNumber: undefined,
-        isUnread: null,
-        isUnreadWithMention: null,
-        hasDraftComment: false,
         keyForList: '',
-        searchText: undefined,
+        isUnread: null,
         isPinned: false,
-        hasOutstandingChildRequest: false,
-        hasOutstandingChildTask: false,
-        hasParentAccess: undefined,
-        isIOUReportOwner: null,
         isChatRoom: false,
         private_isArchived: undefined,
-        shouldShowSubscript: false,
         isPolicyExpenseChat: false,
         isMoneyRequestReport: false,
-        isExpenseRequest: false,
-        isWaitingOnBankAccount: false,
         isAllowedToComment: true,
-        isDeletedParentAction: false,
-        isConciergeChat: false,
     };
     const reportMetadata = getReportMetadata(report?.reportID);
     const participantAccountIDs = getParticipantsAccountIDsForDisplay(report);
     const participantAccountIDsExcludeCurrentUser = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, reportMetadata, {shouldExcludeCurrentUser: true});
     const participantPersonalDetailListExcludeCurrentUser = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDsExcludeCurrentUser, personalDetails));
-
-    const visibleParticipantAccountIDs = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, reportMetadata, {shouldExcludeHidden: true});
 
     const participantPersonalDetailList = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDs, personalDetails));
     const personalDetail = participantPersonalDetailList.at(0) ?? ({} as PersonalDetails);
@@ -776,41 +751,20 @@ function getOptionData({
     result.parentReportAction = parentReportAction;
     result.private_isArchived = privateIsArchived;
     result.isPolicyExpenseChat = isPolicyExpenseChat(report);
-    result.isExpenseRequest = isExpenseRequest(report);
     result.isMoneyRequestReport = isMoneyRequestReport(report);
-    result.shouldShowSubscript = shouldReportShowSubscript(report, isReportArchived);
     result.pendingAction = report.pendingFields?.addWorkspaceRoom ?? report.pendingFields?.createChat;
     result.brickRoadIndicator = reportAttributes?.brickRoadStatus;
-    result.ownerAccountID = report.ownerAccountID;
-    result.managerID = report.managerID;
     result.reportID = report.reportID;
-    result.policyID = report.policyID;
-    result.stateNum = report.stateNum;
-    result.statusNum = report.statusNum;
     // When the only message of a report is deleted lastVisibleActionCreated is not reset leading to wrongly
     // setting it Unread so we add additional condition here to avoid empty chat LHN from being bold.
     result.isUnread = isUnread(report, oneTransactionThreadReport, isReportArchived) && !!report.lastActorAccountID;
-    result.isUnreadWithMention = isUnreadWithMention(report);
     result.isPinned = report.isPinned;
-    result.iouReportID = report.iouReportID;
     result.keyForList = String(report.reportID);
-    result.hasOutstandingChildRequest = report.hasOutstandingChildRequest;
-    result.parentReportID = report.parentReportID;
-    result.isWaitingOnBankAccount = report.isWaitingOnBankAccount;
     result.notificationPreference = getReportNotificationPreference(report);
     result.isAllowedToComment = canUserPerformWriteActionUtil(report, isReportArchived);
-    result.chatType = report.chatType;
-    result.isDeletedParentAction = report.isDeletedParentAction;
-    result.isSelfDM = isSelfDM(report);
-    result.tooltipText = getReportParticipantsTitle(visibleParticipantAccountIDs);
-    result.hasOutstandingChildTask = report.hasOutstandingChildTask;
-    result.hasParentAccess = report.hasParentAccess;
-    result.isConciergeChat = isConciergeChatReport(report, conciergeReportID);
-    result.participants = report.participants;
 
     const isExpense = isExpenseReport(report);
     const hasMultipleParticipants = participantPersonalDetailList.length > 1 || result.isChatRoom || result.isPolicyExpenseChat || isExpense;
-    const subtitle = getChatRoomSubtitle(report, false, isReportArchived);
 
     const status = personalDetail?.status ?? '';
 
@@ -1141,24 +1095,14 @@ function getOptionData({
         }
     }
 
-    result.isIOUReportOwner = isIOUOwnedByCurrentUser(result as Report);
-
     if (isJoinRequestInAdminRoom(report)) {
         result.isUnread = true;
-    }
-
-    if (!hasMultipleParticipants) {
-        result.accountID = personalDetail?.accountID ?? CONST.DEFAULT_NUMBER_ID;
-        result.login = personalDetail?.login ?? '';
-        result.phoneNumber = personalDetail?.phoneNumber ?? '';
     }
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     const reportName = getReportName({report, policy, invoiceReceiverPolicy, isReportArchived, conciergeReportID});
 
     result.text = reportName;
-    result.subtitle = subtitle;
-    result.participantsList = participantPersonalDetailList;
 
     result.icons = getIcons(
         report,
@@ -1176,7 +1120,6 @@ function getOptionData({
     if (status) {
         result.status = status;
     }
-    result.type = report.type;
 
     return result;
 }

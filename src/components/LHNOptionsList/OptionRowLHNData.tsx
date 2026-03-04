@@ -1,142 +1,177 @@
 import {deepEqual} from 'fast-equals';
-import React, {useMemo, useRef} from 'react';
+import React from 'react';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
+import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromReportAction';
+import useLocalize from '@hooks/useLocalize';
+import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
 import usePrevious from '@hooks/usePrevious';
+import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
+import {getLastMessageTextForReport} from '@libs/OptionsListUtils';
+import {
+    getOneTransactionThreadReportID,
+    getOriginalMessage,
+    getSortedReportActions,
+    getSortedReportActionsForDisplay,
+    isInviteOrRemovedAction,
+    shouldReportActionBeVisibleAsLastAction,
+} from '@libs/ReportActionsUtils';
+import {canUserPerformWriteAction as canUserPerformWriteActionUtil} from '@libs/ReportUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
-import {getMovedReportID} from '@src/libs/ModifiedExpenseMessage';
-import type {OptionData} from '@src/libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
+import type {PersonalDetails, ReportAction} from '@src/types/onyx';
 import OptionRowLHN from './OptionRowLHN';
 import type {OptionRowLHNDataProps} from './types';
 
 /*
  * This component gets the data from onyx for the actual
  * OptionRowLHN component.
- * The OptionRowLHN component is memoized, so it will only
- * re-render if the data really changed.
+ * Each row subscribes to its own data so it only re-renders
+ * when its specific data changes.
  */
-function OptionRowLHNData({
-    isOptionFocused = false,
-    fullReport,
-    reportAttributes,
-    reportAttributesDerived,
-    oneTransactionThreadReport,
-    reportNameValuePairs,
-    reportActions,
-    personalDetails = {},
-    preferredLocale = CONST.LOCALES.DEFAULT,
-    policy,
-    invoiceReceiverPolicy,
-    receiptTransactions,
-    parentReportAction,
-    iouReportReportActions,
-    transaction,
-    lastReportActionTransaction,
-    transactionViolations,
-    lastMessageTextFromReport,
-    localeCompare,
-    translate,
-    isReportArchived = false,
-    lastAction,
-    lastActionReport,
-    currentUserAccountID,
-    ...propsToForward
-}: OptionRowLHNDataProps) {
+function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes, reportAttributesDerived, ...propsToForward}: OptionRowLHNDataProps) {
     const reportID = propsToForward.reportID;
     const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
     const isReportFocused = isOptionFocused && currentReportIDValue === reportID;
-    const optionItemRef = useRef<OptionData | undefined>(undefined);
 
-    const [movedFromReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.FROM)}`, {canBeMissing: true});
-    const [movedToReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.TO)}`, {canBeMissing: true});
-    // Check the report errors equality to avoid re-rendering when there are no changes
-    const prevReportErrors = usePrevious(reportAttributes?.reportErrors);
-    const areReportErrorsEqual = useMemo(() => deepEqual(prevReportErrors, reportAttributes?.reportErrors), [prevReportErrors, reportAttributes?.reportErrors]);
+    const {translate, localeCompare} = useLocalize();
+    const {isOffline} = useNetwork();
+    const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
+    const {policyForMovingExpensesID} = usePolicyForMovingExpenses();
+
+    // Per-item Onyx subscriptions
+    const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`);
+    const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`);
+    const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`);
+    const [draftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
+    const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
+
+    const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${fullReport?.parentReportID}`);
+    const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${fullReport?.parentReportID}`);
+    const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${fullReport?.chatReportID}`);
+    const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${fullReport?.policyID}`);
+
+    // Compute invoice receiver policy ID
+    let invoiceReceiverPolicyID = '-1';
+    if (fullReport?.invoiceReceiver && 'policyID' in fullReport.invoiceReceiver) {
+        invoiceReceiverPolicyID = fullReport.invoiceReceiver.policyID;
+    }
+    if (parentReport?.invoiceReceiver && 'policyID' in parentReport.invoiceReceiver) {
+        invoiceReceiverPolicyID = parentReport.invoiceReceiver.policyID;
+    }
+    const [invoiceReceiverPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`);
+
+    // Parent report action
+    const parentReportAction = fullReport?.parentReportActionID ? parentReportActions?.[fullReport.parentReportActionID] : undefined;
+
+    // One transaction thread report
+    const oneTransactionThreadReportID = getOneTransactionThreadReportID(fullReport, chatReport, reportActions, isOffline);
+    const [oneTransactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${oneTransactionThreadReportID}`);
+
+    // Compute archived / draft status
+    const isReportArchived = !!reportNameValuePairs?.private_isArchived;
+    const hasDraftComment = !!draftComment && !draftComment.match(CONST.REGEX.EMPTY_COMMENT);
+
+    // Compute sorted report actions and last report action
+    const canUserPerformWrite = canUserPerformWriteActionUtil(fullReport, isReportArchived);
+    const sortedReportActions = getSortedReportActionsForDisplay(reportActions, canUserPerformWrite);
+    const lastReportAction = sortedReportActions.at(0);
+
+    // Compute lastAction (the visible action for display)
+    let lastAction: ReportAction | undefined;
+    if (!reportActions || !fullReport) {
+        lastAction = undefined;
+    } else {
+        const actionsArray = getSortedReportActions(Object.values(reportActions));
+        const reportActionsForDisplay = actionsArray.filter(
+            (reportAction) => shouldReportActionBeVisibleAsLastAction(reportAction, canUserPerformWrite) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
+        );
+        lastAction = reportActionsForDisplay.at(-1);
+    }
+
+    // Last action report (for invite/removed actions)
+    const lastActionOriginalMessage = isInviteOrRemovedAction(lastAction) && lastAction?.actionName ? getOriginalMessage(lastAction) : null;
+    const lastActionReportID = lastActionOriginalMessage?.reportID;
+    const [lastActionReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${lastActionReportID}`);
+
+    // Moved reports for lastAction
+    const [movedFromReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.FROM)}`);
+    const [movedToReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.TO)}`);
+
+    // Moved reports for lastReportAction (used in lastMessageText computation)
+    const [movedFromReportForLastReportAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastReportAction, CONST.REPORT.MOVE_TYPE.FROM)}`);
+    const [movedToReportForLastReportAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastReportAction, CONST.REPORT.MOVE_TYPE.TO)}`);
+
+    // Compute last actor details
+    let lastActorDetails: Partial<PersonalDetails> | null =
+        fullReport?.lastActorAccountID && personalDetails?.[fullReport.lastActorAccountID] ? personalDetails[fullReport.lastActorAccountID] : null;
+    if (!lastActorDetails && lastReportAction) {
+        const lastActorDisplayName = lastReportAction?.person?.[0]?.text;
+        lastActorDetails = lastActorDisplayName
+            ? {
+                  displayName: lastActorDisplayName,
+                  accountID: fullReport?.lastActorAccountID,
+              }
+            : null;
+    }
+
+    // Compute last message text
+    const lastMessageTextFromReport = getLastMessageTextForReport({
+        translate,
+        report: fullReport,
+        lastActorDetails,
+        movedFromReport: movedFromReportForLastReportAction,
+        movedToReport: movedToReportForLastReportAction,
+        policy,
+        isReportArchived,
+        policyForMovingExpensesID,
+        reportMetadata,
+        reportAttributesDerived,
+    });
 
     const card = useGetExpensifyCardFromReportAction({reportAction: lastAction, policyID: fullReport?.policyID});
 
-    const optionItem = useMemo(() => {
-        // Note: ideally we'd have this as a dependent selector in onyx!
-        const item = SidebarUtils.getOptionData({
-            report: fullReport,
-            reportAttributes,
-            oneTransactionThreadReport,
-            reportNameValuePairs,
-            personalDetails,
-            policy,
-            parentReportAction,
-            lastMessageTextFromReport,
-            invoiceReceiverPolicy,
-            card,
-            lastAction,
-            translate,
-            localeCompare,
-            isReportArchived,
-            lastActionReport,
-            movedFromReport,
-            movedToReport,
-            currentUserAccountID,
-            reportAttributesDerived,
-        });
-        if (deepEqual(item, optionItemRef.current)) {
-            return optionItemRef.current;
-        }
-
-        optionItemRef.current = item;
-
-        return item;
-        // Listen parentReportAction to update title of thread report when parentReportAction changed
-        // Listen to transaction to update title of transaction report when transaction changed
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        fullReport,
-        reportAttributes?.brickRoadStatus,
-        reportAttributes?.reportName,
-        areReportErrorsEqual,
+    const optionItem = SidebarUtils.getOptionData({
+        report: fullReport,
+        reportAttributes,
         oneTransactionThreadReport,
         reportNameValuePairs,
-        lastReportActionTransaction,
-        reportActions,
-        personalDetails,
-        preferredLocale,
+        personalDetails: personalDetails ?? {},
         policy,
         parentReportAction,
-        iouReportReportActions,
-        transaction,
-        receiptTransactions,
-        invoiceReceiverPolicy,
         lastMessageTextFromReport,
+        invoiceReceiverPolicy,
         card,
+        lastAction,
         translate,
         localeCompare,
         isReportArchived,
+        lastActionReport,
         movedFromReport,
         movedToReport,
         currentUserAccountID,
         reportAttributesDerived,
-    ]);
+    });
+
+    // Use deep equality to preserve referential identity when the option data hasn't actually changed
+    const prevOptionItem = usePrevious(optionItem);
+    const stableOptionItem = deepEqual(optionItem, prevOptionItem) ? prevOptionItem : optionItem;
 
     return (
         <OptionRowLHN
             // eslint-disable-next-line react/jsx-props-no-spreading
             {...propsToForward}
             isOptionFocused={isReportFocused}
-            optionItem={optionItem}
+            optionItem={stableOptionItem}
             report={fullReport}
+            hasDraftComment={hasDraftComment}
         />
     );
 }
 
 OptionRowLHNData.displayName = 'OptionRowLHNData';
 
-/**
- * This component is rendered in a list.
- * On scroll we want to avoid that a item re-renders
- * just because the list has to re-render when adding more items.
- * Thats also why the React.memo is used on the outer component here, as we just
- * use it to prevent re-renders from parent re-renders.
- */
-export default React.memo(OptionRowLHNData);
+export default OptionRowLHNData;

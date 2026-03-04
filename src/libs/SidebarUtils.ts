@@ -675,7 +675,7 @@ function getOptionData({
     report,
     reportAttributes,
     oneTransactionThreadReport,
-    reportNameValuePairs,
+    privateIsArchived,
     personalDetails,
     policy,
     parentReportAction,
@@ -698,7 +698,7 @@ function getOptionData({
 }: {
     report: OnyxEntry<Report>;
     oneTransactionThreadReport: OnyxEntry<Report>;
-    reportNameValuePairs: OnyxEntry<ReportNameValuePairs>;
+    privateIsArchived: string | undefined;
     personalDetails: OnyxEntry<PersonalDetailsList>;
     policy: OnyxEntry<Policy>;
     parentReportAction: OnyxEntry<ReportAction> | undefined;
@@ -774,7 +774,7 @@ function getOptionData({
     result.isTaskReport = isTaskReport(report);
     result.isInvoiceReport = isInvoiceReport(report);
     result.parentReportAction = parentReportAction;
-    result.private_isArchived = reportNameValuePairs?.private_isArchived;
+    result.private_isArchived = privateIsArchived;
     result.isPolicyExpenseChat = isPolicyExpenseChat(report);
     result.isExpenseRequest = isExpenseRequest(report);
     result.isMoneyRequestReport = isMoneyRequestReport(report);

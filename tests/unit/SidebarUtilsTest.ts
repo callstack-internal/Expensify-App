@@ -342,7 +342,7 @@ describe('SidebarUtils', () => {
             const optionDataPinned = SidebarUtils.getOptionData({
                 report: MOCK_REPORT_PINNED,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -364,7 +364,7 @@ describe('SidebarUtils', () => {
             const optionDataUnpinned = SidebarUtils.getOptionData({
                 report: MOCK_REPORT_UNPINNED,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1512,7 +1512,7 @@ describe('SidebarUtils', () => {
             const result = SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1578,7 +1578,7 @@ describe('SidebarUtils', () => {
             const result = SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1619,7 +1619,7 @@ describe('SidebarUtils', () => {
             const result = SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1659,7 +1659,7 @@ describe('SidebarUtils', () => {
             const result = SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1699,7 +1699,7 @@ describe('SidebarUtils', () => {
             const result = SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1767,7 +1767,7 @@ describe('SidebarUtils', () => {
             const result = SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: undefined,
                 invoiceReceiverPolicy: undefined,
@@ -1806,7 +1806,6 @@ describe('SidebarUtils', () => {
                     ...createRandomReport(1, undefined),
                     policyID: CONST.POLICY.ID_FAKE,
                 };
-                const reportNameValuePairs = {};
 
                 await act(async () => {
                     await Onyx.set(`${ONYXKEYS.COLLECTION.POLICY}1`, policy);
@@ -1820,7 +1819,7 @@ describe('SidebarUtils', () => {
                 const optionData = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs,
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy,
                     invoiceReceiverPolicy: undefined,
@@ -1853,9 +1852,7 @@ describe('SidebarUtils', () => {
                     type: CONST.REPORT.TYPE.CHAT,
                     lastActorAccountID: 1,
                 };
-                const reportNameValuePairs = {
-                    private_isArchived: DateUtils.getDBTime(),
-                };
+                const privateIsArchived = DateUtils.getDBTime();
 
                 await act(async () => {
                     await Onyx.set(`${ONYXKEYS.COLLECTION.POLICY}1`, policy);
@@ -1864,7 +1861,7 @@ describe('SidebarUtils', () => {
                 const optionData = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs,
+                    privateIsArchived,
                     personalDetails: LHNTestUtils.fakePersonalDetails,
                     policy,
                     invoiceReceiverPolicy: undefined,
@@ -1898,7 +1895,6 @@ describe('SidebarUtils', () => {
                     policyName: policy.name,
                     type: CONST.REPORT.TYPE.CHAT,
                 };
-                const reportNameValuePairs = {};
 
                 await act(async () => {
                     await Onyx.set(`${ONYXKEYS.COLLECTION.POLICY}1`, policy);
@@ -1907,7 +1903,7 @@ describe('SidebarUtils', () => {
                 const optionData = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs,
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy,
                     invoiceReceiverPolicy: undefined,
@@ -1940,7 +1936,6 @@ describe('SidebarUtils', () => {
                     policyName: policy.name,
                     type: CONST.REPORT.TYPE.CHAT,
                 };
-                const reportNameValuePairs = {};
                 const lastReportPreviewAction = {
                     action: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
                     actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
@@ -2048,7 +2043,7 @@ describe('SidebarUtils', () => {
                 const optionData = SidebarUtils.getOptionData({
                     report: policyExpenseChat,
                     reportAttributes: undefined,
-                    reportNameValuePairs,
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy,
                     invoiceReceiverPolicy: undefined,
@@ -2082,7 +2077,6 @@ describe('SidebarUtils', () => {
                     policyID: '1',
                     policyName: policy.name,
                 };
-                const reportNameValuePairs = {};
 
                 await act(async () => {
                     await Onyx.set(`${ONYXKEYS.COLLECTION.POLICY}1`, policy);
@@ -2096,7 +2090,7 @@ describe('SidebarUtils', () => {
                 const optionData = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs,
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy,
                     invoiceReceiverPolicy: undefined,
@@ -2172,7 +2166,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2236,7 +2230,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2288,7 +2282,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {
                         [session.accountID]: {accountID: session.accountID},
                     },
@@ -2380,7 +2374,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: {...iouReportR14932, lastActorAccountID: session.accountID},
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2510,7 +2504,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: MOCK_REPORT,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2600,7 +2594,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: LHNTestUtils.fakePersonalDetails,
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2701,7 +2695,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: dmChat,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: personalDetailList,
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2803,7 +2797,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: dmChat,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: personalDetailList,
                     policy: undefined,
                     invoiceReceiverPolicy: undefined,
@@ -2837,7 +2831,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: MOCK_REPORT,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     parentReportAction: undefined,
@@ -2869,7 +2863,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: MOCK_REPORT,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     parentReportAction: undefined,
@@ -2900,7 +2894,7 @@ describe('SidebarUtils', () => {
                 const result = SidebarUtils.getOptionData({
                     report: MOCK_REPORT,
                     reportAttributes: undefined,
-                    reportNameValuePairs: {},
+                    privateIsArchived: undefined,
                     personalDetails: {},
                     policy: undefined,
                     parentReportAction: undefined,
@@ -3291,7 +3285,7 @@ describe('SidebarUtils', () => {
                     betas: [],
                     transactions: {},
                     transactionViolations: {},
-                    reportNameValuePairs: {},
+                    reportNameValuePairs: undefined,
                     reportAttributes: undefined,
                     draftComments: {},
                 });
@@ -3312,7 +3306,7 @@ describe('SidebarUtils', () => {
                     betas: [],
                     transactions: {},
                     transactionViolations: {},
-                    reportNameValuePairs: {},
+                    reportNameValuePairs: undefined,
                     reportAttributes: undefined,
                     draftComments: {},
                 });
@@ -3341,7 +3335,7 @@ describe('SidebarUtils', () => {
             return SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs: {},
+                privateIsArchived: undefined,
                 personalDetails: {},
                 policy: policy ?? undefined,
                 invoiceReceiverPolicy: undefined,

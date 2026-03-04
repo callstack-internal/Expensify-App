@@ -1,11 +1,13 @@
 import {deepEqual} from 'fast-equals';
 import React from 'react';
+import type {OnyxEntry} from 'react-native-onyx';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromReportAction';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import useParentReportAction from '@hooks/useParentReportAction';
 import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
 import usePrevious from '@hooks/usePrevious';
 import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
@@ -22,9 +24,17 @@ import {canUserPerformWriteAction as canUserPerformWriteActionUtil} from '@libs/
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetails, ReportAction} from '@src/types/onyx';
+import type {PersonalDetails, ReportAction, ReportNameValuePairs} from '@src/types/onyx';
 import OptionRowLHN from './OptionRowLHN';
 import type {OptionRowLHNDataProps} from './types';
+
+function hasDraftCommentSelector(draftComment: OnyxEntry<string>): boolean {
+    return !!draftComment && !draftComment.match(CONST.REGEX.EMPTY_COMMENT);
+}
+
+function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
+    return reportNameValuePairs?.private_isArchived;
+}
 
 /*
  * This component gets the data from onyx for the actual
@@ -43,13 +53,13 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
     const {policyForMovingExpensesID} = usePolicyForMovingExpenses();
 
     // Per-item Onyx subscriptions
-    const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`);
+    const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`);
     const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`);
-    const [draftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
+    const [hasDraftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`, {selector: hasDraftCommentSelector});
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
 
-    const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${fullReport?.parentReportID}`);
+    const parentReportAction = useParentReportAction(fullReport);
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${fullReport?.parentReportID}`);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${fullReport?.chatReportID}`);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${fullReport?.policyID}`);
@@ -66,16 +76,12 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
     }
     const [invoiceReceiverPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`);
 
-    // Parent report action
-    const parentReportAction = fullReport?.parentReportActionID ? parentReportActions?.[fullReport.parentReportActionID] : undefined;
-
     // One transaction thread report
     const oneTransactionThreadReportID = getOneTransactionThreadReportID(fullReport, chatReport, reportActions, isOffline);
     const [oneTransactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${oneTransactionThreadReportID}`);
 
-    // Compute archived / draft status
-    const isReportArchived = !!reportNameValuePairs?.private_isArchived;
-    const hasDraftComment = !!draftComment && !draftComment.match(CONST.REGEX.EMPTY_COMMENT);
+    // Compute archived status
+    const isReportArchived = !!privateIsArchived;
 
     // Compute sorted report actions and last report action
     const canUserPerformWrite = canUserPerformWriteActionUtil(fullReport, isReportArchived);
@@ -144,7 +150,7 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
         report: fullReport,
         reportAttributes,
         oneTransactionThreadReport,
-        reportNameValuePairs,
+        privateIsArchived,
         personalDetails: personalDetails ?? {},
         policy,
         parentReportAction,
@@ -176,7 +182,7 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
             isOptionFocused={isReportFocused}
             optionItem={stableOptionItem}
             report={fullReport}
-            hasDraftComment={hasDraftComment}
+            hasDraftComment={!!hasDraftComment}
         />
     );
 }

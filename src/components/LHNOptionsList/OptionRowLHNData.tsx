@@ -16,7 +16,7 @@ import {
     getSortedReportActions,
     getSortedReportActionsForDisplay,
     isInviteOrRemovedAction,
-    shouldReportActionBeVisibleAsLastAction,
+    isReportActionVisibleAsLastAction,
 } from '@libs/ReportActionsUtils';
 import {canUserPerformWriteAction as canUserPerformWriteActionUtil} from '@libs/ReportUtils';
 import SidebarUtils from '@libs/SidebarUtils';
@@ -39,7 +39,7 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
 
     const {translate, localeCompare} = useLocalize();
     const {isOffline} = useNetwork();
-    const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
+    const {accountID: currentUserAccountID, login} = useCurrentUserPersonalDetails();
     const {policyForMovingExpensesID} = usePolicyForMovingExpenses();
 
     // Per-item Onyx subscriptions
@@ -53,6 +53,8 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${fullReport?.parentReportID}`);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${fullReport?.chatReportID}`);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${fullReport?.policyID}`);
+    const [policyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${fullReport?.policyID}`);
+    const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
 
     // Compute invoice receiver policy ID
     let invoiceReceiverPolicyID = '-1';
@@ -87,7 +89,7 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
     } else {
         const actionsArray = getSortedReportActions(Object.values(reportActions));
         const reportActionsForDisplay = actionsArray.filter(
-            (reportAction) => shouldReportActionBeVisibleAsLastAction(reportAction, canUserPerformWrite) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
+            (reportAction) => isReportActionVisibleAsLastAction(reportAction, canUserPerformWrite) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
         );
         lastAction = reportActionsForDisplay.at(-1);
     }
@@ -128,8 +130,12 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
         policy,
         isReportArchived,
         policyForMovingExpensesID,
+        chatReport,
         reportMetadata,
+        lastAction,
         reportAttributesDerived,
+        policyTags,
+        currentUserLogin: login ?? '',
     });
 
     const card = useGetExpensifyCardFromReportAction({reportAction: lastAction, policyID: fullReport?.policyID});
@@ -142,6 +148,7 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
         personalDetails: personalDetails ?? {},
         policy,
         parentReportAction,
+        conciergeReportID,
         lastMessageTextFromReport,
         invoiceReceiverPolicy,
         card,
@@ -154,6 +161,8 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
         movedToReport,
         currentUserAccountID,
         reportAttributesDerived,
+        policyTags,
+        currentUserLogin: login ?? '',
     });
 
     // Use deep equality to preserve referential identity when the option data hasn't actually changed

@@ -160,6 +160,7 @@ import {
     isDeprecatedGroupDM,
     isDomainRoom,
     isExpenseReport,
+    isExpenseRequest,
     isGroupChat as isGroupChatUtil,
     isHiddenForCurrentUser,
     isInvoiceReport,
@@ -173,9 +174,12 @@ import {
     isSystemChat as isSystemChatUtil,
     isTaskReport,
     isThread,
+    isTripRoom,
     isUnread,
+    isWorkspaceTaskReport,
     shouldDisplayViolationsRBRInLHN,
     shouldReportBeInOptionList,
+    shouldReportShowSubscript,
 } from './ReportUtils';
 import {getTaskReportActionMessage} from './TaskUtils';
 
@@ -752,6 +756,15 @@ function getOptionData({
     result.private_isArchived = privateIsArchived;
     result.isPolicyExpenseChat = isPolicyExpenseChat(report);
     result.isMoneyRequestReport = isMoneyRequestReport(report);
+    const rawShouldShowSubscript = shouldReportShowSubscript(report, isReportArchived);
+    const isWorkspaceExpenseRequest = isExpenseRequest(report) && !!policy && policy.type !== CONST.POLICY.TYPE.PERSONAL;
+    const threadSuppression = isChatThread(report) && !isTripRoom(report) && !isWorkspaceExpenseRequest;
+    // For tasks, the header resolves the parent action via chatReportID (not parentReportID).
+    // When chatReportID is absent (offline/nested tasks), the action can't be resolved — treat as "no action".
+    const taskParentAction = isTaskReport(report) && !report.chatReportID ? undefined : parentReportAction;
+    const isReportPreviewOrNoAction = !taskParentAction || taskParentAction?.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW;
+    const taskSuppression = isTaskReport(report) && !(isWorkspaceTaskReport(report) && isReportPreviewOrNoAction);
+    result.shouldShowSubscript = rawShouldShowSubscript && !threadSuppression && !taskSuppression;
     result.pendingAction = report.pendingFields?.addWorkspaceRoom ?? report.pendingFields?.createChat;
     result.brickRoadIndicator = reportAttributes?.brickRoadStatus;
     result.reportID = report.reportID;
@@ -1104,7 +1117,7 @@ function getOptionData({
 
     result.text = reportName;
 
-    result.icons = getIcons(
+    const reportIcons = getIcons(
         report,
         formatPhoneNumberPhoneUtils,
         personalDetails,
@@ -1115,6 +1128,17 @@ function getOptionData({
         invoiceReceiverPolicy,
         isReportArchived,
     );
+
+    // IOU icon trimming (single vs diagonal) is handled at the component level
+    // using useReportPreviewSenderID which has access to transaction attendee data.
+    // INVOICE is also exempt — B2B invoices show two workspace icons as diagonal.
+    if (!result.shouldShowSubscript && report.type !== CONST.REPORT.TYPE.IOU && report.type !== CONST.REPORT.TYPE.INVOICE && reportIcons.length > 1) {
+        const firstIcon = reportIcons.at(0);
+        result.icons = firstIcon ? [firstIcon] : [];
+    } else {
+        result.icons = reportIcons;
+    }
+
     result.displayNamesWithTooltips = displayNamesWithTooltips;
 
     if (status) {

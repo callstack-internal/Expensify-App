@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {useIsFocused, useRoute} from '@react-navigation/native';
 import reportsSelector from '@selectors/Attributes';
 import type {FlashListProps, FlashListRef} from '@shopify/flash-list';

@@ -26,24 +26,7 @@ import useParentReportAction from './useParentReportAction';
 import usePolicyForMovingExpenses from './usePolicyForMovingExpenses';
 import usePrevious from './usePrevious';
 
-type LHNOptionData = Pick<
-    OptionData,
-    | 'text'
-    | 'alternateText'
-    | 'icons'
-    | 'displayNamesWithTooltips'
-    | 'shouldShowSubscript'
-    | 'parentReportAction'
-    | 'isUnread'
-    | 'notificationPreference'
-    | 'isChatRoom'
-    | 'isPolicyExpenseChat'
-    | 'isTaskReport'
-    | 'isThread'
-    | 'isMoneyRequestReport'
-    | 'isInvoiceReport'
-    | 'private_isArchived'
->;
+type LHNOptionData = Pick<OptionData, 'text' | 'alternateText' | 'icons'>;
 
 function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
     return reportNameValuePairs?.private_isArchived;
@@ -170,18 +153,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
               text: fullOption.text,
               alternateText: fullOption.alternateText,
               icons: fullOption.icons,
-              displayNamesWithTooltips: fullOption.displayNamesWithTooltips,
-              shouldShowSubscript: fullOption.shouldShowSubscript,
-              parentReportAction: fullOption.parentReportAction,
-              isUnread: fullOption.isUnread,
-              notificationPreference: fullOption.notificationPreference,
-              isChatRoom: fullOption.isChatRoom,
-              isPolicyExpenseChat: fullOption.isPolicyExpenseChat,
-              isTaskReport: fullOption.isTaskReport,
-              isThread: fullOption.isThread,
-              isMoneyRequestReport: fullOption.isMoneyRequestReport,
-              isInvoiceReport: fullOption.isInvoiceReport,
-              private_isArchived: fullOption.private_isArchived,
           }
         : undefined;
 

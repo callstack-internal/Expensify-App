@@ -1,30 +1,54 @@
 import React from 'react';
 import type {StyleProp, TextStyle} from 'react-native';
 import {View} from 'react-native';
+import type {OnyxEntry} from 'react-native-onyx';
 import DisplayNames from '@components/DisplayNames';
 import {useLHNListContext} from '@components/LHNOptionsList/LHNListContext';
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import useLHNOptionData from '@hooks/useLHNOptionData';
+import useLHNIsUnread from '@hooks/useLHNIsUnread';
 import useLHNReportStatus from '@hooks/useLHNReportStatus';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import useParentReportAction from '@hooks/useParentReportAction';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import DateUtils from '@libs/DateUtils';
 import {containsCustomEmoji as containsCustomEmojiUtils, containsOnlyCustomEmoji} from '@libs/EmojiUtils';
 import FS from '@libs/Fullstory';
-import {isChatUsedForOnboarding as isChatUsedForOnboardingReportUtils, isGroupChat, isHiddenForCurrentUser, isOneOnOneChat, isSystemChat} from '@libs/ReportUtils';
+import {formatPhoneNumber} from '@libs/LocalePhoneNumber';
+import {getPersonalDetailsForAccountIDs} from '@libs/OptionsListUtils';
+import {
+    getDisplayNamesWithTooltips,
+    getParticipantsAccountIDsForDisplay,
+    getReportNotificationPreference,
+    isChatRoom,
+    isChatThread,
+    isChatUsedForOnboarding as isChatUsedForOnboardingReportUtils,
+    isExpenseReport,
+    isGroupChat,
+    isHiddenForCurrentUser,
+    isInvoiceReport,
+    isMoneyRequestReport,
+    isOneOnOneChat,
+    isPolicyExpenseChat,
+    isSelfDM,
+    isSystemChat,
+    isTaskReport,
+} from '@libs/ReportUtils';
 import TextWithEmojiFragment from '@pages/inbox/report/comment/TextWithEmojiFragment';
 import FreeTrial from '@pages/settings/Subscription/FreeTrial';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+import type {ReportNameValuePairs} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
 type RowContentProps = {
     reportID: string;
+    text: string | undefined;
+    alternateText: string | undefined;
     style?: StyleProp<TextStyle>;
     testID: number;
 };
@@ -72,13 +96,19 @@ function RowStatusEmoji({reportID}: {reportID: string}) {
     );
 }
 
+function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
+    return reportNameValuePairs?.private_isArchived;
+}
+
 function RowAlternateText({reportID, text, style}: {reportID: string; text: string | undefined; style?: StyleProp<TextStyle>}) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {optionMode, isOptionFocusEnabled} = useLHNListContext();
     const {currentReportID} = useCurrentReportIDState();
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
-    const option = useLHNOptionData(reportID);
+
+    const isUnread = useLHNIsUnread(reportID);
+    const notificationPreference = getReportNotificationPreference(report);
 
     if (!text) {
         return null;
@@ -86,7 +116,7 @@ function RowAlternateText({reportID, text, style}: {reportID: string; text: stri
 
     const isInFocusMode = optionMode === CONST.OPTION_MODE.COMPACT;
     const isOptionFocused = isOptionFocusEnabled && currentReportID === reportID;
-    const shouldBoldText = option?.isUnread === true && option.notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.MUTE && !isHiddenForCurrentUser(option.notificationPreference);
+    const shouldBoldText = isUnread && notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.MUTE && !isHiddenForCurrentUser(notificationPreference);
     const textStyle = isOptionFocused ? styles.sidebarLinkActiveText : styles.sidebarLinkText;
     const alternateTextStyle = isInFocusMode
         ? [shouldBoldText ? [textStyle, styles.sidebarLinkTextBold] : textStyle, styles.textLabelSupporting, styles.optionAlternateTextCompact, styles.ml2, style]
@@ -115,35 +145,53 @@ function RowAlternateText({reportID, text, style}: {reportID: string; text: stri
     );
 }
 
-function RowContent({reportID, style, testID}: RowContentProps) {
+function RowContent({reportID, text, alternateText, style, testID}: RowContentProps) {
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
-    const {translate} = useLocalize();
+    const {translate, localeCompare} = useLocalize();
     const {optionMode, isOptionFocusEnabled} = useLHNListContext();
     const {currentReportID} = useCurrentReportIDState();
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
-    const option = useLHNOptionData(reportID);
+    const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
+    const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
+
+    const isUnread = useLHNIsUnread(reportID);
+    const parentReportAction = useParentReportAction(report);
+    const notificationPreference = getReportNotificationPreference(report);
 
     const isInFocusMode = optionMode === CONST.OPTION_MODE.COMPACT;
     const isOptionFocused = isOptionFocusEnabled && currentReportID === reportID;
 
-    const shouldBoldText = option?.isUnread === true && option.notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.MUTE && !isHiddenForCurrentUser(option.notificationPreference);
+    const shouldBoldText = isUnread && notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.MUTE && !isHiddenForCurrentUser(notificationPreference);
     const textStyle = isOptionFocused ? styles.sidebarLinkActiveText : styles.sidebarLinkText;
     const textUnreadStyle = shouldBoldText ? [textStyle, styles.sidebarLinkTextBold] : [textStyle];
     const displayNameStyle = [styles.optionDisplayName, styles.optionDisplayNameCompact, styles.pre, textUnreadStyle, styles.flexShrink0, style];
 
     const shouldUseFullTitle =
-        !!option?.isChatRoom ||
-        !!option?.isPolicyExpenseChat ||
-        !!option?.isTaskReport ||
-        !!option?.isThread ||
-        !!option?.isMoneyRequestReport ||
-        !!option?.isInvoiceReport ||
-        !!option?.private_isArchived ||
+        isChatRoom(report) ||
+        isPolicyExpenseChat(report) ||
+        isTaskReport(report) ||
+        isChatThread(report) ||
+        isMoneyRequestReport(report) ||
+        isInvoiceReport(report) ||
+        !!privateIsArchived ||
         isGroupChat(report) ||
         isSystemChat(report);
 
-    const shouldParseFullTitle = option?.parentReportAction?.actionName !== CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT && !isGroupChat(report);
+    const shouldParseFullTitle = parentReportAction?.actionName !== CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT && !isGroupChat(report);
+
+    // Compute displayNamesWithTooltips inline
+    const participantAccountIDs = getParticipantsAccountIDsForDisplay(report);
+    const participantPersonalDetailList = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDs, personalDetails));
+    const hasMultipleParticipants = participantPersonalDetailList.length > 1 || isChatRoom(report) || isPolicyExpenseChat(report) || isExpenseReport(report);
+    const displayNamesWithTooltips = getDisplayNamesWithTooltips(
+        (participantPersonalDetailList || []).slice(0, 10),
+        hasMultipleParticipants,
+        localeCompare,
+        formatPhoneNumber,
+        undefined,
+        isSelfDM(report),
+    );
 
     const contentContainerStyles = isInFocusMode ? [styles.flex1, styles.flexRow, styles.overflowHidden, StyleUtils.getCompactContentContainerStyles()] : [styles.flex1];
 
@@ -152,9 +200,9 @@ function RowContent({reportID, style, testID}: RowContentProps) {
             <View style={[styles.flexRow, styles.alignItemsCenter, styles.mw100, styles.overflowHidden]}>
                 <DisplayNames
                     accessibilityLabel={translate('accessibilityHints.chatUserDisplayNames')}
-                    fullTitle={option?.text ?? ''}
+                    fullTitle={text ?? ''}
                     shouldParseFullTitle={shouldParseFullTitle}
-                    displayNamesWithTooltips={option?.displayNamesWithTooltips ?? []}
+                    displayNamesWithTooltips={displayNamesWithTooltips}
                     tooltipEnabled
                     numberOfLines={1}
                     textStyles={displayNameStyle}
@@ -166,7 +214,7 @@ function RowContent({reportID, style, testID}: RowContentProps) {
             </View>
             <RowAlternateText
                 reportID={reportID}
-                text={option?.alternateText}
+                text={alternateText}
                 style={style}
             />
         </View>

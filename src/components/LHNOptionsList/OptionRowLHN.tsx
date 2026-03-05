@@ -91,13 +91,13 @@ function OptionRowLHN({
 
     const alternateTextContainsCustomEmojiWithText = containsCustomEmojiUtils(optionItem?.alternateText) && !containsOnlyCustomEmoji(optionItem?.alternateText);
 
-    const delegateAccountID = useMemo(() => getDelegateAccountIDFromReportAction(optionItem?.parentReportAction), [optionItem?.parentReportAction]);
+    const delegateAccountID = getDelegateAccountIDFromReportAction(optionItem?.parentReportAction);
 
     // Match the header's delegate avatar logic: when a delegate exists on the
     // parent report action, the header (useReportActionAvatars) shows the
     // delegate's avatar as primary instead of the report owner's.
     const skipDelegate = report?.type === CONST.REPORT.TYPE.INVOICE || (optionItem?.isTaskReport && !report?.chatReportID);
-    const icons = useMemo(() => {
+    const icons = (() => {
         let result = optionItem?.icons ?? [];
         if (!skipDelegate && delegateAccountID && personalDetails && result.length > 0) {
             const delegateDetails = personalDetails[delegateAccountID];
@@ -117,14 +117,14 @@ function OptionRowLHN({
         }
 
         return result;
-    }, [optionItem?.icons, skipDelegate, delegateAccountID, personalDetails]);
+    })();
 
-    const delegateTooltipAccountID = useMemo(() => {
+    const delegateTooltipAccountID = (() => {
         if (!skipDelegate && delegateAccountID && personalDetails?.[delegateAccountID] && optionItem?.icons?.length) {
             return Number(optionItem.icons.at(0)?.id ?? CONST.DEFAULT_NUMBER_ID);
         }
         return undefined;
-    }, [skipDelegate, delegateAccountID, personalDetails, optionItem?.icons]);
+    })();
 
     const singleAvatarContainerStyle = [styles.actionAvatar, styles.mr3];
 

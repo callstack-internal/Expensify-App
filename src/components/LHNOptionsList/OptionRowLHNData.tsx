@@ -1,7 +1,7 @@
+import reportsSelector from '@selectors/Attributes';
 import {deepEqual} from 'fast-equals';
 import React from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromReportAction';
 import useLocalize from '@hooks/useLocalize';
@@ -28,10 +28,6 @@ import type {PersonalDetails, ReportAction, ReportNameValuePairs} from '@src/typ
 import OptionRowLHN from './OptionRowLHN';
 import type {OptionRowLHNDataProps} from './types';
 
-function hasDraftCommentSelector(draftComment: OnyxEntry<string>): boolean {
-    return !!draftComment && !draftComment.match(CONST.REGEX.EMPTY_COMMENT);
-}
-
 function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
     return reportNameValuePairs?.private_isArchived;
 }
@@ -42,10 +38,10 @@ function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameVal
  * Each row subscribes to its own data so it only re-renders
  * when its specific data changes.
  */
-function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes, reportAttributesDerived, ...propsToForward}: OptionRowLHNDataProps) {
+function OptionRowLHNData(propsToForward: OptionRowLHNDataProps) {
     const reportID = propsToForward.reportID;
-    const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
-    const isReportFocused = isOptionFocused && currentReportIDValue === reportID;
+    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
+    const reportAttributes = reportAttributesDerived?.[reportID];
 
     const {translate, localeCompare} = useLocalize();
     const {isOffline} = useNetwork();
@@ -53,10 +49,10 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
     const {policyForMovingExpensesID} = usePolicyForMovingExpenses();
 
     // Per-item Onyx subscriptions
+    const [fullReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`);
     const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportID}`);
-    const [hasDraftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`, {selector: hasDraftCommentSelector});
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
 
     const parentReportAction = useParentReportAction(fullReport);
@@ -179,10 +175,7 @@ function OptionRowLHNData({isOptionFocused = false, fullReport, reportAttributes
         <OptionRowLHN
             // eslint-disable-next-line react/jsx-props-no-spreading
             {...propsToForward}
-            isOptionFocused={isReportFocused}
             optionItem={stableOptionItem}
-            report={fullReport}
-            hasDraftComment={!!hasDraftComment}
         />
     );
 }

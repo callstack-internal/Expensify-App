@@ -3,7 +3,7 @@ import reportsSelector from '@selectors/Attributes';
 import type {FlashListProps, FlashListRef} from '@shopify/flash-list';
 import {FlashList} from '@shopify/flash-list';
 import type {ReactElement} from 'react';
-import React, {memo, useContext, useEffect, useRef} from 'react';
+import React, {useContext, useEffect, useRef} from 'react';
 import {StyleSheet, View} from 'react-native';
 import type {BlockingViewProps} from '@components/BlockingViews/BlockingView';
 import BlockingView from '@components/BlockingViews/BlockingView';
@@ -26,6 +26,7 @@ import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
+import {LHNListContext} from './LHNListContext';
 import OptionRowLHNData from './OptionRowLHNData';
 import OptionRowRendererComponent from './OptionRowRendererComponent';
 import type {LHNOptionsListProps, RenderItemProps} from './types';
@@ -41,10 +42,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['MagnifyingGlass', 'Plus'] as const);
 
     const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
-    const [activePolicyID] = useOnyx(ONYXKEYS.NVP_ACTIVE_POLICY_ID);
-    const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
-    const [onboarding] = useOnyx(ONYXKEYS.NVP_ONBOARDING);
-    const [isFullscreenVisible] = useOnyx(ONYXKEYS.FULLSCREEN_VISIBILITY);
 
     const theme = useTheme();
     const styles = useThemeStyles();
@@ -121,31 +118,23 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
         </View>
     );
 
+    const lhnListContextValue = {
+        isReportsSplitNavigatorLast,
+        isScreenFocused,
+        optionMode,
+        isOptionFocusEnabled: !shouldDisableFocusOptions,
+        firstReportIDWithGBRorRBR,
+    };
+
     /**
      * Function which renders a row in the list
      */
     const renderItem = ({item, index}: RenderItemProps): ReactElement => {
-        const reportID = item.reportID;
-        const itemReportAttributes = reportAttributes?.[reportID];
-        const shouldShowRBRorGBRTooltip = firstReportIDWithGBRorRBR === reportID;
-
         return (
             <OptionRowLHNData
-                reportID={reportID}
-                fullReport={item}
-                reportAttributes={itemReportAttributes}
-                reportAttributesDerived={reportAttributes}
-                viewMode={optionMode}
-                isOptionFocused={!shouldDisableFocusOptions}
+                reportID={item.reportID}
                 onSelectRow={onSelectRow}
                 onLayout={onLayoutItem}
-                shouldShowRBRorGBRTooltip={shouldShowRBRorGBRTooltip}
-                activePolicyID={activePolicyID}
-                onboardingPurpose={introSelected?.choice}
-                onboarding={onboarding}
-                isFullscreenVisible={isFullscreenVisible}
-                isReportsSplitNavigatorLast={isReportsSplitNavigatorLast}
-                isScreenFocused={isScreenFocused}
                 testID={index}
             />
         );
@@ -218,28 +207,30 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
                     accessibilityLabel={translate('common.emptyLHN.title')}
                 />
             ) : (
-                <FlashList
-                    ref={flashListRef}
-                    indicatorStyle="white"
-                    keyboardShouldPersistTaps="always"
-                    CellRendererComponent={OptionRowRendererComponent}
-                    contentContainerStyle={StyleSheet.flatten(contentContainerStyles)}
-                    data={data}
-                    testID="lhn-options-list"
-                    keyExtractor={keyExtractor}
-                    renderItem={renderItem}
-                    extraData={extraData}
-                    showsVerticalScrollIndicator={false}
-                    onLayout={onLayout}
-                    onScroll={onScroll}
-                    initialScrollIndex={isWeb ? getScrollIndex(route) : undefined}
-                    maintainVisibleContentPosition={{disabled: true}}
-                    drawDistance={250}
-                    removeClippedSubviews
-                />
+                <LHNListContext.Provider value={lhnListContextValue}>
+                    <FlashList
+                        ref={flashListRef}
+                        indicatorStyle="white"
+                        keyboardShouldPersistTaps="always"
+                        CellRendererComponent={OptionRowRendererComponent}
+                        contentContainerStyle={StyleSheet.flatten(contentContainerStyles)}
+                        data={data}
+                        testID="lhn-options-list"
+                        keyExtractor={keyExtractor}
+                        renderItem={renderItem}
+                        extraData={extraData}
+                        showsVerticalScrollIndicator={false}
+                        onLayout={onLayout}
+                        onScroll={onScroll}
+                        initialScrollIndex={isWeb ? getScrollIndex(route) : undefined}
+                        maintainVisibleContentPosition={{disabled: true}}
+                        drawDistance={250}
+                        removeClippedSubviews
+                    />
+                </LHNListContext.Provider>
             )}
         </View>
     );
 }
 
-export default memo(LHNOptionsList);
+export default LHNOptionsList;

@@ -1,15 +1,6 @@
 import reportsSelector from '@selectors/Attributes';
 import {deepEqual} from 'fast-equals';
-import React from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
-import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromReportAction';
-import useLocalize from '@hooks/useLocalize';
-import useNetwork from '@hooks/useNetwork';
-import useOnyx from '@hooks/useOnyx';
-import useParentReportAction from '@hooks/useParentReportAction';
-import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
-import usePrevious from '@hooks/usePrevious';
 import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
 import {getLastMessageTextForReport} from '@libs/OptionsListUtils';
 import {
@@ -20,26 +11,47 @@ import {
     isInviteOrRemovedAction,
     isReportActionVisibleAsLastAction,
 } from '@libs/ReportActionsUtils';
+import type {OptionData} from '@libs/ReportUtils';
 import {canUserPerformWriteAction as canUserPerformWriteActionUtil} from '@libs/ReportUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetails, ReportAction, ReportNameValuePairs} from '@src/types/onyx';
-import OptionRowLHN from './OptionRowLHN';
-import type {OptionRowLHNDataProps} from './types';
+import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
+import useGetExpensifyCardFromReportAction from './useGetExpensifyCardFromReportAction';
+import useLocalize from './useLocalize';
+import useNetwork from './useNetwork';
+import useOnyx from './useOnyx';
+import useParentReportAction from './useParentReportAction';
+import usePolicyForMovingExpenses from './usePolicyForMovingExpenses';
+import usePrevious from './usePrevious';
+
+type LHNOptionData = Pick<
+    OptionData,
+    | 'text'
+    | 'alternateText'
+    | 'icons'
+    | 'displayNamesWithTooltips'
+    | 'shouldShowSubscript'
+    | 'parentReportAction'
+    | 'status'
+    | 'timezone'
+    | 'isUnread'
+    | 'notificationPreference'
+    | 'isChatRoom'
+    | 'isPolicyExpenseChat'
+    | 'isTaskReport'
+    | 'isThread'
+    | 'isMoneyRequestReport'
+    | 'isInvoiceReport'
+    | 'private_isArchived'
+>;
 
 function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
     return reportNameValuePairs?.private_isArchived;
 }
 
-/*
- * This component gets the data from onyx for the actual
- * OptionRowLHN component.
- * Each row subscribes to its own data so it only re-renders
- * when its specific data changes.
- */
-function OptionRowLHNData(propsToForward: OptionRowLHNDataProps) {
-    const reportID = propsToForward.reportID;
+function useLHNOptionData(reportID: string): LHNOptionData | undefined {
     const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
     const reportAttributes = reportAttributesDerived?.[reportID];
 
@@ -142,7 +154,7 @@ function OptionRowLHNData(propsToForward: OptionRowLHNDataProps) {
 
     const card = useGetExpensifyCardFromReportAction({reportAction: lastAction, policyID: fullReport?.policyID});
 
-    const optionItem = SidebarUtils.getOptionData({
+    const fullOption = SidebarUtils.getOptionData({
         report: fullReport,
         reportAttributes,
         oneTransactionThreadReport,
@@ -167,19 +179,35 @@ function OptionRowLHNData(propsToForward: OptionRowLHNDataProps) {
         currentUserLogin: login ?? '',
     });
 
-    // Use deep equality to preserve referential identity when the option data hasn't actually changed
-    const prevOptionItem = usePrevious(optionItem);
-    const stableOptionItem = deepEqual(optionItem, prevOptionItem) ? prevOptionItem : optionItem;
+    // Extract only the fields needed by consumers
+    const result: LHNOptionData | undefined = fullOption
+        ? {
+              text: fullOption.text,
+              alternateText: fullOption.alternateText,
+              icons: fullOption.icons,
+              displayNamesWithTooltips: fullOption.displayNamesWithTooltips,
+              shouldShowSubscript: fullOption.shouldShowSubscript,
+              parentReportAction: fullOption.parentReportAction,
+              status: fullOption.status,
+              timezone: fullOption.timezone,
+              isUnread: fullOption.isUnread,
+              notificationPreference: fullOption.notificationPreference,
+              isChatRoom: fullOption.isChatRoom,
+              isPolicyExpenseChat: fullOption.isPolicyExpenseChat,
+              isTaskReport: fullOption.isTaskReport,
+              isThread: fullOption.isThread,
+              isMoneyRequestReport: fullOption.isMoneyRequestReport,
+              isInvoiceReport: fullOption.isInvoiceReport,
+              private_isArchived: fullOption.private_isArchived,
+          }
+        : undefined;
 
-    return (
-        <OptionRowLHN
-            // eslint-disable-next-line react/jsx-props-no-spreading
-            {...propsToForward}
-            optionItem={stableOptionItem}
-        />
-    );
+    // Use deep equality to preserve referential identity when the option data hasn't actually changed
+    const prevResult = usePrevious(result);
+    const stableResult = deepEqual(result, prevResult) ? prevResult : result;
+
+    return stableResult;
 }
 
-OptionRowLHNData.displayName = 'OptionRowLHNData';
-
-export default OptionRowLHNData;
+export default useLHNOptionData;
+export type {LHNOptionData};

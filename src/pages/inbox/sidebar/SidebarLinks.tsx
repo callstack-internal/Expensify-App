@@ -1,4 +1,4 @@
-import React, {memo, useCallback, useEffect, useMemo} from 'react';
+import React, {memo, useEffect, useMemo} from 'react';
 import {StyleSheet, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {EdgeInsets} from 'react-native-safe-area-context';
@@ -48,30 +48,27 @@ function SidebarLinks({insets, optionListItems, isLoading, priorityMode = CONST.
     /**
      * Show Report page with selected report id
      */
-    const showReportPage = useCallback(
-        (option: Report) => {
-            // Prevent opening Report page when clicking LHN row quickly after clicking FAB icon
-            // or when clicking the active LHN row on large screens
-            // or when continuously clicking different LHNs, only apply to small screen
-            // since getTopmostReportId always returns on other devices
-            const reportActionID = Navigation.getTopmostReportActionId();
+    const showReportPage = (selectedReportID: string) => {
+        // Prevent opening Report page when clicking LHN row quickly after clicking FAB icon
+        // or when clicking the active LHN row on large screens
+        // or when continuously clicking different LHNs, only apply to small screen
+        // since getTopmostReportId always returns on other devices
+        const reportActionID = Navigation.getTopmostReportActionId();
 
-            // Prevent opening a new Report page if the user quickly taps on another conversation
-            // before the first one is displayed.
-            const shouldBlockReportNavigation = Navigation.getActiveRoute() !== `/${ROUTES.INBOX}` && shouldUseNarrowLayout;
+        // Prevent opening a new Report page if the user quickly taps on another conversation
+        // before the first one is displayed.
+        const shouldBlockReportNavigation = Navigation.getActiveRoute() !== `/${ROUTES.INBOX}` && shouldUseNarrowLayout;
 
-            if (
-                (option.reportID === Navigation.getTopmostReportId() && !reportActionID) ||
-                (shouldUseNarrowLayout && isActiveReport(option.reportID) && !reportActionID) ||
-                shouldBlockReportNavigation
-            ) {
-                cancelSpan(`${CONST.TELEMETRY.SPAN_OPEN_REPORT}_${option.reportID}`);
-                return;
-            }
-            Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(option.reportID));
-        },
-        [shouldUseNarrowLayout, isActiveReport],
-    );
+        if (
+            (selectedReportID === Navigation.getTopmostReportId() && !reportActionID) ||
+            (shouldUseNarrowLayout && isActiveReport(selectedReportID) && !reportActionID) ||
+            shouldBlockReportNavigation
+        ) {
+            cancelSpan(`${CONST.TELEMETRY.SPAN_OPEN_REPORT}_${selectedReportID}`);
+            return;
+        }
+        Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(selectedReportID));
+    };
 
     const viewMode = priorityMode === CONST.PRIORITY_MODE.GSD ? CONST.OPTION_MODE.COMPACT : CONST.OPTION_MODE.DEFAULT;
 

@@ -27,7 +27,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import {LHNListContext} from './LHNListContext';
-import OptionRowLHNData from './OptionRowLHNData';
+import OptionRowLHN from './OptionRowLHN';
 import OptionRowRendererComponent from './OptionRowRendererComponent';
 import type {LHNOptionsListProps, RenderItemProps} from './types';
 import useEmptyLHNIllustration from './useEmptyLHNIllustration';
@@ -131,7 +131,7 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
      */
     const renderItem = ({item, index}: RenderItemProps): ReactElement => {
         return (
-            <OptionRowLHNData
+            <OptionRowLHN
                 reportID={item.reportID}
                 onSelectRow={onSelectRow}
                 onLayout={onLayoutItem}

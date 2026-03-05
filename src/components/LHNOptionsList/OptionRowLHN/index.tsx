@@ -1,3 +1,4 @@
+import reportsSelector from '@selectors/Attributes';
 import React, {useRef, useState} from 'react';
 import type {GestureResponderEvent, ViewStyle} from 'react-native';
 import {StyleSheet, View} from 'react-native';
@@ -8,8 +9,8 @@ import type {OptionRowLHNProps} from '@components/LHNOptionsList/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import {usePersonalDetails} from '@components/OnyxListItemProvider';
 import PressableWithSecondaryInteraction from '@components/PressableWithSecondaryInteraction';
-import Text from '@components/Text';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
+import useLHNOptionData from '@hooks/useLHNOptionData';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -17,8 +18,6 @@ import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import DomUtils from '@libs/DomUtils';
-import FS from '@libs/Fullstory';
-import {shouldOptionShowTooltip, shouldUseBoldText} from '@libs/OptionsListUtils';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
 import {getDelegateAccountIDFromReportAction} from '@libs/ReportActionsUtils';
 import {startSpan} from '@libs/telemetry/activeSpans';
@@ -31,12 +30,16 @@ import RowIndicators from './RowIndicators';
 import RowRBRIndicator from './RowRBRIndicator';
 import RowTooltipWrapper from './RowTooltipWrapper';
 
-function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLayout = () => {}, testID}: OptionRowLHNProps) {
+function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () => {}, testID}: OptionRowLHNProps) {
     const {isScreenFocused, optionMode, isOptionFocusEnabled} = useLHNListContext();
     const {currentReportID} = useCurrentReportIDState();
     const isOptionFocused = isOptionFocusEnabled && currentReportID === reportID;
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
+    const reportAttributes = reportAttributesDerived?.[reportID];
+
+    const option = useLHNOptionData(reportID);
 
     const viewMode = optionMode;
     const theme = useTheme();
@@ -56,14 +59,14 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLa
             : [styles.chatLinkRowPressable, styles.flexGrow1, styles.optionItemAvatarNameWrapper, styles.optionRow, styles.justifyContentCenter],
     );
 
-    const delegateAccountID = getDelegateAccountIDFromReportAction(optionItem?.parentReportAction);
+    const delegateAccountID = getDelegateAccountIDFromReportAction(option?.parentReportAction);
 
     // Match the header's delegate avatar logic: when a delegate exists on the
     // parent report action, the header (useReportActionAvatars) shows the
     // delegate's avatar as primary instead of the report owner's.
-    const skipDelegate = report?.type === CONST.REPORT.TYPE.INVOICE || (optionItem?.isTaskReport && !report?.chatReportID);
+    const skipDelegate = report?.type === CONST.REPORT.TYPE.INVOICE || (option?.isTaskReport && !report?.chatReportID);
     const icons = (() => {
-        let result = optionItem?.icons ?? [];
+        let result = option?.icons ?? [];
         if (!skipDelegate && delegateAccountID && personalDetails && result.length > 0) {
             const delegateDetails = personalDetails[delegateAccountID];
             if (delegateDetails) {
@@ -85,35 +88,32 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLa
     })();
 
     const delegateTooltipAccountID = (() => {
-        if (!skipDelegate && delegateAccountID && personalDetails?.[delegateAccountID] && optionItem?.icons?.length) {
-            return Number(optionItem.icons.at(0)?.id ?? CONST.DEFAULT_NUMBER_ID);
+        if (!skipDelegate && delegateAccountID && personalDetails?.[delegateAccountID] && option?.icons?.length) {
+            return Number(option.icons.at(0)?.id ?? CONST.DEFAULT_NUMBER_ID);
         }
         return undefined;
     })();
 
     const singleAvatarContainerStyle = [styles.actionAvatar, styles.mr3];
 
-    if (!optionItem && !isOptionFocused) {
+    if (!option && !isOptionFocused) {
         return <View style={sidebarInnerRowStyle} />;
     }
 
-    if (!optionItem) {
+    if (!option) {
         return null;
     }
 
-    const brickRoadIndicator = optionItem.brickRoadIndicator || undefined;
-    const textStyle = isOptionFocused ? styles.sidebarLinkActiveText : styles.sidebarLinkText;
-    const textUnreadStyle = shouldUseBoldText(optionItem) ? [textStyle, styles.sidebarLinkTextBold] : [textStyle];
-    const displayNameStyle = [styles.optionDisplayName, styles.optionDisplayNameCompact, styles.pre, textUnreadStyle, styles.flexShrink0, style];
-    const alternateTextStyle = isInFocusMode
-        ? [textStyle, styles.textLabelSupporting, styles.optionAlternateTextCompact, styles.ml2, style]
-        : [textStyle, styles.optionAlternateText, styles.textLabelSupporting, style];
+    // Direct reads from report/reportAttributes
+    const isPinned = report?.isPinned;
+    const pendingAction = report?.pendingFields?.addWorkspaceRoom ?? report?.pendingFields?.createChat;
+    const allReportErrors = reportAttributes?.reportErrors;
+    const brickRoadIndicator = reportAttributes?.brickRoadStatus ?? undefined;
 
     const hoveredBackgroundColor = !!styles.sidebarLinkHover && 'backgroundColor' in styles.sidebarLinkHover ? styles.sidebarLinkHover.backgroundColor : theme.sidebar;
     const focusedBackgroundColor = styles.sidebarLinkActive.backgroundColor;
     const subscriptAvatarBorderColor = isOptionFocused ? focusedBackgroundColor : theme.sidebar;
-    const firstIcon = optionItem.icons?.at(0);
-    const alternateTextFSClass = FS.getChatFSClass(report);
+    const firstIcon = option.icons?.at(0);
 
     const showPopover = (event: MouseEvent | GestureResponderEvent) => {
         if (!isScreenFocused && shouldUseNarrowLayout) {
@@ -128,8 +128,8 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLa
             report: {
                 reportID,
                 originalReportID: reportID,
-                isPinnedChat: optionItem.isPinned,
-                isUnreadChat: !!optionItem.isUnread,
+                isPinnedChat: isPinned,
+                isUnreadChat: !!option.isUnread,
             },
             reportAction: {
                 reportActionID: '-1',
@@ -149,13 +149,13 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLa
 
         event?.preventDefault();
         ReportActionComposeFocusManager.focus();
-        onSelectRow(optionItem, popoverAnchor);
+        onSelectRow(reportID);
     };
 
     return (
         <OfflineWithFeedback
-            pendingAction={optionItem.pendingAction}
-            errors={optionItem.allReportErrors}
+            pendingAction={pendingAction}
+            errors={allReportErrors}
             shouldShowErrorMessages={false}
             needsOffscreenAlphaCompositing
         >
@@ -182,7 +182,7 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLa
                                         }
                                         event.preventDefault();
                                     }}
-                                    testID={typeof optionItem.reportID === 'number' ? String(optionItem.reportID) : optionItem.reportID}
+                                    testID={reportID}
                                     onSecondaryInteraction={(event) => {
                                         showPopover(event);
                                         if (DomUtils.getActiveElement()) {
@@ -203,44 +203,34 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, optionItem, style, onLa
                                         (hovered || isContextMenuActive) && !isOptionFocused ? styles.sidebarLinkHover : null,
                                     ]}
                                     role={CONST.ROLE.BUTTON}
-                                    accessibilityLabel={`${translate('accessibilityHints.navigatesToChat')} ${optionItem.text}. ${optionItem.isUnread ? `${translate('common.unread')}.` : ''} ${optionItem.alternateText}${brickRoadIndicator ? `. ${translate('common.yourReviewIsRequired')}` : ''}`}
+                                    accessibilityLabel={`${translate('accessibilityHints.navigatesToChat')} ${option.text}. ${option.isUnread ? `${translate('common.unread')}.` : ''} ${option.alternateText}${brickRoadIndicator ? `. ${translate('common.yourReviewIsRequired')}` : ''}`}
                                     onLayout={onLayout}
-                                    needsOffscreenAlphaCompositing={(optionItem?.icons?.length ?? 0) >= 2}
+                                    needsOffscreenAlphaCompositing={(option?.icons?.length ?? 0) >= 2}
                                     sentryLabel={CONST.SENTRY_LABEL.LHN.OPTION_ROW}
                                 >
                                     <View style={sidebarInnerRowStyle}>
                                         <View style={[styles.flexRow, styles.alignItemsCenter]}>
-                                            {!!optionItem.icons?.length && !!firstIcon && (
+                                            {!!option.icons?.length && !!firstIcon && (
                                                 <LHNAvatar
                                                     icons={icons}
-                                                    shouldShowSubscript={!!optionItem.shouldShowSubscript}
+                                                    shouldShowSubscript={!!option.shouldShowSubscript}
                                                     size={isInFocusMode ? CONST.AVATAR_SIZE.SMALL : CONST.AVATAR_SIZE.DEFAULT}
                                                     subscriptAvatarBorderColor={hovered && !isOptionFocused ? hoveredBackgroundColor : subscriptAvatarBorderColor}
                                                     useMidSubscriptSize={isInFocusMode}
                                                     secondaryAvatarBackgroundColor={secondaryAvatarBgColor}
                                                     singleAvatarContainerStyle={singleAvatarContainerStyle}
-                                                    shouldShowTooltip={shouldOptionShowTooltip(optionItem)}
+                                                    shouldShowTooltip={!option.private_isArchived}
                                                     delegateAccountID={skipDelegate ? undefined : delegateAccountID}
                                                     delegateTooltipAccountID={delegateTooltipAccountID}
                                                 />
                                             )}
                                             <RowContent
-                                                optionItem={optionItem}
+                                                option={option}
                                                 reportID={reportID}
-                                                displayNameStyle={displayNameStyle}
-                                                alternateTextStyle={alternateTextStyle}
-                                                isInFocusMode={isInFocusMode}
+                                                style={style}
                                                 testID={testID}
                                             />
-                                            {optionItem?.descriptiveText ? (
-                                                <View
-                                                    style={[styles.flexWrap]}
-                                                    fsClass={alternateTextFSClass}
-                                                >
-                                                    <Text style={[styles.textLabel]}>{optionItem.descriptiveText}</Text>
-                                                </View>
-                                            ) : null}
-                                            <RowRBRIndicator brickRoadIndicator={brickRoadIndicator} />
+                                            <RowRBRIndicator reportID={reportID} />
                                         </View>
                                     </View>
                                     <RowIndicators reportID={reportID} />

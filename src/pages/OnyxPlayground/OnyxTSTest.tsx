@@ -36,20 +36,6 @@ type OnyxTSTestProps = OnyxTSTestOnyxProps & {
 };
 
 function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
-    // const keys = Onyx.getAllKeys();
-
-    // const isSafeEvictionKey = Onyx.isSafeEvictionKey(ONYXKEYS.ACCOUNT);
-    // const isSafeEvictionCollectionKey = Onyx.isSafeEvictionKey(`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`);
-    // const isSafeEvictionWrongKey = Onyx.isSafeEvictionKey('wrong key'); // raises an error, wrong key - correct
-
-    // Onyx.removeFromEvictionBlockList(ONYXKEYS.ACTIVE_CLIENTS, 1);
-    // Onyx.removeFromEvictionBlockList(`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`, 1);
-    // Onyx.removeFromEvictionBlockList('wrong key', 1); // raises an error, wrong key - correct
-
-    // Onyx.addToEvictionBlockList(ONYXKEYS.ACTIVE_CLIENTS, 2);
-    // Onyx.addToEvictionBlockList(`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`, 2);
-    // Onyx.addToEvictionBlockList('wrong key', 1); // raises an error, wrong key - correct
-
     Onyx.connect({
         key: ONYXKEYS.ACCOUNT,
         callback: (value) => {
@@ -98,82 +84,99 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
         waitForCollectionCallback: false,
     });
 
-    // raises an error, collection member key - incorrect
-    // Onyx.connect({
-    //     key: `${ONYXKEYS.COLLECTION.REPORT}${`report1`}`,
-    //     callback: (value) => {
-    //         if (!value) {
-    //             return;
-    //         }
+    Onyx.connect({
+        // @ts-expect-error raises an error, collection member key - incorrect
+        key: `${ONYXKEYS.COLLECTION.REPORT}${`report1`}`,
+        callback: (value) => {
+            if (!value) {
+                return;
+            }
 
-    //         console.log(value.report1?.policyID);
-    //         console.log(value.report2?.policyID);
-    //     },
-    //     waitForCollectionCallback: true,
-    // });
+            console.log(value.report1?.policyID);
+            console.log(value.report2?.policyID);
+        },
+        waitForCollectionCallback: true,
+    });
 
     Onyx.set(ONYXKEYS.ACCOUNT, {primaryLogin: 'account1'});
     Onyx.set(ONYXKEYS.IS_LOADING_PAYMENT_METHODS, true);
     Onyx.set(ONYXKEYS.NVP_PREFERRED_LOCALE, null);
     Onyx.set(`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`, {isDownloading: true});
-    // Onyx.set(ONYXKEYS.ACCOUNT, 'wrong value'); // raises an error, wrong value - correct
+    // @ts-expect-error raises an error, passing collection key - correct
+    Onyx.set(ONYXKEYS.COLLECTION.DOWNLOAD, {isDownloading: true});
+    // @ts-expect-error raises an error, wrong value - correct
+    Onyx.set(ONYXKEYS.ACCOUNT, 'wrong value');
 
     Onyx.multiSet({
         [ONYXKEYS.ACCOUNT]: {primaryLogin: 'id2'},
         [ONYXKEYS.NVP_PREFERRED_LOCALE]: null,
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}` as const]: {isDownloading: true},
         [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'download_url'},
-        // [ONYXKEYS.ACTIVE_CLIENTS]: 1, // raises an error, wrong value - correct
+        // @ts-expect-error raises an error, wrong value - correct
+        [ONYXKEYS.ACTIVE_CLIENTS]: 1,
     });
 
     Onyx.merge(ONYXKEYS.ACCOUNT, {primaryLogin: 'user name'});
     Onyx.merge(`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`, {});
     Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${'report'}`, {participants: {1: {role: 'admin'}}});
-    // Onyx.merge(ONYXKEYS.ACCOUNT, 'something'); // raises an error, wrong value - correct
+    // @ts-expect-error raises an error, passing collection key - correct
+    Onyx.merge(ONYXKEYS.COLLECTION.REPORT, {participants: {1: {role: 'admin'}}});
+    // @ts-expect-error raises an error, wrong value - correct
+    Onyx.merge(ONYXKEYS.ACCOUNT, 'something');
 
     Onyx.clear();
     Onyx.clear([ONYXKEYS.ACCOUNT, ONYXKEYS.ACTIVE_CLIENTS, `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`]);
-    // Onyx.clear(['wrong key']); // raises an error, wrong key - correct
+    // @ts-expect-error raises an error, wrong key - correct
+    Onyx.clear(['wrong key']);
 
     Onyx.mergeCollection(ONYXKEYS.COLLECTION.DOWNLOAD, {
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}` as const]: {isDownloading: true},
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment3'}` as const]: {isDownloading: true},
-        // [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'account'}, // raises an error, wrong key - correct
-        // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment2'}` as const]: false, // raises an error, wrong value - correct
-        // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment4'}` as const]: null, // raises an error, passing null - correct
+        // FIXME: @ts-expect-error raises an error, wrong key - correct
+        [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'account'},
+        // @ts-expect-error raises an error, wrong value - correct
+        [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment2'}` as const]: false,
+        // @ts-expect-error raises an error, passing null - correct
+        [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment4'}` as const]: null,
     });
 
     Onyx.mergeCollection(ONYXKEYS.COLLECTION.REPORT, {
         [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {participants: {1: {role: 'admin'}}},
     });
 
-    // Onyx.mergeCollection(`${ONYXKEYS.COLLECTION.REPORT}${'report'}`, {
-    //     [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {data: {isRead: true}},
-    // }); // raises an error, not a collection - correct
+    // @ts-expect-error raises an error, not a collection - correct
+    Onyx.mergeCollection(`${ONYXKEYS.COLLECTION.REPORT}${'report'}`, {
+        [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {data: {isRead: true}},
+    });
 
-    // Onyx.mergeCollection(ONYXKEYS.ACCOUNT, {
-    //     [`${ONYXKEYS.ACCOUNT}${'report1'}` as const]: {id: 'account'},
-    // }); // raises an error, not a collection - correct
+    // @ts-expect-error raises an error, not a collection - correct
+    Onyx.mergeCollection(ONYXKEYS.ACCOUNT, {
+        [`${ONYXKEYS.ACCOUNT}${'report1'}` as const]: {id: 'account'},
+    });
 
     Onyx.setCollection(ONYXKEYS.COLLECTION.DOWNLOAD, {
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}` as const]: {isDownloading: true},
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment3'}` as const]: {isDownloading: true},
         [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment4'}` as const]: null,
-        // [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'account'}, // raises an error, wrong key - correct
-        // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment2'}` as const]: false, // raises an error, wrong value - correct
+        // FIXME: @ts-expect-error raises an error, wrong key - correct
+        [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {reportID: 'account'},
+        // @ts-expect-error raises an error, wrong value - correct
+        [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment2'}` as const]: false,
     });
 
     Onyx.setCollection(ONYXKEYS.COLLECTION.REPORT, {
         [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {participants: {1: {role: 'admin'}}},
     });
 
-    // Onyx.setCollection(`${ONYXKEYS.COLLECTION.REPORT}${'report'}`, {
-    //     [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {data: {isRead: true}},
-    // }); // raises an error, not a collection - correct
+    // @ts-expect-error raises an error, not a collection - correct
+    Onyx.setCollection(`${ONYXKEYS.COLLECTION.REPORT}${'report'}`, {
+        [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {data: {isRead: true}},
+    });
 
-    // Onyx.setCollection(ONYXKEYS.ACCOUNT, {
-    //     [`${ONYXKEYS.ACCOUNT}${'report1'}` as const]: {id: 'account'},
-    // }); // raises an error, not a collection - correct
+    // @ts-expect-error raises an error, not a collection - correct
+    Onyx.setCollection(ONYXKEYS.ACCOUNT, {
+        [`${ONYXKEYS.ACCOUNT}${'report1'}` as const]: {id: 'account'},
+    });
 
     Onyx.update([
         {
@@ -191,11 +194,12 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
             key: ONYXKEYS.IS_LOADING_PAYMENT_METHODS,
             value: null,
         },
-        // {
-        //     onyxMethod: Onyx.METHOD.MERGE,
-        //     key: ONYXKEYS.IS_LOADING_PAYMENT_METHODS,
-        //     value: {primaryLogin: 'id1'}, // raises an error, wrong value - correct
-        // },
+        // @ts-expect-error raises an error, wrong value - correct
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: ONYXKEYS.IS_LOADING_PAYMENT_METHODS,
+            value: {primaryLogin: 'id1'},
+        },
         {
             onyxMethod: Onyx.METHOD.MERGE,
             key: `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`,
@@ -211,57 +215,72 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
             key: `${ONYXKEYS.COLLECTION.REPORT}${'report2'}`,
             value: {participants: {1: {role: 'admin'}}},
         },
-        // {
-        //     onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
-        //     key: ONYXKEYS.ACCOUNT,
-        //     value: {},
-        // }, // raises an error, not a collection - correct
-        // {
-        //     onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
-        //     key: `${ONYXKEYS.COLLECTION.REPORT}${'report1'}`,
-        //     value: {},
-        // }, // raises an error, not a collection - correct
+        // FIXME: @ts-expect-error raises an error, not a collection - correct
+        {
+            onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
+            key: ONYXKEYS.ACCOUNT,
+            value: {},
+        },
+        // FIXME: @ts-expect-error raises an error, not a collection - correct
+        {
+            onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
+            key: `${ONYXKEYS.COLLECTION.REPORT}${'report1'}`,
+            value: {},
+        },
         {
             onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
             key: ONYXKEYS.COLLECTION.REPORT,
             value: {
                 [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {participants: {1: {role: 'admin'}}},
                 [`${ONYXKEYS.COLLECTION.REPORT}${'report2'}` as const]: {participants: {1: {role: 'admin'}}},
-                // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'report2'}` as const]: {isDownloading: true}, // raises an error - correct
+                // @ts-expect-error raises an error - correct
+                [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'report2'}` as const]: {isDownloading: true},
             },
         },
 
-        // 1. Set / Merge key with `undefined` at root level.
-        // Doesn't produce any results ✅
-        // TS complains about it ✅
-        // {
-        //     // onyxMethod: Onyx.METHOD.SET,
-        //     onyxMethod: Onyx.METHOD.MERGE,
-        //     key: ONYXKEYS.ACCOUNT,
-        //     value: undefined,
-        // },
+        // @ts-expect-error raises an error, passing undefined to SET - correct
+        {
+            onyxMethod: Onyx.METHOD.SET,
+            key: ONYXKEYS.ACCOUNT,
+            value: undefined,
+        },
 
-        // 2. Set / Merge collection key with `undefined` at root level.
-        // Doesn't produce any results ✅
-        // TS complains about it ✅
-        // {
-        //     // onyxMethod: Onyx.METHOD.SET,
-        //     onyxMethod: Onyx.METHOD.MERGE,
-        //     key: ONYXKEYS.COLLECTION.DOWNLOAD,
-        //     value: undefined,
-        // },
+        // @ts-expect-error raises an error, passing undefined to MERGE - correct
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: ONYXKEYS.ACCOUNT,
+            value: undefined,
+        },
 
-        // 3. Set / Merge collection key with `undefined` at record level.
-        // Doesn't produce any results ✅
-        // TS complains about it ✅
-        // {
-        //     // onyxMethod: Onyx.METHOD.SET,
-        //     onyxMethod: Onyx.METHOD.MERGE,
-        //     key: `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`,
-        //     value: undefined,
-        // },
+        // @ts-expect-error raises an error, passing undefined to SET - correct
+        {
+            onyxMethod: Onyx.METHOD.SET,
+            key: ONYXKEYS.COLLECTION.DOWNLOAD,
+            value: undefined,
+        },
 
-        // 4. Merge collection key with `undefined` at property level.
+        // @ts-expect-error raises an error, passing undefined to MERGE - correct
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: ONYXKEYS.COLLECTION.DOWNLOAD,
+            value: undefined,
+        },
+
+        // @ts-expect-error raises an error, passing undefined to SET - correct
+        {
+            onyxMethod: Onyx.METHOD.SET,
+            key: `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`,
+            value: undefined,
+        },
+
+        // @ts-expect-error raises an error, passing undefined to MERGE - correct
+        {
+            onyxMethod: Onyx.METHOD.MERGE,
+            key: `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`,
+            value: undefined,
+        },
+
+        // Merge collection key with `undefined` at property level.
         // Doesn't produce any results ✅
         // TS DOESN'T complain about it ✅
         {
@@ -271,7 +290,7 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
         },
     ]);
 
-    const optimisticData: OnyxUpdate[] = [
+    const optimisticData: Array<OnyxUpdate<typeof ONYXKEYS.ACCOUNT | typeof ONYXKEYS.COLLECTION.REPORT>> = [
         {
             onyxMethod: Onyx.METHOD.MERGE,
             key: ONYXKEYS.ACCOUNT,
@@ -283,7 +302,8 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
             value: {
                 [`${ONYXKEYS.COLLECTION.REPORT}${'report1'}` as const]: {participants: {1: {role: 'admin'}}},
                 [`${ONYXKEYS.COLLECTION.REPORT}${'report2'}` as const]: {participants: {1: {role: 'admin'}}},
-                // [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'report2'}` as const]: {isDownloading: true}, // raises an error - correct
+                // @ts-expect-error raises an error - correct
+                [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'report2'}` as const]: {isDownloading: true},
             },
         },
     ];
@@ -295,7 +315,8 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
             [ONYXKEYS.ACCOUNT]: {primaryLogin: 'id1'},
             [ONYXKEYS.IS_LOADING_PAYMENT_METHODS]: false,
             [`${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}` as const]: {isDownloading: true},
-            // [ONYXKEYS.ACTIVE_CLIENTS]: 'wrong value', // raises an error, wrong value - correct
+            // @ts-expect-error raises an error, wrong value - correct
+            [ONYXKEYS.ACTIVE_CLIENTS]: 'wrong value',
         },
         evictableKeys: [ONYXKEYS.ACCOUNT, `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`],
         maxCachedKeysCount: 1000,
@@ -304,28 +325,20 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
 
     Onyx.registerLogger(({level, message}) => {});
 
-    // Onyx.hasPendingMergeForKey(ONYXKEYS.ACCOUNT);
-    // Onyx.hasPendingMergeForKey('wrong key'); // raises an error, wrong key - correct
+    // @ts-expect-error raises an error, passing undefined to SET - correct
+    Onyx.set(ONYXKEYS.POLICY_ID, undefined);
+    // @ts-expect-error raises an error, passing undefined to MERGE - correct
+    Onyx.merge(ONYXKEYS.POLICY_ID, undefined);
 
-    // Onyx.setMemoryOnlyKeys([ONYXKEYS.ACCOUNT, ONYXKEYS.COLLECTION.DOWNLOAD, `${ONYXKEYS.COLLECTION.DOWNLOAD}${'attachment1'}`]);
+    // @ts-expect-error raises an error, passing undefined to SET - correct
+    Onyx.set(ONYXKEYS.COLLECTION.INEXISTENT, undefined);
+    // @ts-expect-error raises an error, passing undefined to MERGE - correct
+    Onyx.merge(ONYXKEYS.COLLECTION.INEXISTENT, undefined);
 
-    // 1. Set / Merge key with `undefined` at root level.
-    // Doesn't produce any results ✅
-    // TS complains about it ✅
-    // Onyx.set(ONYXKEYS.POLICY_ID, undefined);
-    // Onyx.merge(ONYXKEYS.POLICY_ID, undefined);
-
-    // 2. Set / Merge collection key with `undefined` at root level.
-    // Doesn't produce any results ✅
-    // TS complains about it ✅
-    // Onyx.set(ONYXKEYS.COLLECTION.INEXISTENT, undefined);
-    // Onyx.merge(ONYXKEYS.COLLECTION.INEXISTENT, undefined);
-
-    // 3. Set / Merge collection key with `undefined` at record level.
-    // Doesn't produce any results ✅
-    // TS complains about it ✅
-    // Onyx.set(`${ONYXKEYS.COLLECTION.INEXISTENT}${'id1'}`, undefined);
-    // Onyx.merge(`${ONYXKEYS.COLLECTION.INEXISTENT}${'id1'}`, undefined);
+    // @ts-expect-error raises an error, passing undefined to SET - correct
+    Onyx.set(`${ONYXKEYS.COLLECTION.INEXISTENT}${'id1'}`, undefined);
+    // @ts-expect-error raises an error, passing undefined to MERGE - correct
+    Onyx.merge(`${ONYXKEYS.COLLECTION.INEXISTENT}${'id1'}`, undefined);
 
     // 4. Merge collection key with `undefined` at property level.
     // Doesn't produce any results ✅

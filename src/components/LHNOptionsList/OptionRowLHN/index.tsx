@@ -2,42 +2,32 @@ import reportsSelector from '@selectors/Attributes';
 import React, {useRef, useState} from 'react';
 import type {GestureResponderEvent, ViewStyle} from 'react-native';
 import {StyleSheet, View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import Hoverable from '@components/Hoverable';
-import LHNAvatar from '@components/LHNOptionsList/LHNAvatar';
 import {useLHNListContext} from '@components/LHNOptionsList/LHNListContext';
 import type {OptionRowLHNProps} from '@components/LHNOptionsList/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
-import {usePersonalDetails} from '@components/OnyxListItemProvider';
 import PressableWithSecondaryInteraction from '@components/PressableWithSecondaryInteraction';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useLHNIsUnread from '@hooks/useLHNIsUnread';
 import useLHNOptionData from '@hooks/useLHNOptionData';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
-import useParentReportAction from '@hooks/useParentReportAction';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import DomUtils from '@libs/DomUtils';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
-import {getDelegateAccountIDFromReportAction} from '@libs/ReportActionsUtils';
-import {isChatThread, isExpenseRequest, isTaskReport as isTaskReportUtil, isTripRoom, isWorkspaceTaskReport, shouldReportShowSubscript} from '@libs/ReportUtils';
 import {startSpan} from '@libs/telemetry/activeSpans';
 import {showContextMenu} from '@pages/inbox/report/ContextMenu/ReportActionContextMenu';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ReportNameValuePairs} from '@src/types/onyx';
+import RowAvatar from './RowAvatar';
 import RowContent from './RowContent';
 import RowIndicators from './RowIndicators';
 import RowRBRIndicator from './RowRBRIndicator';
 import RowTooltipWrapper from './RowTooltipWrapper';
-
-function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
-    return reportNameValuePairs?.private_isArchived;
-}
 
 function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () => {}, testID}: OptionRowLHNProps) {
     const {isScreenFocused, optionMode, isOptionFocusEnabled} = useLHNListContext();
@@ -49,23 +39,7 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
     const reportAttributes = reportAttributesDerived?.[reportID];
 
     const option = useLHNOptionData(reportID);
-
-    const parentReportAction = useParentReportAction(report);
     const isUnread = useLHNIsUnread(reportID);
-    const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
-    const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
-
-    const isReportArchived = !!privateIsArchived;
-    const isTask = isTaskReportUtil(report);
-
-    // shouldShowSubscript computation (matches SidebarUtils logic)
-    const rawShouldShowSubscript = shouldReportShowSubscript(report, isReportArchived);
-    const isWorkspaceExpenseRequest = isExpenseRequest(report) && !!policy && policy.type !== CONST.POLICY.TYPE.PERSONAL;
-    const threadSuppression = isChatThread(report) && !isTripRoom(report) && !isWorkspaceExpenseRequest;
-    const taskParentAction = isTask && !report?.chatReportID ? undefined : parentReportAction;
-    const isReportPreviewOrNoAction = !taskParentAction || taskParentAction?.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW;
-    const taskSuppression = isTask && !(isWorkspaceTaskReport(report) && isReportPreviewOrNoAction);
-    const shouldShowSubscript = rawShouldShowSubscript && !threadSuppression && !taskSuppression;
 
     const viewMode = optionMode;
     const theme = useTheme();
@@ -73,8 +47,6 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
     const popoverAnchor = useRef<View>(null);
     const StyleUtils = useStyleUtils();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
-
-    const personalDetails = usePersonalDetails();
 
     const {translate} = useLocalize();
     const [isContextMenuActive, setIsContextMenuActive] = useState(false);
@@ -84,43 +56,6 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
             ? [styles.chatLinkRowPressable, styles.flexGrow1, styles.optionItemAvatarNameWrapper, styles.optionRowCompact, styles.justifyContentCenter]
             : [styles.chatLinkRowPressable, styles.flexGrow1, styles.optionItemAvatarNameWrapper, styles.optionRow, styles.justifyContentCenter],
     );
-
-    const delegateAccountID = getDelegateAccountIDFromReportAction(parentReportAction);
-
-    // Match the header's delegate avatar logic: when a delegate exists on the
-    // parent report action, the header (useReportActionAvatars) shows the
-    // delegate's avatar as primary instead of the report owner's.
-    const skipDelegate = report?.type === CONST.REPORT.TYPE.INVOICE || (isTask && !report?.chatReportID);
-    const icons = (() => {
-        let result = option?.icons ?? [];
-        if (!skipDelegate && delegateAccountID && personalDetails && result.length > 0) {
-            const delegateDetails = personalDetails[delegateAccountID];
-            if (delegateDetails) {
-                const updatedIcons = [...result];
-                const firstIcon = updatedIcons.at(0);
-                if (firstIcon) {
-                    updatedIcons[0] = {
-                        ...firstIcon,
-                        source: delegateDetails.avatar ?? '',
-                        name: delegateDetails.displayName ?? '',
-                        id: delegateAccountID,
-                    };
-                }
-                result = updatedIcons;
-            }
-        }
-
-        return result;
-    })();
-
-    const delegateTooltipAccountID = (() => {
-        if (!skipDelegate && delegateAccountID && personalDetails?.[delegateAccountID] && option?.icons?.length) {
-            return Number(option.icons.at(0)?.id ?? CONST.DEFAULT_NUMBER_ID);
-        }
-        return undefined;
-    })();
-
-    const singleAvatarContainerStyle = [styles.actionAvatar, styles.mr3];
 
     if (!option && !isOptionFocused) {
         return <View style={sidebarInnerRowStyle} />;
@@ -135,11 +70,6 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
     const pendingAction = report?.pendingFields?.addWorkspaceRoom ?? report?.pendingFields?.createChat;
     const allReportErrors = reportAttributes?.reportErrors;
     const brickRoadIndicator = reportAttributes?.brickRoadStatus ?? undefined;
-
-    const hoveredBackgroundColor = !!styles.sidebarLinkHover && 'backgroundColor' in styles.sidebarLinkHover ? styles.sidebarLinkHover.backgroundColor : theme.sidebar;
-    const focusedBackgroundColor = styles.sidebarLinkActive.backgroundColor;
-    const subscriptAvatarBorderColor = isOptionFocused ? focusedBackgroundColor : theme.sidebar;
-    const firstIcon = option.icons?.at(0);
 
     const showPopover = (event: MouseEvent | GestureResponderEvent) => {
         if (!isScreenFocused && shouldUseNarrowLayout) {
@@ -191,79 +121,62 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
             >
                 <View>
                     <Hoverable>
-                        {(hovered) => {
-                            let secondaryAvatarBgColor = theme.sidebar;
-                            if (isOptionFocused) {
-                                secondaryAvatarBgColor = focusedBackgroundColor;
-                            } else if (hovered) {
-                                secondaryAvatarBgColor = hoveredBackgroundColor;
-                            }
-                            return (
-                                <PressableWithSecondaryInteraction
-                                    ref={popoverAnchor}
-                                    onPress={onOptionPress}
-                                    onMouseDown={(event) => {
-                                        if (!event) {
-                                            return;
-                                        }
-                                        event.preventDefault();
-                                    }}
-                                    testID={reportID}
-                                    onSecondaryInteraction={(event) => {
-                                        showPopover(event);
-                                        if (DomUtils.getActiveElement()) {
-                                            (DomUtils.getActiveElement() as HTMLElement | null)?.blur();
-                                        }
-                                    }}
-                                    withoutFocusOnSecondaryInteraction
-                                    activeOpacity={variables.pressDimValue}
-                                    opacityAnimationDuration={0}
-                                    style={[
-                                        styles.flexRow,
-                                        styles.alignItemsCenter,
-                                        styles.justifyContentBetween,
-                                        styles.sidebarLink,
-                                        styles.sidebarLinkInnerLHN,
-                                        StyleUtils.getBackgroundColorStyle(theme.sidebar),
-                                        isOptionFocused ? styles.sidebarLinkActive : null,
-                                        (hovered || isContextMenuActive) && !isOptionFocused ? styles.sidebarLinkHover : null,
-                                    ]}
-                                    role={CONST.ROLE.BUTTON}
-                                    accessibilityLabel={`${translate('accessibilityHints.navigatesToChat')} ${option.text}. ${isUnread ? `${translate('common.unread')}.` : ''} ${option.alternateText}${brickRoadIndicator ? `. ${translate('common.yourReviewIsRequired')}` : ''}`}
-                                    onLayout={onLayout}
-                                    needsOffscreenAlphaCompositing={(option?.icons?.length ?? 0) >= 2}
-                                    sentryLabel={CONST.SENTRY_LABEL.LHN.OPTION_ROW}
-                                >
-                                    <View style={sidebarInnerRowStyle}>
-                                        <View style={[styles.flexRow, styles.alignItemsCenter]}>
-                                            {!!option.icons?.length && !!firstIcon && (
-                                                <LHNAvatar
-                                                    icons={icons}
-                                                    shouldShowSubscript={shouldShowSubscript}
-                                                    size={isInFocusMode ? CONST.AVATAR_SIZE.SMALL : CONST.AVATAR_SIZE.DEFAULT}
-                                                    subscriptAvatarBorderColor={hovered && !isOptionFocused ? hoveredBackgroundColor : subscriptAvatarBorderColor}
-                                                    useMidSubscriptSize={isInFocusMode}
-                                                    secondaryAvatarBackgroundColor={secondaryAvatarBgColor}
-                                                    singleAvatarContainerStyle={singleAvatarContainerStyle}
-                                                    shouldShowTooltip={!privateIsArchived}
-                                                    delegateAccountID={skipDelegate ? undefined : delegateAccountID}
-                                                    delegateTooltipAccountID={delegateTooltipAccountID}
-                                                />
-                                            )}
-                                            <RowContent
-                                                reportID={reportID}
-                                                text={option.text}
-                                                alternateText={option.alternateText}
-                                                style={style}
-                                                testID={testID}
-                                            />
-                                            <RowRBRIndicator reportID={reportID} />
-                                        </View>
+                        {(hovered) => (
+                            <PressableWithSecondaryInteraction
+                                ref={popoverAnchor}
+                                onPress={onOptionPress}
+                                onMouseDown={(event) => {
+                                    if (!event) {
+                                        return;
+                                    }
+                                    event.preventDefault();
+                                }}
+                                testID={reportID}
+                                onSecondaryInteraction={(event) => {
+                                    showPopover(event);
+                                    if (DomUtils.getActiveElement()) {
+                                        (DomUtils.getActiveElement() as HTMLElement | null)?.blur();
+                                    }
+                                }}
+                                withoutFocusOnSecondaryInteraction
+                                activeOpacity={variables.pressDimValue}
+                                opacityAnimationDuration={0}
+                                style={[
+                                    styles.flexRow,
+                                    styles.alignItemsCenter,
+                                    styles.justifyContentBetween,
+                                    styles.sidebarLink,
+                                    styles.sidebarLinkInnerLHN,
+                                    StyleUtils.getBackgroundColorStyle(theme.sidebar),
+                                    isOptionFocused ? styles.sidebarLinkActive : null,
+                                    (hovered || isContextMenuActive) && !isOptionFocused ? styles.sidebarLinkHover : null,
+                                ]}
+                                role={CONST.ROLE.BUTTON}
+                                accessibilityLabel={`${translate('accessibilityHints.navigatesToChat')} ${option.text}. ${isUnread ? `${translate('common.unread')}.` : ''} ${option.alternateText}${brickRoadIndicator ? `. ${translate('common.yourReviewIsRequired')}` : ''}`}
+                                onLayout={onLayout}
+                                needsOffscreenAlphaCompositing={(option?.icons?.length ?? 0) >= 2}
+                                sentryLabel={CONST.SENTRY_LABEL.LHN.OPTION_ROW}
+                            >
+                                <View style={sidebarInnerRowStyle}>
+                                    <View style={[styles.flexRow, styles.alignItemsCenter]}>
+                                        <RowAvatar
+                                            reportID={reportID}
+                                            hovered={hovered}
+                                            icons={option.icons ?? []}
+                                        />
+                                        <RowContent
+                                            reportID={reportID}
+                                            text={option.text}
+                                            alternateText={option.alternateText}
+                                            style={style}
+                                            testID={testID}
+                                        />
+                                        <RowRBRIndicator reportID={reportID} />
                                     </View>
-                                    <RowIndicators reportID={reportID} />
-                                </PressableWithSecondaryInteraction>
-                            );
-                        }}
+                                </View>
+                                <RowIndicators reportID={reportID} />
+                            </PressableWithSecondaryInteraction>
+                        )}
                     </Hoverable>
                 </View>
             </RowTooltipWrapper>

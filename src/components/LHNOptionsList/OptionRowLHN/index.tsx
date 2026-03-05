@@ -2,6 +2,7 @@ import reportsSelector from '@selectors/Attributes';
 import React, {useRef, useState} from 'react';
 import type {GestureResponderEvent, ViewStyle} from 'react-native';
 import {StyleSheet, View} from 'react-native';
+import type {OnyxEntry} from 'react-native-onyx';
 import Hoverable from '@components/Hoverable';
 import {useLHNListContext} from '@components/LHNOptionsList/LHNListContext';
 import type {OptionRowLHNProps} from '@components/LHNOptionsList/types';
@@ -23,18 +24,29 @@ import {showContextMenu} from '@pages/inbox/report/ContextMenu/ReportActionConte
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+import type {Report} from '@src/types/onyx';
 import RowAvatar from './RowAvatar';
 import RowContent from './RowContent';
 import RowIndicators from './RowIndicators';
 import RowRBRIndicator from './RowRBRIndicator';
 import RowTooltipWrapper from './RowTooltipWrapper';
 
+function reportSelector(report: OnyxEntry<Report>) {
+    if (!report) {
+        return undefined;
+    }
+    return {
+        isPinned: report.isPinned,
+        pendingFields: report.pendingFields,
+    };
+}
+
 function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () => {}, testID}: OptionRowLHNProps) {
     const {isScreenFocused, optionMode, isOptionFocusEnabled} = useLHNListContext();
     const {currentReportID} = useCurrentReportIDState();
     const isOptionFocused = isOptionFocusEnabled && currentReportID === reportID;
 
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: reportSelector});
     const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
     const reportAttributes = reportAttributesDerived?.[reportID];
 

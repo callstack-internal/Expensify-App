@@ -1,3 +1,4 @@
+import React from 'react';
 import type {ViewStyle} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import LHNAvatar from '@components/LHNOptionsList/LHNAvatar';
@@ -12,7 +13,7 @@ import {getDelegateAccountIDFromReportAction} from '@libs/ReportActionsUtils';
 import {isChatThread, isExpenseRequest, isTaskReport, isTripRoom, isWorkspaceTaskReport, shouldReportShowSubscript} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ReportNameValuePairs} from '@src/types/onyx';
+import type {Policy, ReportNameValuePairs} from '@src/types/onyx';
 import type {Icon} from '@src/types/onyx/OnyxCommon';
 
 type RowAvatarProps = {
@@ -25,6 +26,10 @@ function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameVal
     return reportNameValuePairs?.private_isArchived;
 }
 
+function policyTypeSelector(policy: OnyxEntry<Policy>): string | undefined {
+    return policy?.type;
+}
+
 function RowAvatar({reportID, hovered, icons: optionIcons}: RowAvatarProps) {
     const theme = useTheme();
     const styles = useThemeStyles();
@@ -35,7 +40,7 @@ function RowAvatar({reportID, hovered, icons: optionIcons}: RowAvatarProps) {
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
-    const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
+    const [policyType] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`, {selector: policyTypeSelector});
 
     const parentReportAction = useParentReportAction(report);
 
@@ -50,7 +55,7 @@ function RowAvatar({reportID, hovered, icons: optionIcons}: RowAvatarProps) {
 
     // shouldShowSubscript computation (matches SidebarUtils logic)
     const rawShouldShowSubscript = shouldReportShowSubscript(report, isReportArchived);
-    const isWorkspaceExpenseRequest = isExpenseRequest(report) && !!policy && policy.type !== CONST.POLICY.TYPE.PERSONAL;
+    const isWorkspaceExpenseRequest = isExpenseRequest(report) && !!policyType && policyType !== CONST.POLICY.TYPE.PERSONAL;
     const threadSuppression = isChatThread(report) && !isTripRoom(report) && !isWorkspaceExpenseRequest;
     const taskParentAction = isTask && !report?.chatReportID ? undefined : parentReportAction;
     const isReportPreviewOrNoAction = !taskParentAction || taskParentAction?.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW;

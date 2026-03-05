@@ -11,7 +11,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import {canUserPerformWriteAction} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ReportNameValuePairs} from '@src/types/onyx';
+import type {Report, ReportNameValuePairs} from '@src/types/onyx';
 
 function hasDraftCommentSelector(draftComment: OnyxEntry<string>): boolean {
     return !!draftComment && !draftComment.match(CONST.REGEX.EMPTY_COMMENT);
@@ -19,6 +19,10 @@ function hasDraftCommentSelector(draftComment: OnyxEntry<string>): boolean {
 
 function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameValuePairs>): string | undefined {
     return reportNameValuePairs?.private_isArchived;
+}
+
+function isPinnedSelector(report: OnyxEntry<Report>): boolean {
+    return !!report?.isPinned;
 }
 
 function GBRIndicator({reportID}: {reportID: string}) {
@@ -77,11 +81,11 @@ function PinIndicator({reportID}: {reportID: string}) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Pin']);
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const [isPinned] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: isPinnedSelector});
     const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
     const brickRoadIndicator = reportAttributesDerived?.[reportID]?.brickRoadStatus;
 
-    if (brickRoadIndicator || !report?.isPinned) {
+    if (brickRoadIndicator || !isPinned) {
         return null;
     }
 

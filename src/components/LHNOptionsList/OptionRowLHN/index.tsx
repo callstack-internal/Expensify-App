@@ -225,7 +225,6 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
                                                 />
                                             )}
                                             <RowContent
-                                                option={option}
                                                 reportID={reportID}
                                                 style={style}
                                                 testID={testID}

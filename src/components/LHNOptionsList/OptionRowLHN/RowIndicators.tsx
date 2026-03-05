@@ -21,60 +21,96 @@ function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameVal
     return reportNameValuePairs?.private_isArchived;
 }
 
+function GBRIndicator({reportID}: {reportID: string}) {
+    const theme = useTheme();
+    const styles = useThemeStyles();
+    const expensifyIcons = useMemoizedLazyExpensifyIcons(['DotIndicator']);
+    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
+    const brickRoadIndicator = reportAttributesDerived?.[reportID]?.brickRoadStatus;
+
+    if (brickRoadIndicator !== CONST.BRICK_ROAD_INDICATOR_STATUS.INFO) {
+        return null;
+    }
+
+    return (
+        <View style={styles.ml2}>
+            <Icon
+                testID="GBR Icon"
+                src={expensifyIcons.DotIndicator}
+                fill={theme.success}
+            />
+        </View>
+    );
+}
+
+function DraftIndicator({reportID}: {reportID: string}) {
+    const theme = useTheme();
+    const styles = useThemeStyles();
+    const {translate} = useLocalize();
+    const expensifyIcons = useMemoizedLazyExpensifyIcons(['Pencil']);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const [hasDraftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`, {selector: hasDraftCommentSelector});
+    const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
+
+    const isAllowedToComment = canUserPerformWriteAction(report, !!privateIsArchived);
+
+    if (!hasDraftComment || !isAllowedToComment) {
+        return null;
+    }
+
+    return (
+        <View
+            style={styles.ml2}
+            accessibilityLabel={translate('sidebarScreen.draftedMessage')}
+        >
+            <Icon
+                testID="Pencil Icon"
+                fill={theme.icon}
+                src={expensifyIcons.Pencil}
+            />
+        </View>
+    );
+}
+
+function PinIndicator({reportID}: {reportID: string}) {
+    const theme = useTheme();
+    const styles = useThemeStyles();
+    const {translate} = useLocalize();
+    const expensifyIcons = useMemoizedLazyExpensifyIcons(['Pin']);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
+    const brickRoadIndicator = reportAttributesDerived?.[reportID]?.brickRoadStatus;
+
+    if (brickRoadIndicator || !report?.isPinned) {
+        return null;
+    }
+
+    return (
+        <View
+            style={styles.ml2}
+            accessibilityLabel={translate('sidebarScreen.chatPinned')}
+        >
+            <Icon
+                testID="Pin Icon"
+                fill={theme.icon}
+                src={expensifyIcons.Pin}
+            />
+        </View>
+    );
+}
+
 type RowIndicatorsProps = {
     reportID: string;
 };
 
 function RowIndicators({reportID}: RowIndicatorsProps) {
-    const theme = useTheme();
     const styles = useThemeStyles();
-    const {translate} = useLocalize();
-    const expensifyIcons = useMemoizedLazyExpensifyIcons(['Pencil', 'DotIndicator', 'Pin']);
-
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
-    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
-    const [hasDraftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`, {selector: hasDraftCommentSelector});
-    const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
-
-    const brickRoadIndicator = reportAttributesDerived?.[reportID]?.brickRoadStatus;
-    const isPinned = report?.isPinned;
-    const isAllowedToComment = canUserPerformWriteAction(report, !!privateIsArchived);
 
     return (
         <View style={[styles.flexRow, styles.alignItemsCenter]}>
-            {brickRoadIndicator === CONST.BRICK_ROAD_INDICATOR_STATUS.INFO && (
-                <View style={styles.ml2}>
-                    <Icon
-                        testID="GBR Icon"
-                        src={expensifyIcons.DotIndicator}
-                        fill={theme.success}
-                    />
-                </View>
-            )}
-            {!!hasDraftComment && !!isAllowedToComment && (
-                <View
-                    style={styles.ml2}
-                    accessibilityLabel={translate('sidebarScreen.draftedMessage')}
-                >
-                    <Icon
-                        testID="Pencil Icon"
-                        fill={theme.icon}
-                        src={expensifyIcons.Pencil}
-                    />
-                </View>
-            )}
-            {!brickRoadIndicator && !!isPinned && (
-                <View
-                    style={styles.ml2}
-                    accessibilityLabel={translate('sidebarScreen.chatPinned')}
-                >
-                    <Icon
-                        testID="Pin Icon"
-                        fill={theme.icon}
-                        src={expensifyIcons.Pin}
-                    />
-                </View>
-            )}
+            <GBRIndicator reportID={reportID} />
+            <DraftIndicator reportID={reportID} />
+            <PinIndicator reportID={reportID} />
         </View>
     );
 }

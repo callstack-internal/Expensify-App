@@ -34,8 +34,6 @@ type LHNOptionData = Pick<
     | 'displayNamesWithTooltips'
     | 'shouldShowSubscript'
     | 'parentReportAction'
-    | 'status'
-    | 'timezone'
     | 'isUnread'
     | 'notificationPreference'
     | 'isChatRoom'
@@ -60,7 +58,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
     const {accountID: currentUserAccountID, login} = useCurrentUserPersonalDetails();
     const {policyForMovingExpensesID} = usePolicyForMovingExpenses();
 
-    // Per-item Onyx subscriptions
     const [fullReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [privateIsArchived] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`, {selector: privateIsArchivedSelector});
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`);
@@ -74,7 +71,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
     const [policyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${fullReport?.policyID}`);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
 
-    // Compute invoice receiver policy ID
     let invoiceReceiverPolicyID = '-1';
     if (fullReport?.invoiceReceiver && 'policyID' in fullReport.invoiceReceiver) {
         invoiceReceiverPolicyID = fullReport.invoiceReceiver.policyID;
@@ -84,19 +80,14 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
     }
     const [invoiceReceiverPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`);
 
-    // One transaction thread report
     const oneTransactionThreadReportID = getOneTransactionThreadReportID(fullReport, chatReport, reportActions, isOffline);
     const [oneTransactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${oneTransactionThreadReportID}`);
 
-    // Compute archived status
     const isReportArchived = !!privateIsArchived;
-
-    // Compute sorted report actions and last report action
     const canUserPerformWrite = canUserPerformWriteActionUtil(fullReport, isReportArchived);
     const sortedReportActions = getSortedReportActionsForDisplay(reportActions, canUserPerformWrite);
     const lastReportAction = sortedReportActions.at(0);
 
-    // Compute lastAction (the visible action for display)
     let lastAction: ReportAction | undefined;
     if (!reportActions || !fullReport) {
         lastAction = undefined;
@@ -108,20 +99,16 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
         lastAction = reportActionsForDisplay.at(-1);
     }
 
-    // Last action report (for invite/removed actions)
     const lastActionOriginalMessage = isInviteOrRemovedAction(lastAction) && lastAction?.actionName ? getOriginalMessage(lastAction) : null;
     const lastActionReportID = lastActionOriginalMessage?.reportID;
     const [lastActionReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${lastActionReportID}`);
 
-    // Moved reports for lastAction
     const [movedFromReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.FROM)}`);
     const [movedToReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastAction, CONST.REPORT.MOVE_TYPE.TO)}`);
 
-    // Moved reports for lastReportAction (used in lastMessageText computation)
     const [movedFromReportForLastReportAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastReportAction, CONST.REPORT.MOVE_TYPE.FROM)}`);
     const [movedToReportForLastReportAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getMovedReportID(lastReportAction, CONST.REPORT.MOVE_TYPE.TO)}`);
 
-    // Compute last actor details
     let lastActorDetails: Partial<PersonalDetails> | null =
         fullReport?.lastActorAccountID && personalDetails?.[fullReport.lastActorAccountID] ? personalDetails[fullReport.lastActorAccountID] : null;
     if (!lastActorDetails && lastReportAction) {
@@ -134,7 +121,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
             : null;
     }
 
-    // Compute last message text
     const lastMessageTextFromReport = getLastMessageTextForReport({
         translate,
         report: fullReport,
@@ -179,7 +165,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
         currentUserLogin: login ?? '',
     });
 
-    // Extract only the fields needed by consumers
     const result: LHNOptionData | undefined = fullOption
         ? {
               text: fullOption.text,
@@ -188,8 +173,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
               displayNamesWithTooltips: fullOption.displayNamesWithTooltips,
               shouldShowSubscript: fullOption.shouldShowSubscript,
               parentReportAction: fullOption.parentReportAction,
-              status: fullOption.status,
-              timezone: fullOption.timezone,
               isUnread: fullOption.isUnread,
               notificationPreference: fullOption.notificationPreference,
               isChatRoom: fullOption.isChatRoom,
@@ -202,11 +185,8 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
           }
         : undefined;
 
-    // Use deep equality to preserve referential identity when the option data hasn't actually changed
     const prevResult = usePrevious(result);
-    const stableResult = deepEqual(result, prevResult) ? prevResult : result;
-
-    return stableResult;
+    return deepEqual(result, prevResult) ? prevResult : result;
 }
 
 export default useLHNOptionData;

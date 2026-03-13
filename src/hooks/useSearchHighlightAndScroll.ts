@@ -187,7 +187,8 @@ function useSearchHighlightAndScroll({
             const currentReportActionIDs = extractReportActionIDsFromSearchResults(searchResults.data);
 
             // Find new report action IDs that are not in the previousReportActionIDs and not already highlighted
-            const newReportActionIDs = currentReportActionIDs.filter((id) => !previousReportActionIDs.includes(id) && !highlightedIDs.current.has(id));
+            const previousReportActionIDsSet = new Set(previousReportActionIDs);
+            const newReportActionIDs = currentReportActionIDs.filter((id) => !previousReportActionIDsSet.has(id) && !highlightedIDs.current.has(id));
 
             if (!triggeredByHookRef.current || newReportActionIDs.length === 0 || !hasNewItemsRef.current) {
                 return;
@@ -206,6 +207,7 @@ function useSearchHighlightAndScroll({
             const manualHighlightTransactionIDs = new Set(Object.keys(transactionIDsToHighlight ?? {}).filter((id) => !!transactionIDsToHighlight?.[id]));
 
             // Find new transaction IDs that are not in the previousTransactionIDs and not already highlighted
+            const previousTransactionIDsSet = new Set(previousTransactionIDs);
             const newTransactionIDs = currentTransactionIDs.filter((id) => {
                 if (manualHighlightTransactionIDs.has(id)) {
                     return true;
@@ -213,7 +215,7 @@ function useSearchHighlightAndScroll({
                 if (!triggeredByHookRef.current || !hasNewItemsRef.current) {
                     return false;
                 }
-                return !previousTransactionIDs.includes(id) && !highlightedIDs.current.has(id);
+                return !previousTransactionIDsSet.has(id) && !highlightedIDs.current.has(id);
             });
 
             if (newTransactionIDs.length === 0) {

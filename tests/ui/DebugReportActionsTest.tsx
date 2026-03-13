@@ -29,7 +29,6 @@ describe('DebugReportActions', () => {
     beforeAll(() => {
         Onyx.init({
             keys: ONYXKEYS,
-            evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
         });
         act(() => {
             Onyx.set(ONYXKEYS.NVP_PREFERRED_LOCALE, CONST.LOCALES.EN);

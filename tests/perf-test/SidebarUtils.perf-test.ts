@@ -48,7 +48,6 @@ describe('SidebarUtils', () => {
     beforeAll(() => {
         Onyx.init({
             keys: ONYXKEYS,
-            evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
         });
 
         Onyx.multiSet({

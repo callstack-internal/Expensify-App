@@ -16,7 +16,6 @@ const request: Request<'reportMetadata_1' | 'reportMetadata_2'> = {
 beforeAll(() =>
     Onyx.init({
         keys: ONYXKEYS,
-        evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
     }),
 );
 

@@ -164,7 +164,6 @@ const MOCK_DATA = createMockData(100);
 beforeAll(() =>
     Onyx.init({
         keys: ONYXKEYS,
-        evictableKeys: [ONYXKEYS.COLLECTION.REPORT],
     }),
 );
 

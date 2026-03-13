@@ -222,7 +222,7 @@ async function setupOnyxState({report, chatReport, policy, bankAccountList, last
 
 describe('SettlementButton', () => {
     beforeAll(() => {
-        Onyx.init({keys: ONYXKEYS, evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS]});
+        Onyx.init({keys: ONYXKEYS});
         IntlStore.load(CONST.LOCALES.EN);
     });
 

@@ -42,7 +42,6 @@ describe('SidebarUtils', () => {
     beforeAll(async () => {
         Onyx.init({
             keys: ONYXKEYS,
-            evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
         });
         IntlStore.load(CONST.LOCALES.EN);
         initOnyxDerivedValues();

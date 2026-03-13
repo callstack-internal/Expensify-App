@@ -112,7 +112,6 @@ const mockedOptions = createOptionList(mockedPersonalDetails, MOCK_CURRENT_USER_
 beforeAll(() =>
     Onyx.init({
         keys: ONYXKEYS,
-        evictableKeys: [ONYXKEYS.COLLECTION.REPORT],
     }),
 );
 

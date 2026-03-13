@@ -80,7 +80,6 @@ jest.mock('@libs/EmojiTrie', () => ({
     buildEmojisTrie: jest.fn(),
 }));
 
-// Override IDs so we control Onyx keys and can use evictableKeys for REPORT_ACTIONS
 const TEST_PARENT_REPORT_ID = 'testParentReportID';
 const TEST_REPORT_ID = 'testReportID';
 const TEST_ACTION_ID = 'testActionID';
@@ -191,7 +190,6 @@ describe('MoneyRequestReceiptView', () => {
     beforeAll(() => {
         Onyx.init({
             keys: ONYXKEYS,
-            evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
         });
     });
 

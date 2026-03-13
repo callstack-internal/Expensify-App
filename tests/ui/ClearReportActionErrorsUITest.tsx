@@ -48,7 +48,6 @@ describe('ClearReportActionErrors UI', () => {
     beforeAll(() => {
         Onyx.init({
             keys: ONYXKEYS,
-            evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
         });
         jest.spyOn(NativeNavigation, 'useRoute').mockReturnValue({key: '', name: ''});
         jest.spyOn(ReportActionUtils, 'getIOUActionForReportID').mockImplementation(getIOUActionForReportID);

@@ -70,7 +70,6 @@ jest.mock('@src/libs/actions/EmojiPickerAction', () => {
 beforeAll(() =>
     Onyx.init({
         keys: ONYXKEYS,
-        evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
     }),
 );
 

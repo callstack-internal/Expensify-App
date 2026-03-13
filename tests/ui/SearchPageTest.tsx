@@ -96,16 +96,7 @@ describe('SearchPageNarrow', () => {
     beforeAll(() => {
         (useResponsiveLayout as jest.Mock).mockReturnValue({shouldUseNarrowLayout: true, isSmallScreenWidth: true});
 
-        Onyx.init({
-            keys: ONYXKEYS,
-            evictableKeys: [
-                ONYXKEYS.COLLECTION.REPORT_ACTIONS,
-                ONYXKEYS.COLLECTION.SNAPSHOT,
-                ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS,
-                ONYXKEYS.COLLECTION.REPORT_ACTIONS_PAGES,
-                ONYXKEYS.COLLECTION.REPORT_ACTIONS_REACTIONS,
-            ],
-        });
+        Onyx.init({keys: ONYXKEYS});
     });
 
     afterEach(async () => {

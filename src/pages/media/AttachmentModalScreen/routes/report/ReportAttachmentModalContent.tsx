@@ -24,9 +24,7 @@ import SafeString from '@src/utils/SafeString';
 function ReportAttachmentModalContent({route, navigation}: AttachmentModalScreenProps<typeof SCREENS.REPORT_ATTACHMENTS>) {
     const {attachmentID, type, source: sourceParam, isAuthTokenRequired, attachmentLink, originalFileName, accountID, reportID, hashKey, headerTitle, onShow, onClose} = route.params;
 
-    const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {
-        canEvict: false,
-    });
+    const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {});
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
 
     const reportActionID = useMemo(() => attachmentID?.split('_')?.[0], [attachmentID]);

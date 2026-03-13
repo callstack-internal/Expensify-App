@@ -30,23 +30,6 @@ Store collections as individual keys+ID (e.g., `report_1234`, `report_4567`) whe
 ### - Onyx keys MUST be defined using constants in `ONYXKEYS`
 Each Onyx key represents either a collection of items or a specific entry in storage. For example, since all reports are stored as individual keys like `report_1234`, if code needs to know about all the reports (e.g., display a list of them in the nav menu), then it MUST subscribe to the key `ONYXKEYS.COLLECTION.REPORT`.
 
-### - Storage eviction MUST be configured for non-critical data
-Different platforms come with varying storage capacities and Onyx has a way to gracefully fail when those storage limits are encountered.
-
-**To flag a key as safe for removal:**
-- Add the key to the `evictableKeys` option in `Onyx.init(options)`
-- Implement `canEvict` in the Onyx config for each component subscribing to a key
-- The key will only be deleted when all subscribers return `true` for `canEvict`
-
-Example:
-```js
-Onyx.init({
-    evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
-});
-
-const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {canEvict: !isActiveReport});
-```
-
 ## Onyx Derived Values
 
 Derived values are special Onyx keys which contain values derived from other Onyx values. These are available as a performance optimization, so that if the result of a common computation of Onyx values is needed in many places across the app, the computation can be done only as needed in a centralized location, and then shared across the app. Once created, Onyx derived values are stored and consumed just like any other Onyx value.

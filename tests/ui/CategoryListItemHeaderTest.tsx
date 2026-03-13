@@ -104,7 +104,6 @@ describe('CategoryListItemHeader', () => {
     beforeAll(() =>
         Onyx.init({
             keys: ONYXKEYS,
-            evictableKeys: [ONYXKEYS.COLLECTION.REPORT_ACTIONS],
         }),
     );
 

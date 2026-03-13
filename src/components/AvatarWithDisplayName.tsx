@@ -184,7 +184,7 @@ function AvatarWithDisplayName({
     parentNavigationStatusContainerStyles = {},
 }: AvatarWithDisplayNameProps) {
     const {localeCompare, formatPhoneNumber} = useLocalize();
-    const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.parentReportID}`, {canEvict: false});
+    const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.parentReportID}`, {});
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST) ?? CONST.EMPTY_OBJECT;
     const theme = useTheme();
     const styles = useThemeStyles();

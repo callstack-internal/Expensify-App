@@ -226,9 +226,7 @@ function ReportActionCompose({
     const isTransactionThreadView = useMemo(() => isReportTransactionThread(report), [report]);
     const isExpensesReport = useMemo(() => reportTransactions && reportTransactions.length > 1, [reportTransactions]);
 
-    const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.reportID}`, {
-        canEvict: false,
-    });
+    const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.reportID}`, {});
 
     const personalDetail = useCurrentUserPersonalDetails();
 

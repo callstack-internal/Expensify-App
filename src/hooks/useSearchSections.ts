@@ -23,7 +23,6 @@ function useSearchSections(): UseSearchSectionsResult {
     const isActionLoadingSet = useActionLoadingReportIDs();
 
     const [exportReportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {
-        canEvict: false,
         selector: selectFilteredReportActions,
     });
 

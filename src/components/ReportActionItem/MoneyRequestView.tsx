@@ -101,6 +101,7 @@ import {
     isDistanceTypeRequest,
     isExpenseUnreported as isExpenseUnreportedTransactionUtils,
     isGPSDistanceRequest as isGPSDistanceRequestTransactionUtils,
+    isManagedCardTransaction as isManagedCardTransactionUtil,
     isManualDistanceRequest as isManualDistanceRequestTransactionUtils,
     isMapDistanceRequest as isMapDistanceRequestTransactionUtils,
     isOdometerDistanceRequest as isOdometerDistanceRequestTransactionUtils,
@@ -401,7 +402,7 @@ function MoneyRequestView({
     const shouldShowReimbursable =
         (isPolicyExpenseChat || (isExpenseUnreported && !!policy)) &&
         (policy?.disabledFields?.reimbursable !== true || isCurrentTransactionReimbursableDifferentFromPolicyDefault) &&
-        !isManagedCardTransaction &&
+        !isManagedCardTransactionUtil(transaction) &&
         !isInvoice;
     const canEditReimbursable =
         isEditable &&

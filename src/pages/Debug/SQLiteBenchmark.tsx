@@ -1,17 +1,17 @@
 /**
  * SQLite multiGet Benchmark Screen
  *
- * Tests different query strategies for fetching large batches of records
- * using a separate test database (does NOT touch OnyxDB).
+ * Measures query strategies in two phases to isolate SQL performance from JSON.parse noise:
+ *   Phase 1 (SQL only): executeAsync → return raw _array (measures query + bridge overhead)
+ *   Phase 2 (Full pipeline): executeAsync → JSON.parse each row (measures total cost as in real Onyx)
  *
- * All strategies use executeAsync to match the real Onyx code path.
- * Temp table strategy mirrors Fábio's exact reverted implementation
- * (chained executeAsync/executeBatchAsync calls).
+ * Reports "best of N" (minimum) — GC/system load can only ADD time, never subtract,
+ * so the minimum is the most reliable indicator of true performance.
  *
- * Access via Test Tools Modal → "Run SQL Benchmark" button.
+ * Access via Test Tools Modal.
  */
 import Clipboard from '@react-native-clipboard/clipboard';
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {Platform, StyleSheet, View} from 'react-native';
 import {open} from 'react-native-nitro-sqlite';
 import type {NitroSQLiteConnection} from 'react-native-nitro-sqlite';
@@ -22,8 +22,9 @@ const BENCH_DB_NAME = 'BenchmarkDB';
 const TABLE = 'keyvaluepairs';
 const COLLECTION_PREFIX = 'reportActions_';
 const PREFIXES = ['reportActions_', 'reports_', 'transactions_', 'policies_', 'accounts_'];
-const RUNS = 7;
-const RECORD_COUNTS = [100, 500, 1000, 5000, 10000];
+const RUNS = 40;
+const PAUSE_BETWEEN_STRATEGIES_MS = 100;
+const RECORD_COUNTS = [500, 1000, 5000, 10000];
 
 const localStyles = StyleSheet.create({
     title: {fontSize: 16, fontWeight: 'bold', marginTop: 20, marginBottom: 2},
@@ -44,13 +45,14 @@ const localStyles = StyleSheet.create({
 type BenchResult = {
     strategy: string;
     count: number;
+    bestOf: number;
     median: number;
     min: number;
     max: number;
 };
 
 // ---------------------------------------------------------------------------
-// Test data — matches real ReportAction shape
+// Test data
 // ---------------------------------------------------------------------------
 
 function createRecord(index: number): string {
@@ -99,203 +101,253 @@ function seedDB(db: NitroSQLiteConnection, count: number, prefix: string): strin
 }
 
 // ---------------------------------------------------------------------------
-// multiGet strategies — all use executeAsync to match real Onyx code path
+// Strategy definitions — each returns a function for SQL-only and full pipeline
 // ---------------------------------------------------------------------------
 
-/** Current Onyx implementation: single executeAsync with IN clause */
-async function multiGetIN(db: NitroSQLiteConnection, keys: string[]) {
-    const placeholders = keys.map(() => '?').join(',');
-    const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key IN (${placeholders})`, keys);
-    // eslint-disable-next-line no-underscore-dangle
-    return rows?._array ?? [];
+type StrategyFn = () => Promise<unknown>;
+
+function makeStrategies(db: NitroSQLiteConnection, keys: string[], prefix: string) {
+    // Return raw rows — JSON.parse cost is identical for all strategies so we exclude it
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const getRows = (rows: {_array: unknown[]} | undefined) => {
+        // eslint-disable-next-line no-underscore-dangle
+        return rows?._array ?? [];
+    };
+
+    const inClause: StrategyFn = async () => {
+        const placeholders = keys.map(() => '?').join(',');
+        const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key IN (${placeholders})`, keys);
+        return getRows(rows);
+    };
+
+    const tempTable: StrategyFn = async () => {
+        const tableName = `temp_multiGet_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        await db.executeAsync(`CREATE TEMP TABLE ${tableName} (record_key TEXT PRIMARY KEY);`);
+        await db.executeBatchAsync([{query: `INSERT INTO ${tableName} (record_key) VALUES (?);`, params: keys.map((k) => [k])}]);
+        const {rows} = await db.executeAsync(`SELECT k.record_key, k.valueJSON FROM ${TABLE} AS k INNER JOIN ${tableName} AS t ON k.record_key = t.record_key;`);
+        const result = getRows(rows);
+        db.executeAsync(`DROP TABLE IF EXISTS ${tableName};`);
+        return result;
+    };
+
+    const makeChunkedIN =
+        (chunkSize: number): StrategyFn =>
+        async () => {
+            const allResults: unknown[] = [];
+            for (let i = 0; i < keys.length; i += chunkSize) {
+                const chunk = keys.slice(i, i + chunkSize);
+                const placeholders = chunk.map(() => '?').join(',');
+                // eslint-disable-next-line no-await-in-loop
+                const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key IN (${placeholders})`, chunk);
+                allResults.push(...getRows(rows));
+            }
+            return allResults;
+        };
+
+    /** json_each JOIN: pass all keys as a single JSON array, JOIN against json_each() virtual table */
+    const jsonEachJoin: StrategyFn = async () => {
+        const jsonArray = JSON.stringify(keys);
+        const {rows} = await db.executeAsync(`SELECT kv.record_key, kv.valueJSON FROM ${TABLE} kv INNER JOIN json_each(?) je ON kv.record_key = je.value`, [jsonArray]);
+        return getRows(rows);
+    };
+
+    /** json_each subselect: keys as JSON array, used in WHERE IN subquery */
+    const jsonEachSubselect: StrategyFn = async () => {
+        const jsonArray = JSON.stringify(keys);
+        const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key IN (SELECT value FROM json_each(?))`, [jsonArray]);
+        return getRows(rows);
+    };
+
+    const glob: StrategyFn = async () => {
+        const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key GLOB ?`, [`${prefix}*`]);
+        return getRows(rows);
+    };
+
+    return [
+        {name: 'IN clause', fn: inClause},
+        {name: 'Temp table', fn: tempTable},
+        {name: 'Chunk 500', fn: makeChunkedIN(500)},
+        {name: 'Chunk 1000', fn: makeChunkedIN(1000)},
+        {name: 'json_each JOIN', fn: jsonEachJoin},
+        {name: 'json_each SUB', fn: jsonEachSubselect},
+        {name: 'GLOB', fn: glob},
+    ];
 }
 
-/** Fábio's reverted implementation: chained executeAsync calls with temp table */
-async function multiGetTempTable(db: NitroSQLiteConnection, keys: string[]) {
-    const tableName = `temp_multiGet_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+// ---------------------------------------------------------------------------
+// Benchmark runner — reports min (best of N) and median
+// ---------------------------------------------------------------------------
 
-    await db.executeAsync(`CREATE TEMP TABLE ${tableName} (record_key TEXT PRIMARY KEY);`);
+// eslint-disable-next-line no-promise-executor-return
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-    const insertQuery = `INSERT INTO ${tableName} (record_key) VALUES (?);`;
-    const insertParams = keys.map((key) => [key]);
-    await db.executeBatchAsync([{query: insertQuery, params: insertParams}]);
-
-    const {rows} = await db.executeAsync(
-        `SELECT k.record_key, k.valueJSON FROM ${TABLE} AS k INNER JOIN ${tableName} AS t ON k.record_key = t.record_key;`,
-    );
-
-    // eslint-disable-next-line no-underscore-dangle
-    const result = rows?._array ?? [];
-
-    // Cleanup — fire and forget, matching Fábio's .finally() which doesn't block the return
-    db.executeAsync(`DROP TABLE IF EXISTS ${tableName};`);
-
-    return result;
-}
-
-/** Chunked IN: split into batches, each via executeAsync */
-async function multiGetChunkedIN(db: NitroSQLiteConnection, keys: string[], chunkSize = 500) {
-    const allResults: unknown[] = [];
-    for (let i = 0; i < keys.length; i += chunkSize) {
-        const chunk = keys.slice(i, i + chunkSize);
-        const placeholders = chunk.map(() => '?').join(',');
-        // eslint-disable-next-line no-await-in-loop -- sequential chunks are intentional
-        const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key IN (${placeholders})`, chunk);
-        if (rows) {
-            // eslint-disable-next-line no-underscore-dangle
-            allResults.push(...rows._array);
-        }
+/** Force GC if available (Hermes exposes this) so it doesn't fire randomly during measurement */
+function forceGC() {
+    // @ts-expect-error -- HermesInternal is a global on Hermes engine
+    if (typeof HermesInternal === 'undefined' || typeof HermesInternal.collectGarbage !== 'function') {
+        return;
     }
-    return allResults;
+    // @ts-expect-error -- not in TS types
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    HermesInternal?.collectGarbage();
 }
 
-/** GLOB: single executeAsync with prefix pattern */
-async function multiGetGLOB(db: NitroSQLiteConnection, prefix: string) {
-    const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key GLOB ?`, [`${prefix}*`]);
-    // eslint-disable-next-line no-underscore-dangle
-    return rows?._array ?? [];
-}
-
-/** LIKE: single executeAsync with prefix pattern */
-async function multiGetLIKE(db: NitroSQLiteConnection, prefix: string) {
-    const {rows} = await db.executeAsync(`SELECT record_key, valueJSON FROM ${TABLE} WHERE record_key LIKE ?`, [`${prefix}%`]);
-    // eslint-disable-next-line no-underscore-dangle
-    return rows?._array ?? [];
-}
-
-// ---------------------------------------------------------------------------
-// Async benchmark runner
-// ---------------------------------------------------------------------------
-
-async function runStrategyAsync(fn: () => Promise<unknown>, runs: number): Promise<{median: number; min: number; max: number}> {
-    // 2 warmup
+async function runStrategyAsync(fn: StrategyFn, runs: number): Promise<{bestOf: number; median: number; min: number; max: number}> {
+    // 3 warmup
+    await fn();
     await fn();
     await fn();
 
     const times: number[] = [];
     for (let i = 0; i < runs; i++) {
+        forceGC();
         const start = performance.now();
-        // eslint-disable-next-line no-await-in-loop -- sequential runs required for accurate timing
+        // eslint-disable-next-line no-await-in-loop
         await fn();
         times.push(performance.now() - start);
     }
     times.sort((a, b) => a - b);
+
+    const median = times.at(Math.floor(times.length / 2)) ?? 0;
+
     return {
-        median: times.at(Math.floor(times.length / 2)) ?? 0,
+        bestOf: times.at(0) ?? 0,
+        median,
         min: times.at(0) ?? 0,
         max: times.at(-1) ?? 0,
     };
 }
 
 // ---------------------------------------------------------------------------
-// Benchmark runner for a single record count
+// Run both phases for a single record count
 // ---------------------------------------------------------------------------
 
 async function benchmarkForCount(db: NitroSQLiteConnection, count: number): Promise<BenchResult[]> {
     db.execute(`DELETE FROM ${TABLE}`);
     const allKeys: Record<string, string[]> = {};
-    for (const prefix of PREFIXES) {
-        allKeys[prefix] = seedDB(db, count, prefix);
+    for (const pfx of PREFIXES) {
+        allKeys[pfx] = seedDB(db, count, pfx);
     }
     const targetKeys = allKeys[COLLECTION_PREFIX];
 
-    const strategies: Array<{name: string; fn: () => Promise<unknown>}> = [
-        {name: 'IN clause', fn: () => multiGetIN(db, targetKeys)},
-        {name: 'Temp table', fn: () => multiGetTempTable(db, targetKeys)},
-        {name: 'Chunked IN', fn: () => multiGetChunkedIN(db, targetKeys)},
-        {name: 'GLOB', fn: () => multiGetGLOB(db, COLLECTION_PREFIX)},
-        {name: 'LIKE', fn: () => multiGetLIKE(db, COLLECTION_PREFIX)},
-    ];
+    const results: BenchResult[] = [];
 
-    const stepResults: BenchResult[] = [];
+    // SQL only — JSON.parse cost is identical for all strategies so we exclude it
+    const strategies = makeStrategies(db, targetKeys, COLLECTION_PREFIX);
     for (const strat of strategies) {
-        // eslint-disable-next-line no-await-in-loop -- sequential strategies prevent interference
+        // eslint-disable-next-line no-await-in-loop
+        await pause(PAUSE_BETWEEN_STRATEGIES_MS);
+        // eslint-disable-next-line no-await-in-loop
         const r = await runStrategyAsync(strat.fn, RUNS);
-        stepResults.push({strategy: strat.name, count, ...r});
+        results.push({strategy: strat.name, count, ...r});
     }
-    return stepResults;
+
+    return results;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
+const MULTI_RUN_COUNT = 6;
+
+/** Run one full benchmark pass (all record counts, all strategies). Returns results array. */
+async function runSinglePass(setStatus: (s: string) => void, passNumber?: number): Promise<BenchResult[]> {
+    const passLabel = passNumber != null ? ` (pass ${passNumber})` : '';
+    const db = openBenchDB();
+    const passResults: BenchResult[] = [];
+
+    try {
+        for (const count of RECORD_COUNTS) {
+            setStatus(`Benchmarking ${count} records${passLabel}...`);
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => resolve());
+            });
+
+            // eslint-disable-next-line no-await-in-loop
+            const stepResults = await benchmarkForCount(db, count);
+            passResults.push(...stepResults);
+        }
+    } finally {
+        try {
+            db.execute(`DROP TABLE IF EXISTS ${TABLE}`);
+            db.close();
+            db.delete();
+        } catch {
+            // ignore cleanup errors
+        }
+    }
+
+    return passResults;
+}
+
 function SQLiteBenchmark() {
     const [results, setResults] = useState<BenchResult[]>([]);
+    const [allRuns, setAllRuns] = useState<BenchResult[][]>([]);
     const [running, setRunning] = useState(false);
     const [status, setStatus] = useState('Ready — tap to run');
-    const [runCounter, setRunCounter] = useState(0);
-    const pendingRef = useRef<BenchResult[]>([]);
 
-    const startBenchmarks = useCallback(() => {
+    const startSingleRun = useCallback(() => {
         if (Platform.OS === 'web') {
             setStatus('SQLite benchmarks only run on iOS/Android');
             return;
         }
         setRunning(true);
         setResults([]);
-        pendingRef.current = [];
-        setStatus('Opening database...');
+        setAllRuns([]);
 
-        const runAll = async () => {
-            let db: NitroSQLiteConnection | null = null;
+        const run = async () => {
             try {
-                db = openBenchDB();
-
-                for (const count of RECORD_COUNTS) {
-                    setStatus(`Seeding & benchmarking ${count} records...`);
-                    // Yield to let React flush the status update
-                    // eslint-disable-next-line no-await-in-loop -- sequential record counts are intentional
-                    await new Promise<void>((resolve) => {
-                        requestAnimationFrame(() => resolve());
-                    });
-
-                    // eslint-disable-next-line no-await-in-loop
-                    const stepResults = await benchmarkForCount(db, count);
-                    pendingRef.current.push(...stepResults);
-                    setResults([...pendingRef.current]);
-                }
-
-                // Cleanup
-                db.execute(`DROP TABLE IF EXISTS ${TABLE}`);
-                db.close();
-                db.delete();
-                db = null;
-
-                setRunCounter((prev) => prev + 1);
-                setStatus(`Done! ${RECORD_COUNTS.length} sizes x 5 strategies (async)`);
-
-                const jsonOutput = JSON.stringify(
-                    {
-                        platform: Platform.OS,
-                        timestamp: new Date().toISOString(),
-                        config: {runs: RUNS, collections: PREFIXES.length, recordCounts: RECORD_COUNTS, mode: 'executeAsync'},
-                        results: pendingRef.current,
-                    },
-                    null,
-                    2,
-                );
-                // eslint-disable-next-line no-console
-                console.log(`\n===== SQLITE_BENCHMARK_JSON_START =====\n${jsonOutput}\n===== SQLITE_BENCHMARK_JSON_END =====\n`);
+                const passResults = await runSinglePass(setStatus);
+                setResults(passResults);
+                setAllRuns([passResults]);
+                setStatus(`Done! ${RECORD_COUNTS.length} sizes x 7 strategies`);
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);
                 setStatus(`Error: ${msg}`);
                 // eslint-disable-next-line no-console
                 console.error('Benchmark error:', e);
-                if (db) {
-                    try {
-                        db.close();
-                        db.delete();
-                    } catch {
-                        // ignore
-                    }
-                }
             } finally {
                 setRunning(false);
             }
         };
 
-        runAll();
+        run();
+    }, []);
+
+    const startMultiRun = useCallback(() => {
+        if (Platform.OS === 'web') {
+            setStatus('SQLite benchmarks only run on iOS/Android');
+            return;
+        }
+        setRunning(true);
+        setResults([]);
+        setAllRuns([]);
+
+        const run = async () => {
+            const collectedRuns: BenchResult[][] = [];
+            try {
+                for (let i = 0; i < MULTI_RUN_COUNT; i++) {
+                    // eslint-disable-next-line no-await-in-loop
+                    const passResults = await runSinglePass(setStatus, i + 1);
+                    collectedRuns.push(passResults);
+                    // Show latest run results on screen
+                    setResults(passResults);
+                    setAllRuns([...collectedRuns]);
+                }
+                setStatus(`Done! ${MULTI_RUN_COUNT} runs complete — tap Copy All to export`);
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                setStatus(`Error: ${msg}`);
+                // eslint-disable-next-line no-console
+                console.error('Benchmark error:', e);
+            } finally {
+                setRunning(false);
+            }
+        };
+
+        run();
     }, []);
 
     const copyResults = useCallback(() => {
@@ -303,18 +355,18 @@ function SQLiteBenchmark() {
             {
                 platform: Platform.OS,
                 timestamp: new Date().toISOString(),
-                run: runCounter,
-                config: {runs: RUNS, collections: PREFIXES.length, recordCounts: RECORD_COUNTS, mode: 'executeAsync'},
-                results,
+                totalRuns: allRuns.length,
+                config: {runsPerPass: RUNS, collections: PREFIXES.length, recordCounts: RECORD_COUNTS},
+                runs: allRuns.map((passResults, i) => ({run: i + 1, results: passResults})),
             },
             null,
             2,
         );
         Clipboard.setString(jsonOutput);
-        setStatus('Results copied to clipboard!');
-    }, [results, runCounter]);
+        setStatus(`Copied ${allRuns.length} run(s) to clipboard!`);
+    }, [allRuns]);
 
-    // Group results by count
+    // Group by count
     const grouped = new Map<number, BenchResult[]>();
     for (const r of results) {
         const list = grouped.get(r.count) ?? [];
@@ -324,75 +376,90 @@ function SQLiteBenchmark() {
         list.push(r);
     }
 
+    const renderTable = (rows: BenchResult[], baselineStrategy: string) => {
+        const baselineMedian = rows.find((r) => r.strategy === baselineStrategy)?.median ?? 1;
+        return (
+            <>
+                <View style={localStyles.hRow}>
+                    <Text style={[localStyles.c, localStyles.sc, localStyles.hTxt]}>Strategy</Text>
+                    <Text style={[localStyles.c, localStyles.hTxt]}>Median</Text>
+                    <Text style={[localStyles.c, localStyles.hTxt]}>Best</Text>
+                    <Text style={[localStyles.c, localStyles.hTxt]}>vs IN</Text>
+                </View>
+                {rows.map((r) => {
+                    const diff = ((r.median - baselineMedian) / baselineMedian) * 100;
+                    const isBase = r.strategy === baselineStrategy;
+                    const diffStr = isBase ? '—' : `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`;
+                    // eslint-disable-next-line no-nested-ternary
+                    const clr = isBase ? '#666' : diff < -5 ? '#2d8a4e' : diff > 5 ? '#d32f2f' : '#666';
+                    return (
+                        <View
+                            key={r.strategy}
+                            style={localStyles.row}
+                        >
+                            <Text style={[localStyles.c, localStyles.sc]}>{r.strategy}</Text>
+                            <Text style={localStyles.c}>{r.median.toFixed(2)}</Text>
+                            <Text style={localStyles.c}>{r.min.toFixed(2)}</Text>
+                            <Text style={[localStyles.c, {color: clr}]}>{diffStr}</Text>
+                        </View>
+                    );
+                })}
+            </>
+        );
+    };
+
     return (
         <View>
             <Text style={localStyles.title}>SQLite multiGet Benchmark</Text>
             <Text style={localStyles.sub}>
-                All async (executeAsync). {RUNS} runs, median. {PREFIXES.length} collections x N each.
+                SQL query only (JSON.parse excluded — identical cost for all strategies).{'\n'}
+                {RUNS} runs, median. {PREFIXES.length} collections x N records.
             </Text>
 
             <PressableWithFeedback
                 accessibilityRole="button"
-                accessibilityLabel={running ? 'Running benchmarks' : 'Run benchmarks'}
+                accessibilityLabel="Run once"
                 style={[localStyles.btn, running && localStyles.btnOff]}
-                onPress={startBenchmarks}
+                onPress={startSingleRun}
                 disabled={running}
             >
-                <Text style={localStyles.btnTxt}>{running ? 'Running...' : 'Run Benchmarks'}</Text>
+                <Text style={localStyles.btnTxt}>{running ? 'Running...' : 'Run 1x'}</Text>
             </PressableWithFeedback>
 
-            {results.length > 0 && !running && (
+            <PressableWithFeedback
+                accessibilityRole="button"
+                accessibilityLabel={`Run ${MULTI_RUN_COUNT} times`}
+                style={[localStyles.btn, {backgroundColor: '#6f42c1'}, running && localStyles.btnOff]}
+                onPress={startMultiRun}
+                disabled={running}
+            >
+                <Text style={localStyles.btnTxt}>{running ? 'Running...' : `Run ${MULTI_RUN_COUNT}x + Copy`}</Text>
+            </PressableWithFeedback>
+
+            {allRuns.length > 0 && !running && (
                 <PressableWithFeedback
                     accessibilityRole="button"
-                    accessibilityLabel="Copy results as JSON"
+                    accessibilityLabel="Copy all results as JSON"
                     style={[localStyles.btn, {backgroundColor: '#28a745'}]}
                     onPress={copyResults}
                 >
-                    <Text style={localStyles.btnTxt}>Copy Results as JSON</Text>
+                    <Text style={localStyles.btnTxt}>Copy All ({allRuns.length} runs)</Text>
                 </PressableWithFeedback>
             )}
 
             <Text style={localStyles.status}>{status}</Text>
 
-            {Array.from(grouped.entries()).map(([count, gr]) => {
-                const baseline = gr.find((r) => r.strategy === 'IN clause')?.median ?? 1;
-                return (
-                    <View
-                        key={count}
-                        style={localStyles.group}
-                    >
-                        <Text style={localStyles.gTitle}>
-                            {count} records (DB: {count * PREFIXES.length})
-                        </Text>
-                        <View style={localStyles.hRow}>
-                            <Text style={[localStyles.c, localStyles.sc, localStyles.hTxt]}>Strategy</Text>
-                            <Text style={[localStyles.c, localStyles.hTxt]}>Median</Text>
-                            <Text style={[localStyles.c, localStyles.hTxt]}>Min</Text>
-                            <Text style={[localStyles.c, localStyles.hTxt]}>Max</Text>
-                            <Text style={[localStyles.c, localStyles.hTxt]}>vs IN</Text>
-                        </View>
-                        {gr.map((r) => {
-                            const diff = ((r.median - baseline) / baseline) * 100;
-                            const isBase = r.strategy === 'IN clause';
-                            const diffStr = isBase ? '—' : `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`;
-                            // eslint-disable-next-line no-nested-ternary
-                            const clr = isBase ? '#666' : diff < -5 ? '#2d8a4e' : diff > 5 ? '#d32f2f' : '#666';
-                            return (
-                                <View
-                                    key={r.strategy}
-                                    style={localStyles.row}
-                                >
-                                    <Text style={[localStyles.c, localStyles.sc]}>{r.strategy}</Text>
-                                    <Text style={localStyles.c}>{r.median.toFixed(2)}</Text>
-                                    <Text style={localStyles.c}>{r.min.toFixed(2)}</Text>
-                                    <Text style={localStyles.c}>{r.max.toFixed(2)}</Text>
-                                    <Text style={[localStyles.c, {color: clr}]}>{diffStr}</Text>
-                                </View>
-                            );
-                        })}
-                    </View>
-                );
-            })}
+            {Array.from(grouped.entries()).map(([count, rows]) => (
+                <View
+                    key={count}
+                    style={localStyles.group}
+                >
+                    <Text style={localStyles.gTitle}>
+                        {count} records (DB: {count * PREFIXES.length})
+                    </Text>
+                    {renderTable(rows, 'IN clause')}
+                </View>
+            ))}
         </View>
     );
 }

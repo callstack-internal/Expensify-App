@@ -11,6 +11,7 @@ import useWaitForNavigation from '@hooks/useWaitForNavigation';
 import {revokeMultifactorAuthenticationCredentials} from '@libs/actions/MultifactorAuthentication';
 import {isUsingStagingApi} from '@libs/ApiUtils';
 import Navigation from '@libs/Navigation/Navigation';
+import MultiGetBenchmark from '@pages/Debug/MultiGetBenchmark';
 import SQLiteBenchmark from '@pages/Debug/SQLiteBenchmark';
 import {setShouldFailAllRequests, setShouldForceOffline, setShouldSimulatePoorConnection} from '@userActions/Network';
 import {expireSessionWithDelay, invalidateAuthToken, invalidateCredentials} from '@userActions/Session';
@@ -200,6 +201,7 @@ function TestToolMenu() {
             </TestToolRow>
             <SoftKillTestToolRow />
             <TestCrash />
+            <MultiGetBenchmark />
             <SQLiteBenchmark />
         </>
     );

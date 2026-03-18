@@ -181,16 +181,6 @@ function makeStrategies(db: NitroSQLiteConnection, keys: string[], prefix: strin
 // eslint-disable-next-line no-promise-executor-return
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/** Force GC if available (Hermes exposes this) so it doesn't fire randomly during measurement */
-function forceGC() {
-    // @ts-expect-error -- HermesInternal is a global on Hermes engine
-    if (typeof HermesInternal === 'undefined' || typeof HermesInternal.collectGarbage !== 'function') {
-        return;
-    }
-    // @ts-expect-error -- not in TS types
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    HermesInternal?.collectGarbage();
-}
 
 async function runStrategyAsync(fn: StrategyFn, runs: number): Promise<{bestOf: number; median: number; min: number; max: number}> {
     // 3 warmup
@@ -200,7 +190,6 @@ async function runStrategyAsync(fn: StrategyFn, runs: number): Promise<{bestOf: 
 
     const times: number[] = [];
     for (let i = 0; i < runs; i++) {
-        forceGC();
         const start = performance.now();
         // eslint-disable-next-line no-await-in-loop
         await fn();

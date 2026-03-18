@@ -303,6 +303,18 @@ const ROUTES = {
             // eslint-disable-next-line no-restricted-syntax -- Legacy route generation
             getUrlWithBackToParam(`bank-account/connect-existing-business-bank-account?policyID=${policyID}`, backTo),
     },
+    BANK_ACCOUNT_USD_SETUP: {
+        route: 'bank-account/us/:step?/:subStep?',
+        // eslint-disable-next-line no-restricted-syntax -- Legacy route generation
+        getRoute: ({policyID, step, subStep, backTo}: {policyID?: string; step?: string; subStep?: string; backTo?: string}) => {
+            const base = 'bank-account/us';
+            const stepPart = step ? `/${step}` : '';
+            const subStepPart = subStep ? `/${subStep}` : '';
+            const queryString = policyID ? `?policyID=${policyID}` : '';
+            // eslint-disable-next-line no-restricted-syntax -- Legacy route generation
+            return getUrlWithBackToParam(`${base}${stepPart}${subStepPart}${queryString}`, backTo);
+        },
+    },
     BANK_ACCOUNT_NON_USD_SETUP: {
         route: 'bank-account/new/global/:page?/:subPage?/:action?',
         // eslint-disable-next-line no-restricted-syntax -- backTo is a temporary param will be removed after https://github.com/Expensify/App/issues/73825 is done

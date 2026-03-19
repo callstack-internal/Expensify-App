@@ -32,7 +32,6 @@ const ALL_COLLECTIONS = [
 
 const STRATEGIES: Array<{key: MultiGetStrategy; label: string}> = [
     {key: 'in_clause', label: 'IN clause'},
-    {key: 'in_clause_no_parse', label: 'IN (no parse)'},
     {key: 'json_each_join', label: 'json_each JOIN'},
     {key: 'chunked_500', label: 'Chunk 500'},
     {key: 'temp_table', label: 'Temp table'},

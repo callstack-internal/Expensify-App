@@ -79,6 +79,15 @@ type UseMobileReceiptScanParams = {
     setIsMultiScanEnabled: ((value: boolean) => void) | undefined;
 };
 
+type ScanVariantRouteParams = {
+    action: IOUAction;
+    iouType: IOUType;
+    transactionID: string;
+    reportID: string;
+    backTo: Route | undefined;
+    backToReport: string | undefined;
+};
+
 type IOURequestStepScanProps = WithWritableReportOrNotFoundProps<typeof SCREENS.MONEY_REQUEST.STEP_SCAN | typeof SCREENS.MONEY_REQUEST.CREATE> & {
     /** Holds data related to Money Request view state, rather than the underlying Money Request data. */
     transaction: OnyxEntry<Transaction>;
@@ -100,4 +109,4 @@ type ReceiptFile = {
 };
 
 export default IOURequestStepScanProps;
-export type {ReceiptFile, UseMobileReceiptScanParams, UseReceiptScanParams};
+export type {ReceiptFile, ScanVariantRouteParams, UseMobileReceiptScanParams, UseReceiptScanParams};

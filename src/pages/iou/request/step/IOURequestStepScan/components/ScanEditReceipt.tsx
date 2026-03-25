@@ -1,4 +1,3 @@
-import {useRoute} from '@react-navigation/native';
 import React, {useEffect} from 'react';
 import {View} from 'react-native';
 import useFilesValidation from '@hooks/useFilesValidation';
@@ -7,18 +6,20 @@ import useOnyx from '@hooks/useOnyx';
 import useOptimisticDraftTransactions from '@hooks/useOptimisticDraftTransactions';
 import usePolicy from '@hooks/usePolicy';
 import Navigation from '@libs/Navigation/Navigation';
-import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigation/types';
-import type {MoneyRequestNavigatorParamList} from '@libs/Navigation/types';
 import {endSpan} from '@libs/telemetry/activeSpans';
+import type {ScanVariantRouteParams} from '@pages/iou/request/step/IOURequestStepScan/types';
 import getFileSource from '@pages/iou/request/step/IOURequestStepScan/utils/getFileSource';
 import useScanFileReadabilityCheck from '@pages/iou/request/step/IOURequestStepScan/utils/useScanFileReadabilityCheck';
 import StepScreenWrapper from '@pages/iou/request/step/StepScreenWrapper';
 import {replaceReceipt, setMoneyRequestReceipt} from '@userActions/IOU';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type SCREENS from '@src/SCREENS';
 import type {FileObject} from '@src/types/utils/Attachment';
 import Camera from './Camera';
+
+type ScanEditReceiptProps = {
+    routeParams: ScanVariantRouteParams;
+};
 
 /**
  * ScanEditReceipt — the simplest scan variant.
@@ -26,9 +27,8 @@ import Camera from './Camera';
  *
  * Press handler: replaceReceipt -> navigateBack
  */
-function ScanEditReceipt() {
-    const route = useRoute<PlatformStackRouteProp<MoneyRequestNavigatorParamList, typeof SCREENS.MONEY_REQUEST.STEP_SCAN>>();
-    const {action, reportID, transactionID: initialTransactionID, backTo} = route.params;
+function ScanEditReceipt({routeParams}: ScanEditReceiptProps) {
+    const {action, reportID, transactionID: initialTransactionID, backTo} = routeParams;
 
     const {translate} = useLocalize();
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
@@ -83,6 +83,7 @@ function ScanEditReceipt() {
 
     return (
         <StepScreenWrapper
+            includeSafeAreaPaddingBottom
             headerTitle={translate('common.receipt')}
             onBackButtonPress={navigateBack}
             shouldShowWrapper={shouldShowWrapper}

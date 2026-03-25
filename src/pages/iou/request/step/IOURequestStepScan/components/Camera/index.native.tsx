@@ -11,6 +11,7 @@ import {scheduleOnRN} from 'react-native-worklets';
 import ActivityIndicator from '@components/ActivityIndicator';
 import AttachmentPicker from '@components/AttachmentPicker';
 import Button from '@components/Button';
+import {useFullScreenLoaderActions, useFullScreenLoaderState} from '@components/FullScreenLoaderContext';
 import Icon from '@components/Icon';
 import ImageSVG from '@components/ImageSVG';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
@@ -65,6 +66,8 @@ function Camera({onCapture, shouldAcceptMultipleFiles = false, onLayout}: Camera
     const [mutedPlatforms = getEmptyObject<Partial<Record<Platform, true>>>()] = useOnyx(ONYXKEYS.NVP_MUTED_PLATFORMS);
     const isPlatformMuted = mutedPlatforms[platform];
     const [cameraPermissionStatus, setCameraPermissionStatus] = useState<string | null>(null);
+    const {isLoaderVisible} = useFullScreenLoaderState();
+    const {setIsLoaderVisible} = useFullScreenLoaderActions();
     const [isAttachmentPickerActive, setIsAttachmentPickerActive] = useState(false);
     const [didCapturePhoto, setDidCapturePhoto] = useState(false);
 
@@ -219,6 +222,10 @@ function Camera({onCapture, shouldAcceptMultipleFiles = false, onLayout}: Camera
             subscription.remove();
             cancelSpan(CONST.TELEMETRY.SPAN_RECEIPT_CAPTURE);
             cancelSpan(CONST.TELEMETRY.SPAN_SHUTTER_TO_CONFIRMATION);
+
+            if (isLoaderVisible) {
+                setIsLoaderVisible(false);
+            }
         };
     });
 
@@ -397,6 +404,7 @@ function Camera({onCapture, shouldAcceptMultipleFiles = false, onLayout}: Camera
                 <AttachmentPicker
                     onOpenPicker={() => {
                         setIsAttachmentPickerActive(true);
+                        setIsLoaderVisible(true);
                     }}
                     fileLimit={shouldAcceptMultipleFiles ? CONST.API_ATTACHMENT_VALIDATIONS.MAX_FILE_LIMIT : 1}
                     shouldValidateImage={false}
@@ -410,9 +418,10 @@ function Camera({onCapture, shouldAcceptMultipleFiles = false, onLayout}: Camera
                             onPress={() => {
                                 openPicker({
                                     onPicked: (data) => emitPickedFiles(data),
-                                    onCanceled: () => {},
+                                    onCanceled: () => setIsLoaderVisible(false),
                                     onClosed: () => {
                                         setIsAttachmentPickerActive(false);
+                                        setIsLoaderVisible(false);
                                     },
                                 });
                             }}

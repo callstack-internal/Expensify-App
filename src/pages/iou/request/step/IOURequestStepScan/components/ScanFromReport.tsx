@@ -1,4 +1,3 @@
-import {useRoute} from '@react-navigation/native';
 import React, {useEffect} from 'react';
 import {View} from 'react-native';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
@@ -8,9 +7,8 @@ import useOnyx from '@hooks/useOnyx';
 import useOptimisticDraftTransactions from '@hooks/useOptimisticDraftTransactions';
 import {navigateToConfirmationPage} from '@libs/IOUUtils';
 import Navigation from '@libs/Navigation/Navigation';
-import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigation/types';
-import type {MoneyRequestNavigatorParamList} from '@libs/Navigation/types';
 import {endSpan} from '@libs/telemetry/activeSpans';
+import type {ScanVariantRouteParams} from '@pages/iou/request/step/IOURequestStepScan/types';
 import buildReceiptFiles from '@pages/iou/request/step/IOURequestStepScan/utils/buildReceiptFiles';
 import getFileSource from '@pages/iou/request/step/IOURequestStepScan/utils/getFileSource';
 import startScanProcessSpan from '@pages/iou/request/step/IOURequestStepScan/utils/startScanProcessSpan';
@@ -19,9 +17,12 @@ import StepScreenWrapper from '@pages/iou/request/step/StepScreenWrapper';
 import {setMultipleMoneyRequestParticipantsFromReport} from '@userActions/IOU';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type SCREENS from '@src/SCREENS';
 import type {FileObject} from '@src/types/utils/Attachment';
 import Camera from './Camera';
+
+type ScanFromReportProps = {
+    routeParams: ScanVariantRouteParams;
+};
 
 /**
  * ScanFromReport — the most common scan flow.
@@ -29,9 +30,8 @@ import Camera from './Camera';
  *
  * Press handler: setMultipleMoneyRequestParticipantsFromReport -> navigateToConfirmationPage
  */
-function ScanFromReport() {
-    const route = useRoute<PlatformStackRouteProp<MoneyRequestNavigatorParamList, typeof SCREENS.MONEY_REQUEST.STEP_SCAN>>();
-    const {action, iouType, reportID, transactionID: initialTransactionID, backTo, backToReport} = route.params;
+function ScanFromReport({routeParams}: ScanFromReportProps) {
+    const {action, iouType, reportID, transactionID: initialTransactionID, backTo, backToReport} = routeParams;
 
     const {translate} = useLocalize();
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
@@ -96,6 +96,7 @@ function ScanFromReport() {
 
     return (
         <StepScreenWrapper
+            includeSafeAreaPaddingBottom
             headerTitle={translate('common.receipt')}
             onBackButtonPress={navigateBack}
             shouldShowWrapper={shouldShowWrapper}

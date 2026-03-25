@@ -1,4 +1,3 @@
-import {useRoute} from '@react-navigation/native';
 import shouldStartLocationPermissionFlowSelector from '@selectors/LocationPermission';
 import {hasSeenTourSelector} from '@selectors/Onboarding';
 import React, {useEffect, useState} from 'react';
@@ -20,14 +19,12 @@ import getCurrentPosition from '@libs/getCurrentPosition';
 import {calculateDefaultReimbursable} from '@libs/IOUUtils';
 import Log from '@libs/Log';
 import Navigation from '@libs/Navigation/Navigation';
-import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigation/types';
-import type {MoneyRequestNavigatorParamList} from '@libs/Navigation/types';
 import {getParticipantsOption, getReportOption} from '@libs/OptionsListUtils';
 import {isPolicyExpenseChat} from '@libs/ReportUtils';
 import {cancelSpan, endSpan} from '@libs/telemetry/activeSpans';
 import {getDefaultTaxCode} from '@libs/TransactionUtils';
 import {getLocationPermission} from '@pages/iou/request/step/IOURequestStepScan/LocationPermission';
-import type {ReceiptFile} from '@pages/iou/request/step/IOURequestStepScan/types';
+import type {ReceiptFile, ScanVariantRouteParams} from '@pages/iou/request/step/IOURequestStepScan/types';
 import buildReceiptFiles from '@pages/iou/request/step/IOURequestStepScan/utils/buildReceiptFiles';
 import getFileSource from '@pages/iou/request/step/IOURequestStepScan/utils/getFileSource';
 import startScanProcessSpan from '@pages/iou/request/step/IOURequestStepScan/utils/startScanProcessSpan';
@@ -37,7 +34,6 @@ import {getMoneyRequestParticipantsFromReport, getPolicyTags} from '@userActions
 import {startSplitBill} from '@userActions/IOU/Split';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type SCREENS from '@src/SCREENS';
 import {validTransactionDraftsSelector} from '@src/selectors/TransactionDraft';
 import type {PolicyTagLists} from '@src/types/onyx';
 import type {Receipt} from '@src/types/onyx/Transaction';
@@ -45,15 +41,18 @@ import type {FileObject} from '@src/types/utils/Attachment';
 import Camera from './Camera';
 import GpsPermissionGate from './GpsPermissionGate';
 
+type ScanSkipConfirmationProps = {
+    routeParams: ScanVariantRouteParams;
+};
+
 /**
  * ScanSkipConfirmation — skip-confirmation variant.
  * Used when !isFromGlobalCreate && shouldSkipConfirmation.
  *
  * Press handler: directly calls requestMoney/trackExpense/startSplitBill
  */
-function ScanSkipConfirmation() {
-    const route = useRoute<PlatformStackRouteProp<MoneyRequestNavigatorParamList, typeof SCREENS.MONEY_REQUEST.STEP_SCAN>>();
-    const {action, iouType, reportID, transactionID: initialTransactionID, backTo, backToReport} = route.params;
+function ScanSkipConfirmation({routeParams}: ScanSkipConfirmationProps) {
+    const {action, iouType, reportID, transactionID: initialTransactionID, backTo, backToReport} = routeParams;
 
     const {translate} = useLocalize();
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
@@ -339,6 +338,7 @@ function ScanSkipConfirmation() {
 
     return (
         <StepScreenWrapper
+            includeSafeAreaPaddingBottom
             headerTitle={translate('common.receipt')}
             onBackButtonPress={navigateBack}
             shouldShowWrapper={shouldShowWrapper}

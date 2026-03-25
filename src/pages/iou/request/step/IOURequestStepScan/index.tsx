@@ -21,7 +21,7 @@ import type IOURequestStepScanProps from './types';
 function IOURequestStepScan({
     report,
     route: {
-        params: {action, iouType, transactionID: initialTransactionID, backTo},
+        params: {action, iouType, transactionID: initialTransactionID, reportID, backTo, backToReport},
     },
     transaction: initialTransaction,
 }: Omit<IOURequestStepScanProps, 'user'>) {
@@ -34,18 +34,20 @@ function IOURequestStepScan({
     const shouldSkipConfirmation =
         !!skipConfirmation && !!report?.reportID && !isArchived && !(isPolicyExpenseChat(report) && ((policy?.requiresCategory ?? false) || (policy?.requiresTag ?? false)));
 
+    const routeParams = {action, iouType, transactionID: initialTransactionID, reportID, backTo, backToReport};
+
     if (backTo || isEditing) {
-        return <ScanEditReceipt />;
+        return <ScanEditReceipt routeParams={routeParams} />;
     }
 
     if (!isFromGlobalCreate && !isArchived && iouType !== CONST.IOU.TYPE.CREATE) {
         if (shouldSkipConfirmation) {
-            return <ScanSkipConfirmation />;
+            return <ScanSkipConfirmation routeParams={routeParams} />;
         }
-        return <ScanFromReport />;
+        return <ScanFromReport routeParams={routeParams} />;
     }
 
-    return <ScanGlobalCreate />;
+    return <ScanGlobalCreate routeParams={routeParams} />;
 }
 
 // eslint-disable-next-line rulesdir/no-negated-variables

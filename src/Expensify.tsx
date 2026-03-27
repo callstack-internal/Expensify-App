@@ -20,6 +20,7 @@ import useOnyx from './hooks/useOnyx';
 import {updateLastRoute} from './libs/actions/App';
 import * as ActiveClientManager from './libs/ActiveClientManager';
 import {isSafari} from './libs/Browser';
+import {buildEmojisTrie} from './libs/EmojiTrie';
 import Log from './libs/Log';
 import migrateOnyx from './libs/migrateOnyx';
 import Navigation from './libs/Navigation/Navigation';
@@ -207,6 +208,10 @@ function Expensify() {
         endSpan(CONST.TELEMETRY.SPAN_APP_STARTUP);
         endSpan(CONST.TELEMETRY.SPAN_BOOTSPLASH.ROOT);
         endSpan(CONST.TELEMETRY.SPAN_BOOTSPLASH.SPLASH_HIDER);
+
+        // Pre-warm the emoji trie after splash screen hides so it's ready before user needs it,
+        // but not blocking the critical startup path
+        buildEmojisTrie(CONST.LOCALES.DEFAULT);
     }, [setSplashScreenState]);
 
     useLayoutEffect(() => {

@@ -222,10 +222,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
             return;
         }
 
-        if (!flashListRef.current) {
-            return;
-        }
-
         // If the option mode changes want to scroll to the top of the list because rendered items will have different height.
         flashListRef.current.scrollToOffset({offset: 0});
     }, [previousOptionMode, optionMode]);
@@ -272,7 +268,10 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
                 reportsIDsFromUseReportsCount: data.length,
             });
         }
-    }, [data.length, shouldShowEmptyLHN, reports, policy, personalDetails]);
+        // Log payload reads reports/policy/personalDetails for counts, but this effect
+        // should only fire when the empty LHN state changes, not on every Onyx update.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shouldShowEmptyLHN]);
 
     return (
         <View style={[style ?? styles.flex1, shouldShowEmptyLHN ? styles.emptyLHNWrapper : undefined]}>

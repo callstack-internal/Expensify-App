@@ -1,32 +1,27 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import EmojiPickerButton from '@components/EmojiPicker/EmojiPickerButton';
 import ImportedStateIndicator from '@components/ImportedStateIndicator';
-import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useIsScrollLikelyLayoutTriggered from '@hooks/useIsScrollLikelyLayoutTriggered';
-import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import DomUtils from '@libs/DomUtils';
-import FS from '@libs/Fullstory';
-import {chatIncludesChronos, chatIncludesConcierge} from '@libs/ReportUtils';
-import {isEmojiPickerVisible} from '@userActions/EmojiPickerAction';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
 import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
-import AttachmentPickerWithMenuItems from './AttachmentPickerWithMenuItems';
-import ComposerBox, {useMeasureComposerBox} from './ComposerBox';
+import ActionMenu from './ActionMenu';
+import ComposerBox from './ComposerBox';
 import type {SuggestionsRef} from './ComposerContext';
-import {useComposerActions, useComposerInternalsActions, useComposerInternalsData, useComposerSendState, useComposerState} from './ComposerContext';
+import {useComposerActions, useComposerInternalsActions, useComposerInternalsData, useComposerSendState} from './ComposerContext';
 import ComposerDropZone from './ComposerDropZone';
 import ComposerFooter from './ComposerFooter';
 import ComposerLocalTime from './ComposerLocalTime';
 import ComposerProvider from './ComposerProvider';
-import ComposerWithSuggestions from './ComposerWithSuggestions';
+import ComposerInput from './ComposerWithSuggestions';
 import type {ComposerRef} from './ComposerWithSuggestions/ComposerWithSuggestions';
 import SendButton from './SendButton';
 
@@ -41,36 +36,20 @@ type ReportActionComposeProps = {
 type ComposerBoxContentProps = {
     reportID: string;
     lastReportAction?: OnyxEntry<OnyxTypes.ReportAction>;
-    isComposerFullSize: boolean;
 };
 
-function ComposerBoxContent({reportID, lastReportAction, isComposerFullSize}: ComposerBoxContentProps) {
+function ComposerBoxContent({reportID, lastReportAction}: ComposerBoxContentProps) {
     const styles = useThemeStyles();
-    const {translate} = useLocalize();
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isMediumScreenWidth} = useResponsiveLayout();
-    const currentUserPersonalDetails = useCurrentUserPersonalDetails();
-    const {isFullComposerAvailable} = useComposerState();
-    const {isBlockedFromConcierge, exceededMaxLength, isSendDisabled} = useComposerSendState();
-    const {handleSendMessage, setIsFullComposerAvailable, onValueChange} = useComposerActions();
-    const {userBlockedFromConcierge, shouldFocusComposerOnScreenFocus, composerRef, actionButtonRef, suggestionsRef, isNextModalWillOpenRef, shouldShowComposeInput} =
-        useComposerInternalsData();
-    const {setComposerRef, submitForm, onFocus, onBlur, onTriggerAttachmentPicker, onAddActionPressed, onItemSelected, validateAttachments} = useComposerInternalsActions();
-    const measureContainer = useMeasureComposerBox();
-
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const {isBlockedFromConcierge, isSendDisabled} = useComposerSendState();
+    const {handleSendMessage} = useComposerActions();
+    const {composerRef} = useComposerInternalsData();
+    const {setComposerRef} = useComposerInternalsActions();
 
     const {isScrollLayoutTriggered, raiseIsScrollLayoutTriggered} = useIsScrollLikelyLayoutTriggered();
-    const [isMenuVisible, setMenuVisibility] = useState(false);
 
-    const includesConcierge = chatIncludesConcierge({participants: report?.participants});
-    const inputPlaceholder = includesConcierge && userBlockedFromConcierge ? translate('reportActionCompose.blockedFromConcierge') : translate('reportActionCompose.writeSomething');
-    const isGroupPolicyReport = !!report?.policyID && report.policyID !== CONST.POLICY.ID_FAKE;
-    const reportParticipantIDs = Object.keys(report?.participants ?? {})
-        .map(Number)
-        .filter((accountID) => accountID !== currentUserPersonalDetails.accountID);
-
-    const fsClass = FS.getChatFSClass(report);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
 
     const emojiPositionValues = {
         secondaryRowHeight: styles.chatItemComposeSecondaryRow.height,
@@ -86,55 +65,16 @@ function ComposerBoxContent({reportID, lastReportAction, isComposerFullSize}: Co
 
     return (
         <>
-            <AttachmentPickerWithMenuItems
-                onAttachmentPicked={(files) => validateAttachments({files})}
+            <ActionMenu
                 reportID={reportID}
-                report={report}
-                currentUserPersonalDetails={currentUserPersonalDetails}
-                reportParticipantIDs={reportParticipantIDs}
-                isFullComposerAvailable={isFullComposerAvailable}
-                isComposerFullSize={isComposerFullSize}
-                disabled={isBlockedFromConcierge}
-                setMenuVisibility={setMenuVisibility}
-                isMenuVisible={isMenuVisible}
-                onTriggerAttachmentPicker={onTriggerAttachmentPicker}
                 raiseIsScrollLikelyLayoutTriggered={raiseIsScrollLayoutTriggered}
-                onAddActionPressed={onAddActionPressed}
-                onItemSelected={onItemSelected}
-                onCanceledAttachmentPicker={() => {
-                    if (!shouldFocusComposerOnScreenFocus) {
-                        return;
-                    }
-                    composerRef.current?.focus(true);
-                }}
-                actionButtonRef={actionButtonRef}
-                shouldDisableAttachmentItem={!!exceededMaxLength}
             />
-            <ComposerWithSuggestions
+            <ComposerInput
                 ref={setComposerRef}
-                suggestionsRef={suggestionsRef}
-                isNextModalWillOpenRef={isNextModalWillOpenRef}
+                reportID={reportID}
+                lastReportAction={lastReportAction}
                 isScrollLikelyLayoutTriggered={isScrollLayoutTriggered}
                 raiseIsScrollLikelyLayoutTriggered={raiseIsScrollLayoutTriggered}
-                reportID={reportID}
-                policyID={report?.policyID}
-                includeChronos={chatIncludesChronos(report)}
-                isGroupPolicyReport={isGroupPolicyReport}
-                lastReportAction={lastReportAction}
-                isMenuVisible={isMenuVisible}
-                inputPlaceholder={inputPlaceholder}
-                isComposerFullSize={isComposerFullSize}
-                setIsFullComposerAvailable={setIsFullComposerAvailable}
-                onPasteFile={(files) => validateAttachments({files})}
-                onClear={submitForm}
-                disabled={isBlockedFromConcierge || isEmojiPickerVisible()}
-                onEnterKeyPress={handleSendMessage}
-                shouldShowComposeInput={shouldShowComposeInput}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                measureParentContainer={measureContainer}
-                onValueChange={onValueChange}
-                forwardedFSClass={fsClass}
             />
             {canUseTouchScreen() && isMediumScreenWidth ? null : (
                 <EmojiPickerButton
@@ -191,7 +131,6 @@ function Composer({reportID, lastReportAction, pendingAction, reportTransactions
                             <ComposerBoxContent
                                 reportID={reportID}
                                 lastReportAction={lastReportAction}
-                                isComposerFullSize={isComposerFullSize}
                             />
                         </Composer.Box>
                     </Composer.DropZone>

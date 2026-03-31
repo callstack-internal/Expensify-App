@@ -42,6 +42,7 @@ function ComposerProvider({children, reportID, transactionThreadReportID}: Compo
     });
 
     const [isFullComposerAvailable, setIsFullComposerAvailable] = useState(isComposerFullSize);
+    const [isMenuVisible, setMenuVisibility] = useState(false);
 
     const [value, setValue] = useState(() => {
         return draftComment ?? '';
@@ -179,6 +180,7 @@ function ComposerProvider({children, reportID, transactionThreadReportID}: Compo
         isFocused,
         isFullComposerAvailable,
         isComposerFullSize,
+        isMenuVisible,
     };
 
     const composerSendState = {
@@ -192,6 +194,7 @@ function ComposerProvider({children, reportID, transactionThreadReportID}: Compo
     const composerActions = {
         setIsFocused,
         setIsFullComposerAvailable,
+        setMenuVisibility,
         setValue,
         handleSendMessage,
         focus,

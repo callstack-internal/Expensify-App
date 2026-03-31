@@ -1,3 +1,3 @@
-import ComposerWithSuggestions from './ComposerWithSuggestions';
+import ComposerInput from './ComposerWithSuggestions';
 
-export default ComposerWithSuggestions;
+export default ComposerInput;

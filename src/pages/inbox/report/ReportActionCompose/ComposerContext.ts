@@ -20,6 +20,7 @@ type ComposerState = {
     isFocused: boolean;
     isFullComposerAvailable: boolean;
     isComposerFullSize: boolean;
+    isMenuVisible: boolean;
 };
 
 type ComposerSendState = {
@@ -33,6 +34,7 @@ type ComposerSendState = {
 type ComposerActions = {
     setIsFocused: (v: boolean) => void;
     setIsFullComposerAvailable: (v: boolean) => void;
+    setMenuVisibility: (v: boolean) => void;
     setValue: (v: string) => void;
     handleSendMessage: () => void;
     focus: () => void;
@@ -80,6 +82,7 @@ const defaultState: ComposerState = {
     isFocused: false,
     isFullComposerAvailable: false,
     isComposerFullSize: false,
+    isMenuVisible: false,
 };
 
 const defaultSendState: ComposerSendState = {
@@ -94,6 +97,7 @@ const noop = () => {};
 const defaultActions: ComposerActions = {
     setIsFocused: noop,
     setIsFullComposerAvailable: noop,
+    setMenuVisibility: noop,
     setValue: noop,
     handleSendMessage: noop,
     focus: noop,

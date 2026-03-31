@@ -1,6 +1,5 @@
 import lodashDebounce from 'lodash/debounce';
-import noop from 'lodash/noop';
-import React, {memo, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import type {BlurEvent, MeasureInWindowOnSuccessCallback, TextInputSelectionChangeEvent} from 'react-native';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
@@ -129,9 +128,6 @@ const shouldFocusInputOnScreenFocus = canFocusInputOnScreenFocus();
 
 const willBlurTextInputOnTapOutside = willBlurTextInputOnTapOutsideFunc();
 
-// eslint-disable-next-line import/no-mutable-exports
-let onSubmitAction = noop;
-
 function ReportActionCompose({
     isComposerFullSize = false,
     onSubmit,
@@ -199,46 +195,45 @@ function ReportActionCompose({
      */
     const {hasExceededMaxCommentLength, validateCommentMaxLength, setHasExceededMaxCommentLength} = useHandleExceedMaxCommentLength();
     const {hasExceededMaxTaskTitleLength, validateTaskTitleMaxLength, setHasExceededMaxTitleLength} = useHandleExceedMaxTaskTitleLength();
-    const [exceededMaxLength, setExceededMaxLength] = useState<number | null>(null);
+    const exceededMaxLength = (() => {
+        if (hasExceededMaxTaskTitleLength) {
+            return CONST.TITLE_CHARACTER_LIMIT;
+        }
+        if (hasExceededMaxCommentLength) {
+            return CONST.MAX_COMMENT_LENGTH;
+        }
+        return null;
+    })();
 
     const icons = useMemoizedLazyExpensifyIcons(['MessageInABottle']);
 
     const suggestionsRef = useRef<SuggestionsRef>(null);
     const composerRef = useRef<ComposerRef | null>(null);
-    const reportParticipantIDs = useMemo(
-        () =>
-            Object.keys(report?.participants ?? {})
-                .map(Number)
-                .filter((accountID) => accountID !== currentUserPersonalDetails.accountID),
-        [currentUserPersonalDetails.accountID, report?.participants],
-    );
+    const reportParticipantIDs = Object.keys(report?.participants ?? {})
+        .map(Number)
+        .filter((accountID) => accountID !== currentUserPersonalDetails.accountID);
 
-    const shouldShowReportRecipientLocalTime = useMemo(
-        () => canShowReportRecipientLocalTime(personalDetails, report, currentUserPersonalDetails.accountID) && !isComposerFullSize,
-        [personalDetails, report, currentUserPersonalDetails.accountID, isComposerFullSize],
-    );
+    const shouldShowReportRecipientLocalTime = canShowReportRecipientLocalTime(personalDetails, report, currentUserPersonalDetails.accountID) && !isComposerFullSize;
 
-    const includesConcierge = useMemo(() => chatIncludesConcierge({participants: report?.participants}), [report?.participants]);
-    const userBlockedFromConcierge = useMemo(() => isBlockedFromConciergeUserAction(blockedFromConcierge), [blockedFromConcierge]);
-    const isBlockedFromConcierge = useMemo(() => includesConcierge && userBlockedFromConcierge, [includesConcierge, userBlockedFromConcierge]);
+    const includesConcierge = chatIncludesConcierge({participants: report?.participants});
+    const userBlockedFromConcierge = isBlockedFromConciergeUserAction(blockedFromConcierge);
+    const isBlockedFromConcierge = includesConcierge && userBlockedFromConcierge;
     const isReportArchived = useReportIsArchived(report?.reportID);
-    const isTransactionThreadView = useMemo(() => isReportTransactionThread(report), [report]);
-    const isExpensesReport = useMemo(() => reportTransactions && reportTransactions.length > 1, [reportTransactions]);
+    const isTransactionThreadView = isReportTransactionThread(report);
+    const isExpensesReport = reportTransactions && reportTransactions.length > 1;
 
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.reportID}`, {
         canEvict: false,
     });
 
-    const personalDetail = useCurrentUserPersonalDetails();
-
     const iouAction = reportActions ? Object.values(reportActions).find((action) => isMoneyRequestAction(action)) : null;
     const linkedTransactionID = iouAction && !isExpensesReport ? getLinkedTransactionID(iouAction) : undefined;
 
-    const transactionID = useMemo(() => getTransactionID(report) ?? linkedTransactionID, [report, linkedTransactionID]);
+    const transactionID = getTransactionID(report) ?? linkedTransactionID;
 
     const [transaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`);
 
-    const isSingleTransactionView = useMemo(() => !!transaction && !!reportTransactions && reportTransactions.length === 1, [transaction, reportTransactions]);
+    const isSingleTransactionView = !!transaction && !!reportTransactions && reportTransactions.length === 1;
     const parentReportAction = isSingleTransactionView ? iouAction : getReportAction(report?.parentReportID, report?.parentReportActionID);
     const canUserPerformWriteAction = !!canUserPerformWriteActionReportUtils(report, isReportArchived);
     const canEditReceipt =
@@ -247,24 +242,19 @@ function ReportActionCompose({
         !transaction?.receipt?.isTestDriveReceipt;
     const shouldAddOrReplaceReceipt = (isTransactionThreadView || isSingleTransactionView) && canEditReceipt;
 
-    const hasReceipt = useMemo(() => hasReceiptTransactionUtils(transaction), [transaction]);
+    const hasReceipt = hasReceiptTransactionUtils(transaction);
 
-    const shouldDisplayDualDropZone = useMemo(() => {
+    const shouldDisplayDualDropZone = (() => {
         const parentReport = getParentReport(report);
         const isSettledOrApproved = isSettled(report) || isSettled(parentReport) || isReportApproved({report}) || isReportApproved({report: parentReport});
         const hasMoneyRequestOptions = !!temporary_getMoneyRequestOptions(report, policy, reportParticipantIDs, betas, isReportArchived, isRestrictedToPreferredPolicy).length;
         const canModifyReceipt = shouldAddOrReplaceReceipt && !isSettledOrApproved;
         const isRoomOrGroupChat = isChatRoom(report) || isGroupChat(report);
         return !isRoomOrGroupChat && (canModifyReceipt || hasMoneyRequestOptions) && !isInvoiceReport(report);
-    }, [shouldAddOrReplaceReceipt, report, reportParticipantIDs, policy, isReportArchived, isRestrictedToPreferredPolicy, betas]);
+    })();
 
     // Placeholder to display in the chat input.
-    const inputPlaceholder = useMemo(() => {
-        if (includesConcierge && userBlockedFromConcierge) {
-            return translate('reportActionCompose.blockedFromConcierge');
-        }
-        return translate('reportActionCompose.writeSomething');
-    }, [includesConcierge, translate, userBlockedFromConcierge]);
+    const inputPlaceholder = includesConcierge && userBlockedFromConcierge ? translate('reportActionCompose.blockedFromConcierge') : translate('reportActionCompose.writeSomething');
 
     const focus = () => {
         if (composerRef.current === null) {
@@ -277,41 +267,36 @@ function ReportActionCompose({
     const isNextModalWillOpenRef = useRef(false);
 
     const containerRef = useRef<View>(null);
-    const measureContainer = useCallback(
-        (callback: MeasureInWindowOnSuccessCallback) => {
-            if (!containerRef.current) {
-                return;
-            }
-            containerRef.current.measureInWindow(callback);
-        },
-        // We added isComposerFullSize in dependencies so that when this value changes, we recalculate the position of the popup
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [isComposerFullSize],
-    );
+    const measureContainer = (callback: MeasureInWindowOnSuccessCallback) => {
+        if (!containerRef.current) {
+            return;
+        }
+        containerRef.current.measureInWindow(callback);
+    };
 
-    const onAddActionPressed = useCallback(() => {
+    const onAddActionPressed = () => {
         if (!willBlurTextInputOnTapOutside) {
             isKeyboardVisibleWhenShowingModalRef.current = !!composerRef.current?.isFocused();
         }
         composerRef.current?.blur();
-    }, []);
+    };
 
-    const onItemSelected = useCallback(() => {
+    const onItemSelected = () => {
         isKeyboardVisibleWhenShowingModalRef.current = false;
-    }, []);
+    };
 
-    const updateShouldShowSuggestionMenuToFalse = useCallback(() => {
+    const updateShouldShowSuggestionMenuToFalse = () => {
         if (!suggestionsRef.current) {
             return;
         }
         suggestionsRef.current.updateShouldShowSuggestionMenuToFalse(false);
-    }, []);
+    };
 
     const attachmentFileRef = useRef<FileObject | FileObject[] | null>(null);
     /** Object URLs created for dropped files; revoked when the attachment modal closes without confirm */
     const pendingDropObjectUrlsRef = useRef<string[]>([]);
 
-    const addAttachment = useCallback((file: FileObject | FileObject[]) => {
+    const addAttachment = (file: FileObject | FileObject[]) => {
         attachmentFileRef.current = file;
         // User confirmed; URLs are now on the files and will be used on submit. Stop tracking for revoke-on-close.
         pendingDropObjectUrlsRef.current = [];
@@ -323,13 +308,13 @@ function ReportActionCompose({
         }
 
         scheduleOnUI(clearWorklet);
-    }, []);
+    };
 
     /**
      * Event handler to update the state after the attachment preview is closed.
      * Revokes object URLs for dropped files when the user closed without confirming (avoids leaking blob URLs).
      */
-    const onAttachmentPreviewClose = useCallback(() => {
+    const onAttachmentPreviewClose = () => {
         if (attachmentFileRef.current === null) {
             for (const url of pendingDropObjectUrlsRef.current) {
                 URL.revokeObjectURL(url);
@@ -340,97 +325,70 @@ function ReportActionCompose({
         setIsAttachmentPreviewActive(false);
         // This enables Composer refocus when the attachments modal is closed by the browser navigation
         ComposerFocusManager.setReadyToFocus();
-    }, [updateShouldShowSuggestionMenuToFalse]);
+    };
 
     /**
      * Add a new comment to this chat
      */
-    const submitForm = useCallback(
-        (newComment: string) => {
-            const newCommentTrimmed = newComment.trim();
+    const submitForm = (newComment: string) => {
+        const newCommentTrimmed = newComment.trim();
 
-            kickoffWaitingIndicator();
+        kickoffWaitingIndicator();
 
-            if (attachmentFileRef.current) {
-                addAttachmentWithComment({
-                    report: transactionThreadReport ?? report,
-                    notifyReportID: reportID,
-                    ancestors,
-                    attachments: attachmentFileRef.current,
-                    currentUserAccountID: currentUserPersonalDetails.accountID,
-                    text: newCommentTrimmed,
-                    timezone: personalDetail.timezone,
-                    shouldPlaySound: true,
-                    isInSidePanel,
+        if (attachmentFileRef.current) {
+            addAttachmentWithComment({
+                report: transactionThreadReport ?? report,
+                notifyReportID: reportID,
+                ancestors,
+                attachments: attachmentFileRef.current,
+                currentUserAccountID: currentUserPersonalDetails.accountID,
+                text: newCommentTrimmed,
+                timezone: currentUserPersonalDetails.timezone,
+                shouldPlaySound: true,
+                isInSidePanel,
+            });
+            attachmentFileRef.current = null;
+        } else {
+            // Pre-generate the reportActionID so we can correlate the Sentry send-message span with the exact message
+            const optimisticReportActionID = rand64();
+
+            // The list is inverted, so an offset near 0 means the user is at the bottom (newest messages visible).
+            const isScrolledToBottom = scrollOffsetRef.current < CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD;
+            if (isScrolledToBottom) {
+                startSpan(`${CONST.TELEMETRY.SPAN_SEND_MESSAGE}_${optimisticReportActionID}`, {
+                    name: 'send-message',
+                    op: CONST.TELEMETRY.SPAN_SEND_MESSAGE,
+                    attributes: {
+                        [CONST.TELEMETRY.ATTRIBUTE_REPORT_ID]: reportID,
+                        [CONST.TELEMETRY.ATTRIBUTE_MESSAGE_LENGTH]: newCommentTrimmed.length,
+                    },
                 });
-                attachmentFileRef.current = null;
-            } else {
-                // Pre-generate the reportActionID so we can correlate the Sentry send-message span with the exact message
-                const optimisticReportActionID = rand64();
-
-                // The list is inverted, so an offset near 0 means the user is at the bottom (newest messages visible).
-                const isScrolledToBottom = scrollOffsetRef.current < CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD;
-                if (isScrolledToBottom) {
-                    startSpan(`${CONST.TELEMETRY.SPAN_SEND_MESSAGE}_${optimisticReportActionID}`, {
-                        name: 'send-message',
-                        op: CONST.TELEMETRY.SPAN_SEND_MESSAGE,
-                        attributes: {
-                            [CONST.TELEMETRY.ATTRIBUTE_REPORT_ID]: reportID,
-                            [CONST.TELEMETRY.ATTRIBUTE_MESSAGE_LENGTH]: newCommentTrimmed.length,
-                        },
-                    });
-                }
-                onSubmit(newCommentTrimmed, optimisticReportActionID);
             }
-        },
-        [
-            kickoffWaitingIndicator,
-            transactionThreadReport,
-            report,
-            reportID,
-            ancestors,
-            currentUserPersonalDetails.accountID,
-            personalDetail.timezone,
-            isInSidePanel,
-            onSubmit,
-            scrollOffsetRef,
-        ],
-    );
+            onSubmit(newCommentTrimmed, optimisticReportActionID);
+        }
+    };
 
-    const onTriggerAttachmentPicker = useCallback(() => {
+    const onTriggerAttachmentPicker = () => {
         isNextModalWillOpenRef.current = true;
         isKeyboardVisibleWhenShowingModalRef.current = true;
-    }, []);
+    };
 
-    const onBlur = useCallback(
-        (event: BlurEvent) => {
-            const webEvent = event as unknown as FocusEvent;
-            setIsFocused(false);
-            onComposerBlur?.();
-            if (suggestionsRef.current) {
-                suggestionsRef.current.resetSuggestions();
-            }
-            if (webEvent.relatedTarget && webEvent.relatedTarget === actionButtonRef.current) {
-                isKeyboardVisibleWhenShowingModalRef.current = true;
-            }
-        },
-        [onComposerBlur],
-    );
+    const onBlur = (event: BlurEvent) => {
+        const webEvent = event as unknown as FocusEvent;
+        setIsFocused(false);
+        onComposerBlur?.();
+        if (suggestionsRef.current) {
+            suggestionsRef.current.resetSuggestions();
+        }
+        if (webEvent.relatedTarget && webEvent.relatedTarget === actionButtonRef.current) {
+            isKeyboardVisibleWhenShowingModalRef.current = true;
+        }
+    };
 
-    const onFocus = useCallback(() => {
+    const onFocus = () => {
         setIsFocused(true);
         onComposerFocus?.();
-    }, [onComposerFocus]);
-
-    useEffect(() => {
-        if (hasExceededMaxTaskTitleLength) {
-            setExceededMaxLength(CONST.TITLE_CHARACTER_LIMIT);
-        } else if (hasExceededMaxCommentLength) {
-            setExceededMaxLength(CONST.MAX_COMMENT_LENGTH);
-        } else {
-            setExceededMaxLength(null);
-        }
-    }, [hasExceededMaxTaskTitleLength, hasExceededMaxCommentLength]);
+    };
 
     // We are returning a callback here as we want to invoke the method on unmount only
     useEffect(
@@ -440,12 +398,11 @@ function ReportActionCompose({
             }
             hideEmojiPicker();
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [],
+        [report?.reportID],
     );
 
     // When we invite someone to a room they don't have the policy object, but we still want them to be able to mention other reports they are members of, so we only check if the policyID in the report is from a workspace
-    const isGroupPolicyReport = useMemo(() => !!report?.policyID && report.policyID !== CONST.POLICY.ID_FAKE, [report?.policyID]);
+    const isGroupPolicyReport = !!report?.policyID && report.policyID !== CONST.POLICY.ID_FAKE;
     const reportRecipientAccountIDs = getReportRecipientAccountIDs(report, currentUserPersonalDetails.accountID);
     const reportRecipient = personalDetails?.[reportRecipientAccountIDs[0]];
     const shouldUseFocusedColor = !isBlockedFromConcierge && isFocused;
@@ -454,27 +411,24 @@ function ReportActionCompose({
 
     const isSendDisabled = isCommentEmpty || isBlockedFromConcierge || !!exceededMaxLength;
 
-    const validateMaxLength = useCallback(
-        (value: string) => {
-            const taskCommentMatch = value?.match(CONST.REGEX.TASK_TITLE_WITH_OPTIONAL_SHORT_MENTION);
-            if (taskCommentMatch) {
-                const title = taskCommentMatch?.[3] ? taskCommentMatch[3].trim().replaceAll('\n', ' ') : '';
-                setHasExceededMaxCommentLength(false);
-                return validateTaskTitleMaxLength(title);
-            }
-            setHasExceededMaxTitleLength(false);
-            return validateCommentMaxLength(value, {reportID});
-        },
-        [setHasExceededMaxCommentLength, setHasExceededMaxTitleLength, validateTaskTitleMaxLength, validateCommentMaxLength, reportID],
-    );
+    const validateMaxLength = (value: string) => {
+        const taskCommentMatch = value?.match(CONST.REGEX.TASK_TITLE_WITH_OPTIONAL_SHORT_MENTION);
+        if (taskCommentMatch) {
+            const title = taskCommentMatch?.[3] ? taskCommentMatch[3].trim().replaceAll('\n', ' ') : '';
+            setHasExceededMaxCommentLength(false);
+            return validateTaskTitleMaxLength(title);
+        }
+        setHasExceededMaxTitleLength(false);
+        return validateCommentMaxLength(value, {reportID});
+    };
 
-    const debouncedValidate = useMemo(() => lodashDebounce(validateMaxLength, CONST.TIMING.COMMENT_LENGTH_DEBOUNCE_TIME, {leading: true}), [validateMaxLength]);
+    const debouncedValidate = lodashDebounce(validateMaxLength, CONST.TIMING.COMMENT_LENGTH_DEBOUNCE_TIME, {leading: true});
 
     // Note: using JS refs is not well supported in reanimated, thus we need to store the function in a shared value
     // useSharedValue on web doesn't support functions, so we need to wrap it in an object.
     const composerRefShared = useSharedValue<Partial<ComposerRef>>({});
 
-    const handleSendMessage = useCallback(() => {
+    const handleSendMessage = () => {
         if (isSendDisabled || !debouncedValidate.flush()) {
             return;
         }
@@ -493,49 +447,27 @@ function ReportActionCompose({
 
             clearWorklet?.();
         });
-    }, [isSendDisabled, debouncedValidate, isComposerFullSize, reportID, composerRefShared]);
+    };
 
-    onSubmitAction = handleSendMessage;
+    const emojiPositionValues = {
+        secondaryRowHeight: styles.chatItemComposeSecondaryRow.height,
+        secondaryRowMarginTop: styles.chatItemComposeSecondaryRow.marginTop,
+        secondaryRowMarginBottom: styles.chatItemComposeSecondaryRow.marginBottom,
+        composeBoxMinHeight: styles.chatItemComposeBox.minHeight,
+        emojiButtonHeight: styles.chatItemEmojiButton.height,
+    };
 
-    const emojiPositionValues = useMemo(
-        () => ({
-            secondaryRowHeight: styles.chatItemComposeSecondaryRow.height,
-            secondaryRowMarginTop: styles.chatItemComposeSecondaryRow.marginTop,
-            secondaryRowMarginBottom: styles.chatItemComposeSecondaryRow.marginBottom,
-            composeBoxMinHeight: styles.chatItemComposeBox.minHeight,
-            emojiButtonHeight: styles.chatItemEmojiButton.height,
-        }),
-        [
-            styles.chatItemComposeSecondaryRow.height,
-            styles.chatItemComposeSecondaryRow.marginTop,
-            styles.chatItemComposeSecondaryRow.marginBottom,
-            styles.chatItemComposeBox.minHeight,
-            styles.chatItemEmojiButton.height,
-        ],
-    );
+    const chatItemComposeSecondaryRowHeight = emojiPositionValues.secondaryRowHeight + emojiPositionValues.secondaryRowMarginTop + emojiPositionValues.secondaryRowMarginBottom;
+    const reportActionComposeHeight = emojiPositionValues.composeBoxMinHeight + chatItemComposeSecondaryRowHeight;
+    const emojiOffsetWithComposeBox = (emojiPositionValues.composeBoxMinHeight - emojiPositionValues.emojiButtonHeight) / 2;
+    const emojiShiftVertical = reportActionComposeHeight - emojiOffsetWithComposeBox - CONST.MENU_POSITION_REPORT_ACTION_COMPOSE_BOTTOM;
 
-    const emojiShiftVertical = useMemo(() => {
-        const chatItemComposeSecondaryRowHeight = emojiPositionValues.secondaryRowHeight + emojiPositionValues.secondaryRowMarginTop + emojiPositionValues.secondaryRowMarginBottom;
-        const reportActionComposeHeight = emojiPositionValues.composeBoxMinHeight + chatItemComposeSecondaryRowHeight;
-        const emojiOffsetWithComposeBox = (emojiPositionValues.composeBoxMinHeight - emojiPositionValues.emojiButtonHeight) / 2;
-        return reportActionComposeHeight - emojiOffsetWithComposeBox - CONST.MENU_POSITION_REPORT_ACTION_COMPOSE_BOTTOM;
-    }, [
-        emojiPositionValues.secondaryRowHeight,
-        emojiPositionValues.secondaryRowMarginTop,
-        emojiPositionValues.secondaryRowMarginBottom,
-        emojiPositionValues.composeBoxMinHeight,
-        emojiPositionValues.emojiButtonHeight,
-    ]);
-
-    const onValueChange = useCallback(
-        (value: string) => {
-            if (value.length === 0 && isComposerFullSize) {
-                setIsComposerFullSize(reportID, false);
-            }
-            debouncedValidate(value);
-        },
-        [isComposerFullSize, reportID, debouncedValidate],
-    );
+    const onValueChange = (value: string) => {
+        if (value.length === 0 && isComposerFullSize) {
+            setIsComposerFullSize(reportID, false);
+        }
+        debouncedValidate(value);
+    };
 
     const {validateAttachments, onReceiptDropped, PDFValidationComponent, ErrorModal} = useAttachmentUploadValidation({
         policy,
@@ -724,6 +656,5 @@ function ReportActionCompose({
     );
 }
 
-export default memo(ReportActionCompose);
-export {onSubmitAction};
+export default ReportActionCompose;
 export type {SuggestionsRef, ComposerRef, ReportActionComposeProps};

@@ -1,5 +1,5 @@
 import {isBlockedFromChatSelector} from '@selectors/BlockedFromChat';
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import {Keyboard, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import AnonymousReportFooter from '@components/AnonymousReportFooter';
@@ -83,17 +83,6 @@ function ReportFooter({lastReportAction, report = {reportID: '-1'}, reportTransa
     const isSystemChat = isSystemChatUtil(report);
     const isAdminsOnlyPostingRoom = isAdminsOnlyPostingRoomUtil(report);
 
-    const [didHideComposerInput, setDidHideComposerInput] = useState(!shouldShowComposeInput);
-
-    useEffect(() => {
-        if (didHideComposerInput || shouldShowComposeInput) {
-            return;
-        }
-        // This is an intentional one-way latch: once the composer input has been hidden, it stays hidden.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setDidHideComposerInput(true);
-    }, [shouldShowComposeInput, didHideComposerInput]);
-
     return (
         <>
             {!!shouldHideComposer && (
@@ -128,7 +117,6 @@ function ReportFooter({lastReportAction, report = {reportID: '-1'}, reportTransa
                             reportID={report.reportID}
                             lastReportAction={lastReportAction}
                             pendingAction={reportPendingAction}
-                            didHideComposerInput={didHideComposerInput}
                             reportTransactions={reportTransactions}
                             transactionThreadReportID={transactionThreadReportID}
                         />

@@ -30,12 +30,11 @@ type ComposerBoxProps = {
     reportID: string;
     lastReportAction?: OnyxEntry<OnyxTypes.ReportAction>;
     isComposerFullSize: boolean;
-    didHideComposerInput?: boolean;
     reportTransactions?: OnyxEntry<OnyxTypes.Transaction[]>;
     pendingAction?: OnyxCommon.PendingAction;
 };
 
-function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideComposerInput, reportTransactions, pendingAction}: ComposerBoxProps) {
+function ComposerBox({reportID, lastReportAction, isComposerFullSize, reportTransactions, pendingAction}: ComposerBoxProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
@@ -44,8 +43,29 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
     const {isFocused, isFullComposerAvailable} = useComposerState();
     const {isBlockedFromConcierge, exceededMaxLength, isSendDisabled} = useComposerSendState();
     const {handleSendMessage, setIsFullComposerAvailable, onValueChange} = useComposerActions();
-    const internalsData = useComposerInternalsData();
-    const internalsActions = useComposerInternalsActions();
+    const {
+        userBlockedFromConcierge,
+        shouldFocusComposerOnScreenFocus,
+        composerRef,
+        actionButtonRef,
+        suggestionsRef,
+        isNextModalWillOpenRef,
+        isAttachmentPreviewActive,
+        shouldShowComposeInput,
+    } = useComposerInternalsData();
+    const {
+        setComposerRef,
+        submitForm,
+        onFocus,
+        onBlur,
+        addAttachment,
+        onAttachmentPreviewClose,
+        setIsAttachmentPreviewActive,
+        setPendingDropObjectUrls,
+        onTriggerAttachmentPicker,
+        onAddActionPressed,
+        onItemSelected,
+    } = useComposerInternalsActions();
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
 
@@ -53,8 +73,7 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
     const [isMenuVisible, setMenuVisibility] = useState(false);
 
     const includesConcierge = chatIncludesConcierge({participants: report?.participants});
-    const inputPlaceholder =
-        includesConcierge && internalsData.userBlockedFromConcierge ? translate('reportActionCompose.blockedFromConcierge') : translate('reportActionCompose.writeSomething');
+    const inputPlaceholder = includesConcierge && userBlockedFromConcierge ? translate('reportActionCompose.blockedFromConcierge') : translate('reportActionCompose.writeSomething');
     const isGroupPolicyReport = !!report?.policyID && report.policyID !== CONST.POLICY.ID_FAKE;
     const reportParticipantIDs = Object.keys(report?.participants ?? {})
         .map(Number)
@@ -96,12 +115,12 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
 
     const {validateAttachments, onReceiptDropped, PDFValidationComponent, ErrorModal} = useAttachmentUploadValidation({
         reportID,
-        addAttachment: internalsActions.addAttachment,
-        onAttachmentPreviewClose: internalsActions.onAttachmentPreviewClose,
+        addAttachment,
+        onAttachmentPreviewClose,
         exceededMaxLength,
         report,
-        isAttachmentPreviewActive: internalsData.isAttachmentPreviewActive,
-        setIsAttachmentPreviewActive: internalsActions.setIsAttachmentPreviewActive,
+        isAttachmentPreviewActive,
+        setIsAttachmentPreviewActive,
     });
 
     const handleAttachmentDrop = (event: DragEvent) => {
@@ -118,7 +137,7 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
             return;
         }
 
-        internalsActions.setPendingDropObjectUrls(createdUrls);
+        setPendingDropObjectUrls(createdUrls);
         validateAttachments({files});
     };
 
@@ -151,23 +170,23 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
                     disabled={isBlockedFromConcierge}
                     setMenuVisibility={setMenuVisibility}
                     isMenuVisible={isMenuVisible}
-                    onTriggerAttachmentPicker={internalsActions.onTriggerAttachmentPicker}
+                    onTriggerAttachmentPicker={onTriggerAttachmentPicker}
                     raiseIsScrollLikelyLayoutTriggered={raiseIsScrollLayoutTriggered}
-                    onAddActionPressed={internalsActions.onAddActionPressed}
-                    onItemSelected={internalsActions.onItemSelected}
+                    onAddActionPressed={onAddActionPressed}
+                    onItemSelected={onItemSelected}
                     onCanceledAttachmentPicker={() => {
-                        if (!internalsData.shouldFocusComposerOnScreenFocus) {
+                        if (!shouldFocusComposerOnScreenFocus) {
                             return;
                         }
-                        internalsData.composerRef.current?.focus(true);
+                        composerRef.current?.focus(true);
                     }}
-                    actionButtonRef={internalsData.actionButtonRef}
+                    actionButtonRef={actionButtonRef}
                     shouldDisableAttachmentItem={!!exceededMaxLength}
                 />
                 <ComposerWithSuggestions
-                    ref={internalsActions.setComposerRef}
-                    suggestionsRef={internalsData.suggestionsRef}
-                    isNextModalWillOpenRef={internalsData.isNextModalWillOpenRef}
+                    ref={setComposerRef}
+                    suggestionsRef={suggestionsRef}
+                    isNextModalWillOpenRef={isNextModalWillOpenRef}
                     isScrollLikelyLayoutTriggered={isScrollLayoutTriggered}
                     raiseIsScrollLikelyLayoutTriggered={raiseIsScrollLayoutTriggered}
                     reportID={reportID}
@@ -180,15 +199,14 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
                     isComposerFullSize={isComposerFullSize}
                     setIsFullComposerAvailable={setIsFullComposerAvailable}
                     onPasteFile={(files) => validateAttachments({files})}
-                    onClear={internalsActions.submitForm}
+                    onClear={submitForm}
                     disabled={isBlockedFromConcierge || isEmojiPickerVisible()}
                     onEnterKeyPress={handleSendMessage}
-                    shouldShowComposeInput={internalsData.shouldShowComposeInput}
-                    onFocus={internalsActions.onFocus}
-                    onBlur={internalsActions.onBlur}
+                    shouldShowComposeInput={shouldShowComposeInput}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
                     measureParentContainer={measureContainer}
                     onValueChange={onValueChange}
-                    didHideComposerInput={didHideComposerInput}
                     forwardedFSClass={fsClass}
                 />
                 <ComposerDropZone
@@ -208,9 +226,9 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, didHideCom
                             if (activeElementId === CONST.COMPOSER.NATIVE_ID || activeElementId === CONST.EMOJI_PICKER_BUTTON_NATIVE_ID) {
                                 return;
                             }
-                            internalsData.composerRef.current?.focus(true);
+                            composerRef.current?.focus(true);
                         }}
-                        onEmojiSelected={(...args) => internalsData.composerRef.current?.replaceSelectionWithText(...args)}
+                        onEmojiSelected={(...args) => composerRef.current?.replaceSelectionWithText(...args)}
                         emojiPickerID={report?.reportID}
                         shiftVertical={emojiShiftVertical}
                     />

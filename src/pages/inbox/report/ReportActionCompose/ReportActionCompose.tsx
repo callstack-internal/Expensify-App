@@ -19,12 +19,11 @@ type ReportActionComposeProps = {
     reportID: string;
     lastReportAction?: OnyxEntry<OnyxTypes.ReportAction>;
     pendingAction?: OnyxCommon.PendingAction;
-    didHideComposerInput?: boolean;
     reportTransactions?: OnyxEntry<OnyxTypes.Transaction[]>;
     transactionThreadReportID?: string;
 };
 
-function Composer({reportID, lastReportAction, pendingAction, didHideComposerInput, reportTransactions, transactionThreadReportID}: ReportActionComposeProps) {
+function Composer({reportID, lastReportAction, pendingAction, reportTransactions, transactionThreadReportID}: ReportActionComposeProps) {
     const styles = useThemeStyles();
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
@@ -45,7 +44,6 @@ function Composer({reportID, lastReportAction, pendingAction, didHideComposerInp
                         reportID={reportID}
                         lastReportAction={lastReportAction}
                         isComposerFullSize={isComposerFullSize}
-                        didHideComposerInput={didHideComposerInput}
                         reportTransactions={reportTransactions}
                         pendingAction={pendingAction}
                     />

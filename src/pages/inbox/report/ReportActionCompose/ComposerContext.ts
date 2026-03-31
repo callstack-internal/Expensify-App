@@ -33,7 +33,7 @@ type ComposerSendState = {
 type ComposerActions = {
     setIsFocused: (v: boolean) => void;
     setIsFullComposerAvailable: (v: boolean) => void;
-    setIsCommentEmpty: (v: boolean) => void;
+    setValue: (v: string) => void;
     handleSendMessage: () => void;
     focus: () => void;
     onValueChange: (value: string) => void;
@@ -68,6 +68,7 @@ type ComposerInternalsActions = {
     addAttachment: (file: FileObject | FileObject[]) => void;
     onAttachmentPreviewClose: () => void;
     setIsAttachmentPreviewActive: (isActive: boolean) => void;
+    setPendingDropObjectUrls: (urls: string[]) => void;
 };
 
 const defaultState: ComposerState = {
@@ -88,7 +89,7 @@ const noop = () => {};
 const defaultActions: ComposerActions = {
     setIsFocused: noop,
     setIsFullComposerAvailable: noop,
-    setIsCommentEmpty: noop,
+    setValue: noop,
     handleSendMessage: noop,
     focus: noop,
     onValueChange: noop,
@@ -96,11 +97,16 @@ const defaultActions: ComposerActions = {
     debouncedValidate: Object.assign(() => true as boolean | undefined, {cancel: noop, flush: () => true as boolean | undefined}),
 };
 
+const ComposerValueContext = createContext<string>('');
 const ComposerStateContext = createContext<ComposerState>(defaultState);
 const ComposerSendStateContext = createContext<ComposerSendState>(defaultSendState);
 const ComposerActionsContext = createContext<ComposerActions>(defaultActions);
 const ComposerInternalsDataContext = createContext<ComposerInternalsData | null>(null);
 const ComposerInternalsActionsContext = createContext<ComposerInternalsActions | null>(null);
+
+function useComposerValue() {
+    return useContext(ComposerValueContext);
+}
 
 function useComposerState() {
     return useContext(ComposerStateContext);
@@ -131,11 +137,13 @@ function useComposerInternalsActions() {
 }
 
 export {
+    ComposerValueContext,
     ComposerStateContext,
     ComposerSendStateContext,
     ComposerActionsContext,
     ComposerInternalsDataContext,
     ComposerInternalsActionsContext,
+    useComposerValue,
     useComposerState,
     useComposerSendState,
     useComposerActions,

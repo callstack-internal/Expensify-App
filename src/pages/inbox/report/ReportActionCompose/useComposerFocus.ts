@@ -12,8 +12,6 @@ type UseComposerFocusParams = {
     suggestionsRef: RefObject<SuggestionsRef | null>;
     actionButtonRef: RefObject<View | HTMLDivElement | null>;
     setIsFocused: (value: boolean) => void;
-    onComposerFocus?: () => void;
-    onComposerBlur?: () => void;
 };
 
 type UseComposerFocusReturn = {
@@ -26,7 +24,7 @@ type UseComposerFocusReturn = {
     isNextModalWillOpenRef: RefObject<boolean>;
 };
 
-function useComposerFocus({composerRef, suggestionsRef, actionButtonRef, setIsFocused, onComposerFocus, onComposerBlur}: UseComposerFocusParams): UseComposerFocusReturn {
+function useComposerFocus({composerRef, suggestionsRef, actionButtonRef, setIsFocused}: UseComposerFocusParams): UseComposerFocusReturn {
     const isKeyboardVisibleWhenShowingModalRef = useRef(false);
     const isNextModalWillOpenRef = useRef(false);
 
@@ -56,7 +54,6 @@ function useComposerFocus({composerRef, suggestionsRef, actionButtonRef, setIsFo
     const onBlur = (event: BlurEvent) => {
         const webEvent = event as unknown as FocusEvent;
         setIsFocused(false);
-        onComposerBlur?.();
         if (suggestionsRef.current) {
             suggestionsRef.current.resetSuggestions();
         }
@@ -67,7 +64,6 @@ function useComposerFocus({composerRef, suggestionsRef, actionButtonRef, setIsFo
 
     const onFocus = () => {
         setIsFocused(true);
-        onComposerFocus?.();
     };
 
     return {onBlur, onFocus, focus, onAddActionPressed, onItemSelected, onTriggerAttachmentPicker, isNextModalWillOpenRef};

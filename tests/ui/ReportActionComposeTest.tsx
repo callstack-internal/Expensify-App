@@ -50,10 +50,7 @@ TestHelper.setupGlobalFetchMock();
 
 const defaultReport = LHNTestUtils.getFakeReport();
 const defaultProps: ReportActionComposeProps = {
-    onSubmit: jest.fn(),
-    isComposerFullSize: false,
     reportID: defaultReport.reportID,
-    report: defaultReport,
 };
 
 const renderReportActionCompose = (props?: Partial<ReportActionComposeProps>) => {
@@ -319,7 +316,6 @@ describe('ReportActionCompose Integration Tests', () => {
 
             // When rendering with the transaction thread report
             const {unmount} = renderReportActionCompose({
-                report: threadReport,
                 reportID: threadReport.reportID,
                 reportTransactions: [transaction as never],
             });
@@ -347,7 +343,6 @@ describe('ReportActionCompose Integration Tests', () => {
 
             // When rendering with the transaction thread report
             const {unmount} = renderReportActionCompose({
-                report: threadReport,
                 reportID: threadReport.reportID,
                 reportTransactions: [transaction as never],
             });

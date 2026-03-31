@@ -1,7 +1,6 @@
 import lodashDebounce from 'lodash/debounce';
 import React, {useRef, useState} from 'react';
 import type {View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import {useSharedValue} from 'react-native-reanimated';
 import {scheduleOnUI} from 'react-native-worklets';
 import useHandleExceedMaxCommentLength from '@hooks/useHandleExceedMaxCommentLength';
@@ -13,8 +12,7 @@ import {setIsComposerFullSize} from '@userActions/Report';
 import {isBlockedFromConcierge as isBlockedFromConciergeUserAction} from '@userActions/User';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type * as OnyxTypes from '@src/types/onyx';
-import {ComposerActionsContext, ComposerInternalsActionsContext, ComposerInternalsDataContext, ComposerSendStateContext, ComposerStateContext} from './ComposerContext';
+import {ComposerActionsContext, ComposerInternalsActionsContext, ComposerInternalsDataContext, ComposerSendStateContext, ComposerStateContext, ComposerValueContext} from './ComposerContext';
 import type {SuggestionsRef} from './ComposerContext';
 import type {ComposerRef} from './ComposerWithSuggestions/ComposerWithSuggestions';
 import useComposerFocus from './useComposerFocus';
@@ -24,20 +22,17 @@ const shouldFocusInputOnScreenFocus = canFocusInputOnScreenFocus();
 
 type ComposerProviderProps = {
     reportID: string;
-    report: OnyxEntry<OnyxTypes.Report>;
-    isComposerFullSize: boolean;
-    onSubmit: (newComment: string, reportActionID?: string) => void;
     transactionThreadReportID?: string;
-    onComposerFocus?: () => void;
-    onComposerBlur?: () => void;
     children: React.ReactNode;
 };
 
-function ComposerProvider({children, reportID, report, isComposerFullSize, onSubmit, transactionThreadReportID, onComposerFocus, onComposerBlur}: ComposerProviderProps) {
+function ComposerProvider({children, reportID, transactionThreadReportID}: ComposerProviderProps) {
     const [blockedFromConcierge] = useOnyx(ONYXKEYS.NVP_BLOCKED_FROM_CONCIERGE);
     const [shouldShowComposeInput = true] = useOnyx(ONYXKEYS.SHOULD_SHOW_COMPOSE_INPUT);
     const [initialModalState] = useOnyx(ONYXKEYS.MODAL);
     const [draftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const [isComposerFullSize = false] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_IS_COMPOSER_FULL_SIZE}${reportID}`);
 
     const shouldFocusComposerOnScreenFocus = shouldFocusInputOnScreenFocus || !!draftComment;
 
@@ -47,9 +42,11 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
 
     const [isFullComposerAvailable, setIsFullComposerAvailable] = useState(isComposerFullSize);
 
-    const [isCommentEmpty, setIsCommentEmpty] = useState(() => {
-        return !draftComment || !!draftComment.match(CONST.REGEX.EMPTY_COMMENT);
+    const [value, setValue] = useState(() => {
+        return draftComment ?? '';
     });
+
+    const isEmpty = !value || !!value.match(CONST.REGEX.EMPTY_COMMENT);
 
     const includesConcierge = chatIncludesConcierge({participants: report?.participants});
     const userBlockedFromConcierge = isBlockedFromConciergeUserAction(blockedFromConcierge);
@@ -68,17 +65,17 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
         return null;
     })();
 
-    const isSendDisabled = isCommentEmpty || isBlockedFromConcierge || !!exceededMaxLength;
+    const isSendDisabled = isEmpty || isBlockedFromConcierge || !!exceededMaxLength;
 
-    const validateMaxLength = (value: string) => {
-        const taskCommentMatch = value?.match(CONST.REGEX.TASK_TITLE_WITH_OPTIONAL_SHORT_MENTION);
+    const validateMaxLength = (v: string) => {
+        const taskCommentMatch = v?.match(CONST.REGEX.TASK_TITLE_WITH_OPTIONAL_SHORT_MENTION);
         if (taskCommentMatch) {
             const title = taskCommentMatch?.[3] ? taskCommentMatch[3].trim().replaceAll('\n', ' ') : '';
             setHasExceededMaxCommentLength(false);
             return validateTaskTitleMaxLength(title);
         }
         setHasExceededMaxTitleLength(false);
-        return validateCommentMaxLength(value, {reportID});
+        return validateCommentMaxLength(v, {reportID});
     };
 
     const debouncedValidate = lodashDebounce(validateMaxLength, CONST.TIMING.COMMENT_LENGTH_DEBOUNCE_TIME, {leading: true});
@@ -101,16 +98,13 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
         suggestionsRef,
         actionButtonRef,
         setIsFocused,
-        onComposerFocus,
-        onComposerBlur,
     });
 
     const [isAttachmentPreviewActive, setIsAttachmentPreviewActive] = useState(false);
 
-    const {submitForm, addAttachment, onAttachmentPreviewClose, pendingDropObjectUrlsRef} = useComposerSubmit({
+    const {submitForm, addAttachment, onAttachmentPreviewClose, pendingDropObjectUrlsRef, setPendingDropObjectUrls} = useComposerSubmit({
         report,
         reportID,
-        onSubmit,
         transactionThreadReportID,
         composerRefShared,
         updateShouldShowSuggestionMenuToFalse,
@@ -145,11 +139,11 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
         });
     };
 
-    const onValueChange = (value: string) => {
-        if (value.length === 0 && isComposerFullSize) {
+    const onValueChange = (v: string) => {
+        if (v.length === 0 && isComposerFullSize) {
             setIsComposerFullSize(reportID, false);
         }
-        debouncedValidate(value);
+        debouncedValidate(v);
     };
 
     const composerState = {
@@ -159,7 +153,7 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
     };
 
     const composerSendState = {
-        isEmpty: isCommentEmpty,
+        isEmpty,
         exceededMaxLength,
         isSendDisabled,
         isBlockedFromConcierge,
@@ -169,7 +163,7 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
     const composerActions = {
         setIsFocused,
         setIsFullComposerAvailable,
-        setIsCommentEmpty,
+        setValue,
         handleSendMessage,
         focus,
         onValueChange,
@@ -200,18 +194,21 @@ function ComposerProvider({children, reportID, report, isComposerFullSize, onSub
         addAttachment,
         onAttachmentPreviewClose,
         setIsAttachmentPreviewActive,
+        setPendingDropObjectUrls,
     };
 
     return (
-        <ComposerStateContext.Provider value={composerState}>
-            <ComposerSendStateContext.Provider value={composerSendState}>
-                <ComposerActionsContext.Provider value={composerActions}>
-                    <ComposerInternalsDataContext.Provider value={composerInternalsData}>
-                        <ComposerInternalsActionsContext.Provider value={composerInternalsActions}>{children}</ComposerInternalsActionsContext.Provider>
-                    </ComposerInternalsDataContext.Provider>
-                </ComposerActionsContext.Provider>
-            </ComposerSendStateContext.Provider>
-        </ComposerStateContext.Provider>
+        <ComposerValueContext.Provider value={value}>
+            <ComposerStateContext.Provider value={composerState}>
+                <ComposerSendStateContext.Provider value={composerSendState}>
+                    <ComposerActionsContext.Provider value={composerActions}>
+                        <ComposerInternalsDataContext.Provider value={composerInternalsData}>
+                            <ComposerInternalsActionsContext.Provider value={composerInternalsActions}>{children}</ComposerInternalsActionsContext.Provider>
+                        </ComposerInternalsDataContext.Provider>
+                    </ComposerActionsContext.Provider>
+                </ComposerSendStateContext.Provider>
+            </ComposerStateContext.Provider>
+        </ComposerValueContext.Provider>
     );
 }
 

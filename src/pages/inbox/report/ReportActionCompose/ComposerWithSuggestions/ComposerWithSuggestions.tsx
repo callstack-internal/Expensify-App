@@ -47,9 +47,10 @@ import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManag
 import {isValidReportIDFromPath, shouldAutoFocusOnKeyPress} from '@libs/ReportUtils';
 import updateMultilineInputRange from '@libs/updateMultilineInputRange';
 import willBlurTextInputOnTapOutsideFunc from '@libs/willBlurTextInputOnTapOutside';
+import {useComposerActions, useComposerValue} from '@pages/inbox/report/ReportActionCompose/ComposerContext';
+import type {SuggestionsRef} from '@pages/inbox/report/ReportActionCompose/ComposerContext';
 import getCursorPosition from '@pages/inbox/report/ReportActionCompose/getCursorPosition';
 import getScrollPosition from '@pages/inbox/report/ReportActionCompose/getScrollPosition';
-import type {SuggestionsRef} from '@pages/inbox/report/ReportActionCompose/ReportActionCompose';
 import SilentCommentUpdater from '@pages/inbox/report/ReportActionCompose/SilentCommentUpdater';
 import Suggestions from '@pages/inbox/report/ReportActionCompose/Suggestions';
 import {isEmojiPickerVisible} from '@userActions/EmojiPickerAction';
@@ -110,9 +111,6 @@ type ComposerWithSuggestionsProps = Partial<ChildrenProps> &
 
         /** Whether the input is disabled, defaults to false */
         disabled?: boolean;
-
-        /** Function to set whether the comment is empty */
-        setIsCommentEmpty: (isCommentEmpty: boolean) => void;
 
         /** Function to handle sending a message */
         onEnterKeyPress: () => void;
@@ -229,7 +227,6 @@ function ComposerWithSuggestions({
     inputPlaceholder,
     onPasteFile,
     disabled,
-    setIsCommentEmpty,
     onEnterKeyPress,
     shouldShowComposeInput,
     measureParentContainer = () => {},
@@ -259,17 +256,13 @@ function ComposerWithSuggestions({
     const {isSidePanelHiddenOrLargeScreen} = useSidePanelState();
     const isFocused = useIsFocused();
     const navigation = useNavigation();
-    const emojisPresentBefore = useRef<Emoji[]>([]);
+    const [draftComment = ''] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
+    const value = useComposerValue();
+    const {setValue} = useComposerActions();
+    const emojisPresentBefore = useRef<Emoji[]>(draftComment ? extractEmojis(draftComment) : []);
     const mobileInputScrollPosition = useRef(0);
     const cursorPositionValue = useSharedValue({x: 0, y: 0});
     const tag = useSharedValue(-1);
-    const [draftComment = ''] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
-    const [value, setValue] = useState(() => {
-        if (draftComment) {
-            emojisPresentBefore.current = extractEmojis(draftComment);
-        }
-        return draftComment;
-    });
     const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
 
     const commentRef = useRef(value);
@@ -453,13 +446,6 @@ function ComposerWithSuggestions({
                 }
             }
             const newCommentConverted = convertToLTRForComposer(newComment);
-            const isNewCommentEmpty = !!newCommentConverted.match(/^(\s)*$/);
-            const isPrevCommentEmpty = !!commentRef.current.match(/^(\s)*$/);
-
-            /** Only update isCommentEmpty state if it's different from previous one */
-            if (isNewCommentEmpty !== isPrevCommentEmpty) {
-                setIsCommentEmpty(isNewCommentEmpty);
-            }
             emojisPresentBefore.current = emojis;
 
             setValue(newCommentConverted);
@@ -495,13 +481,13 @@ function ComposerWithSuggestions({
             preferredLocale,
             preferredSkinTone,
             reportID,
-            setIsCommentEmpty,
             suggestionsRef,
             raiseIsScrollLikelyLayoutTriggered,
             debouncedSaveReportComment,
             selection?.end,
             selection?.start,
             currentUserAccountID,
+            setValue,
         ],
     );
 

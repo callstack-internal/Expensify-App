@@ -32,7 +32,6 @@ type UseComposerSubmitReturn = {
     submitForm: (newComment: string) => void;
     addAttachment: (file: FileObject | FileObject[]) => void;
     onAttachmentPreviewClose: () => void;
-    attachmentFileRef: RefObject<FileObject | FileObject[] | null>;
     pendingDropObjectUrlsRef: RefObject<string[]>;
 };
 
@@ -117,7 +116,7 @@ function useComposerSubmit({
         }
     };
 
-    return {submitForm, addAttachment, onAttachmentPreviewClose, attachmentFileRef, pendingDropObjectUrlsRef};
+    return {submitForm, addAttachment, onAttachmentPreviewClose, pendingDropObjectUrlsRef};
 }
 
 export default useComposerSubmit;

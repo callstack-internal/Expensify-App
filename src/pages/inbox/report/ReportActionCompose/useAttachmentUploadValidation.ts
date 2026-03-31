@@ -1,6 +1,7 @@
 import {validTransactionDraftIDsSelector} from '@selectors/TransactionDraft';
-import {useCallback, useContext, useMemo, useRef} from 'react';
+import {useCallback, useContext, useRef} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
+import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useFilesValidation from '@hooks/useFilesValidation';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
@@ -18,27 +19,21 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
 import type * as OnyxTypes from '@src/types/onyx';
-import type {CurrentUserPersonalDetails} from '@src/types/onyx/PersonalDetails';
 import type {FileObject} from '@src/types/utils/Attachment';
 
 type AttachmentUploadValidationProps = {
-    policy: OnyxEntry<OnyxTypes.Policy>;
     reportID: string;
     addAttachment: (file: FileObject | FileObject[]) => void;
     onAttachmentPreviewClose: () => void;
     exceededMaxLength: boolean | number | null;
-    shouldAddOrReplaceReceipt: boolean;
-    transactionID: string | undefined;
+    shouldAddOrReplaceReceipt?: boolean;
+    transactionID?: string;
     report: OnyxEntry<OnyxTypes.Report>;
-    newParentReport: OnyxEntry<OnyxTypes.Report>;
-    currentDate: string | undefined;
-    currentUserPersonalDetails: CurrentUserPersonalDetails;
     isAttachmentPreviewActive: boolean;
     setIsAttachmentPreviewActive: (isActive: boolean) => void;
 };
 
 function useAttachmentUploadValidation({
-    policy,
     reportID,
     addAttachment,
     onAttachmentPreviewClose,
@@ -46,19 +41,20 @@ function useAttachmentUploadValidation({
     shouldAddOrReplaceReceipt,
     transactionID,
     report,
-    newParentReport,
-    currentDate,
-    currentUserPersonalDetails,
     isAttachmentPreviewActive,
     setIsAttachmentPreviewActive,
 }: AttachmentUploadValidationProps) {
     const {translate} = useLocalize();
+    const currentUserPersonalDetails = useCurrentUserPersonalDetails();
+    const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
+    const [newParentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.parentReportID}`);
+    const [currentDate] = useOnyx(ONYXKEYS.CURRENT_DATE);
     const [policyCategories] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}${policy?.id}`);
     const [ownerBillingGraceEndPeriod] = useOnyx(ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END);
     const personalPolicy = usePersonalPolicy();
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [userBillingGraceEndPeriods] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END);
-    const hasOnlyPersonalPolicies = useMemo(() => hasOnlyPersonalPoliciesUtil(allPolicies), [allPolicies]);
+    const hasOnlyPersonalPolicies = hasOnlyPersonalPoliciesUtil(allPolicies);
     const [draftTransactionIDs] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_DRAFT, {selector: validTransactionDraftIDsSelector});
 
     const reportAttachmentsContext = useContext(AttachmentModalContext);

@@ -157,7 +157,6 @@ function ComposerInput({reportID, isScrollLikelyLayoutTriggered, raiseIsScrollLi
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const includeChronos = chatIncludesChronos(report);
     const isGroupPolicyReport = !!report?.policyID && report.policyID !== CONST.POLICY.ID_FAKE;
-    const policyID = report?.policyID;
     const forwardedFSClass = FS.getChatFSClass(report);
 
     // --- Hooks ---
@@ -822,8 +821,6 @@ function ComposerInput({reportID, isScrollLikelyLayoutTriggered, raiseIsScrollLi
                 isComposerFocused={textInputRef.current?.isFocused()}
                 updateComment={updateComment}
                 measureParentContainerAndReportCursor={measureParentContainerAndReportCursor}
-                isGroupPolicyReport={isGroupPolicyReport}
-                policyID={policyID}
                 // Input
                 value={value}
                 selection={selection}

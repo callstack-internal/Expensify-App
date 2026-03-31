@@ -1,6 +1,6 @@
 import lodashDebounce from 'lodash/debounce';
-import React, {useContext, useEffect, useRef, useState} from 'react';
-import type {BlurEvent, MeasureInWindowOnSuccessCallback, TextInputSelectionChangeEvent} from 'react-native';
+import React, {useEffect, useRef, useState} from 'react';
+import type {MeasureInWindowOnSuccessCallback, TextInputSelectionChangeEvent} from 'react-native';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import {useSharedValue} from 'react-native-reanimated';
@@ -16,11 +16,9 @@ import type {Mention} from '@components/MentionSuggestions';
 import OfflineIndicator from '@components/OfflineIndicator';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import {usePersonalDetails} from '@components/OnyxListItemProvider';
-import useAncestors from '@hooks/useAncestors';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useHandleExceedMaxCommentLength from '@hooks/useHandleExceedMaxCommentLength';
 import useHandleExceedMaxTaskTitleLength from '@hooks/useHandleExceedMaxTaskTitleLength';
-import useIsInSidePanel from '@hooks/useIsInSidePanel';
 import useIsScrollLikelyLayoutTriggered from '@hooks/useIsScrollLikelyLayoutTriggered';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
@@ -33,12 +31,10 @@ import useShouldSuppressConciergeIndicators from '@hooks/useShouldSuppressConcie
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import canFocusInputOnScreenFocus from '@libs/canFocusInputOnScreenFocus';
-import ComposerFocusManager from '@libs/ComposerFocusManager';
 import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import DomUtils from '@libs/DomUtils';
 import FS from '@libs/Fullstory';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
-import {rand64} from '@libs/NumberUtils';
 import {getLinkedTransactionID, getReportAction, isMoneyRequestAction} from '@libs/ReportActionsUtils';
 import {
     canEditFieldOfMoneyRequest,
@@ -56,27 +52,24 @@ import {
     isSettled,
     temporary_getMoneyRequestOptions,
 } from '@libs/ReportUtils';
-import {startSpan} from '@libs/telemetry/activeSpans';
 import {getTransactionID, hasReceipt as hasReceiptTransactionUtils} from '@libs/TransactionUtils';
-import willBlurTextInputOnTapOutsideFunc from '@libs/willBlurTextInputOnTapOutside';
-import {useAgentZeroStatusActions} from '@pages/inbox/AgentZeroStatusContext';
 import ParticipantLocalTime from '@pages/inbox/report/ParticipantLocalTime';
 import ReportTypingIndicator from '@pages/inbox/report/ReportTypingIndicator';
-import {ActionListContext} from '@pages/inbox/ReportScreenContext';
 import {hideEmojiPicker, isActive as isActiveEmojiPickerAction, isEmojiPickerVisible} from '@userActions/EmojiPickerAction';
-import {addAttachmentWithComment, setIsComposerFullSize} from '@userActions/Report';
+import {setIsComposerFullSize} from '@userActions/Report';
 import {isBlockedFromConcierge as isBlockedFromConciergeUserAction} from '@userActions/User';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
 import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
-import type {FileObject} from '@src/types/utils/Attachment';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import AttachmentPickerWithMenuItems from './AttachmentPickerWithMenuItems';
 import ComposerWithSuggestions from './ComposerWithSuggestions';
 import type {ComposerRef, ComposerWithSuggestionsProps} from './ComposerWithSuggestions/ComposerWithSuggestions';
 import SendButton from './SendButton';
 import useAttachmentUploadValidation from './useAttachmentUploadValidation';
+import useComposerFocus from './useComposerFocus';
+import useComposerSubmit from './useComposerSubmit';
 
 type SuggestionsRef = {
     resetSuggestions: () => void;
@@ -126,8 +119,6 @@ function AgentZeroAwareTypingIndicator({reportID}: {reportID: string}) {
 // prevent auto focus on existing chat for mobile device
 const shouldFocusInputOnScreenFocus = canFocusInputOnScreenFocus();
 
-const willBlurTextInputOnTapOutside = willBlurTextInputOnTapOutsideFunc();
-
 function ReportActionCompose({
     isComposerFullSize = false,
     onSubmit,
@@ -147,8 +138,6 @@ function ReportActionCompose({
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth, isMediumScreenWidth, shouldUseNarrowLayout} = useResponsiveLayout();
     const {isOffline} = useNetwork();
-    const isInSidePanel = useIsInSidePanel();
-    const {kickoffWaitingIndicator} = useAgentZeroStatusActions();
     const actionButtonRef = useRef<View | HTMLDivElement | null>(null);
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const personalDetails = usePersonalDetails();
@@ -163,10 +152,6 @@ function ReportActionCompose({
     const [betas] = useOnyx(ONYXKEYS.BETAS);
 
     const shouldFocusComposerOnScreenFocus = shouldFocusInputOnScreenFocus || !!draftComment;
-
-    const [transactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transactionThreadReportID}`);
-    const ancestors = useAncestors(transactionThreadReport ?? report);
-    const {scrollOffsetRef} = useContext(ActionListContext);
 
     /**
      * Updates the Highlight state of the composer
@@ -256,33 +241,12 @@ function ReportActionCompose({
     // Placeholder to display in the chat input.
     const inputPlaceholder = includesConcierge && userBlockedFromConcierge ? translate('reportActionCompose.blockedFromConcierge') : translate('reportActionCompose.writeSomething');
 
-    const focus = () => {
-        if (composerRef.current === null) {
-            return;
-        }
-        composerRef.current?.focus(true);
-    };
-
-    const isKeyboardVisibleWhenShowingModalRef = useRef(false);
-    const isNextModalWillOpenRef = useRef(false);
-
     const containerRef = useRef<View>(null);
     const measureContainer = (callback: MeasureInWindowOnSuccessCallback) => {
         if (!containerRef.current) {
             return;
         }
         containerRef.current.measureInWindow(callback);
-    };
-
-    const onAddActionPressed = () => {
-        if (!willBlurTextInputOnTapOutside) {
-            isKeyboardVisibleWhenShowingModalRef.current = !!composerRef.current?.isFocused();
-        }
-        composerRef.current?.blur();
-    };
-
-    const onItemSelected = () => {
-        isKeyboardVisibleWhenShowingModalRef.current = false;
     };
 
     const updateShouldShowSuggestionMenuToFalse = () => {
@@ -292,105 +256,16 @@ function ReportActionCompose({
         suggestionsRef.current.updateShouldShowSuggestionMenuToFalse(false);
     };
 
-    const attachmentFileRef = useRef<FileObject | FileObject[] | null>(null);
-    /** Object URLs created for dropped files; revoked when the attachment modal closes without confirm */
-    const pendingDropObjectUrlsRef = useRef<string[]>([]);
+    const {onBlur, onFocus, focus, onAddActionPressed, onItemSelected, onTriggerAttachmentPicker, isNextModalWillOpenRef} = useComposerFocus({
+        composerRef,
+        suggestionsRef,
+        actionButtonRef,
+        setIsFocused,
+        onComposerFocus,
+        onComposerBlur,
+    });
 
-    const addAttachment = (file: FileObject | FileObject[]) => {
-        attachmentFileRef.current = file;
-        // User confirmed; URLs are now on the files and will be used on submit. Stop tracking for revoke-on-close.
-        pendingDropObjectUrlsRef.current = [];
-
-        const clearWorklet = composerRef.current?.clearWorklet;
-
-        if (!clearWorklet) {
-            throw new Error('The composerRef.clearWorklet function is not set yet. This should never happen, and indicates a developer error.');
-        }
-
-        scheduleOnUI(clearWorklet);
-    };
-
-    /**
-     * Event handler to update the state after the attachment preview is closed.
-     * Revokes object URLs for dropped files when the user closed without confirming (avoids leaking blob URLs).
-     */
-    const onAttachmentPreviewClose = () => {
-        if (attachmentFileRef.current === null) {
-            for (const url of pendingDropObjectUrlsRef.current) {
-                URL.revokeObjectURL(url);
-            }
-            pendingDropObjectUrlsRef.current = [];
-        }
-        updateShouldShowSuggestionMenuToFalse();
-        setIsAttachmentPreviewActive(false);
-        // This enables Composer refocus when the attachments modal is closed by the browser navigation
-        ComposerFocusManager.setReadyToFocus();
-    };
-
-    /**
-     * Add a new comment to this chat
-     */
-    const submitForm = (newComment: string) => {
-        const newCommentTrimmed = newComment.trim();
-
-        kickoffWaitingIndicator();
-
-        if (attachmentFileRef.current) {
-            addAttachmentWithComment({
-                report: transactionThreadReport ?? report,
-                notifyReportID: reportID,
-                ancestors,
-                attachments: attachmentFileRef.current,
-                currentUserAccountID: currentUserPersonalDetails.accountID,
-                text: newCommentTrimmed,
-                timezone: currentUserPersonalDetails.timezone,
-                shouldPlaySound: true,
-                isInSidePanel,
-            });
-            attachmentFileRef.current = null;
-        } else {
-            // Pre-generate the reportActionID so we can correlate the Sentry send-message span with the exact message
-            const optimisticReportActionID = rand64();
-
-            // The list is inverted, so an offset near 0 means the user is at the bottom (newest messages visible).
-            const isScrolledToBottom = scrollOffsetRef.current < CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD;
-            if (isScrolledToBottom) {
-                startSpan(`${CONST.TELEMETRY.SPAN_SEND_MESSAGE}_${optimisticReportActionID}`, {
-                    name: 'send-message',
-                    op: CONST.TELEMETRY.SPAN_SEND_MESSAGE,
-                    attributes: {
-                        [CONST.TELEMETRY.ATTRIBUTE_REPORT_ID]: reportID,
-                        [CONST.TELEMETRY.ATTRIBUTE_MESSAGE_LENGTH]: newCommentTrimmed.length,
-                    },
-                });
-            }
-            onSubmit(newCommentTrimmed, optimisticReportActionID);
-        }
-    };
-
-    const onTriggerAttachmentPicker = () => {
-        isNextModalWillOpenRef.current = true;
-        isKeyboardVisibleWhenShowingModalRef.current = true;
-    };
-
-    const onBlur = (event: BlurEvent) => {
-        const webEvent = event as unknown as FocusEvent;
-        setIsFocused(false);
-        onComposerBlur?.();
-        if (suggestionsRef.current) {
-            suggestionsRef.current.resetSuggestions();
-        }
-        if (webEvent.relatedTarget && webEvent.relatedTarget === actionButtonRef.current) {
-            isKeyboardVisibleWhenShowingModalRef.current = true;
-        }
-    };
-
-    const onFocus = () => {
-        setIsFocused(true);
-        onComposerFocus?.();
-    };
-
-    // We are returning a callback here as we want to invoke the method on unmount only
+    // Hide emoji picker on unmount or when switching reports
     useEffect(
         () => () => {
             if (!isActiveEmojiPickerAction(report?.reportID)) {
@@ -427,6 +302,16 @@ function ReportActionCompose({
     // Note: using JS refs is not well supported in reanimated, thus we need to store the function in a shared value
     // useSharedValue on web doesn't support functions, so we need to wrap it in an object.
     const composerRefShared = useSharedValue<Partial<ComposerRef>>({});
+
+    const {submitForm, addAttachment, onAttachmentPreviewClose, pendingDropObjectUrlsRef} = useComposerSubmit({
+        report,
+        reportID,
+        onSubmit,
+        transactionThreadReportID,
+        composerRefShared,
+        updateShouldShowSuggestionMenuToFalse,
+        setIsAttachmentPreviewActive,
+    });
 
     const handleSendMessage = () => {
         if (isSendDisabled || !debouncedValidate.flush()) {

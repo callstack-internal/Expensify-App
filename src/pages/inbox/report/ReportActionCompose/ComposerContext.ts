@@ -1,4 +1,4 @@
-import type {RefObject} from 'react';
+import type {ReactNode, RefObject} from 'react';
 import {createContext, useContext} from 'react';
 import type {BlurEvent, TextInputSelectionChangeEvent, View} from 'react-native';
 import type {Emoji} from '@assets/emojis/types';
@@ -55,6 +55,8 @@ type ComposerInternalsData = {
     shouldShowComposeInput: boolean;
     isAttachmentPreviewActive: boolean;
     userBlockedFromConcierge: boolean;
+    PDFValidationComponent: ReactNode;
+    ErrorModal: ReactNode;
 };
 
 type ComposerInternalsActions = {
@@ -69,6 +71,9 @@ type ComposerInternalsActions = {
     onAttachmentPreviewClose: () => void;
     setIsAttachmentPreviewActive: (isActive: boolean) => void;
     setPendingDropObjectUrls: (urls: string[]) => void;
+    handleAttachmentDrop: (event: DragEvent) => void;
+    onReceiptDropped: (event: DragEvent) => void;
+    validateAttachments: (args: {dragEvent?: DragEvent; files?: FileObject | FileObject[]}) => void;
 };
 
 const defaultState: ComposerState = {

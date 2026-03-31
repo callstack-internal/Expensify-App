@@ -15,6 +15,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import {ComposerActionsContext, ComposerInternalsActionsContext, ComposerInternalsDataContext, ComposerSendStateContext, ComposerStateContext, ComposerValueContext} from './ComposerContext';
 import type {SuggestionsRef} from './ComposerContext';
 import type {ComposerRef} from './ComposerWithSuggestions/ComposerWithSuggestions';
+import useAttachmentUploadValidation from './useAttachmentUploadValidation';
 import useComposerFocus from './useComposerFocus';
 import useComposerSubmit from './useComposerSubmit';
 
@@ -111,6 +112,34 @@ function ComposerProvider({children, reportID, transactionThreadReportID}: Compo
         setIsAttachmentPreviewActive,
     });
 
+    const {validateAttachments, onReceiptDropped, PDFValidationComponent, ErrorModal} = useAttachmentUploadValidation({
+        reportID,
+        addAttachment,
+        onAttachmentPreviewClose,
+        exceededMaxLength,
+        report,
+        isAttachmentPreviewActive,
+        setIsAttachmentPreviewActive,
+    });
+
+    const handleAttachmentDrop = (event: DragEvent) => {
+        const createdUrls: string[] = [];
+        const files = Array.from(event.dataTransfer?.files ?? []).map((file) => {
+            const fileWithUri = file;
+            const objectUrl = URL.createObjectURL(fileWithUri);
+            fileWithUri.uri = objectUrl;
+            createdUrls.push(objectUrl);
+            return fileWithUri;
+        });
+
+        if (files.length === 0) {
+            return;
+        }
+
+        setPendingDropObjectUrls(createdUrls);
+        validateAttachments({files});
+    };
+
     const handleSendMessage = () => {
         if (isSendDisabled || !debouncedValidate.flush()) {
             return;
@@ -181,6 +210,8 @@ function ComposerProvider({children, reportID, transactionThreadReportID}: Compo
         shouldShowComposeInput,
         isAttachmentPreviewActive,
         userBlockedFromConcierge,
+        PDFValidationComponent,
+        ErrorModal,
     };
 
     const composerInternalsActions = {
@@ -195,6 +226,9 @@ function ComposerProvider({children, reportID, transactionThreadReportID}: Compo
         onAttachmentPreviewClose,
         setIsAttachmentPreviewActive,
         setPendingDropObjectUrls,
+        handleAttachmentDrop,
+        onReceiptDropped,
+        validateAttachments,
     };
 
     return (

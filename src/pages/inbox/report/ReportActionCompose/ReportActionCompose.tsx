@@ -10,6 +10,7 @@ import type * as OnyxTypes from '@src/types/onyx';
 import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
 import ComposerBox from './ComposerBox';
 import type {SuggestionsRef} from './ComposerContext';
+import ComposerDropZone from './ComposerDropZone';
 import ComposerFooter from './ComposerFooter';
 import ComposerLocalTime from './ComposerLocalTime';
 import ComposerProvider from './ComposerProvider';
@@ -40,13 +41,17 @@ function Composer({reportID, lastReportAction, pendingAction, reportTransactions
                     pendingAction={pendingAction}
                 />
                 <View style={isComposerFullSize ? styles.flex1 : {}}>
-                    <Composer.Box
+                    <Composer.DropZone
                         reportID={reportID}
-                        lastReportAction={lastReportAction}
-                        isComposerFullSize={isComposerFullSize}
                         reportTransactions={reportTransactions}
-                        pendingAction={pendingAction}
-                    />
+                    >
+                        <Composer.Box
+                            reportID={reportID}
+                            lastReportAction={lastReportAction}
+                            isComposerFullSize={isComposerFullSize}
+                            pendingAction={pendingAction}
+                        />
+                    </Composer.DropZone>
                     <Composer.Footer reportID={reportID} />
                     {!isSmallScreenWidth && (
                         <View style={[styles.mln5, styles.mrn5]}>
@@ -61,6 +66,7 @@ function Composer({reportID, lastReportAction, pendingAction, reportTransactions
 
 Composer.LocalTime = ComposerLocalTime;
 Composer.Box = ComposerBox;
+Composer.DropZone = ComposerDropZone;
 Composer.Footer = ComposerFooter;
 // Future: Composer.Input, Composer.ActionMenu, Composer.SendButton, Composer.EmojiPicker, Composer.Suggestions
 

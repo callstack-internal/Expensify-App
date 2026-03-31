@@ -21,20 +21,17 @@ import type * as OnyxTypes from '@src/types/onyx';
 import type * as OnyxCommon from '@src/types/onyx/OnyxCommon';
 import AttachmentPickerWithMenuItems from './AttachmentPickerWithMenuItems';
 import {useComposerActions, useComposerInternalsActions, useComposerInternalsData, useComposerSendState, useComposerState} from './ComposerContext';
-import ComposerDropZone from './ComposerDropZone';
 import ComposerWithSuggestions from './ComposerWithSuggestions';
 import SendButton from './SendButton';
-import useAttachmentUploadValidation from './useAttachmentUploadValidation';
 
 type ComposerBoxProps = {
     reportID: string;
     lastReportAction?: OnyxEntry<OnyxTypes.ReportAction>;
     isComposerFullSize: boolean;
-    reportTransactions?: OnyxEntry<OnyxTypes.Transaction[]>;
     pendingAction?: OnyxCommon.PendingAction;
 };
 
-function ComposerBox({reportID, lastReportAction, isComposerFullSize, reportTransactions, pendingAction}: ComposerBoxProps) {
+function ComposerBox({reportID, lastReportAction, isComposerFullSize, pendingAction}: ComposerBoxProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
@@ -50,22 +47,11 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, reportTran
         actionButtonRef,
         suggestionsRef,
         isNextModalWillOpenRef,
-        isAttachmentPreviewActive,
         shouldShowComposeInput,
+        PDFValidationComponent,
+        ErrorModal,
     } = useComposerInternalsData();
-    const {
-        setComposerRef,
-        submitForm,
-        onFocus,
-        onBlur,
-        addAttachment,
-        onAttachmentPreviewClose,
-        setIsAttachmentPreviewActive,
-        setPendingDropObjectUrls,
-        onTriggerAttachmentPicker,
-        onAddActionPressed,
-        onItemSelected,
-    } = useComposerInternalsActions();
+    const {setComposerRef, submitForm, onFocus, onBlur, onTriggerAttachmentPicker, onAddActionPressed, onItemSelected, validateAttachments} = useComposerInternalsActions();
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
 
@@ -111,34 +97,6 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, reportTran
             return;
         }
         containerRef.current.measureInWindow(callback);
-    };
-
-    const {validateAttachments, onReceiptDropped, PDFValidationComponent, ErrorModal} = useAttachmentUploadValidation({
-        reportID,
-        addAttachment,
-        onAttachmentPreviewClose,
-        exceededMaxLength,
-        report,
-        isAttachmentPreviewActive,
-        setIsAttachmentPreviewActive,
-    });
-
-    const handleAttachmentDrop = (event: DragEvent) => {
-        const createdUrls: string[] = [];
-        const files = Array.from(event.dataTransfer?.files ?? []).map((file) => {
-            const fileWithUri = file;
-            const objectUrl = URL.createObjectURL(fileWithUri);
-            fileWithUri.uri = objectUrl;
-            createdUrls.push(objectUrl);
-            return fileWithUri;
-        });
-
-        if (files.length === 0) {
-            return;
-        }
-
-        setPendingDropObjectUrls(createdUrls);
-        validateAttachments({files});
     };
 
     return (
@@ -208,12 +166,6 @@ function ComposerBox({reportID, lastReportAction, isComposerFullSize, reportTran
                     measureParentContainer={measureContainer}
                     onValueChange={onValueChange}
                     forwardedFSClass={fsClass}
-                />
-                <ComposerDropZone
-                    report={report}
-                    reportTransactions={reportTransactions}
-                    onAttachmentDrop={handleAttachmentDrop}
-                    onReceiptDrop={onReceiptDropped}
                 />
                 {canUseTouchScreen() && isMediumScreenWidth ? null : (
                     <EmojiPickerButton

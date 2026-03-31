@@ -29,30 +29,32 @@ import {getTransactionID, hasReceipt as hasReceiptTransactionUtils} from '@libs/
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
+import {useComposerInternalsActions} from './ComposerContext';
 
-type ComposerDropZoneProps = {
-    report: OnyxEntry<OnyxTypes.Report>;
-    reportTransactions?: OnyxEntry<OnyxTypes.Transaction[]>;
+type SimpleDropOverlayProps = {
     onAttachmentDrop: (event: DragEvent) => void;
-    onReceiptDrop: (event: DragEvent) => void;
+    children: React.ReactNode;
 };
 
-function SimpleDropOverlay({onAttachmentDrop}: {onAttachmentDrop: (event: DragEvent) => void}) {
+function SimpleDropOverlay({onAttachmentDrop, children}: SimpleDropOverlayProps) {
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const theme = useTheme();
     const icons = useMemoizedLazyExpensifyIcons(['MessageInABottle']);
 
     return (
-        <DragAndDropConsumer onDrop={onAttachmentDrop}>
-            <DropZoneUI
-                icon={icons.MessageInABottle}
-                dropTitle={translate('dropzone.addAttachments')}
-                dropStyles={styles.attachmentDropOverlay(true)}
-                dropTextStyles={styles.attachmentDropText}
-                dashedBorderStyles={[styles.dropzoneArea, styles.easeInOpacityTransition, styles.activeDropzoneDashedBorder(theme.attachmentDropBorderColorActive, true)]}
-            />
-        </DragAndDropConsumer>
+        <>
+            {children}
+            <DragAndDropConsumer onDrop={onAttachmentDrop}>
+                <DropZoneUI
+                    icon={icons.MessageInABottle}
+                    dropTitle={translate('dropzone.addAttachments')}
+                    dropStyles={styles.attachmentDropOverlay(true)}
+                    dropTextStyles={styles.attachmentDropText}
+                    dashedBorderStyles={[styles.dropzoneArea, styles.easeInOpacityTransition, styles.activeDropzoneDashedBorder(theme.attachmentDropBorderColorActive, true)]}
+                />
+            </DragAndDropConsumer>
+        </>
     );
 }
 
@@ -61,9 +63,10 @@ type RichDropZoneProps = {
     reportTransactions?: OnyxEntry<OnyxTypes.Transaction[]>;
     onAttachmentDrop: (event: DragEvent) => void;
     onReceiptDrop: (event: DragEvent) => void;
+    children: React.ReactNode;
 };
 
-function RichDropZone({report, reportTransactions, onAttachmentDrop, onReceiptDrop}: RichDropZoneProps) {
+function RichDropZone({report, reportTransactions, onAttachmentDrop, onReceiptDrop, children}: RichDropZoneProps) {
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const {isRestrictedToPreferredPolicy} = usePreferredPolicy();
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
@@ -105,31 +108,45 @@ function RichDropZone({report, reportTransactions, onAttachmentDrop, onReceiptDr
     })();
 
     if (!shouldDisplayDualDropZone) {
-        return <SimpleDropOverlay onAttachmentDrop={onAttachmentDrop} />;
+        return <SimpleDropOverlay onAttachmentDrop={onAttachmentDrop}>{children}</SimpleDropOverlay>;
     }
 
     return (
-        <DualDropZone
-            isEditing={shouldAddOrReplaceReceipt && hasReceipt}
-            onAttachmentDrop={onAttachmentDrop}
-            onReceiptDrop={onReceiptDrop}
-            shouldAcceptSingleReceipt={shouldAddOrReplaceReceipt}
-        />
+        <>
+            {children}
+            <DualDropZone
+                isEditing={shouldAddOrReplaceReceipt && hasReceipt}
+                onAttachmentDrop={onAttachmentDrop}
+                onReceiptDrop={onReceiptDrop}
+                shouldAcceptSingleReceipt={shouldAddOrReplaceReceipt}
+            />
+        </>
     );
 }
 
-function ComposerDropZone({report, reportTransactions, onAttachmentDrop, onReceiptDrop}: ComposerDropZoneProps) {
+type ComposerDropZoneProps = {
+    reportID: string;
+    reportTransactions?: OnyxEntry<OnyxTypes.Transaction[]>;
+    children: React.ReactNode;
+};
+
+function ComposerDropZone({reportID, reportTransactions, children}: ComposerDropZoneProps) {
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const {handleAttachmentDrop, onReceiptDropped} = useComposerInternalsActions();
+
     if (isChatRoom(report) || isGroupChat(report) || isInvoiceReport(report)) {
-        return <SimpleDropOverlay onAttachmentDrop={onAttachmentDrop} />;
+        return <SimpleDropOverlay onAttachmentDrop={handleAttachmentDrop}>{children}</SimpleDropOverlay>;
     }
 
     return (
         <RichDropZone
             report={report}
             reportTransactions={reportTransactions}
-            onAttachmentDrop={onAttachmentDrop}
-            onReceiptDrop={onReceiptDrop}
-        />
+            onAttachmentDrop={handleAttachmentDrop}
+            onReceiptDrop={onReceiptDropped}
+        >
+            {children}
+        </RichDropZone>
     );
 }
 

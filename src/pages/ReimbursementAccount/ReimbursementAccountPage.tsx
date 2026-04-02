@@ -35,7 +35,6 @@ import {isFullScreenName} from '@navigation/helpers/isNavigatorName';
 import type {WithPolicyOnyxProps} from '@pages/workspace/withPolicy';
 import withPolicy from '@pages/workspace/withPolicy';
 import {
-    clearOnfidoToken,
     goToWithdrawalAccountSetupStep,
     hideBankAccountErrors,
     openReimbursementAccountPage,
@@ -82,7 +81,7 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
     const [reimbursementAccount, reimbursementAccountMetadata] = useOnyx(ONYXKEYS.REIMBURSEMENT_ACCOUNT);
     const [reimbursementAccountDraft] = useOnyx(ONYXKEYS.FORMS.REIMBURSEMENT_ACCOUNT_FORM_DRAFT);
     const [plaidCurrentEvent = ''] = useOnyx(ONYXKEYS.PLAID_CURRENT_EVENT);
-    const [onfidoToken = ''] = useOnyx(ONYXKEYS.ONFIDO_TOKEN);
+
     const [isLoadingApp = false] = useOnyx(ONYXKEYS.IS_LOADING_APP);
     const topmostFullScreenRoute = useRootNavigationState((state) => state?.routes.findLast((lastRoute) => isFullScreenName(lastRoute.name)));
 
@@ -365,55 +364,8 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
     };
 
     const goBack = useCallback(() => {
-        const shouldShowOnfido = onfidoToken && !achData?.isOnfidoSetupComplete;
-
-        switch (currentStep) {
-            case CONST.BANK_ACCOUNT.STEP.COUNTRY:
-                if (hasInProgressUSDVBBA(achData)) {
-                    setShouldShowContinueSetupButton(true);
-                }
-                setUSDBankAccountStep(null);
-                setBankAccountSubStep(null);
-                break;
-            case CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT:
-                setPlaidEvent(null);
-                goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.COUNTRY);
-                break;
-            case CONST.BANK_ACCOUNT.STEP.COMPANY:
-                clearOnfidoToken();
-                goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.REQUESTOR);
-                break;
-
-            case CONST.BANK_ACCOUNT.STEP.REQUESTOR:
-                if (shouldShowOnfido) {
-                    clearOnfidoToken();
-                } else {
-                    goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT);
-                }
-                break;
-
-            case CONST.BANK_ACCOUNT.STEP.BENEFICIAL_OWNERS:
-                goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.COMPANY);
-                break;
-
-            case CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT:
-                goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.BENEFICIAL_OWNERS);
-                break;
-
-            case CONST.BANK_ACCOUNT.STEP.VALIDATION:
-                if ([CONST.BANK_ACCOUNT.STATE.VERIFYING, CONST.BANK_ACCOUNT.STATE.SETUP].some((value) => value === achData?.state)) {
-                    goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT);
-                } else if (CONST.BANK_ACCOUNT.STATE.PENDING === achData?.state) {
-                    Navigation.closeRHPFlow();
-                } else {
-                    Navigation.goBack();
-                }
-                break;
-
-            default:
-                Navigation.dismissModal();
-        }
-    }, [achData, currentStep, onfidoToken]);
+        Navigation.goBack(backTo);
+    }, [backTo]);
 
     const isLoading =
         (isLoadingApp || (reimbursementAccount?.isLoading && !reimbursementAccount?.isCreateCorpayBankAccount)) &&

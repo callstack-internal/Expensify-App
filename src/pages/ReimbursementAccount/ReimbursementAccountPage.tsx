@@ -1,7 +1,6 @@
 import {useIsFocused} from '@react-navigation/native';
 import {Str} from 'expensify-common';
 import {deepEqual} from 'fast-equals';
-import lodashPick from 'lodash/pick';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {View} from 'react-native';
 import type {TupleToUnion} from 'type-fest';
@@ -34,15 +33,7 @@ import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan
 import {isFullScreenName} from '@navigation/helpers/isNavigatorName';
 import type {WithPolicyOnyxProps} from '@pages/workspace/withPolicy';
 import withPolicy from '@pages/workspace/withPolicy';
-import {
-    goToWithdrawalAccountSetupStep,
-    hideBankAccountErrors,
-    openReimbursementAccountPage,
-    setBankAccountSubStep,
-    setPlaidEvent,
-    setReimbursementAccountLoading,
-    updateReimbursementAccountDraft,
-} from '@userActions/BankAccounts';
+import {goToWithdrawalAccountSetupStep, openReimbursementAccountPage, setBankAccountSubStep, setPlaidEvent, setReimbursementAccountLoading} from '@userActions/BankAccounts';
 import {setDraftValues} from '@userActions/FormActions';
 import {getPaymentMethods} from '@userActions/PaymentMethods';
 import {isCurrencySupportedForGlobalReimbursement} from '@userActions/Policy/Policy';
@@ -52,14 +43,12 @@ import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
-import type {InputID} from '@src/types/form/ReimbursementAccountForm';
 import INPUT_IDS from '@src/types/form/ReimbursementAccountForm';
-import type {ACHDataReimbursementAccount, ReimbursementAccountStep} from '@src/types/onyx/ReimbursementAccount';
+import type {ReimbursementAccountStep} from '@src/types/onyx/ReimbursementAccount';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import isLoadingOnyxValue from '@src/types/utils/isLoadingOnyxValue';
 import ConnectedVerifiedBankAccount from './ConnectedVerifiedBankAccount';
 import getStartPageForContinueSetup from './NonUSD/utils/getStartPageForContinueSetup';
-import getFieldsForStep from './USD/utils/getFieldsForStep';
 import getStepToOpenFromRouteParams from './USD/utils/getStepToOpenFromRouteParams';
 import VerifiedBankAccountFlowEntryPoint from './VerifiedBankAccountFlowEntryPoint';
 
@@ -101,11 +90,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
     const achData = reimbursementAccount?.achData;
     const policyCurrency = policy ? policy.outputCurrency : (achData?.currency ?? reimbursementAccountDraft?.currency);
     const prevPolicyCurrency = usePrevious(policyCurrency);
-    const achContractValuesRef = useRef<{
-        isAuthorizedToUseBankAccount?: boolean;
-        certifyTrueInformation?: boolean;
-        acceptTermsAndConditions?: boolean;
-    }>({});
     const isLoadingWorkspaceReimbursement = policy?.isLoadingWorkspaceReimbursement;
     const isNonUSDWorkspace = !!policyCurrency && policyCurrency !== CONST.CURRENCY.USD;
     const hasUnsupportedCurrency =
@@ -160,28 +144,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
         }
         setIsNonUSDSetup(policyCurrency !== CONST.CURRENCY.USD);
     }, [policyCurrency, isNonUSDSetup]);
-
-    useEffect(() => {
-        const achContractValues = lodashPick(reimbursementAccountDraft, ['isAuthorizedToUseBankAccount', 'certifyTrueInformation', 'acceptTermsAndConditions']);
-
-        if (!isEmptyObject(achContractValues)) {
-            achContractValuesRef.current = achContractValues;
-        }
-    }, [reimbursementAccountDraft]);
-
-    useEffect(() => {
-        if (reimbursementAccountDraft || isEmptyObject(achContractValuesRef.current) || currentStep !== CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT) {
-            return;
-        }
-
-        updateReimbursementAccountDraft(achContractValuesRef.current);
-    }, [reimbursementAccountDraft, currentStep]);
-
-    function getBankAccountFields(fieldNames: InputID[]): Partial<ACHDataReimbursementAccount> {
-        return {
-            ...lodashPick(reimbursementAccount?.achData, ...fieldNames),
-        };
-    }
 
     const shouldShowContinueSetupButtonValue = useMemo(() => {
         return hasInProgressVBBA(achData, isNonUSDWorkspace, policyIDParam);
@@ -303,37 +265,9 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
             ) {
                 setShouldShowContinueSetupButton(hasInProgressUSDVBBA(achData));
             }
-
-            if (shouldShowContinueSetupButton) {
-                return;
-            }
-
-            const currentStepRouteParam = getStepToOpenFromRouteParams(route, hasConfirmedUSDCurrency);
-            if (currentStepRouteParam === currentStep) {
-                // If the user is connecting online with plaid, reset any bank account errors so we don't persist old data from a potential previous connection
-                if (currentStep === CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT && achData?.subStep === CONST.BANK_ACCOUNT.SETUP_TYPE.PLAID) {
-                    hideBankAccountErrors();
-                }
-
-                // The route is showing the correct step, no need to update the route param or clear errors.
-                return;
-            }
-
-            // Update the data that is returned from back-end to draft value
-            const draftStep = reimbursementAccount?.draftStep;
-            if (draftStep) {
-                updateReimbursementAccountDraft(getBankAccountFields(getFieldsForStep(draftStep)));
-            }
-
-            if (currentStepRouteParam !== '') {
-                // When we click "Connect bank account", we load the page without the current step param, if there
-                // was an error when we tried to disconnect or start over, we want the user to be able to see the error,
-                // so we don't clear it. We only want to clear the errors if we are moving between steps.
-                hideBankAccountErrors();
-            }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [isOffline, reimbursementAccount?.draftStep, reimbursementAccount?.pendingAction, reimbursementAccount?.isLoading, hasACHDataBeenLoaded, shouldShowContinueSetupButton, currentStep],
+        [isOffline, reimbursementAccount?.pendingAction, reimbursementAccount?.isLoading, hasACHDataBeenLoaded],
     );
 
     const continueUSDVBBASetup = useCallback(() => {

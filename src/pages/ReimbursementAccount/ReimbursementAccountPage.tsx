@@ -1,7 +1,7 @@
 import {useIsFocused} from '@react-navigation/native';
 import {Str} from 'expensify-common';
 import {deepEqual} from 'fast-equals';
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {View} from 'react-native';
 import type {TupleToUnion} from 'type-fest';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
@@ -28,7 +28,6 @@ import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavig
 import type {ReimbursementAccountNavigatorParamList} from '@libs/Navigation/types';
 import {goBackFromInvalidPolicy, isPendingDeletePolicy, isPolicyAdmin} from '@libs/PolicyUtils';
 import {hasInProgressUSDVBBA, hasInProgressVBBA} from '@libs/ReimbursementAccountUtils';
-import shouldReopenOnfido from '@libs/shouldReopenOnfido';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import {isFullScreenName} from '@navigation/helpers/isNavigatorName';
 import type {WithPolicyOnyxProps} from '@pages/workspace/withPolicy';
@@ -55,15 +54,6 @@ import VerifiedBankAccountFlowEntryPoint from './VerifiedBankAccountFlowEntryPoi
 type ReimbursementAccountPageProps = WithPolicyOnyxProps & PlatformStackScreenProps<ReimbursementAccountNavigatorParamList, typeof SCREENS.REIMBURSEMENT_ACCOUNT_ROOT>;
 type CurrencyType = TupleToUnion<typeof CONST.DIRECT_REIMBURSEMENT_CURRENCIES>;
 
-const OFFLINE_ACCESSIBLE_STEPS = [
-    CONST.BANK_ACCOUNT.STEP.COUNTRY,
-    CONST.BANK_ACCOUNT.STEP.BANK_ACCOUNT,
-    CONST.BANK_ACCOUNT.STEP.COMPANY,
-    CONST.BANK_ACCOUNT.STEP.REQUESTOR,
-    CONST.BANK_ACCOUNT.STEP.BENEFICIAL_OWNERS,
-    CONST.BANK_ACCOUNT.STEP.ACH_CONTRACT,
-] as const;
-
 function ReimbursementAccountPage({route, policy, isLoadingPolicy}: ReimbursementAccountPageProps) {
     const {environmentURL} = useEnvironment();
     const session = useSession();
@@ -83,7 +73,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {isOffline} = useNetwork();
-    const requestorStepRef = useRef<View>(null);
     const prevReimbursementAccount = usePrevious(reimbursementAccount);
     const prevIsOffline = usePrevious(isOffline);
     const achData = reimbursementAccount?.achData;
@@ -293,8 +282,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
         (isLoadingApp || (reimbursementAccount?.isLoading && !reimbursementAccount?.isCreateCorpayBankAccount)) &&
         (!plaidCurrentEvent || plaidCurrentEvent === CONST.BANK_ACCOUNT.PLAID.EVENTS_NAME.EXIT);
 
-    const shouldShowOfflineLoader = !(hasLoadedData && isOffline && OFFLINE_ACCESSIBLE_STEPS.some((value) => value === currentStep));
-
     const shouldShowPolicyName = topmostFullScreenRoute?.name === NAVIGATORS.SETTINGS_SPLIT_NAVIGATOR;
     const policyNameToDisplay = shouldShowPolicyName ? policyName : '';
 
@@ -318,15 +305,9 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
         return <FullScreenLoadingIndicator reasonAttributes={loadingPolicyReasonAttributes} />;
     }
 
-    // Show loading indicator when page is first time being opened and props.reimbursementAccount yet to be loaded from the server
-    // or when data is being loaded. Don't show the loading indicator if we're offline and restarted the bank account setup process
-    // On Android, when we open the app from the background, Onfido activity gets destroyed, so we need to reopen it.
-    if (
-        (!!policyIDParam || !!bankAccountIDParam) &&
-        (!hasACHDataBeenLoaded || isLoading || isLoadingWorkspaceReimbursement) &&
-        shouldShowOfflineLoader &&
-        (shouldReopenOnfido || !requestorStepRef?.current)
-    ) {
+    // Show loading indicator when page is first time being opened and reimbursementAccount yet to be loaded from the server
+    // or when data is being loaded. Don't show the loading indicator if we're offline and have previously loaded data.
+    if ((!!policyIDParam || !!bankAccountIDParam) && (!hasACHDataBeenLoaded || isLoading || isLoadingWorkspaceReimbursement) && !(hasLoadedData && isOffline)) {
         return <ReimbursementAccountLoadingIndicator onBackButtonPress={goBack} />;
     }
 

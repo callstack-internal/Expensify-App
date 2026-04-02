@@ -27,12 +27,9 @@ type ConnectBankAccountProps = {
 
     /** Method to set the state of shouldShowConnectedVerifiedBankAccount */
     setShouldShowConnectedVerifiedBankAccount?: (shouldShowConnectedVerifiedBankAccount: boolean) => void;
-
-    /** Method to set the state of shouldShowConnectedVerifiedBankAccount */
-    setUSDBankAccountStep?: (step: string | null) => void;
 };
 
-function ConnectBankAccount({onBackButtonPress, setShouldShowConnectedVerifiedBankAccount, setUSDBankAccountStep}: ConnectBankAccountProps) {
+function ConnectBankAccount({onBackButtonPress, setShouldShowConnectedVerifiedBankAccount}: ConnectBankAccountProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const topmostFullScreenRoute = useRootNavigationState((state) => state?.routes.findLast((lastRoute) => isFullScreenName(lastRoute.name)));
@@ -74,7 +71,6 @@ function ConnectBankAccount({onBackButtonPress, setShouldShowConnectedVerifiedBa
                 reimbursementAccount={reimbursementAccount}
                 onBackButtonPress={onBackButtonPress}
                 setShouldShowConnectedVerifiedBankAccount={setShouldShowConnectedVerifiedBankAccount}
-                setUSDBankAccountStep={setUSDBankAccountStep}
                 isNonUSDWorkspace={false}
             />
         );
@@ -115,7 +111,6 @@ function ConnectBankAccount({onBackButtonPress, setShouldShowConnectedVerifiedBa
                 <FinishChatCard
                     requiresTwoFactorAuth={requiresTwoFactorAuth}
                     reimbursementAccount={reimbursementAccount}
-                    setUSDBankAccountStep={setUSDBankAccountStep}
                 />
             )}
         </ScreenWrapper>

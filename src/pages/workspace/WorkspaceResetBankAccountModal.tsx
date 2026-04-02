@@ -24,9 +24,6 @@ type WorkspaceResetBankAccountModalProps = {
     /** Method to set the state of shouldShowContinueSetupButton */
     setShouldShowContinueSetupButton?: (shouldShowContinueSetupButton: boolean) => void;
 
-    /** Method to set the state of setUSDBankAccountStep */
-    setUSDBankAccountStep?: (step: string | null) => void;
-
     /** Whether the workspace currency is set to non USD currency */
     isNonUSDWorkspace: boolean;
 
@@ -40,7 +37,6 @@ type WorkspaceResetBankAccountModalProps = {
 function WorkspaceResetBankAccountModal({
     reimbursementAccount,
     setShouldShowConnectedVerifiedBankAccount,
-    setUSDBankAccountStep,
     isNonUSDWorkspace,
     setShouldShowContinueSetupButton,
     navigateAfterReset,
@@ -92,10 +88,6 @@ function WorkspaceResetBankAccountModal({
 
             if (setShouldShowConnectedVerifiedBankAccount) {
                 setShouldShowConnectedVerifiedBankAccount(false);
-            }
-
-            if (setUSDBankAccountStep) {
-                setUSDBankAccountStep(null);
             }
         }
         if (navigateAfterReset) {

@@ -78,7 +78,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
     const policyName = policy?.name ?? '';
     const policyIDParam = route.params?.policyID;
     const bankAccountIDParam = route.params?.bankAccountID;
-    const subStepParam = route.params?.subStep;
     const backTo = route.params.backTo;
     const isComingFromExpensifyCard = (backTo as string)?.includes(CONST.EXPENSIFY_CARD.ROUTE as string);
     const styles = useThemeStyles();
@@ -126,7 +125,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
         return achData?.currentStep ?? CONST.BANK_ACCOUNT.STEP.COUNTRY;
     };
     const currentStep = getInitialCurrentStep();
-    const [USDBankAccountStep, setUSDBankAccountStep] = useState<string | null>(subStepParam ?? null);
     const [isNonUSDSetup, setIsNonUSDSetup] = useState(policy ? isNonUSDWorkspace : achData?.currency !== CONST.CURRENCY.USD || reimbursementAccountDraft?.currency !== CONST.CURRENCY.USD);
 
     useEffect(() => {
@@ -218,29 +216,19 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
 
         // If USD bank account is in pending state, we should navigate straight to the validation step and skip Continue step
         if (policyCurrency === CONST.CURRENCY.USD && achData?.state === CONST.BANK_ACCOUNT.STATE.PENDING) {
-            setUSDBankAccountStep(CONST.BANK_ACCOUNT.STEP.VALIDATION);
             goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.VALIDATION);
             return;
         }
 
-        // Sync USDBankAccountStep state with achData.currentStep when backend data changes.
-        // This keeps state updated for legitimate step transitions while preventing flicker during transient re-renders.
-        if (!isNonUSDSetup && USDBankAccountStep !== null && achData?.currentStep && achData.currentStep !== USDBankAccountStep) {
-            setUSDBankAccountStep(achData.currentStep);
-        }
-
         setShouldShowConnectedVerifiedBankAccount(isNonUSDSetup ? achData?.state === CONST.BANK_ACCOUNT.STATE.OPEN : achData?.currentStep === CONST.BANK_ACCOUNT.STEP.ENABLE);
         setShouldShowContinueSetupButton(shouldShowContinueSetupButtonValue);
-    }, [policyIDParam, achData?.currentStep, shouldShowContinueSetupButtonValue, isNonUSDSetup, isPreviousPolicy, achData?.state, policyCurrency, USDBankAccountStep]);
+    }, [policyIDParam, achData?.currentStep, shouldShowContinueSetupButtonValue, isNonUSDSetup, isPreviousPolicy, achData?.state, policyCurrency]);
 
     useEffect(() => {
         if (!prevPolicyCurrency || policyCurrency === prevPolicyCurrency) {
             return;
         }
 
-        if (policyCurrency && policyCurrency !== CONST.CURRENCY.USD) {
-            setUSDBankAccountStep(null);
-        }
         setBankAccountSubStep(null);
     }, [policyCurrency, prevPolicyCurrency]);
 
@@ -403,7 +391,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
             <ConnectedVerifiedBankAccount
                 reimbursementAccount={reimbursementAccount}
                 setShouldShowConnectedVerifiedBankAccount={setShouldShowConnectedVerifiedBankAccount}
-                setUSDBankAccountStep={setUSDBankAccountStep}
                 onBackButtonPress={goBack}
                 isNonUSDWorkspace={isNonUSDSetup}
             />
@@ -419,7 +406,6 @@ function ReimbursementAccountPage({route, policy, isLoadingPolicy}: Reimbursemen
             backTo={backTo}
             shouldShowContinueSetupButton={shouldShowContinueSetupButton}
             isNonUSDWorkspace={isNonUSDSetup}
-            setUSDBankAccountStep={setUSDBankAccountStep}
             policyID={policyIDParam}
             isComingFromExpensifyCard={isComingFromExpensifyCard}
         />

@@ -24,12 +24,9 @@ type FinishChatCardProps = {
 
     /** Boolean required to display Enable2FACard component */
     requiresTwoFactorAuth: boolean;
-
-    /** Method to set the state of USD bank account step */
-    setUSDBankAccountStep?: (step: string | null) => void;
 };
 
-function FinishChatCard({requiresTwoFactorAuth, reimbursementAccount, setUSDBankAccountStep}: FinishChatCardProps) {
+function FinishChatCard({requiresTwoFactorAuth, reimbursementAccount}: FinishChatCardProps) {
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
@@ -78,7 +75,6 @@ function FinishChatCard({requiresTwoFactorAuth, reimbursementAccount, setUSDBank
                     title={translate('workspace.bankAccount.updateDetails')}
                     onPress={() => {
                         setBankAccountSubStep(CONST.BANK_ACCOUNT.SETUP_TYPE.MANUAL).then(() => {
-                            setUSDBankAccountStep?.(CONST.BANK_ACCOUNT.STEP.REQUESTOR);
                             goToWithdrawalAccountSetupStep(CONST.BANK_ACCOUNT.STEP.REQUESTOR);
                         });
                     }}
@@ -98,7 +94,6 @@ function FinishChatCard({requiresTwoFactorAuth, reimbursementAccount, setUSDBank
                 <WorkspaceResetBankAccountModal
                     reimbursementAccount={reimbursementAccount}
                     isNonUSDWorkspace={false}
-                    setUSDBankAccountStep={setUSDBankAccountStep}
                 />
             )}
         </ScrollView>

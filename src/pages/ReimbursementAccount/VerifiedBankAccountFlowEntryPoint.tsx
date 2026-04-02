@@ -59,9 +59,6 @@ type VerifiedBankAccountFlowEntryPointProps = {
     /** Whether the workspace currency is set to non USD currency */
     isNonUSDWorkspace: boolean;
 
-    /** Set step for USD flow */
-    setUSDBankAccountStep: (shouldShowContinueSetupButton: string | null) => void;
-
     /** Method to set the state of shouldShowContinueSetupButton */
     setShouldShowContinueSetupButton?: (shouldShowContinueSetupButton: boolean) => void;
 
@@ -79,7 +76,6 @@ function VerifiedBankAccountFlowEntryPoint({
     onContinuePress,
     shouldShowContinueSetupButton,
     isNonUSDWorkspace,
-    setUSDBankAccountStep,
     setShouldShowContinueSetupButton,
     isComingFromExpensifyCard,
 }: VerifiedBankAccountFlowEntryPointProps) {
@@ -314,7 +310,6 @@ function VerifiedBankAccountFlowEntryPoint({
                 <WorkspaceResetBankAccountModal
                     reimbursementAccount={reimbursementAccount}
                     isNonUSDWorkspace={isNonUSDWorkspace}
-                    setUSDBankAccountStep={setUSDBankAccountStep}
                     setShouldShowContinueSetupButton={setShouldShowContinueSetupButton}
                     navigateAfterReset={navigateAfterReset}
                     backTo={backTo}

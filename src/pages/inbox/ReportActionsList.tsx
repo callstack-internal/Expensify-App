@@ -1,6 +1,6 @@
 import {useRoute} from '@react-navigation/native';
 import React, {useEffect, useState} from 'react';
-import Animated, {FadeIn} from 'react-native-reanimated';
+import {View} from 'react-native';
 import MoneyRequestReportActionsList from '@components/MoneyRequestReportView/MoneyRequestReportActionsList';
 import ReportActionsSkeletonView from '@components/ReportActionsSkeletonView';
 import useNetwork from '@hooks/useNetwork';

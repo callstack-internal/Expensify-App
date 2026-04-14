@@ -259,16 +259,28 @@ function getIOUReportActionWithBadge(
 ): {reportAction: OnyxEntry<ReportAction>; actionBadge?: ValueOf<typeof CONST.REPORT.ACTION_BADGE>} {
     const chatReportActions = getAllReportActionsFromIOU()?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${chatReport?.reportID}`] ?? {};
 
+    // Pre-filter to only REPORT_PREVIEW actions to avoid repeated type checks in the loop
+    const reportPreviewActions = Object.values(chatReportActions).filter(
+        (action): action is ReportAction => !!action && action.actionName === CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW && !isDeletedAction(action),
+    );
+
+    if (reportPreviewActions.length === 0) {
+        return {reportAction: undefined};
+    }
+
+    // Hoist invariant lookups outside the loop — these return the same value for every action
+    const chatReportRNVP = getAllReportNameValuePairs()?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${chatReport?.reportID}`];
+    const allTransactionViolations = getAllTransactionViolations();
+    const currentUserEmail = getCurrentUserEmail();
+    const currentUserAccountID = getUserAccountID();
+
     let actionBadge: ValueOf<typeof CONST.REPORT.ACTION_BADGE> | undefined;
-    const reportAction = Object.values(chatReportActions).find((action) => {
-        if (!action || action.actionName !== CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW || isDeletedAction(action)) {
-            return false;
-        }
+    const reportAction = reportPreviewActions.find((action) => {
         const iouReport = getReportOrDraftReport(action.childReportID);
         // Show to the actual payer, or to policy admins via the pay-elsewhere path for negative expenses
         if (
-            canIOUBePaid(iouReport, chatReport, policy, undefined, undefined, undefined, undefined, invoiceReceiverPolicy) ||
-            canIOUBePaid(iouReport, chatReport, policy, undefined, undefined, true, undefined, invoiceReceiverPolicy)
+            canIOUBePaid(iouReport, chatReport, policy, undefined, undefined, undefined, chatReportRNVP, invoiceReceiverPolicy) ||
+            canIOUBePaid(iouReport, chatReport, policy, undefined, undefined, true, chatReportRNVP, invoiceReceiverPolicy)
         ) {
             actionBadge = CONST.REPORT.ACTION_BADGE.PAY;
             return true;
@@ -282,9 +294,9 @@ function getIOUReportActionWithBadge(
             chatReport,
             policy,
             getReportTransactions(iouReport?.reportID),
-            getAllTransactionViolations(),
-            getCurrentUserEmail(),
-            getUserAccountID(),
+            allTransactionViolations,
+            currentUserEmail,
+            currentUserAccountID,
             getAllReportActions(iouReport?.reportID),
         );
         if (isWaitingSubmitFromCurrentUser) {

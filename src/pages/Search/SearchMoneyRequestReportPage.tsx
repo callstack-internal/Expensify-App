@@ -1,6 +1,6 @@
 import {PortalHost} from '@gorhom/portal';
 import {useIsFocused} from '@react-navigation/native';
-import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {InteractionManager} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
@@ -90,8 +90,9 @@ function SearchMoneyRequestReportPageContent({route, reportIDFromRoute}: SearchM
     const {email: currentUserEmail, accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
     const isFocused = useIsFocused();
 
-    // Refs accessed only inside effects (compiler-safe — no reads/writes during render).
-    const hasEverHadReportRef = useRef(false);
+    // State tracks whether the report was ever loaded in this mount lifecycle.
+    // State (not ref) so it can be read during render to suppress the error page.
+    const [hasEverHadReport, setHasEverHadReport] = useState(false);
     const isInitialMountRef = useRef(true);
 
     useEffect(() => {
@@ -154,20 +155,23 @@ function SearchMoneyRequestReportPageContent({route, reportIDFromRoute}: SearchM
     // Dismiss modal when the money request report is removed (e.g. deleted or merged).
     // The key={reportIDFromRoute} wrapper forces a remount on navigation, so this effect
     // only needs to handle the lifecycle of a single report.
-    // hasEverHadReportRef is mount-scoped (reset by key change) — it starts false,
+    // hasEverHadReport is mount-scoped (reset by key change) — it starts false,
     // so the transient undefined during Onyx hydration won't trigger dismissal.
-    // Once the report loads, the ref becomes true. If the report is then deleted
-    // (becomes undefined), we dismiss.
+    // Once the report loads, hasEverHadReport becomes true. If the report is then
+    // deleted (becomes undefined), we dismiss. The render-time guard in
+    // shouldShowAccessErrorPage uses hasEverHadReport to suppress the "not found"
+    // page while dismissal completes.
     useEffect(() => {
-        if (report) {
-            hasEverHadReportRef.current = true;
-            return;
+        const shouldMarkAsLoaded = !!report && !hasEverHadReport;
+        const shouldDismiss = !report && hasEverHadReport && isFocused;
+
+        if (shouldMarkAsLoaded) {
+            setHasEverHadReport(true);
         }
-        if (!hasEverHadReportRef.current || !isFocused) {
-            return;
+        if (shouldDismiss) {
+            Navigation.dismissModal();
         }
-        Navigation.dismissModal();
-    }, [report, isFocused]);
+    }, [report, hasEverHadReport, isFocused]);
 
     const isReportPendingDeletion = isMoneyRequestReportPendingDeletion(report);
     const isThreadReportDeletedForReview = isThreadReportDeleted(report, reportMetadata, isOffline);
@@ -328,6 +332,12 @@ function SearchMoneyRequestReportPageContent({route, reportIDFromRoute}: SearchM
             return false;
         }
 
+        // Report was loaded in this lifecycle and then removed (deleted from another device).
+        // The dismissal effect will navigate away — suppress the error page to avoid a flash.
+        if (hasEverHadReport && !reportID) {
+            return false;
+        }
+
         if (!!reportID && !doesReportIDLookValid) {
             return true;
         }
@@ -351,6 +361,7 @@ function SearchMoneyRequestReportPageContent({route, reportIDFromRoute}: SearchM
         deleteTransactionNavigateBackUrl,
         wasParentActionDeleted,
         isThreadReportDeletedForReview,
+        hasEverHadReport,
     ]);
 
     useEffect(() => {

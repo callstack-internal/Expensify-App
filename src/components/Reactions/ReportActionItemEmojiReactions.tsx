@@ -1,7 +1,6 @@
 import sortBy from 'lodash/sortBy';
 import React, {useContext, useRef} from 'react';
 import {InteractionManager, View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import type {Emoji} from '@assets/emojis/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Tooltip from '@components/Tooltip/PopoverAnchorTooltip';
@@ -19,14 +18,12 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportAction, ReportActionReactions} from '@src/types/onyx';
 import type {PendingAction} from '@src/types/onyx/OnyxCommon';
+import {getEmptyObject} from '@src/types/utils/EmptyObject';
 import AddReactionBubble from './AddReactionBubble';
 import EmojiReactionBubble from './EmojiReactionBubble';
 import ReactionTooltipContent from './ReactionTooltipContent';
 
 type ReportActionItemEmojiReactionsProps = {
-    /** All the emoji reactions for the report action. */
-    emojiReactions: OnyxEntry<ReportActionReactions>;
-
     /** The report action that these reactions are for */
     reportAction: ReportAction;
 
@@ -73,7 +70,7 @@ type FormattedReaction = {
     setIsEmojiPickerActive?: (state: boolean) => void;
 };
 
-function ReportActionItemEmojiReactions({reportAction, reportID, emojiReactions = {}, shouldBlockReactions = false, setIsEmojiPickerActive}: ReportActionItemEmojiReactionsProps) {
+function ReportActionItemEmojiReactions({reportAction, reportID, shouldBlockReactions = false, setIsEmojiPickerActive}: ReportActionItemEmojiReactionsProps) {
     const styles = useThemeStyles();
     const {preferredLocale} = useLocalize();
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
@@ -82,6 +79,7 @@ function ReportActionItemEmojiReactions({reportAction, reportID, emojiReactions 
     const [preferredSkinTone = CONST.EMOJI_DEFAULT_SKIN_TONE] = useOnyx(ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE);
 
     const reportActionID = reportAction.reportActionID;
+    const [emojiReactions = getEmptyObject<ReportActionReactions>()] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_REACTIONS}${reportActionID}`);
 
     const toggleReaction = (emoji: Emoji, skinTone: number, ignoreSkinToneOnCompare?: boolean) => {
         if (isAnonymousUser()) {

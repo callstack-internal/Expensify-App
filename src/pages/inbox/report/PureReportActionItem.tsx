@@ -239,9 +239,6 @@ type PureReportActionItemProps = {
     /** The iou report associated with the linked report, if any */
     iouReportOfLinkedReport: OnyxEntry<OnyxTypes.Report>;
 
-    /** All the emoji reactions for the report action. */
-    emojiReactions?: OnyxTypes.ReportActionReactions;
-
     /** Linked transaction route error */
     linkedTransactionRouteError?: Errors;
 
@@ -368,7 +365,6 @@ function PureReportActionItem({
     taskReport,
     linkedReport,
     iouReportOfLinkedReport,
-    emojiReactions,
     linkedTransactionRouteError,
     cardList,
     isUserValidated,
@@ -1131,12 +1127,11 @@ function PureReportActionItem({
                         <LinkPreviewer linkMetadata={action.linkMetadata?.filter((item) => !isEmptyObject(item))} />
                     </View>
                 )}
-                {!isMessageDeleted(action) && (
+                {!isMessageDeleted(action) && !isOnSearch && (
                     <View style={draftMessageRightAlign}>
                         <ReportActionItemEmojiReactions
                             reportAction={action}
                             reportID={reportID}
-                            emojiReactions={isOnSearch ? {} : emojiReactions}
                             shouldBlockReactions={hasErrors}
                             setIsEmojiPickerActive={setIsEmojiPickerActive}
                         />
@@ -1453,7 +1448,6 @@ export default memo(PureReportActionItem, (prevProps, nextProps) => {
         deepEqual(prevParentReportAction, nextParentReportAction) &&
         prevProps.draftMessage === nextProps.draftMessage &&
         prevProps.iouReport?.reportID === nextProps.iouReport?.reportID &&
-        deepEqual(prevProps.emojiReactions, nextProps.emojiReactions) &&
         deepEqual(prevProps.linkedTransactionRouteError, nextProps.linkedTransactionRouteError) &&
         prevProps.isUserValidated === nextProps.isUserValidated &&
         prevProps.parentReport?.reportID === nextProps.parentReport?.reportID &&

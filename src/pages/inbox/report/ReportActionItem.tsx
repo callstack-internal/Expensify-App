@@ -19,7 +19,7 @@ import {clearAllRelatedReportActionErrors} from '@userActions/ClearReportActionE
 import {deleteReportActionDraft, resolveActionableMentionWhisper, resolveActionableReportMentionWhisper} from '@userActions/Report';
 import {clearError} from '@userActions/Transaction';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetailsList, ReportActionReactions, Transaction} from '@src/types/onyx';
+import type {PersonalDetailsList, Transaction} from '@src/types/onyx';
 import type {PureReportActionItemProps} from './PureReportActionItem';
 import PureReportActionItem from './PureReportActionItem';
 
@@ -29,9 +29,6 @@ type ReportActionItemProps = Omit<PureReportActionItemProps, 'taskReport' | 'lin
 
     /** Draft message for the report action */
     draftMessage?: string;
-
-    /** Emoji reactions for the report action */
-    emojiReactions?: OnyxEntry<ReportActionReactions>;
 
     /** User wallet tierName */
     userWalletTierName: string | undefined;
@@ -53,7 +50,6 @@ function ReportActionItem({
     action,
     report,
     draftMessage,
-    emojiReactions,
     userWalletTierName,
     isUserValidated,
     personalDetails,
@@ -115,7 +111,6 @@ function ReportActionItem({
             cardList={cardList}
             linkedReport={linkedReport}
             iouReportOfLinkedReport={iouReportOfLinkedReport}
-            emojiReactions={emojiReactions}
             linkedTransactionRouteError={linkedTransactionRouteError}
             isUserValidated={isUserValidated}
             parentReport={parentReport}

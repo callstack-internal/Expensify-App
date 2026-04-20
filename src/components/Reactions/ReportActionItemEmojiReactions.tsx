@@ -6,6 +6,7 @@ import type {Emoji} from '@assets/emojis/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Tooltip from '@components/Tooltip/PopoverAnchorTooltip';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {getEmojiReactionDetails, getLocalizedEmojiName} from '@libs/EmojiUtils';
@@ -16,7 +17,7 @@ import {toggleEmojiReaction} from '@userActions/Report';
 import {isAnonymousUser, signOutAndRedirectToSignIn} from '@userActions/Session';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Locale, ReportAction, ReportActionReactions} from '@src/types/onyx';
+import type {ReportAction, ReportActionReactions} from '@src/types/onyx';
 import type {PendingAction} from '@src/types/onyx/OnyxCommon';
 import AddReactionBubble from './AddReactionBubble';
 import EmojiReactionBubble from './EmojiReactionBubble';
@@ -25,9 +26,6 @@ import ReactionTooltipContent from './ReactionTooltipContent';
 type ReportActionItemEmojiReactionsProps = {
     /** All the emoji reactions for the report action. */
     emojiReactions: OnyxEntry<ReportActionReactions>;
-
-    /** The user's preferred locale. */
-    preferredLocale?: OnyxEntry<Locale>;
 
     /** The report action that these reactions are for */
     reportAction: ReportAction;
@@ -75,15 +73,9 @@ type FormattedReaction = {
     setIsEmojiPickerActive?: (state: boolean) => void;
 };
 
-function ReportActionItemEmojiReactions({
-    reportAction,
-    reportID,
-    emojiReactions = {},
-    shouldBlockReactions = false,
-    preferredLocale = CONST.LOCALES.DEFAULT,
-    setIsEmojiPickerActive,
-}: ReportActionItemEmojiReactionsProps) {
+function ReportActionItemEmojiReactions({reportAction, reportID, emojiReactions = {}, shouldBlockReactions = false, setIsEmojiPickerActive}: ReportActionItemEmojiReactionsProps) {
     const styles = useThemeStyles();
+    const {preferredLocale} = useLocalize();
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const reactionListRef = useContext(ReactionListContext);
     const popoverReactionListAnchors = useRef<PopoverReactionListAnchors>({});

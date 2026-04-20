@@ -5,8 +5,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 import type {Emoji} from '@assets/emojis/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Tooltip from '@components/Tooltip/PopoverAnchorTooltip';
-import withCurrentUserPersonalDetails from '@components/withCurrentUserPersonalDetails';
-import type {WithCurrentUserPersonalDetailsProps} from '@components/withCurrentUserPersonalDetails';
+import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {getEmojiReactionDetails, getLocalizedEmojiName} from '@libs/EmojiUtils';
@@ -23,7 +22,7 @@ import AddReactionBubble from './AddReactionBubble';
 import EmojiReactionBubble from './EmojiReactionBubble';
 import ReactionTooltipContent from './ReactionTooltipContent';
 
-type ReportActionItemEmojiReactionsProps = WithCurrentUserPersonalDetailsProps & {
+type ReportActionItemEmojiReactionsProps = {
     /** All the emoji reactions for the report action. */
     emojiReactions: OnyxEntry<ReportActionReactions>;
 
@@ -79,13 +78,13 @@ type FormattedReaction = {
 function ReportActionItemEmojiReactions({
     reportAction,
     reportID,
-    currentUserPersonalDetails,
     emojiReactions = {},
     shouldBlockReactions = false,
     preferredLocale = CONST.LOCALES.DEFAULT,
     setIsEmojiPickerActive,
 }: ReportActionItemEmojiReactionsProps) {
     const styles = useThemeStyles();
+    const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const reactionListRef = useContext(ReactionListContext);
     const popoverReactionListAnchors = useRef<PopoverReactionListAnchors>({});
     const [preferredSkinTone = CONST.EMOJI_DEFAULT_SKIN_TONE] = useOnyx(ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE);
@@ -194,4 +193,4 @@ function ReportActionItemEmojiReactions({
     );
 }
 
-export default withCurrentUserPersonalDetails(ReportActionItemEmojiReactions);
+export default ReportActionItemEmojiReactions;

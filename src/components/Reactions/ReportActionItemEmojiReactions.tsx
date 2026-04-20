@@ -1,6 +1,6 @@
 import sortBy from 'lodash/sortBy';
 import React, {useContext, useRef} from 'react';
-import {View} from 'react-native';
+import {InteractionManager, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {Emoji} from '@assets/emojis/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
@@ -10,8 +10,11 @@ import type {WithCurrentUserPersonalDetailsProps} from '@components/withCurrentU
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {getEmojiReactionDetails, getLocalizedEmojiName} from '@libs/EmojiUtils';
+import {hideContextMenu} from '@pages/inbox/report/ContextMenu/ReportActionContextMenu';
 import {ReactionListContext} from '@pages/inbox/ReportScreenContext';
 import type {ReactionListAnchor, ReactionListEvent} from '@pages/inbox/ReportScreenContext';
+import {toggleEmojiReaction} from '@userActions/Report';
+import {isAnonymousUser, signOutAndRedirectToSignIn} from '@userActions/Session';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Locale, ReportAction, ReportActionReactions} from '@src/types/onyx';
@@ -30,12 +33,8 @@ type ReportActionItemEmojiReactionsProps = WithCurrentUserPersonalDetailsProps &
     /** The report action that these reactions are for */
     reportAction: ReportAction;
 
-    /**
-     * Function to call when the user presses on an emoji.
-     * This can also be an emoji the user already reacted with,
-     * hence this function asks to toggle the reaction by emoji.
-     */
-    toggleReaction: (emoji: Emoji, preferredSkinTone: number, ignoreSkinToneOnCompare?: boolean) => void;
+    /** The ID of the chat report this action belongs to */
+    reportID: string | undefined;
 
     /** We disable reacting with emojis on report actions that have errors */
     shouldBlockReactions?: boolean;
@@ -79,8 +78,8 @@ type FormattedReaction = {
 
 function ReportActionItemEmojiReactions({
     reportAction,
+    reportID,
     currentUserPersonalDetails,
-    toggleReaction,
     emojiReactions = {},
     shouldBlockReactions = false,
     preferredLocale = CONST.LOCALES.DEFAULT,
@@ -92,6 +91,17 @@ function ReportActionItemEmojiReactions({
     const [preferredSkinTone = CONST.EMOJI_DEFAULT_SKIN_TONE] = useOnyx(ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE);
 
     const reportActionID = reportAction.reportActionID;
+
+    const toggleReaction = (emoji: Emoji, skinTone: number, ignoreSkinToneOnCompare?: boolean) => {
+        if (isAnonymousUser()) {
+            hideContextMenu(false);
+            InteractionManager.runAfterInteractions(() => {
+                signOutAndRedirectToSignIn();
+            });
+            return;
+        }
+        toggleEmojiReaction(reportID, reportAction, emoji, emojiReactions, skinTone, currentUserPersonalDetails.accountID, ignoreSkinToneOnCompare);
+    };
 
     // Each emoji is sorted by the oldest timestamp of user reactions so that they will always appear in the same order for everyone
     const formattedReactions: Array<FormattedReaction | null> = sortBy(

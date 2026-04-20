@@ -5,10 +5,9 @@ import type {Emoji} from '@assets/emojis/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import Tooltip from '@components/Tooltip/PopoverAnchorTooltip';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {getEmojiReactionDetails, getLocalizedEmojiName} from '@libs/EmojiUtils';
+import {getEmojiReactionDetails} from '@libs/EmojiUtils';
 import {hideContextMenu} from '@pages/inbox/report/ContextMenu/ReportActionContextMenu';
 import {ReactionListContext} from '@pages/inbox/ReportScreenContext';
 import type {ReactionListAnchor, ReactionListEvent} from '@pages/inbox/ReportScreenContext';
@@ -72,8 +71,7 @@ type FormattedReaction = {
 
 function ReportActionItemEmojiReactions({reportAction, reportID, shouldBlockReactions = false, setIsEmojiPickerActive}: ReportActionItemEmojiReactionsProps) {
     const styles = useThemeStyles();
-    const {preferredLocale} = useLocalize();
-    const currentUserPersonalDetails = useCurrentUserPersonalDetails();
+    const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
     const reactionListRef = useContext(ReactionListContext);
     const popoverReactionListAnchors = useRef<PopoverReactionListAnchors>({});
     const [preferredSkinTone = CONST.EMOJI_DEFAULT_SKIN_TONE] = useOnyx(ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE);
@@ -89,17 +87,13 @@ function ReportActionItemEmojiReactions({reportAction, reportID, shouldBlockReac
             });
             return;
         }
-        toggleEmojiReaction(reportID, reportAction, emoji, emojiReactions, skinTone, currentUserPersonalDetails.accountID, ignoreSkinToneOnCompare);
+        toggleEmojiReaction(reportID, reportAction, emoji, emojiReactions, skinTone, currentUserAccountID, ignoreSkinToneOnCompare);
     };
 
     // Each emoji is sorted by the oldest timestamp of user reactions so that they will always appear in the same order for everyone
     const formattedReactions: Array<FormattedReaction | null> = sortBy(
         Object.entries(emojiReactions ?? {}).map(([emojiName, emojiReaction]) => {
-            const {emoji, emojiCodes, reactionCount, hasUserReacted, userAccountIDs, oldestTimestamp} = getEmojiReactionDetails(
-                emojiName,
-                emojiReaction,
-                currentUserPersonalDetails.accountID,
-            );
+            const {emoji, emojiCodes, reactionCount, hasUserReacted, userAccountIDs, oldestTimestamp} = getEmojiReactionDetails(emojiName, emojiReaction, currentUserAccountID);
 
             if (reactionCount === 0) {
                 return null;
@@ -137,14 +131,15 @@ function ReportActionItemEmojiReactions({reportAction, reportID, shouldBlockReac
                     if (reaction === null) {
                         return;
                     }
+
                     return (
                         <Tooltip
                             renderTooltipContent={() => (
                                 <ReactionTooltipContent
-                                    emojiName={getLocalizedEmojiName(reaction.reactionEmojiName, preferredLocale)}
+                                    emojiName={reaction.reactionEmojiName}
                                     emojiCodes={reaction.emojiCodes}
                                     accountIDs={reaction.userAccountIDs}
-                                    currentUserPersonalDetails={currentUserPersonalDetails}
+                                    currentUserAccountID={currentUserAccountID}
                                 />
                             )}
                             renderTooltipContentKey={[...reaction.userAccountIDs.map(String), ...reaction.emojiCodes]}

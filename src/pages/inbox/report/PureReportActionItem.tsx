@@ -1127,7 +1127,7 @@ function PureReportActionItem({
                         <LinkPreviewer linkMetadata={action.linkMetadata?.filter((item) => !isEmptyObject(item))} />
                     </View>
                 )}
-                {!isMessageDeleted(action) && !isOnSearch && (
+                {!isOnSearch && !isMessageDeleted(action) && (
                     <View style={draftMessageRightAlign}>
                         <ReportActionItemEmojiReactions
                             reportAction={action}

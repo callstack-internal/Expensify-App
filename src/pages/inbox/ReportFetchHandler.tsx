@@ -219,8 +219,14 @@ function ReportFetchHandler() {
     useEffect(() => {
         // This function is triggered when a user clicks on a link to navigate to a report.
         // For each link click, we retrieve the report data again, even though it may already be cached.
-        // There should be only one openReport execution per page start or navigating
-        fetchReport();
+        // There should be only one openReport execution per page start or navigating.
+        // Defer until the navigation transition settles so openReport's optimistic Onyx write
+        // doesn't broadcast to the LHN tree mid-animation.
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        const interactionTask = InteractionManager.runAfterInteractions(() => {
+            fetchReport();
+        });
+        return () => interactionTask.cancel();
     }, [route, isLinkedMessagePageReady, reportActionIDFromRoute]);
 
     useEffect(() => {

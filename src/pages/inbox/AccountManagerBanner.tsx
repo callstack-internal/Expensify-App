@@ -18,11 +18,26 @@ type AccountManagerBannerProps = {
 };
 
 function AccountManagerBanner({reportID}: AccountManagerBannerProps) {
+    const [accountManagerReportID] = useOnyx(ONYXKEYS.ACCOUNT_MANAGER_REPORT_ID);
+    const [isConciergeChat] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(reportID)}`, {
+        selector: isConciergeChatReport,
+    });
+
+    if (!accountManagerReportID || !isConciergeChat) {
+        return null;
+    }
+
+    return <AccountManagerBannerContent accountManagerReportID={accountManagerReportID} />;
+}
+
+type AccountManagerBannerContentProps = {
+    accountManagerReportID: string;
+};
+
+function AccountManagerBannerContent({accountManagerReportID}: AccountManagerBannerContentProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Lightbulb']);
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(reportID)}`);
-    const [accountManagerReportID] = useOnyx(ONYXKEYS.ACCOUNT_MANAGER_REPORT_ID);
     const [accountManagerReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(accountManagerReportID)}`);
     const accountManagerAccountID = getParticipantsAccountIDsForDisplay(accountManagerReport, false, true)?.at(0) ?? CONST.DEFAULT_MISSING_ID;
     const [participantPersonalDetail] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {
@@ -30,9 +45,10 @@ function AccountManagerBanner({reportID}: AccountManagerBannerProps) {
     });
     const [isBannerVisible, setIsBannerVisible] = useState(true);
 
-    if (!accountManagerReportID || !isConciergeChatReport(report) || !isBannerVisible) {
+    if (!isBannerVisible) {
         return null;
     }
+
     const displayName = getDisplayNameOrDefault(participantPersonalDetail);
     const login = participantPersonalDetail?.login;
     const chatWithAccountManagerText = displayName && login ? translate('common.chatWithAccountManager', `${displayName} (${login})`) : '';

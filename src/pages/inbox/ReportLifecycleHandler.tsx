@@ -1,11 +1,8 @@
-import {useIsFocused} from '@react-navigation/native';
 import {useEffect} from 'react';
 import useAppFocusEvent from '@hooks/useAppFocusEvent';
 import useBankAccountUnlockEffect from '@hooks/useBankAccountUnlockEffect';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useOnyx from '@hooks/useOnyx';
-import usePrevious from '@hooks/usePrevious';
-import {hideEmojiPicker} from '@libs/actions/EmojiPickerAction';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import clearReportNotifications from '@libs/Notification/clearReportNotifications';
 import {cancelSpan, cancelSpansByPrefix} from '@libs/telemetry/activeSpans';
@@ -18,28 +15,17 @@ type ReportLifecycleHandlerProps = {
 
 /**
  * Component that does not render anything. Handles screen lifecycle side effects:
- * - Hide emoji picker when screen loses focus
  * - Clear notifications when report is opened/re-focused
  * - Telemetry span cancellation on unmount
  * - Bank account unlock effect
  */
 function ReportLifecycleHandler({reportID}: ReportLifecycleHandlerProps) {
     const onyxReportID = getNonEmptyStringOnyxID(reportID);
-    const isFocused = useIsFocused();
-    const prevIsFocused = usePrevious(isFocused);
     const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
     const isTopMostReportId = currentReportIDValue === reportID;
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${onyxReportID}`);
     useBankAccountUnlockEffect(report);
-
-    // Hide emoji picker when screen loses focus
-    useEffect(() => {
-        if (!prevIsFocused || isFocused) {
-            return;
-        }
-        hideEmojiPicker(true);
-    }, [prevIsFocused, isFocused]);
 
     // Telemetry cleanup
     useEffect(() => {

@@ -16,6 +16,7 @@ import type {AnchorOrigin, EmojiPickerOnModalHide, EmojiPickerRef, EmojiPopoverA
 import {isMobileChrome} from '@libs/Browser';
 import calculateAnchorPosition from '@libs/calculateAnchorPosition';
 import DomUtils from '@libs/DomUtils';
+import {navigationRef} from '@libs/Navigation/Navigation';
 import refocusComposerAfterPreventFirstResponder from '@libs/refocusComposerAfterPreventFirstResponder';
 import type {ComposerType} from '@libs/ReportActionComposeFocusManager';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
@@ -205,6 +206,14 @@ function EmojiPicker({viewportOffsetTop, ref}: EmojiPickerProps) {
     const resetEmojiPopoverAnchor = () => (emojiPopoverAnchorRef.current = null);
 
     useImperativeHandle(ref, () => ({showEmojiPicker, isActive, clearActive, hideEmojiPicker, isEmojiPickerVisible, resetEmojiPopoverAnchor}));
+
+    useEffect(() => {
+        if (!isEmojiPickerVisible) {
+            return;
+        }
+        const unsubscribe = navigationRef.addListener('state', () => hideEmojiPicker(true));
+        return unsubscribe;
+    }, [isEmojiPickerVisible, hideEmojiPicker]);
 
     useEffect(() => {
         const emojiPopoverDimensionListener = Dimensions.addEventListener('change', () => {

@@ -286,7 +286,12 @@ function ReportFetchHandler() {
             return;
         }
         // After creating the task report then navigating to task detail we don't have any report actions and the last read time is empty so We need to update the initial last read time when opening the task report detail.
-        readNewestAction(report?.reportID, !!reportMetadata?.hasOnceLoadedReportActions);
+        // Defer past the navigation transition so the REPORT merge doesn't broadcast to LHN mid-animation.
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        const interactionTask = InteractionManager.runAfterInteractions(() => {
+            readNewestAction(report?.reportID, !!reportMetadata?.hasOnceLoadedReportActions);
+        });
+        return () => interactionTask.cancel();
     }, [report, reportMetadata?.hasOnceLoadedReportActions]);
 
     useEffect(() => {

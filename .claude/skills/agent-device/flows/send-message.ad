@@ -1,0 +1,12 @@
+# @desc   From the Inbox tab, open the first chat in the LHN, type a message and send it. Triggers the ManualSendMessage Sentry span (Send press -> optimistic message fragment rendered). Assumes the user is signed in with at least one chat in the Inbox.
+# @pre    text="Inbox"
+# @post   role="textview" label="Write something..."
+# @param  message=Hello from agent-device ManualSendMessage flow
+# @tag    chat
+# @tag    navigation
+# @tag    perf
+# @span   ManualSendMessage
+find "Inbox" "click"
+find "Navigates to a chat" "click"
+fill "id=\"composer\" || role=\"textview\" label=\"Write something...\" editable=true || label=\"Write something...\" editable=true" "Hello from agent-device ManualSendMessage flow"
+press "role=\"button\" label=\"Send\" || label=\"Send\""

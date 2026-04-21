@@ -1,0 +1,9 @@
+# @desc   Switch the bottom navigation tab from Home to Reports. Triggers the ManualNavigateToReports Sentry span end-to-end (BottomTab click -> Reports screen layout completion). Assumes the user is signed in and the bottom nav bar is visible.
+# @pre    role="button" label="Home"
+# @pre    role="button" label="Reports"
+# @post   text="Reports"
+# @tag    navigation
+# @tag    perf
+# @span   ManualNavigateToReports
+press "role=\"button\" label=\"Home\" || label=\"Home\""
+press "role=\"button\" label=\"Reports\" || label=\"Reports\""

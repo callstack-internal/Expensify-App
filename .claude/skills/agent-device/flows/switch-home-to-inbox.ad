@@ -1,0 +1,9 @@
+# @desc   Switch the bottom navigation tab from Home to Inbox. Triggers the ManualNavigateToInboxTab Sentry span end-to-end (BottomTab click -> Inbox layout completion). Assumes the user is signed in and the bottom nav bar is visible.
+# @pre    role="button" label="Home"
+# @pre    role="button" label="Inbox"
+# @post   text="Inbox"
+# @tag    navigation
+# @tag    perf
+# @span   ManualNavigateToInboxTab
+press "role=\"button\" label=\"Home\" || label=\"Home\""
+press "role=\"button\" label=\"Inbox\" || label=\"Inbox\""

@@ -202,7 +202,12 @@ function ReportFetchHandler() {
         if (!reportID || !isFocused || isInSidePanel) {
             return;
         }
-        updateLastVisitTime(reportID);
+        // Defer the REPORT_METADATA merge so the write doesn't broadcast to LHN mid-transition.
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        const interactionTask = InteractionManager.runAfterInteractions(() => {
+            updateLastVisitTime(reportID);
+        });
+        return () => interactionTask.cancel();
     }, [reportID, isFocused, isInSidePanel]);
 
     useEffect(() => {

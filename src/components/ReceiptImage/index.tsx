@@ -131,6 +131,8 @@ type ReceiptImageProps = (
 
     /** Any additional styles to apply */
     style?: StyleProp<ViewStyle & ImageStyle>;
+
+    thumbnail320?: string;
 };
 
 function ReceiptImage({
@@ -161,6 +163,7 @@ function ReceiptImage({
     onLoadFailure,
     resizeMode,
     style,
+    thumbnail320,
 }: ReceiptImageProps) {
     const styles = useThemeStyles();
     const [receiptImageWidth, setReceiptImageWidth] = useState<number | undefined>(undefined);
@@ -256,6 +259,7 @@ function ReceiptImage({
             onError={onLoadFailure}
             resizeMode={resizeMode}
             reasonAttributes={reasonAttributes}
+            thumbnail320={thumbnail320}
         />
     );
 }

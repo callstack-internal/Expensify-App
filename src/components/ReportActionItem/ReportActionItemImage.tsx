@@ -15,6 +15,7 @@ import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {getReportIDForExpense} from '@libs/MergeTransactionUtils';
 import Navigation from '@libs/Navigation/Navigation';
+import {getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
 import {hasEReceipt, hasReceiptSource, isDistanceRequest, isFetchingWaypointsFromServer, isManualDistanceRequest, isPerDiemRequest} from '@libs/TransactionUtils';
 import tryResolveUrlFromApiRoot from '@libs/tryResolveUrlFromApiRoot';
 import variables from '@styles/variables';
@@ -137,10 +138,13 @@ function ReportActionItemImage({
     const localSource = transaction?.receipt?.localSource;
     const effectiveIsLocalFile = isLocalFile || !!localSource;
     const effectiveThumbnail = localSource ?? thumbnail;
+    const receiptURIs = getThumbnailAndImageURIs(transaction, null, null);
+    const effectiveThumbnail320 = localSource ?? receiptURIs.thumbnail320;
     const effectiveImage = localSource != null && typeof image === 'string' ? localSource : image;
 
     const originalImageSource = tryResolveUrlFromApiRoot(effectiveImage ?? '');
     const thumbnailSource = tryResolveUrlFromApiRoot(effectiveThumbnail ?? '');
+    const thumbnail320Source = tryResolveUrlFromApiRoot(effectiveThumbnail320 ?? '');
     const isEReceipt = transaction && !hasReceiptSource(transaction) && hasEReceipt(transaction);
     const isPDF = filename && Str.isPDF(filename);
 
@@ -202,6 +206,7 @@ function ReportActionItemImage({
                     onLoad={onLoad}
                     shouldUseFullHeight={shouldUseFullHeight}
                     onLoadFailure={onLoadFailure}
+                    thumbnail320={thumbnail320Source}
                 />
             </PressableWithoutFocus>
         );
@@ -214,6 +219,7 @@ function ReportActionItemImage({
             thumbnailContainerStyles={styles.thumbnailImageContainerHover}
             onLoad={onLoad}
             onLoadFailure={onLoadFailure}
+            thumbnail320={thumbnail320Source}
         />
     );
 }

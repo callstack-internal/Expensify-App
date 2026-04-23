@@ -113,7 +113,6 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
         policy,
         isReportArchived,
         policyForMovingExpensesID,
-        chatReport,
         reportMetadata,
         lastAction,
         reportAttributesDerived,

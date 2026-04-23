@@ -6,21 +6,13 @@ import {FlashList} from '@shopify/flash-list';
 import type {ReactElement} from 'react';
 import React, {useContext, useEffect, useRef} from 'react';
 import {StyleSheet, View} from 'react-native';
-import type {BlockingViewProps} from '@components/BlockingViews/BlockingView';
-import BlockingView from '@components/BlockingViews/BlockingView';
-import Icon from '@components/Icon';
 import {ScrollOffsetContext} from '@components/ScrollOffsetContextProvider';
-import TextBlock from '@components/TextBlock';
-import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
-import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
 import useRootNavigationState from '@hooks/useRootNavigationState';
 import useScrollEventEmitter from '@hooks/useScrollEventEmitter';
-import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import getPlatform from '@libs/getPlatform';
-import Log from '@libs/Log';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
@@ -31,28 +23,22 @@ import {LHNListContext} from './LHNListContext';
 import OptionRowLHN from './OptionRowLHN';
 import OptionRowRendererComponent from './OptionRowRendererComponent';
 import type {LHNOptionsListProps, RenderItemProps} from './types';
-import useEmptyLHNIllustration from './useEmptyLHNIllustration';
 
 const keyExtractor = (item: Report) => `report_${item.reportID}`;
+const platform = getPlatform();
+const isWeb = platform === CONST.PLATFORM.WEB;
 
 function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optionMode, shouldDisableFocusOptions = false, onFirstItemRendered = () => {}}: LHNOptionsListProps) {
     const {saveScrollOffset, getScrollOffset, saveScrollIndex, getScrollIndex} = useContext(ScrollOffsetContext);
     const flashListRef = useRef<FlashListRef<Report>>(null);
     const route = useRoute();
     const isScreenFocused = useIsFocused();
-    const expensifyIcons = useMemoizedLazyExpensifyIcons(['MagnifyingGlass', 'Plus']);
 
     const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
 
-    const theme = useTheme();
     const styles = useThemeStyles();
-    const {translate, preferredLocale} = useLocalize();
     const isReportsSplitNavigatorLast = useRootNavigationState((state) => state?.routes?.at(-1)?.name === NAVIGATORS.REPORTS_SPLIT_NAVIGATOR);
-    const shouldShowEmptyLHN = data.length === 0;
     const estimatedItemSize = optionMode === CONST.OPTION_MODE.COMPACT ? variables.optionRowHeightCompact : variables.optionRowHeight;
-    const platform = getPlatform();
-    const isWeb = platform === CONST.PLATFORM.WEB;
-    const emptyLHNIllustration = useEmptyLHNIllustration();
 
     const firstReportIDWithGBRorRBR = (() => {
         const firstReportWithGBRorRBR = data.find((report) => {
@@ -83,42 +69,6 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
     // Controls the visibility of the educational tooltip based on user scrolling.
     const triggerScrollEvent = useScrollEventEmitter();
 
-    const emptyLHNSubtitle = (
-        <View style={[styles.alignItemsCenter, styles.flexRow, styles.justifyContentCenter, styles.flexWrap, styles.textAlignCenter]}>
-            <TextBlock
-                color={theme.textSupporting}
-                textStyles={[styles.textAlignCenter, styles.textNormal]}
-                text={translate('common.emptyLHN.subtitleText1')}
-            />
-            <Icon
-                src={expensifyIcons.MagnifyingGlass}
-                width={variables.emptyLHNIconWidth}
-                height={variables.emptyLHNIconHeight}
-                fill={theme.icon}
-                small
-                additionalStyles={styles.mh1}
-            />
-            <TextBlock
-                color={theme.textSupporting}
-                textStyles={[styles.textAlignCenter, styles.textNormal]}
-                text={translate('common.emptyLHN.subtitleText2')}
-            />
-            <Icon
-                src={expensifyIcons.Plus}
-                width={variables.emptyLHNIconWidth}
-                height={variables.emptyLHNIconHeight}
-                fill={theme.icon}
-                small
-                additionalStyles={styles.mh1}
-            />
-            <TextBlock
-                color={theme.textSupporting}
-                textStyles={[styles.textAlignCenter, styles.textNormal]}
-                text={translate('common.emptyLHN.subtitleText3')}
-            />
-        </View>
-    );
-
     const lhnListContextValue = {
         isReportsSplitNavigatorLast,
         isScreenFocused,
@@ -141,16 +91,12 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
         );
     };
 
-    const extraData = [reportAttributes, data.length, optionMode, preferredLocale, isScreenFocused, isReportsSplitNavigatorLast];
+    const extraData = [reportAttributes, data.length, optionMode, isScreenFocused, isReportsSplitNavigatorLast];
 
     const previousOptionMode = usePrevious(optionMode);
 
     useEffect(() => {
         if (previousOptionMode === null || previousOptionMode === optionMode || !flashListRef.current) {
-            return;
-        }
-
-        if (!flashListRef.current) {
             return;
         }
 
@@ -187,49 +133,29 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
         });
     };
 
-    useEffect(() => {
-        if (!shouldShowEmptyLHN) {
-            return;
-        }
-        Log.info('Woohoo! All caught up. Was rendered', false, {
-            route,
-            reportsIDsFromUseReportsCount: data.length,
-        });
-    }, [data.length, shouldShowEmptyLHN, route]);
-
     return (
-        <View style={[style ?? styles.flex1, shouldShowEmptyLHN ? styles.emptyLHNWrapper : undefined]}>
-            {shouldShowEmptyLHN ? (
-                <BlockingView
-                    // eslint-disable-next-line react/jsx-props-no-spreading
-                    {...(emptyLHNIllustration as BlockingViewProps)}
-                    title={translate('common.emptyLHN.title')}
-                    CustomSubtitle={emptyLHNSubtitle}
-                    accessibilityLabel={translate('common.emptyLHN.title')}
+        <View style={style ?? styles.flex1}>
+            <LHNListContext.Provider value={lhnListContextValue}>
+                <FlashList
+                    ref={flashListRef}
+                    indicatorStyle="white"
+                    keyboardShouldPersistTaps="always"
+                    CellRendererComponent={OptionRowRendererComponent}
+                    contentContainerStyle={StyleSheet.flatten(contentContainerStyles)}
+                    data={data}
+                    testID="lhn-options-list"
+                    keyExtractor={keyExtractor}
+                    renderItem={renderItem}
+                    extraData={extraData}
+                    showsVerticalScrollIndicator={false}
+                    onLayout={onLayout}
+                    onScroll={onScroll}
+                    initialScrollIndex={isWeb ? getScrollIndex(route) : undefined}
+                    maintainVisibleContentPosition={{disabled: true}}
+                    drawDistance={250}
+                    removeClippedSubviews
                 />
-            ) : (
-                <LHNListContext.Provider value={lhnListContextValue}>
-                    <FlashList
-                        ref={flashListRef}
-                        indicatorStyle="white"
-                        keyboardShouldPersistTaps="always"
-                        CellRendererComponent={OptionRowRendererComponent}
-                        contentContainerStyle={StyleSheet.flatten(contentContainerStyles)}
-                        data={data}
-                        testID="lhn-options-list"
-                        keyExtractor={keyExtractor}
-                        renderItem={renderItem}
-                        extraData={extraData}
-                        showsVerticalScrollIndicator={false}
-                        onLayout={onLayout}
-                        onScroll={onScroll}
-                        initialScrollIndex={isWeb ? getScrollIndex(route) : undefined}
-                        maintainVisibleContentPosition={{disabled: true}}
-                        drawDistance={250}
-                        removeClippedSubviews
-                    />
-                </LHNListContext.Provider>
-            )}
+            </LHNListContext.Provider>
         </View>
     );
 }

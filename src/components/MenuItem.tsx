@@ -183,6 +183,9 @@ type MenuItemBaseProps = ForwardedFSClassProps &
         /** A description text to show under the title */
         description?: string;
 
+        /** Optional component to render before the description text (e.g. a badge pill) */
+        descriptionAddon?: ReactNode;
+
         /** Text to show below menu item. This text is not interactive */
         helperText?: string;
 
@@ -244,6 +247,9 @@ type MenuItemBaseProps = ForwardedFSClassProps &
 
         /** A right-aligned subtitle for this menu option */
         subtitle?: string | number;
+
+        /** Any additional styles to apply to the subtitle */
+        subtitleStyle?: StyleProp<TextStyle>;
 
         /** Should the title show with normal font weight (not bold) */
         shouldShowBasicTitle?: boolean;
@@ -507,6 +513,7 @@ function MenuItem({
     furtherDetailsStyle,
     furtherDetailsComponent,
     description,
+    descriptionAddon,
     helperText,
     helperTextStyle,
     errorText,
@@ -522,6 +529,7 @@ function MenuItem({
     titleComponent,
     titleContainerStyle,
     subtitle,
+    subtitleStyle,
     shouldShowBasicTitle,
     rightLabelIcon,
     label,
@@ -645,12 +653,40 @@ function MenuItem({
 
     const descriptionTextStyles = StyleUtils.combineStyles<TextStyle>([
         styles.textLabelSupporting,
-        icon && !Array.isArray(icon) ? styles.ml3 : {},
-        title ? descriptionVerticalMargin : StyleUtils.getFontSizeStyle(variables.fontSizeNormal),
+        styles.flex1,
+        title ? {} : StyleUtils.getFontSizeStyle(variables.fontSizeNormal),
         title ? styles.textLineHeightNormal : StyleUtils.getLineHeightStyle(variables.fontSizeNormalHeight),
+        !descriptionAddon && icon && !Array.isArray(icon) ? styles.ml3 : {},
+        descriptionAddon ? styles.ml2 : {},
         (descriptionTextStyle as TextStyle) || styles.breakWord,
         isDeleted ? styles.offlineFeedbackDeleted : {},
     ]);
+
+    const descriptionContainerStyle = StyleUtils.combineStyles<ViewStyle>([
+        styles.flexRow,
+        styles.alignItemsCenter,
+        descriptionAddon && icon && !Array.isArray(icon) ? styles.ml3 : {},
+        title ? descriptionVerticalMargin : {},
+    ]);
+
+    const renderDescriptionView = () => {
+        if (!description && !descriptionAddon) {
+            return null;
+        }
+        return (
+            <View style={descriptionContainerStyle}>
+                {descriptionAddon}
+                {!!description && (
+                    <Text
+                        style={descriptionTextStyles}
+                        numberOfLines={numberOfLinesDescription}
+                    >
+                        {description}
+                    </Text>
+                )}
+            </View>
+        );
+    };
 
     const html = useMemo(() => {
         if (!title || !shouldParseTitle) {
@@ -943,14 +979,7 @@ function MenuItem({
                                                             titleContainerStyle,
                                                         ]}
                                                     >
-                                                        {!!description && shouldShowDescriptionOnTop && (
-                                                            <Text
-                                                                style={descriptionTextStyles}
-                                                                numberOfLines={numberOfLinesDescription}
-                                                            >
-                                                                {description}
-                                                            </Text>
-                                                        )}
+                                                        {shouldShowDescriptionOnTop && renderDescriptionView()}
                                                         {(!!title || !!shouldShowTitleIcon) && (
                                                             <View
                                                                 style={[styles.flexRow, styles.alignItemsCenter, styles.mw100, titleWrapperStyle]}
@@ -981,14 +1010,7 @@ function MenuItem({
                                                                 )}
                                                             </View>
                                                         )}
-                                                        {!!description && !shouldShowDescriptionOnTop && (
-                                                            <Text
-                                                                style={descriptionTextStyles}
-                                                                numberOfLines={numberOfLinesDescription}
-                                                            >
-                                                                {description}
-                                                            </Text>
-                                                        )}
+                                                        {!shouldShowDescriptionOnTop && renderDescriptionView()}
                                                         {!!furtherDetails && (
                                                             <View style={[styles.flexRow, styles.mt1, styles.alignItemsCenter]}>
                                                                 {!!furtherDetailsIcon && (
@@ -1050,7 +1072,7 @@ function MenuItem({
                                                 {/* Since subtitle can be of type number, we should allow 0 to be shown */}
                                                 {(subtitle === 0 || !!subtitle) && (
                                                     <View style={[styles.justifyContentCenter, styles.mr1]}>
-                                                        <Text style={[styles.textLabelSupporting, ...(combinedStyle as TextStyle[])]}>{subtitle}</Text>
+                                                        <Text style={[styles.textLabelSupporting, ...(combinedStyle as TextStyle[]), subtitleStyle]}>{subtitle}</Text>
                                                     </View>
                                                 )}
                                                 {(!!rightIconAccountID || !!rightIconReportID) && (
@@ -1072,7 +1094,7 @@ function MenuItem({
                                                     </View>
                                                 )}
                                                 {!!brickRoadIndicator && (
-                                                    <View style={[styles.alignItemsCenter, styles.justifyContentCenter, styles.ml1]}>
+                                                    <View style={[styles.alignItemsCenter, styles.justifyContentCenter, styles.ml1, styles.mr2]}>
                                                         <Icon
                                                             src={icons.DotIndicator}
                                                             fill={brickRoadIndicator === CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR ? theme.danger : theme.success}
@@ -1096,7 +1118,7 @@ function MenuItem({
                                                     <View
                                                         style={[
                                                             styles.pointerEventsAuto,
-                                                            StyleUtils.getMenuItemIconStyle(isCompact),
+                                                            StyleUtils.getMenuItemIconStyle(true),
                                                             disabled && !shouldUseDefaultCursorWhenDisabled && styles.cursorDisabled,
                                                             hasSubMenuItems && styles.pl6,
                                                             !isHovered && shouldDimIconRight && styles.opacitySemiTransparent,

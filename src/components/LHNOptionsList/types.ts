@@ -1,5 +1,4 @@
 import type {LayoutChangeEvent, StyleProp, TextStyle, ViewStyle} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import type CONST from '@src/CONST';
 import type {Report} from '@src/types/onyx';
@@ -45,9 +44,6 @@ type OptionRowLHNProps = {
 
     /** The testID of the row */
     testID: number;
-
-    /** The concierge report ID from Onyx */
-    conciergeReportID: OnyxEntry<string>;
 };
 
 type RenderItemProps = {item: Report; index: number};

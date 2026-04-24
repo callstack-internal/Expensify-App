@@ -19,12 +19,13 @@ type InvertedFlashListProps<T> = FlashListProps<T> & {
     ref: FlatListRefType;
 };
 
-function InvertedFlashList<T>({data, keyExtractor, initialScrollKey, onStartReached: onStartReachedProp, ...restProps}: InvertedFlashListProps<T>) {
+function InvertedFlashList<T>({data, keyExtractor, initialScrollKey, onStartReached: onStartReachedProp, maintainVisibleContentPosition: maintainVisibleContentPositionProp, ...restProps}: InvertedFlashListProps<T>) {
     const {displayedData, onStartReached, maintainVisibleContentPosition} = useFlashListScrollKey<T>({
         data,
         keyExtractor,
         initialScrollKey,
         onStartReached: onStartReachedProp,
+        maintainVisibleContentPosition: maintainVisibleContentPositionProp
     });
 
     return (

@@ -1,5 +1,5 @@
-import type {FlashListProps} from '@shopify/flash-list';
-import {useEffect, useState} from 'react';
+import type { FlashListProps } from '@shopify/flash-list';
+import { useEffect, useState } from 'react';
 
 type FlashListScrollKeyProps<T> = {
     /** The array of items to render in the list. */
@@ -13,9 +13,12 @@ type FlashListScrollKeyProps<T> = {
 
     /** Callback invoked when the user scrolls close to the start of the list. */
     onStartReached: FlashListProps<T>['onStartReached'];
+
+    /** Configure how FlashList should handle maintaining visible content position. Keep in mind that `disabled` property will be overridden. */
+    maintainVisibleContentPosition?: FlashListProps<T>["maintainVisibleContentPosition"]
 };
 
-export default function useFlashListScrollKey<T>({data, keyExtractor, initialScrollKey, onStartReached}: FlashListScrollKeyProps<T>) {
+export default function useFlashListScrollKey<T>({data, keyExtractor, initialScrollKey, onStartReached, maintainVisibleContentPosition: maintainVisibleContentPositionProp}: FlashListScrollKeyProps<T>) {
     const [isInitialRender, setIsInitialRender] = useState(true);
     const [hasLinkingSettled, setHasLinkingSettled] = useState(!initialScrollKey);
 
@@ -35,7 +38,7 @@ export default function useFlashListScrollKey<T>({data, keyExtractor, initialScr
 
     // `undefined` = leave FlashList's default (MVCP enabled) while we're still pinning the linked item.
     // `{disabled: true}` once that's done so MVCP can't interfere afterward.
-    const maintainVisibleContentPosition: FlashListProps<T>['maintainVisibleContentPosition'] = hasLinkingSettled ? {disabled: true} : undefined;
+    const maintainVisibleContentPosition: FlashListProps<T>['maintainVisibleContentPosition'] = hasLinkingSettled ? {...maintainVisibleContentPositionProp, disabled: true} : maintainVisibleContentPositionProp;
 
     if (!isInitialRender || !initialScrollKey) {
         return {displayedData: data, onStartReached, maintainVisibleContentPosition};

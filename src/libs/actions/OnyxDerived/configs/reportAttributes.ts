@@ -12,6 +12,7 @@ import type {PersonalDetailsList, Policy, ReportAttributesDerivedValue} from '@s
 let previousDisplayNames: Record<string, string | undefined> = {};
 let previousPersonalDetails: OnyxEntry<PersonalDetailsList> | undefined;
 let previousPolicies: OnyxCollection<Policy>;
+let previousIsOffline: boolean | undefined;
 
 const prepareReportKeys = (keys: string[]) => {
     return [
@@ -96,8 +97,19 @@ export default createOnyxDerivedValueConfig({
         [reports, preferredLocale, transactionViolations, reportActions, reportNameValuePairs, transactions, personalDetails, session, policies, policyTags],
         {currentValue, sourceValues},
     ) => {
-        // Read the in-memory offline state directly (NETWORK is a dependency so recompute still fires when it changes).
-        const isOffline = getIsOffline();
+        // Short-circuit when NETWORK is the only trigger and isOffline hasn't flipped.
+        // NETWORK is written on every API response (timeSkew), but output only depends
+        // on the NETWORK key via getIsOffline() — a binary edge.
+        const currentIsOffline = getIsOffline();
+        if (sourceValues) {
+            const triggers = Object.keys(sourceValues);
+            const onlyNetworkTriggered = triggers.length === 1 && triggers.at(0) === ONYXKEYS.NETWORK;
+            if (onlyNetworkTriggered && currentIsOffline === previousIsOffline) {
+                return currentValue ?? {reports: {}, locale: null};
+            }
+        }
+        previousIsOffline = currentIsOffline;
+        const isOffline = currentIsOffline;
         // Check if display names changed when personal details are updated
         let displayNamesChanged = false;
         if (hasKeyTriggeredCompute(ONYXKEYS.PERSONAL_DETAILS_LIST, sourceValues)) {

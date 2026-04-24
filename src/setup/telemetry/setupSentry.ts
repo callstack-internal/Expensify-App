@@ -9,6 +9,7 @@ import makeDebugTransport from './debugTransport';
 
 function setupSentry(): void {
     const integrations = [navigationIntegration, tracingIntegration, browserProfilingIntegration, breadcrumbsIntegration, consoleIntegration];
+    const isAdhoc = CONFIG.ENVIRONMENT === CONST.ENVIRONMENT.ADHOC;
 
     Sentry.init({
         dsn: CONFIG.SENTRY_DSN,
@@ -36,7 +37,7 @@ function setupSentry(): void {
             profilingOptions: {
                 // When updating the profile sample rate, make sure it will not blow up our current limit in Sentry.
                 // This option replaces `profilesSampleRate`
-                profileSessionSampleRate: 0.1,
+                profileSessionSampleRate: isAdhoc ? 1.0 : 0.1,
                 lifecycle: 'trace',
             },
         },

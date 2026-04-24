@@ -7374,8 +7374,6 @@ function setOptimisticTransactionThread(reportID?: string, parentReportID?: stri
         return;
     }
 
-    // Use merge with selective updates to avoid overwriting existing comprehensive data
-    // This will only add/update the specified fields without overwriting existing data
     Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {
         reportID,
         policyID,
@@ -7383,9 +7381,6 @@ function setOptimisticTransactionThread(reportID?: string, parentReportID?: stri
         parentReportActionID,
         chatReportID: parentReportID,
         type: CONST.REPORT.TYPE.CHAT,
-        // Add additional fields to ensure complete report structure
-        lastReadTime: DateUtils.getDBTime(),
-        lastVisibleActionCreated: DateUtils.getDBTime(),
     });
 }
 

@@ -35,7 +35,6 @@ import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 import {turnOnMobileSelectionMode} from '@libs/actions/MobileSelectionMode';
-import {setOptimisticTransactionThread} from '@libs/actions/Report';
 import {getReportLayoutGroupBy, setReportLayoutGroupBy} from '@libs/actions/ReportLayout';
 import {clearActiveTransactionIDs, setActiveTransactionIDs} from '@libs/actions/TransactionThreadNavigation';
 import {resolveTransactionCardFields} from '@libs/CardUtils';
@@ -440,8 +439,6 @@ function MoneyRequestReportTransactionList({
                     reportIDToNavigate = transactionThreadReport.reportID;
                     routeParams.reportID = reportIDToNavigate;
                 }
-            } else {
-                setOptimisticTransactionThread(reportIDToNavigate, report?.reportID, iouAction?.reportActionID, report?.policyID);
             }
 
             // Single transaction report will open in RHP, and we need to find every other report ID for the rest of transactions
@@ -450,7 +447,20 @@ function MoneyRequestReportTransactionList({
                 if (reportIDToNavigate) {
                     markReportIDAsExpense(reportIDToNavigate);
                 }
-                Navigation.navigate(ROUTES.SEARCH_REPORT.getRoute(routeParams));
+                // Carry the thread's parent context as nav-state params (not URL) so RHP consumers
+                // can render before `openReport` hydrates `report_${reportID}` from the server.
+                // Onyx is still authoritative — these are just fill-ins while it's empty.
+                Navigation.navigate(ROUTES.SEARCH_REPORT.getRoute(routeParams), {
+                    stateParams: {
+                        threadContext: {
+                            parentReportID: report?.reportID,
+                            parentReportActionID: iouAction?.reportActionID,
+                            chatReportID: report?.chatReportID,
+                            policyID: report?.policyID,
+                            type: CONST.REPORT.TYPE.CHAT,
+                        },
+                    },
+                });
             });
         },
         [reportActions, visualOrderTransactionIDs, sortedTransactions, report, markReportIDAsExpense, introSelected, betas, currentUserDetails.email, currentUserDetails.accountID],

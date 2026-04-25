@@ -25,6 +25,7 @@ import useResponsiveLayoutOnWideRHP from '@hooks/useResponsiveLayoutOnWideRHP';
 import useSelectedTransactionsActions from '@hooks/useSelectedTransactionsActions';
 import useSelectionModeReportActions from '@hooks/useSelectionModeReportActions';
 import useThemeStyles from '@hooks/useThemeStyles';
+import useThreadReport from '@hooks/useThreadReport';
 import {dismissRejectUseExplanation} from '@libs/actions/IOU/RejectMoneyRequest';
 import {queueExportSearchWithTemplate} from '@libs/actions/Search';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
@@ -59,7 +60,7 @@ function SelectionToolbar({reportID, transactions, reportActions}: SelectionTool
     const {shouldUseNarrowLayout} = useResponsiveLayoutOnWideRHP();
     const route = useRoute<PlatformStackRouteProp<ReportsSplitNavigatorParamList, typeof SCREENS.REPORT>>();
 
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
+    const report = useThreadReport(reportID);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${getNonEmptyStringOnyxID(report?.policyID)}`);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(report?.chatReportID)}`);
     const [session] = useOnyx(ONYXKEYS.SESSION);

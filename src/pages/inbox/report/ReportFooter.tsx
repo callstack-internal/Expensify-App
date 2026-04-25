@@ -18,6 +18,7 @@ import useOnyx from '@hooks/useOnyx';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
+import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {
     canUserPerformWriteAction,
@@ -53,7 +54,7 @@ function ReportFooter() {
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Lightbulb']);
     const isAnonymousUser = useIsAnonymousUser();
 
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDFromRoute}`);
+    const report = useThreadReport(reportIDFromRoute);
 
     const isReportArchived = useReportIsArchived(report?.reportID);
     const {isCurrentReportLoadedFromOnyx} = useIsReportReadyToDisplay(report, reportIDFromRoute, isReportArchived);

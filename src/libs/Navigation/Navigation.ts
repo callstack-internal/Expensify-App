@@ -325,6 +325,11 @@ function navigate(route: Route, options?: LinkToOptions) {
         callback: () => {
             const targetRoute = route.startsWith(CONST.SAML_REDIRECT_URL) ? ROUTES.HOME : route;
             linkTo(navigationRef.current, targetRoute, options);
+            // Merge non-URL state params onto the just-navigated route. Dispatched right after
+            // the navigate action so they land on the target, not the source.
+            if (options?.stateParams) {
+                setParams(options.stateParams);
+            }
             closeSidePanelOnNarrowScreen(route);
             if (options?.afterTransition) {
                 TransitionTracker.runAfterTransitions({callback: options.afterTransition, waitForUpcomingTransition: true});

@@ -7,6 +7,7 @@ import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
+import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Log from '@libs/Log';
 import Navigation from '@libs/Navigation/Navigation';
@@ -35,7 +36,7 @@ function ReportNotFoundGuard({children}: ReportNotFoundGuardProps) {
 
     const {isOffline} = useNetwork();
 
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDFromRoute}`);
+    const report = useThreadReport(reportIDFromRoute);
     const [userLeavingStatus = false] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_USER_IS_LEAVING_ROOM}${reportIDFromRoute}`);
     const [isLoadingInitialReportActions = true] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportIDFromRoute}`, {
         selector: isLoadingInitialReportActionsSelector,
@@ -121,7 +122,7 @@ function ReportNotFoundInnerGuard({reportIDFromPath, children}: ReportNotFoundIn
 
     const reportIDFromRoute = getNonEmptyStringOnyxID(reportIDFromPath);
 
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDFromRoute}`);
+    const report = useThreadReport(reportIDFromRoute);
     const [parentReportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report?.parentReportID}`);
     const parentReportAction = useParentReportAction(report);
 

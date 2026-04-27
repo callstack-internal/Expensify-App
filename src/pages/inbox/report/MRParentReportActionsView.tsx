@@ -10,7 +10,6 @@ import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useParentReportAction from '@hooks/useParentReportAction';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
-import useTransactionsAndViolationsForReport from '@hooks/useTransactionsAndViolationsForReport';
 import {getReportPreviewAction} from '@libs/actions/IOU';
 import {updateLoadingInitialReportAction} from '@libs/actions/Report';
 import DateUtils from '@libs/DateUtils';
@@ -83,8 +82,7 @@ function MRParentReportActionsView({reportID, onLayout}: MRParentReportActionsVi
     ]);
     const [transactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transactionThreadReportID}`);
 
-    const {transactions: reportTransactions} = useTransactionsAndViolationsForReport(reportID);
-    const reportTransactionIDs = getAllNonDeletedTransactions(reportTransactions, allReportActions ?? []).map((transaction) => transaction.transactionID);
+    const reportTransactionIDs = getAllNonDeletedTransactions(allReportTransactions, allReportActions ?? []).map((transaction) => transaction.transactionID);
 
     const reportPreviewAction = getReportPreviewAction(report?.chatReportID, report?.reportID);
 

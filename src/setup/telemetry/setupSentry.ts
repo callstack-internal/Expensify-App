@@ -9,7 +9,6 @@ import makeDebugTransport from './debugTransport';
 
 function setupSentry(): void {
     const integrations = [navigationIntegration, tracingIntegration, browserProfilingIntegration, breadcrumbsIntegration, consoleIntegration];
-    const isAdhoc = CONFIG.ENVIRONMENT === CONST.ENVIRONMENT.ADHOC;
 
     Sentry.init({
         dsn: CONFIG.SENTRY_DSN,
@@ -19,6 +18,7 @@ function setupSentry(): void {
         // When "Log Sentry to console" toggle is ON, it logs envelope contents to the console.
         transport: isDevelopment() ? makeDebugTransport : undefined,
         tracesSampleRate: 1.0,
+        profilesSampleRate: 1.0,
         enableAutoPerformanceTracing: true,
         enableUserInteractionTracing: true,
         integrations,
@@ -35,9 +35,6 @@ function setupSentry(): void {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         _experiments: {
             profilingOptions: {
-                // When updating the profile sample rate, make sure it will not blow up our current limit in Sentry.
-                // This option replaces `profilesSampleRate`
-                profileSessionSampleRate: isAdhoc ? 1.0 : 0.1,
                 lifecycle: 'trace',
             },
         },

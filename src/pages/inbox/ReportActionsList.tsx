@@ -8,9 +8,10 @@ import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions, shouldDisplayReportTableView, shouldWaitForTransactions as shouldWaitForTransactionsUtil} from '@libs/MoneyRequestReportUtils';
-import {isInvoiceReport, isMoneyRequestReport} from '@libs/ReportUtils';
+import {isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ReportActionsView from './report/ReportActionsView';
+import TransactionThreadReportActionsView from './report/TransactionThreadReportActionsView';
 
 const defaultReportMetadata = {
     hasOnceLoadedReportActions: false,
@@ -51,6 +52,10 @@ function ReportActionsList() {
 
     if (shouldDisplayMoneyRequestActionsList) {
         return <MoneyRequestReportActionsList />;
+    }
+
+    if (isReportTransactionThread(report)) {
+        return <TransactionThreadReportActionsView reportID={reportIDFromRoute} />;
     }
 
     return <ReportActionsView reportID={reportIDFromRoute} />;

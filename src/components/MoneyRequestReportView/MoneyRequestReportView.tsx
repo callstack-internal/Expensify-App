@@ -32,6 +32,7 @@ import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan
 import Navigation from '@navigation/Navigation';
 import ReportActionsView from '@pages/inbox/report/ReportActionsView';
 import ReportFooter from '@pages/inbox/report/ReportFooter';
+import TransactionThreadReportActionsView from '@pages/inbox/report/TransactionThreadReportActionsView';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -85,6 +86,51 @@ function goBackFromSearchMoneyRequest() {
     }
 
     Navigation.goBack(ROUTES.SEARCH_ROOT.getRoute({query: buildCannedSearchQuery()}));
+}
+
+type ReportActionsViewType = 'table' | 'transactionThread' | 'standard';
+
+type ReportActionsViewSharedProps = {
+    reportID: string | undefined;
+    onLayout?: (event: LayoutChangeEvent) => void;
+};
+
+function getReportActionsViewType({
+    shouldDisplayMoneyRequestActionsList,
+    isTransactionThreadView,
+}: {
+    shouldDisplayMoneyRequestActionsList: boolean;
+    isTransactionThreadView: boolean;
+}): ReportActionsViewType {
+    if (shouldDisplayMoneyRequestActionsList) {
+        return 'table';
+    }
+    if (isTransactionThreadView) {
+        return 'transactionThread';
+    }
+    return 'standard';
+}
+
+function renderReportActions(type: ReportActionsViewType, {reportID, onLayout}: ReportActionsViewSharedProps): React.ReactNode {
+    switch (type) {
+        case 'table':
+            return <MoneyRequestReportActionsList onLayout={onLayout} />;
+        case 'transactionThread':
+            return (
+                <TransactionThreadReportActionsView
+                    reportID={reportID}
+                    onLayout={onLayout}
+                />
+            );
+        case 'standard':
+        default:
+            return (
+                <ReportActionsView
+                    reportID={reportID}
+                    onLayout={onLayout}
+                />
+            );
+    }
 }
 
 function InitialLoadingSkeleton({styles, onLayout, reasonAttributes}: {styles: ThemeStyles; onLayout?: (event: LayoutChangeEvent) => void; reasonAttributes: SkeletonSpanReasonAttributes}) {
@@ -272,14 +318,7 @@ function MoneyRequestReportView({report, reportMetadata, shouldDisplayReportFoot
                         </Animated.View>
                     )}
                     <View style={[styles.overflowHidden, styles.justifyContentEnd, styles.flex1]}>
-                        {shouldDisplayMoneyRequestActionsList ? (
-                            <MoneyRequestReportActionsList onLayout={onLayout} />
-                        ) : (
-                            <ReportActionsView
-                                reportID={reportID}
-                                onLayout={onLayout}
-                            />
-                        )}
+                        {renderReportActions(getReportActionsViewType({shouldDisplayMoneyRequestActionsList, isTransactionThreadView}), {reportID, onLayout})}
                         {shouldDisplayReportFooter ? (
                             <>
                                 <ReportFooter />

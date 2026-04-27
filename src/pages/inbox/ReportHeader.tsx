@@ -15,7 +15,6 @@ import Navigation from '@libs/Navigation/Navigation';
 import {getReportName} from '@libs/ReportNameUtils';
 import {getReportOfflinePendingActionAndErrors, isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Route} from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import {reportByIDsSelector} from '@src/selectors/Attributes';
 import type * as OnyxTypes from '@src/types/onyx';
@@ -57,7 +56,7 @@ function ReportHeader() {
             return;
         }
         if (prioritizeBackTo && backTo) {
-            Navigation.goBack(backTo as Route);
+            Navigation.goBack(backTo);
             return;
         }
         if (isInNarrowPaneModal) {
@@ -65,7 +64,7 @@ function ReportHeader() {
             return;
         }
         if (backTo) {
-            Navigation.goBack(backTo as Route);
+            Navigation.goBack(backTo);
             return;
         }
         Navigation.goBack();

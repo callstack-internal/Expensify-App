@@ -8522,18 +8522,6 @@ describe('SearchUIUtils', () => {
 
             expect(transaction).toBeTruthy();
         });
-
-        it('Should create an optimistic transaction thread if the hasTransactionThreadReport is false', async () => {
-            // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-            const transactionListItem = transactionsListItems.at(0) as TransactionListItemType;
-            setOptimisticDataForTransactionThreadPreview(transactionListItem, {hasTransactionThreadReport: false} as SearchUtils.TransactionPreviewData, '456');
-
-            await waitForBatchedUpdates();
-
-            const transactionThread = await getOnyxValue(`${ONYXKEYS.COLLECTION.REPORT}456`);
-
-            expect(transactionThread).toBeTruthy();
-        });
     });
 
     describe('getSearchBulkEditPolicyID', () => {

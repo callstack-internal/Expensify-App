@@ -34,20 +34,25 @@ function useReportWithPreview(reportID: string | undefined): OnyxEntry<Report> {
     const [reportFromOnyx] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const params = useRoute().params as RoutePreviewParams | undefined;
 
-    // Only apply route fallback when the route actually targets this reportID.
-    // Prevents leaking unrelated screen params into reads for parent/chat/etc. reports.
+    if (reportFromOnyx) {
+        return reportFromOnyx;
+    }
+
+    // Synthesize a preview stub only when the route carries actual preview context for this reportID.
+    // Otherwise fall through to undefined so consumers (e.g. ReportNotFoundGuard) can detect genuinely missing reports.
     const routeMatchesReport = !!reportID && params?.reportID === reportID;
-    if (!reportFromOnyx && !routeMatchesReport) {
+    const hasPreviewContext = routeMatchesReport && (!!params?.parentReportID || !!params?.parentReportActionID || !!params?.chatReportID || !!params?.policyID);
+
+    if (!hasPreviewContext) {
         return undefined;
     }
 
     return {
-        ...reportFromOnyx,
-        reportID: reportFromOnyx?.reportID ?? reportID,
-        parentReportID: reportFromOnyx?.parentReportID ?? (routeMatchesReport ? params?.parentReportID : undefined),
-        parentReportActionID: reportFromOnyx?.parentReportActionID ?? (routeMatchesReport ? params?.parentReportActionID : undefined),
-        chatReportID: reportFromOnyx?.chatReportID ?? (routeMatchesReport ? params?.chatReportID : undefined),
-        policyID: reportFromOnyx?.policyID ?? (routeMatchesReport ? params?.policyID : undefined),
+        reportID,
+        parentReportID: params?.parentReportID,
+        parentReportActionID: params?.parentReportActionID,
+        chatReportID: params?.chatReportID,
+        policyID: params?.policyID,
     } as Report;
 }
 

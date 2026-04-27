@@ -10,6 +10,7 @@ import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions, shouldDisplayReportTableView, shouldWaitForTransactions as shouldWaitForTransactionsUtil} from '@libs/MoneyRequestReportUtils';
 import {isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
+import MRParentReportActionsView from './report/MRParentReportActionsView';
 import ReportActionsView from './report/ReportActionsView';
 import TransactionThreadReportActionsView from './report/TransactionThreadReportActionsView';
 
@@ -56,6 +57,10 @@ function ReportActionsList() {
 
     if (isReportTransactionThread(report)) {
         return <TransactionThreadReportActionsView reportID={reportIDFromRoute} />;
+    }
+
+    if (isMoneyRequestOrInvoiceReport) {
+        return <MRParentReportActionsView reportID={reportIDFromRoute} />;
     }
 
     return <ReportActionsView reportID={reportIDFromRoute} />;

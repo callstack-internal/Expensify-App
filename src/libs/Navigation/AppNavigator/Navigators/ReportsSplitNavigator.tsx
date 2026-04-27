@@ -1,6 +1,8 @@
 import React, {useState} from 'react';
+import NavigationDeferredMount from '@components/NavigationDeferredMount';
 import useArchivedReportsIdSet from '@hooks/useArchivedReportsIdSet';
 import usePermissions from '@hooks/usePermissions';
+import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import createSplitNavigator from '@libs/Navigation/AppNavigator/createSplitNavigator';
 import FreezeWrapper from '@libs/Navigation/AppNavigator/FreezeWrapper';
 import useSplitNavigatorScreenOptions from '@libs/Navigation/AppNavigator/useSplitNavigatorScreenOptions';
@@ -15,7 +17,33 @@ import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import type ReactComponentModule from '@src/types/utils/ReactComponentModule';
 
-const loadReportScreen = () => require<ReactComponentModule>('@pages/inbox/ReportScreen').default;
+// On wide layout the central ReportScreen mounts in the same tick as the LHN sidebar, competing for JS
+// frame budget during the ManualNavigateToInboxTab span. Deferring the central pane past the navigation
+// transition lets the LHN paint and end the span first; ReportScreen then hydrates non-urgently.
+// On narrow layout the central screen only mounts in response to a user tap, so we render it immediately.
+const loadReportScreen = () => {
+    const ReportScreen = require<ReactComponentModule>('@pages/inbox/ReportScreen').default;
+    function DeferredReportScreen({route, navigation}: PlatformStackScreenProps<ReportsSplitNavigatorParamList, typeof SCREENS.REPORT>) {
+        const {shouldUseNarrowLayout} = useResponsiveLayout();
+        if (shouldUseNarrowLayout) {
+            return (
+                <ReportScreen
+                    route={route}
+                    navigation={navigation}
+                />
+            );
+        }
+        return (
+            <NavigationDeferredMount>
+                <ReportScreen
+                    route={route}
+                    navigation={navigation}
+                />
+            </NavigationDeferredMount>
+        );
+    }
+    return DeferredReportScreen;
+};
 const loadSidebarScreen = () => require<ReactComponentModule>('@pages/inbox/sidebar/BaseSidebarScreen').default;
 const Split = createSplitNavigator<ReportsSplitNavigatorParamList>();
 

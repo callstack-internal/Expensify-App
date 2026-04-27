@@ -1182,7 +1182,19 @@ function Search({
                 return;
             }
 
-            Navigation.navigate(ROUTES.SEARCH_REPORT.getRoute({reportID, backTo}));
+            // Carry the thread's parent context as flat URL params so RHP consumers
+            // can render before `openReport` hydrates `report_${reportID}`. They're
+            // string IDs — safe to serialize. Onyx is authoritative once populated.
+            Navigation.navigate(
+                ROUTES.SEARCH_REPORT.getRoute({
+                    reportID,
+                    backTo,
+                    parentReportID: transactionItem?.reportID,
+                    parentReportActionID: transactionItem?.reportAction?.reportActionID,
+                    chatReportID: transactionItem?.report?.chatReportID,
+                    policyID: transactionItem?.policyID,
+                }),
+            );
 
             startTransition(() => {
                 markReportIDAsExpense(reportID);

@@ -78,7 +78,7 @@ import {deleteMoneyRequest} from './IOU/DeleteMoneyRequest';
 import {prepareRejectMoneyRequestData, rejectMoneyRequest} from './IOU/RejectMoneyRequest';
 import type {RejectMoneyRequestData} from './IOU/RejectMoneyRequest';
 import {isCurrencySupportedForGlobalReimbursement} from './Policy/Policy';
-import {deleteAppReport, setOptimisticTransactionThread} from './Report';
+import {deleteAppReport} from './Report';
 import {saveLastSearchParams} from './ReportNavigation';
 
 type OnyxSearchResponse = {
@@ -1487,7 +1487,7 @@ function getTotalFormattedAmount(selectedReports: SelectedReports[], selectedTra
 function setOptimisticDataForTransactionThreadPreview(item: TransactionListItemType, transactionPreviewData: TransactionPreviewData, IOUTransactionID?: string) {
     const {reportID, report, amount, currency, transactionID, created, policyID, from} = item;
     const moneyRequestReportActionID = item?.reportAction?.reportActionID;
-    const {hasParentReport, hasParentReportAction, hasTransaction, hasTransactionThreadReport} = transactionPreviewData;
+    const {hasParentReport, hasParentReportAction, hasTransaction} = transactionPreviewData;
     const onyxUpdates: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT | typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS | typeof ONYXKEYS.COLLECTION.TRANSACTION>> = [];
 
     // Set optimistic parent report
@@ -1530,11 +1530,6 @@ function setOptimisticDataForTransactionThreadPreview(item: TransactionListItemT
             key: `${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`,
             value: restItem,
         });
-    }
-
-    // Set optimistic transaction thread report
-    if (!hasTransactionThreadReport) {
-        setOptimisticTransactionThread(IOUTransactionID, reportID, moneyRequestReportActionID, policyID);
     }
 
     Onyx.update(onyxUpdates);

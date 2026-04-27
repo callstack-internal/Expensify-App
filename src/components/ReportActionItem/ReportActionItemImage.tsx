@@ -138,13 +138,13 @@ function ReportActionItemImage({
     const localSource = transaction?.receipt?.localSource;
     const effectiveIsLocalFile = isLocalFile || !!localSource;
     const effectiveThumbnail = localSource ?? thumbnail;
-    const receiptURIs = getThumbnailAndImageURIs(transaction, null, null);
-    const effectiveThumbnail320 = localSource ?? receiptURIs.thumbnail320;
+    const receiptURIs = transaction ? getThumbnailAndImageURIs(transaction, null, null) : undefined;
+    const effectivePreviewUri = localSource ? undefined : receiptURIs?.thumbnail320;
     const effectiveImage = localSource != null && typeof image === 'string' ? localSource : image;
 
     const originalImageSource = tryResolveUrlFromApiRoot(effectiveImage ?? '');
     const thumbnailSource = tryResolveUrlFromApiRoot(effectiveThumbnail ?? '');
-    const thumbnail320Source = tryResolveUrlFromApiRoot(effectiveThumbnail320 ?? '');
+    const previewUriSource = tryResolveUrlFromApiRoot(effectivePreviewUri ?? '');
     const isEReceipt = transaction && !hasReceiptSource(transaction) && hasEReceipt(transaction);
     const isPDF = filename && Str.isPDF(filename);
 
@@ -206,7 +206,7 @@ function ReportActionItemImage({
                     onLoad={onLoad}
                     shouldUseFullHeight={shouldUseFullHeight}
                     onLoadFailure={onLoadFailure}
-                    thumbnail320={thumbnail320Source}
+                    previewUri={previewUriSource}
                 />
             </PressableWithoutFocus>
         );
@@ -219,7 +219,7 @@ function ReportActionItemImage({
             thumbnailContainerStyles={styles.thumbnailImageContainerHover}
             onLoad={onLoad}
             onLoadFailure={onLoadFailure}
-            thumbnail320={thumbnail320Source}
+            previewUri={previewUriSource}
         />
     );
 }

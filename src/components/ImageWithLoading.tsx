@@ -24,7 +24,9 @@ type ImageWithSizeLoadingProps = {
 
     /** Invoked on mount and layout changes */
     onLayout?: (event: LayoutChangeEvent) => void;
-    thumbnail320?: string;
+
+    /** Low-resolution URI shown as a placeholder while the full image loads */
+    previewUri?: string;
 } & ImageProps;
 
 function ImageWithLoading({
@@ -38,14 +40,14 @@ function ImageWithLoading({
     onLoad,
     onLayout,
     style,
-    thumbnail320,
+    previewUri,
     ...rest
 }: ImageWithSizeLoadingProps) {
     const styles = useThemeStyles();
     const isLoadedRef = useRef<boolean | null>(null);
     const [isImageCached, setIsImageCached] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    const [isThumbnailLoading, setIsThumbnailLoading] = useState(!!thumbnail320);
+    const [isThumbnailLoading, setIsThumbnailLoading] = useState(true);
     const {isOffline} = useNetwork();
 
     const handleError = () => {
@@ -112,11 +114,11 @@ function ImageWithLoading({
                 loadingIconSize={loadingIconSize}
                 loadingIndicatorStyles={loadingIndicatorStyles}
             />
-            {isLoading && !!thumbnail320 && (
+            {isLoading && !!previewUri && !isImageCached && (
                 <Image
                     // eslint-disable-next-line react/jsx-props-no-spreading
                     {...rest}
-                    source={{uri: thumbnail320}}
+                    source={{uri: previewUri}}
                     style={[StyleSheet.absoluteFill, style]}
                     resizeMode={resizeMode}
                     onLoad={() => {
@@ -126,7 +128,7 @@ function ImageWithLoading({
                     loadingIndicatorStyles={loadingIndicatorStyles}
                 />
             )}
-            {isLoading && isThumbnailLoading && !isImageCached && !isOffline && (
+            {isLoading && (!previewUri || isThumbnailLoading) && !isImageCached && !isOffline && (
                 <LoadingIndicator
                     iconSize={loadingIconSize}
                     style={[styles.opacity1, styles.bgTransparent, loadingIndicatorStyles]}

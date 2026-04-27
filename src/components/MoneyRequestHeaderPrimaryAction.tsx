@@ -6,9 +6,9 @@ import useDuplicateTransactionsAndViolations from '@hooks/useDuplicateTransactio
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useThreadReport from '@hooks/useThreadReport';
 import useTransactionViolations from '@hooks/useTransactionViolations';
 import {markRejectViolationAsResolved} from '@libs/actions/IOU/RejectMoneyRequest';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
@@ -54,7 +54,7 @@ function MoneyRequestHeaderPrimaryAction({reportID}: MoneyRequestHeaderPrimaryAc
     const isFromReviewDuplicates = !!route.params.backTo?.replaceAll(/\?.*/g, '').endsWith('/duplicates/review');
 
     // Per-key Onyx subscriptions
-    const report = useThreadReport(reportID);
+    const report = useReportWithPreview(reportID);
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.parentReportID}`);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
     const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.parentReportID}`);

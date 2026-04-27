@@ -30,11 +30,11 @@ import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
 import usePolicy from '@hooks/usePolicy';
 import useReportIsArchived from '@hooks/useReportIsArchived';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSubscriptionPlan from '@hooks/useSubscriptionPlan';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Navigation from '@libs/Navigation/Navigation';
 import {getPersonalDetailsForAccountIDs} from '@libs/OptionsListUtils';
@@ -98,7 +98,7 @@ type HeaderViewProps = {
 };
 
 function HeaderView({onNavigationMenuButtonClicked, reportID}: HeaderViewProps) {
-    const report = useThreadReport(reportID);
+    const report = useReportWithPreview(reportID);
     const parentReportAction = useParentReportAction(report);
 
     const icons = useMemoizedLazyExpensifyIcons(['BackArrow', 'Close', 'DotIndicator']);

@@ -10,9 +10,9 @@ import useOnyx from '@hooks/useOnyx';
 import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useParentReportAction from '@hooks/useParentReportAction';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions, shouldDisplayReportTableView} from '@libs/MoneyRequestReportUtils';
 import {getFilteredReportActionsForReportView, getOneTransactionThreadReportID, isTransactionThread} from '@libs/ReportActionsUtils';
@@ -35,7 +35,7 @@ function WideRHPReceiptPanel() {
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
 
-    const report = useThreadReport(reportIDFromRoute);
+    const report = useReportWithPreview(reportIDFromRoute);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.chatReportID}`);
     const parentReportAction = useParentReportAction(report);
 

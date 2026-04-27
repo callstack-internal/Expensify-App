@@ -447,20 +447,18 @@ function MoneyRequestReportTransactionList({
                 if (reportIDToNavigate) {
                     markReportIDAsExpense(reportIDToNavigate);
                 }
-                // Carry the thread's parent context as nav-state params (not URL) so RHP consumers
-                // can render before `openReport` hydrates `report_${reportID}` from the server.
-                // Onyx is still authoritative — these are just fill-ins while it's empty.
-                Navigation.navigate(ROUTES.SEARCH_REPORT.getRoute(routeParams), {
-                    stateParams: {
-                        threadContext: {
-                            parentReportID: report?.reportID,
-                            parentReportActionID: iouAction?.reportActionID,
-                            chatReportID: report?.chatReportID,
-                            policyID: report?.policyID,
-                            type: CONST.REPORT.TYPE.CHAT,
-                        },
-                    },
-                });
+                // Carry the thread's parent context as URL params so RHP consumers can render
+                // before `openReport` hydrates `report_${reportID}`. They're string IDs — safe to
+                // serialize. Onyx remains authoritative once populated.
+                Navigation.navigate(
+                    ROUTES.SEARCH_REPORT.getRoute({
+                        ...routeParams,
+                        parentReportID: report?.reportID,
+                        parentReportActionID: iouAction?.reportActionID,
+                        chatReportID: report?.chatReportID,
+                        policyID: report?.policyID,
+                    }),
+                );
             });
         },
         [reportActions, visualOrderTransactionIDs, sortedTransactions, report, markReportIDAsExpense, introSelected, betas, currentUserDetails.email, currentUserDetails.accountID],

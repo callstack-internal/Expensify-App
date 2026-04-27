@@ -21,10 +21,10 @@ import usePrevious from '@hooks/usePrevious';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportScrollManager from '@hooks/useReportScrollManager';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayoutOnWideRHP from '@hooks/useResponsiveLayoutOnWideRHP';
 import useScrollToEndOnNewMessageReceived from '@hooks/useScrollToEndOnNewMessageReceived';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useThreadReport from '@hooks/useThreadReport';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 import {isConsecutiveChronosAutomaticTimerAction} from '@libs/ChronosUtils';
 import DateUtils from '@libs/DateUtils';
@@ -99,7 +99,7 @@ function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) 
 
     // Self-subscribe to report, policy, metadata, actions, transactions
     // report is guaranteed to exist — callers only render this component when report is loaded
-    const report = useThreadReport(reportIDFromRoute) as OnyxTypes.Report;
+    const report = useReportWithPreview(reportIDFromRoute) as OnyxTypes.Report;
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${getNonEmptyStringOnyxID(report?.policyID)}`);
     const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportIDFromRoute}`);
     const reportID = report?.reportID;

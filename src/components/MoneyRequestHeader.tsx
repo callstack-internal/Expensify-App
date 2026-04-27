@@ -7,10 +7,10 @@ import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useThreadReport from '@hooks/useThreadReport';
 import useTransactionViolations from '@hooks/useTransactionViolations';
 import {isPersonalCard} from '@libs/CardUtils';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
@@ -52,7 +52,7 @@ type MoneyRequestHeaderProps = {
 };
 
 function MoneyRequestHeader({reportID: reportIDProp, onBackButtonPress}: MoneyRequestHeaderProps) {
-    const report = useThreadReport(reportIDProp);
+    const report = useReportWithPreview(reportIDProp);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${getNonEmptyStringOnyxID(report?.policyID)}`);
     const parentReportAction = useParentReportAction(report);
 

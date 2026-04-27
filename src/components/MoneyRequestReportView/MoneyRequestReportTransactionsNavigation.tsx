@@ -12,7 +12,6 @@ import type {RightModalNavigatorParamList} from '@libs/Navigation/types';
 import {getOriginalMessage, isMoneyRequestAction} from '@libs/ReportActionsUtils';
 import Navigation from '@navigation/Navigation';
 import navigationRef from '@navigation/navigationRef';
-import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import SCREENS from '@src/SCREENS';
 import type * as OnyxTypes from '@src/types/onyx';
@@ -126,19 +125,16 @@ function MoneyRequestReportTransactionsNavigation({currentTransactionID, isFromR
             backTo = params?.backTo ?? backTo;
         }
         const nextThreadReportID = nextParentReportAction?.childReportID;
-        // Carry thread parent context alongside reportID so RHP consumers can render before
-        // `openReport` hydrates the thread entity. setParams is the nav-state path — these
-        // never touch the URL.
+        // Carry thread parent context as flat string IDs so RHP consumers can render before
+        // `openReport` hydrates the thread entity. setParams will serialize these to the URL —
+        // safe because they're identifiers, not data objects.
         const navigationParams = {
             reportID: nextThreadReportID,
             backTo,
-            threadContext: {
-                parentReportID: parentReport?.reportID,
-                parentReportActionID: nextParentReportAction?.reportActionID,
-                chatReportID: parentReport?.chatReportID,
-                policyID: parentReport?.policyID,
-                type: CONST.REPORT.TYPE.CHAT,
-            },
+            parentReportID: parentReport?.reportID,
+            parentReportActionID: nextParentReportAction?.reportActionID,
+            chatReportID: parentReport?.chatReportID,
+            policyID: parentReport?.policyID,
         };
 
         if (nextThreadReportID) {
@@ -171,19 +167,16 @@ function MoneyRequestReportTransactionsNavigation({currentTransactionID, isFromR
             backTo = params?.backTo ?? backTo;
         }
         const prevThreadReportID = prevParentReportAction?.childReportID;
-        // Carry thread parent context alongside reportID so RHP consumers can render before
-        // `openReport` hydrates the thread entity. setParams is the nav-state path — these
-        // never touch the URL.
+        // Carry thread parent context as flat string IDs so RHP consumers can render before
+        // `openReport` hydrates the thread entity. setParams will serialize these to the URL —
+        // safe because they're identifiers, not data objects.
         const navigationParams = {
             reportID: prevThreadReportID,
             backTo,
-            threadContext: {
-                parentReportID: parentReport?.reportID,
-                parentReportActionID: prevParentReportAction?.reportActionID,
-                chatReportID: parentReport?.chatReportID,
-                policyID: parentReport?.policyID,
-                type: CONST.REPORT.TYPE.CHAT,
-            },
+            parentReportID: parentReport?.reportID,
+            parentReportActionID: prevParentReportAction?.reportActionID,
+            chatReportID: parentReport?.chatReportID,
+            policyID: parentReport?.policyID,
         };
 
         if (prevThreadReportID) {

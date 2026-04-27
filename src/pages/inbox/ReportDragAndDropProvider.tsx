@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import React from 'react';
 import DragAndDropProvider from '@components/DragAndDrop/Provider';
 import useReportIsArchived from '@hooks/useReportIsArchived';
-import useThreadReport from '@hooks/useThreadReport';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {canUserPerformWriteAction} from '@libs/ReportUtils';
 
@@ -12,7 +12,7 @@ function ReportDragAndDropProvider({children}: {children: ReactNode}) {
     const routeParams = route.params as {reportID?: string} | undefined;
     const reportIDFromRoute = getNonEmptyStringOnyxID(routeParams?.reportID);
 
-    const report = useThreadReport(reportIDFromRoute);
+    const report = useReportWithPreview(reportIDFromRoute);
     const isReportArchived = useReportIsArchived(report?.reportID);
     const isEditingDisabled = !canUserPerformWriteAction(report, isReportArchived);
 

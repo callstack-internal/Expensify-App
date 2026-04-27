@@ -2545,16 +2545,13 @@ type RightModalNavigatorParamList = {
         reportActionID?: string;
         // eslint-disable-next-line no-restricted-syntax -- `backTo` usages in this file are legacy. Do not add new `backTo` params to screens. See contributingGuides/NAVIGATION.md
         backTo?: Routes;
-        // Transient thread context supplied at click time so RHP consumers can render
-        // before `openReport` hydrates `report_${reportID}`. Onyx is authoritative once
-        // populated; this only fills gaps. Namespaced to avoid top-level param collisions.
-        threadContext?: {
-            parentReportID?: string;
-            parentReportActionID?: string;
-            chatReportID?: string;
-            policyID?: string;
-            type?: ValueOf<typeof CONST.REPORT.TYPE>;
-        };
+        // Click-time identifiers passed alongside reportID so RHP consumers can render before
+        // `openReport` hydrates `report_${reportID}`. They're string IDs (not data objects) so
+        // URL serialization is harmless. Onyx is authoritative once populated.
+        parentReportID?: string;
+        parentReportActionID?: string;
+        chatReportID?: string;
+        policyID?: string;
     };
     [SCREENS.RIGHT_MODAL.DOMAIN]: NavigatorScreenParams<WorkspacesDomainModalNavigatorParamList>;
     [SCREENS.RIGHT_MODAL.SEARCH_COLUMNS]: NavigatorScreenParams<SearchColumnsParamList>;

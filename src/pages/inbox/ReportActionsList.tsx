@@ -6,7 +6,7 @@ import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
-import useThreadReport from '@hooks/useThreadReport';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions, shouldDisplayReportTableView, shouldWaitForTransactions as shouldWaitForTransactionsUtil} from '@libs/MoneyRequestReportUtils';
 import {isInvoiceReport, isMoneyRequestReport} from '@libs/ReportUtils';
@@ -35,7 +35,7 @@ function ReportActionsList() {
 
     const {isOffline} = useNetwork();
 
-    const report = useThreadReport(reportIDFromRoute);
+    const report = useReportWithPreview(reportIDFromRoute);
     const [reportMetadata = defaultReportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportIDFromRoute}`);
     const {reportActions} = usePaginatedReportActions(reportIDFromRoute);
 

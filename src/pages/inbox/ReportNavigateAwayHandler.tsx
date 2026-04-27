@@ -7,8 +7,8 @@ import useIsOwnWorkspaceChatRef from '@hooks/useIsOwnWorkspaceChatRef';
 import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
 import usePrevious from '@hooks/usePrevious';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
-import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Navigation, {navigationRef} from '@libs/Navigation/Navigation';
 import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigation/types';
@@ -64,7 +64,7 @@ function ReportNavigateAwayHandler() {
     const {currentReportID: currentReportIDValue} = useCurrentReportIDState();
     const isTopMostReportId = currentReportIDValue === reportIDFromRoute;
 
-    const report = useThreadReport(reportIDFromRoute);
+    const report = useReportWithPreview(reportIDFromRoute);
     const [userLeavingStatus = false] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_USER_IS_LEAVING_ROOM}${reportIDFromRoute}`);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
     const [betas] = useOnyx(ONYXKEYS.BETAS);

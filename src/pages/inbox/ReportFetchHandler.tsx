@@ -10,8 +10,8 @@ import useOnyx from '@hooks/useOnyx';
 import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import usePrevious from '@hooks/usePrevious';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
-import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions} from '@libs/MoneyRequestReportUtils';
 import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigation/types';
@@ -62,7 +62,7 @@ function ReportFetchHandler() {
     const hasCreatedLegacyThreadRef = useRef(false);
     const didSubscribeToReportLeavingEvents = useRef(false);
 
-    const reportOnyx = useThreadReport(reportIDFromRoute);
+    const reportOnyx = useReportWithPreview(reportIDFromRoute);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportOnyx?.chatReportID}`);
     const [reportMetadata = defaultReportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportIDFromRoute}`);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);

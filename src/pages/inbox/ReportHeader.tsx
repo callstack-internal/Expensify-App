@@ -7,9 +7,9 @@ import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import useDocumentTitle from '@hooks/useDocumentTitle';
 import useIsInSidePanel from '@hooks/useIsInSidePanel';
 import useOnyx from '@hooks/useOnyx';
+import useReportWithPreview from '@hooks/useReportWithPreview';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSidePanelActions from '@hooks/useSidePanelActions';
-import useThreadReport from '@hooks/useThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Navigation from '@libs/Navigation/Navigation';
 import {getReportName} from '@libs/ReportNameUtils';
@@ -35,7 +35,7 @@ function ReportHeader() {
     const {isInNarrowPaneModal} = useResponsiveLayout();
     const {closeSidePanel} = useSidePanelActions();
 
-    const report = useThreadReport(reportIDFromRoute);
+    const report = useReportWithPreview(reportIDFromRoute);
     const reportID = report?.reportID;
 
     const reportAttributesSelector = (attributes: OnyxEntry<OnyxTypes.ReportAttributesDerivedValue>) => reportByIDsSelector(reportID ? [reportID] : [])(attributes);

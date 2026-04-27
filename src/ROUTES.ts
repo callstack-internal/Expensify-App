@@ -386,7 +386,25 @@ const ROUTES = {
     },
     SEARCH_REPORT: {
         route: 'search/view/:reportID/:reportActionID?',
-        getRoute: ({reportID, reportActionID, backTo}: {reportID: string | undefined; reportActionID?: string; backTo?: string}) => {
+        getRoute: ({
+            reportID,
+            reportActionID,
+            backTo,
+            parentReportID,
+            parentReportActionID,
+            chatReportID,
+            policyID,
+        }: {
+            reportID: string | undefined;
+            reportActionID?: string;
+            backTo?: string;
+            // Optional click-time IDs. They survive in route.params and the URL — RHP consumers
+            // can render before `openReport` hydrates the canonical `report_${reportID}`.
+            parentReportID?: string;
+            parentReportActionID?: string;
+            chatReportID?: string;
+            policyID?: string;
+        }) => {
             if (!reportID) {
                 Log.warn('Invalid reportID is used to build the SEARCH_REPORT route');
             }
@@ -394,7 +412,27 @@ const ROUTES = {
             const baseRoute = reportActionID ? (`search/view/${reportID}/${reportActionID}` as const) : (`search/view/${reportID}` as const);
 
             // eslint-disable-next-line no-restricted-syntax -- Legacy route generation
-            return getUrlWithBackToParam(baseRoute, backTo);
+            const routeWithBackTo = getUrlWithBackToParam(baseRoute, backTo);
+
+            const extraParams: Record<string, string> = {};
+            if (parentReportID) {
+                extraParams.parentReportID = parentReportID;
+            }
+            if (parentReportActionID) {
+                extraParams.parentReportActionID = parentReportActionID;
+            }
+            if (chatReportID) {
+                extraParams.chatReportID = chatReportID;
+            }
+            if (policyID) {
+                extraParams.policyID = policyID;
+            }
+
+            const extraQuery = new URLSearchParams(extraParams).toString();
+            if (!extraQuery) {
+                return routeWithBackTo;
+            }
+            return `${routeWithBackTo}${routeWithBackTo.includes('?') ? '&' : '?'}${extraQuery}`;
         },
     },
 

@@ -40,7 +40,7 @@ import isLoadingOnyxValue from '@src/types/utils/isLoadingOnyxValue';
 import ReportActionsList from './ReportActionsList';
 import UserTypingEventListener from './UserTypingEventListener';
 
-type MRParentReportActionsViewProps = {
+type MoneyRequestParentReportActionsViewProps = {
     /** The ID of the money-request / invoice parent report to display actions for */
     reportID: string | undefined;
 
@@ -48,7 +48,7 @@ type MRParentReportActionsViewProps = {
     onLayout?: (event: LayoutChangeEvent) => void;
 };
 
-function MRParentReportActionsView({reportID, onLayout}: MRParentReportActionsViewProps) {
+function MoneyRequestParentReportActionsView({reportID, onLayout}: MoneyRequestParentReportActionsViewProps) {
     useCopySelectionHelper();
     const didLayout = useRef(false);
     const route = useRoute<PlatformStackRouteProp<ReportsSplitNavigatorParamList, typeof SCREENS.REPORT>>();
@@ -260,6 +260,6 @@ function MRParentReportActionsView({reportID, onLayout}: MRParentReportActionsVi
     );
 }
 
-MRParentReportActionsView.displayName = 'MRParentReportActionsView';
+MoneyRequestParentReportActionsView.displayName = 'MoneyRequestParentReportActionsView';
 
-export default MRParentReportActionsView;
+export default MoneyRequestParentReportActionsView;

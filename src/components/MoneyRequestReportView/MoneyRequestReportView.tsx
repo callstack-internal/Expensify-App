@@ -31,7 +31,7 @@ import markOpenReportEnd from '@libs/telemetry/markOpenReportEnd';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import Navigation from '@navigation/Navigation';
 import ChatReportActionsView from '@pages/inbox/report/ChatReportActionsView';
-import MRParentReportActionsView from '@pages/inbox/report/MRParentReportActionsView';
+import MoneyRequestParentReportActionsView from '@pages/inbox/report/MoneyRequestParentReportActionsView';
 import ReportFooter from '@pages/inbox/report/ReportFooter';
 import TransactionThreadReportActionsView from '@pages/inbox/report/TransactionThreadReportActionsView';
 import CONST from '@src/CONST';
@@ -89,7 +89,7 @@ function goBackFromSearchMoneyRequest() {
     Navigation.goBack(ROUTES.SEARCH_ROOT.getRoute({query: buildCannedSearchQuery()}));
 }
 
-type ReportActionsViewType = 'table' | 'transactionThread' | 'mrParent' | 'standard';
+type ReportActionsViewType = 'table' | 'transactionThread' | 'moneyRequestParent' | 'standard';
 
 type ReportActionsViewSharedProps = {
     reportID: string | undefined;
@@ -109,7 +109,7 @@ function getReportActionsViewType({
     if (isTransactionThreadView) {
         return 'transactionThread';
     }
-    return 'mrParent';
+    return 'moneyRequestParent';
 }
 
 function renderReportActions(type: ReportActionsViewType, {reportID, onLayout}: ReportActionsViewSharedProps): React.ReactNode {
@@ -123,9 +123,9 @@ function renderReportActions(type: ReportActionsViewType, {reportID, onLayout}: 
                     onLayout={onLayout}
                 />
             );
-        case 'mrParent':
+        case 'moneyRequestParent':
             return (
-                <MRParentReportActionsView
+                <MoneyRequestParentReportActionsView
                     reportID={reportID}
                     onLayout={onLayout}
                 />

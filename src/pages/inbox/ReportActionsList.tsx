@@ -11,7 +11,7 @@ import {getAllNonDeletedTransactions, shouldDisplayReportTableView, shouldWaitFo
 import {isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ChatReportActionsView from './report/ChatReportActionsView';
-import MRParentReportActionsView from './report/MRParentReportActionsView';
+import MoneyRequestParentReportActionsView from './report/MoneyRequestParentReportActionsView';
 import TransactionThreadReportActionsView from './report/TransactionThreadReportActionsView';
 
 const defaultReportMetadata = {
@@ -60,7 +60,7 @@ function ReportActionsList() {
     }
 
     if (isMoneyRequestOrInvoiceReport) {
-        return <MRParentReportActionsView reportID={reportIDFromRoute} />;
+        return <MoneyRequestParentReportActionsView reportID={reportIDFromRoute} />;
     }
 
     return <ChatReportActionsView reportID={reportIDFromRoute} />;

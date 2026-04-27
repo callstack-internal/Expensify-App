@@ -823,7 +823,7 @@ function ReportActionsList({
                     keyExtractor={keyExtractor}
                     drawDistance={1500}
                     renderScrollComponent={renderActionSheetAwareScrollView}
-                    maintainVisibleContentPosition={{startRenderingFromBottom: shouldFocusToTopOnMount}}
+                    startRenderingFromBottom={shouldFocusToTopOnMount}
                     contentContainerStyle={[styles.chatContentScrollView, shouldFocusToTopOnMount && styles.justifyContentEnd]}
                     showsVerticalScrollIndicator={getShowScrollIndicator()}
                     onEndReached={onEndReached}

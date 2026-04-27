@@ -1,5 +1,5 @@
-import type { FlashListProps } from '@shopify/flash-list';
-import { useEffect, useState } from 'react';
+import type {FlashListProps} from '@shopify/flash-list';
+import {useEffect, useState} from 'react';
 
 type FlashListScrollKeyProps<T> = {
     /** The array of items to render in the list. */
@@ -16,9 +16,19 @@ type FlashListScrollKeyProps<T> = {
 
     /** Whether the list should handle `maintainVisibleContentPosition` */
     shouldMaintainVisibleContentPosition?: boolean;
+
+    /** Whether the list should initially render from the bottom. */
+    startRenderingFromBottom?: boolean;
 };
 
-export default function useFlashListScrollKey<T>({data, keyExtractor, initialScrollKey, onStartReached, shouldMaintainVisibleContentPosition}: FlashListScrollKeyProps<T>) {
+export default function useFlashListScrollKey<T>({
+    data,
+    keyExtractor,
+    initialScrollKey,
+    onStartReached,
+    shouldMaintainVisibleContentPosition,
+    startRenderingFromBottom,
+}: FlashListScrollKeyProps<T>) {
     const [isInitialRender, setIsInitialRender] = useState(true);
     const [hasLinkingSettled, setHasLinkingSettled] = useState(!initialScrollKey);
 
@@ -36,7 +46,10 @@ export default function useFlashListScrollKey<T>({data, keyExtractor, initialScr
         });
     }, [isInitialRender, initialScrollKey]);
 
-    const maintainVisibleContentPosition: FlashListProps<T>['maintainVisibleContentPosition'] = {disabled: !shouldMaintainVisibleContentPosition && hasLinkingSettled};
+    const maintainVisibleContentPosition: FlashListProps<T>['maintainVisibleContentPosition'] = {
+        disabled: !shouldMaintainVisibleContentPosition && hasLinkingSettled,
+        startRenderingFromBottom,
+    };
 
     if (!isInitialRender || !initialScrollKey) {
         return {displayedData: data, onStartReached, maintainVisibleContentPosition};

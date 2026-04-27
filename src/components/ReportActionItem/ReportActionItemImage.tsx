@@ -144,7 +144,7 @@ function ReportActionItemImage({
 
     const originalImageSource = tryResolveUrlFromApiRoot(effectiveImage ?? '');
     const thumbnailSource = tryResolveUrlFromApiRoot(effectiveThumbnail ?? '');
-    const previewUriSource = tryResolveUrlFromApiRoot(effectivePreviewUri ?? '');
+    const previewUriSource = effectivePreviewUri ? tryResolveUrlFromApiRoot(effectivePreviewUri) : undefined;
     const isEReceipt = transaction && !hasReceiptSource(transaction) && hasEReceipt(transaction);
     const isPDF = filename && Str.isPDF(filename);
 

@@ -15,7 +15,7 @@ import useTransactionsAndViolationsForReport from '@hooks/useTransactionsAndViol
 import DateUtils from '@libs/DateUtils';
 // eslint-disable-next-line no-restricted-syntax -- disabled because we need ReportActionsUtils to mock
 import * as ReportActionsUtils from '@libs/ReportActionsUtils';
-import ReportActionsView from '@pages/inbox/report/ReportActionsView';
+import ChatReportActionsView from '@pages/inbox/report/ChatReportActionsView';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
@@ -145,12 +145,12 @@ const mockReportActions: OnyxTypes.ReportAction[] = [
     },
 ];
 
-const renderReportActionsView = (props: {reportID?: string} = {}) => {
+const renderChatReportActionsView = (props: {reportID?: string} = {}) => {
     const reportID = props.reportID ?? mockReport.reportID;
-    return render(<ReportActionsView reportID={reportID} />);
+    return render(<ChatReportActionsView reportID={reportID} />);
 };
 
-describe('ReportActionsView', () => {
+describe('ChatReportActionsView', () => {
     beforeAll(() => {
         Onyx.init({
             keys: ONYXKEYS,
@@ -256,7 +256,7 @@ describe('ReportActionsView', () => {
                 ...defaultPaginatedReportActionsResult,
             });
 
-            renderReportActionsView();
+            renderChatReportActionsView();
 
             expect(screen.getByTestId('ReportActionsSkeletonView')).toBeTruthy();
         });
@@ -288,7 +288,7 @@ describe('ReportActionsView', () => {
                 return [undefined, {status: 'loaded'}];
             });
 
-            renderReportActionsView();
+            renderChatReportActionsView();
 
             expect(screen.queryByTestId('ReportActionsSkeletonView')).toBeNull();
         });
@@ -320,7 +320,7 @@ describe('ReportActionsView', () => {
                 return [undefined, {status: 'loaded'}];
             });
 
-            renderReportActionsView();
+            renderChatReportActionsView();
 
             expect(screen.queryByTestId('ReportActionsSkeletonView')).toBeNull();
         });
@@ -352,7 +352,7 @@ describe('ReportActionsView', () => {
                 return [undefined, {status: 'loaded'}];
             });
 
-            renderReportActionsView();
+            renderChatReportActionsView();
 
             expect(screen.queryByTestId('ReportActionsSkeletonView')).toBeNull();
         });
@@ -429,7 +429,7 @@ describe('ReportActionsView', () => {
             mockUseIsInSidePanel.mockReturnValue(true);
             mockUseSidePanelState.mockReturnValue({...defaultSidePanelState, sessionStartTime: DateUtils.getDBTime()});
 
-            renderReportActionsView({reportID: CONCIERGE_REPORT_ID});
+            renderChatReportActionsView({reportID: CONCIERGE_REPORT_ID});
 
             expect(mockReportActionsList).toHaveBeenCalled();
             const passedActions = (mockReportActionsList.mock.calls.at(0) as [{sortedVisibleReportActions: OnyxTypes.ReportAction[]}]).at(0)?.sortedVisibleReportActions;
@@ -446,7 +446,7 @@ describe('ReportActionsView', () => {
             });
             mockUseIsInSidePanel.mockReturnValue(false);
 
-            renderReportActionsView({reportID: CONCIERGE_REPORT_ID});
+            renderChatReportActionsView({reportID: CONCIERGE_REPORT_ID});
 
             expect(mockReportActionItemCreated).not.toHaveBeenCalled();
         });
@@ -460,7 +460,7 @@ describe('ReportActionsView', () => {
             });
             mockUseIsInSidePanel.mockReturnValue(false);
 
-            renderReportActionsView({reportID: 'non-concierge-999'});
+            renderChatReportActionsView({reportID: 'non-concierge-999'});
 
             expect(mockReportActionItemCreated).not.toHaveBeenCalled();
         });
@@ -493,7 +493,7 @@ describe('ReportActionsView', () => {
             mockUseIsInSidePanel.mockReturnValue(true);
             mockUseSidePanelState.mockReturnValue({...defaultSidePanelState, sessionStartTime: sessionStart});
 
-            renderReportActionsView({reportID: CONCIERGE_REPORT_ID});
+            renderChatReportActionsView({reportID: CONCIERGE_REPORT_ID});
 
             // Welcome should not be shown since user has sent a message
             expect(mockReportActionItemCreated).not.toHaveBeenCalled();

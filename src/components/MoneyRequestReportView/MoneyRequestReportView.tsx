@@ -30,8 +30,8 @@ import {cancelSpan} from '@libs/telemetry/activeSpans';
 import markOpenReportEnd from '@libs/telemetry/markOpenReportEnd';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import Navigation from '@navigation/Navigation';
+import ChatReportActionsView from '@pages/inbox/report/ChatReportActionsView';
 import MRParentReportActionsView from '@pages/inbox/report/MRParentReportActionsView';
-import ReportActionsView from '@pages/inbox/report/ReportActionsView';
 import ReportFooter from '@pages/inbox/report/ReportFooter';
 import TransactionThreadReportActionsView from '@pages/inbox/report/TransactionThreadReportActionsView';
 import CONST from '@src/CONST';
@@ -133,7 +133,7 @@ function renderReportActions(type: ReportActionsViewType, {reportID, onLayout}: 
         case 'standard':
         default:
             return (
-                <ReportActionsView
+                <ChatReportActionsView
                     reportID={reportID}
                     onLayout={onLayout}
                 />

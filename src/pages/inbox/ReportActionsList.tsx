@@ -10,8 +10,8 @@ import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions, shouldDisplayReportTableView, shouldWaitForTransactions as shouldWaitForTransactionsUtil} from '@libs/MoneyRequestReportUtils';
 import {isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
+import ChatReportActionsView from './report/ChatReportActionsView';
 import MRParentReportActionsView from './report/MRParentReportActionsView';
-import ReportActionsView from './report/ReportActionsView';
 import TransactionThreadReportActionsView from './report/TransactionThreadReportActionsView';
 
 const defaultReportMetadata = {
@@ -63,7 +63,7 @@ function ReportActionsList() {
         return <MRParentReportActionsView reportID={reportIDFromRoute} />;
     }
 
-    return <ReportActionsView reportID={reportIDFromRoute} />;
+    return <ChatReportActionsView reportID={reportIDFromRoute} />;
 }
 
 export default ReportActionsList;

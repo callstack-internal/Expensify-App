@@ -2,45 +2,53 @@ import {useRoute} from '@react-navigation/native';
 import React, {useEffect, useRef, useState} from 'react';
 import type {LayoutChangeEvent} from 'react-native';
 import ReportActionsSkeletonView from '@components/ReportActionsSkeletonView';
+import useConciergeSidePanelReportActions from '@hooks/useConciergeSidePanelReportActions';
 import useCopySelectionHelper from '@hooks/useCopySelectionHelper';
+import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useLoadReportActions from '@hooks/useLoadReportActions';
+import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useParentReportAction from '@hooks/useParentReportAction';
+import usePendingConciergeResponse from '@hooks/usePendingConciergeResponse';
 import useReportIsArchived from '@hooks/useReportIsArchived';
+import useSidePanelState from '@hooks/useSidePanelState';
 import {updateLoadingInitialReportAction} from '@libs/actions/Report';
+import DateUtils from '@libs/DateUtils';
 import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {ReportsSplitNavigatorParamList} from '@libs/Navigation/types';
 import {generateNewRandomInt} from '@libs/NumberUtils';
-import {getFilteredReportActionsForReportView, isDeletedParentAction, isIOUActionMatchingTransactionList, isReportActionVisible} from '@libs/ReportActionsUtils';
-import {canUserPerformWriteAction} from '@libs/ReportUtils';
+import {getFilteredReportActionsForReportView, isCreatedAction, isDeletedParentAction, isIOUActionMatchingTransactionList, isReportActionVisible} from '@libs/ReportActionsUtils';
+import {buildOptimisticCreatedReportAction, canUserPerformWriteAction} from '@libs/ReportUtils';
 import markOpenReportEnd from '@libs/telemetry/markOpenReportEnd';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type SCREENS from '@src/SCREENS';
+import type * as OnyxTypes from '@src/types/onyx';
 import isLoadingOnyxValue from '@src/types/utils/isLoadingOnyxValue';
 import ReportActionsList from './ReportActionsList';
 import UserTypingEventListener from './UserTypingEventListener';
 
-// Chat reports never have a transaction-thread to merge with, so there are no IOU
-// transactions to filter against. Hardcoding an empty list keeps the visibility
-// filter byte-identical with the previous shared `ReportActionsView`, which read
-// this list from a derived value that returned an empty object for chat reportIDs.
-const CHAT_REPORT_TRANSACTION_IDS: string[] = [];
+// Concierge reports never have associated transactions to filter against.
+const CONCIERGE_REPORT_TRANSACTION_IDS: string[] = [];
 
-type ChatReportActionsViewProps = {
-    /** The ID of the chat report to display actions for */
+type ConciergeSidePanelReportActionsViewProps = {
+    /** The ID of the concierge report to display actions for */
     reportID: string | undefined;
 
     /** Callback executed on layout */
     onLayout?: (event: LayoutChangeEvent) => void;
 };
 
-function ChatReportActionsView({reportID, onLayout}: ChatReportActionsViewProps) {
+function ConciergeSidePanelReportActionsView({reportID, onLayout}: ConciergeSidePanelReportActionsViewProps) {
     useCopySelectionHelper();
+    const {translate} = useLocalize();
+    usePendingConciergeResponse(reportID);
     const route = useRoute<PlatformStackRouteProp<ReportsSplitNavigatorParamList, typeof SCREENS.REPORT>>();
+    const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
     const {isOffline} = useNetwork();
+    const {sessionStartTime} = useSidePanelState();
     const reportActionID = route?.params?.reportActionID;
     const didLayout = useRef(false);
 
@@ -50,11 +58,15 @@ function ChatReportActionsView({reportID, onLayout}: ChatReportActionsViewProps)
     const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
 
     const {reportActions: unfilteredReportActions, hasNewerActions, hasOlderActions} = usePaginatedReportActions(reportID, reportActionID);
-    const reportActions = getFilteredReportActionsForReportView(unfilteredReportActions);
+    const allReportActions = getFilteredReportActionsForReportView(unfilteredReportActions);
 
     const parentReportAction = useParentReportAction(report);
     const isReportArchived = useReportIsArchived(reportID);
     const canPerformWriteAction = canUserPerformWriteAction(report, isReportArchived);
+
+    const hasUserSentMessage = sessionStartTime
+        ? allReportActions.some((action) => !isCreatedAction(action) && action.actorAccountID === currentUserAccountID && action.created >= sessionStartTime)
+        : false;
 
     useEffect(() => {
         // When we linked to message - we do not need to wait for initial actions - they already exist
@@ -74,8 +86,22 @@ function ChatReportActionsView({reportID, onLayout}: ChatReportActionsViewProps)
     }
 
     const isLoadingInitialReportActions = reportMetadata?.isLoadingInitialReportActions;
+    const hasOnceLoadedReportActions = reportMetadata?.hasOnceLoadedReportActions;
+    const lastAction = allReportActions?.at(-1);
 
-    const visibleReportActions = (reportActions ?? []).filter((reportAction) => {
+    // For the concierge side panel we always optimistically inject a CREATED action when the
+    // last loaded action isn't already one — this drives the welcome / greeting placement.
+    const hasCreatedActionAdded = !isCreatedAction(lastAction);
+
+    let reportActions: OnyxTypes.ReportAction[] = allReportActions ?? [];
+    if (hasCreatedActionAdded) {
+        const createdTime = lastAction?.created && DateUtils.subtractMillisecondsFromDateTime(lastAction.created, 1);
+        const optimisticCreatedAction = buildOptimisticCreatedReportAction(String(report?.ownerAccountID), createdTime);
+        optimisticCreatedAction.pendingAction = null;
+        reportActions = [...reportActions, optimisticCreatedAction];
+    }
+
+    const visibleReportActions = reportActions.filter((reportAction) => {
         const passesOfflineCheck = isOffline || isDeletedParentAction(reportAction) || reportAction.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE || reportAction.errors;
         if (!passesOfflineCheck) {
             return false;
@@ -84,28 +110,52 @@ function ChatReportActionsView({reportID, onLayout}: ChatReportActionsViewProps)
         if (!isReportActionVisible(reportAction, actionReportID, canPerformWriteAction, visibleReportActionsData)) {
             return false;
         }
-        if (!isIOUActionMatchingTransactionList(reportAction, CHAT_REPORT_TRANSACTION_IDS)) {
+        if (!isIOUActionMatchingTransactionList(reportAction, CONCIERGE_REPORT_TRANSACTION_IDS)) {
             return false;
         }
         return true;
     });
 
-    const allReportActionIDs = (reportActions ?? []).map((action) => action.reportActionID);
+    const allReportActionIDs = (allReportActions ?? []).map((action) => action.reportActionID);
 
     const {loadOlderChats, loadNewerChats} = useLoadReportActions({
         reportID,
-        reportActions: reportActions ?? [],
+        reportActions,
         allReportActionIDs,
         transactionThreadReport: undefined,
         hasOlderActions,
         hasNewerActions,
     });
 
+    const {
+        filteredVisibleActions: conciergeFilteredVisibleActions,
+        filteredReportActions: conciergeFilteredReportActions,
+        showConciergeSidePanelWelcome,
+        showFullHistory,
+        hasPreviousMessages,
+        handleShowPreviousMessages,
+    } = useConciergeSidePanelReportActions({
+        report,
+        reportActions,
+        visibleReportActions,
+        isConciergeSidePanel: true,
+        hasUserSentMessage,
+        hasOlderActions,
+        sessionStartTime,
+        currentUserAccountID,
+        greetingText: translate('common.concierge.sidePanelGreeting'),
+        loadOlderChats,
+    });
+
     const isMissingReportActions = visibleReportActions.length === 0;
     const shouldShowSkeletonForInitialLoad = !!isLoadingInitialReportActions && isMissingReportActions && !isOffline;
     const shouldShowSkeletonForAppLoad = !!isLoadingApp && !isOffline;
-    const shouldShowSkeleton = shouldShowSkeletonForInitialLoad || shouldShowSkeletonForAppLoad;
-    const hasDerivedValueTimingIssue = (reportActions?.length ?? 0) > 0 && isMissingReportActions;
+    // Show skeleton until report data has been loaded at least once. Before the first openReport
+    // response, hasOlderActions is unreliable, so we can't determine whether to show the greeting
+    // or onboarding messages. The skeleton avoids flashing wrong content.
+    const shouldShowSkeletonForConciergePanel = !hasOnceLoadedReportActions && !isOffline;
+    const shouldShowSkeleton = shouldShowSkeletonForConciergePanel || shouldShowSkeletonForInitialLoad || shouldShowSkeletonForAppLoad;
+    const hasDerivedValueTimingIssue = reportActions.length > 0 && isMissingReportActions;
 
     useEffect(() => {
         if (!shouldShowSkeleton || !report) {
@@ -133,7 +183,7 @@ function ChatReportActionsView({reportID, onLayout}: ChatReportActionsViewProps)
         return <ReportActionsSkeletonView />;
     }
 
-    if (hasDerivedValueTimingIssue || isMissingReportActions) {
+    if ((hasDerivedValueTimingIssue || isMissingReportActions) && !showConciergeSidePanelWelcome) {
         return <ReportActionsSkeletonView shouldAnimate={false} />;
     }
 
@@ -145,17 +195,22 @@ function ChatReportActionsView({reportID, onLayout}: ChatReportActionsViewProps)
                 parentReportAction={parentReportAction}
                 parentReportActionForTransactionThread={undefined}
                 onLayout={recordTimeToMeasureItemLayout}
-                sortedReportActions={reportActions ?? []}
-                sortedVisibleReportActions={visibleReportActions}
+                sortedReportActions={conciergeFilteredReportActions}
+                sortedVisibleReportActions={conciergeFilteredVisibleActions}
                 loadOlderChats={loadOlderChats}
                 loadNewerChats={loadNewerChats}
                 listID={listID}
+                hasCreatedActionAdded={hasCreatedActionAdded}
+                isConciergeSidePanel
+                showHiddenHistory={!showFullHistory}
+                hasPreviousMessages={hasPreviousMessages}
+                onShowPreviousMessages={handleShowPreviousMessages}
             />
             <UserTypingEventListener report={report} />
         </>
     );
 }
 
-ChatReportActionsView.displayName = 'ChatReportActionsView';
+ConciergeSidePanelReportActionsView.displayName = 'ConciergeSidePanelReportActionsView';
 
-export default ChatReportActionsView;
+export default ConciergeSidePanelReportActionsView;

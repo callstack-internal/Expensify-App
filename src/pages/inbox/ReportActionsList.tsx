@@ -2,15 +2,17 @@ import {useRoute} from '@react-navigation/native';
 import React from 'react';
 import MoneyRequestReportActionsList from '@components/MoneyRequestReportView/MoneyRequestReportActionsList';
 import ReportActionsSkeletonView from '@components/ReportActionsSkeletonView';
+import useIsInSidePanel from '@hooks/useIsInSidePanel';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import usePaginatedReportActions from '@hooks/usePaginatedReportActions';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getAllNonDeletedTransactions, shouldDisplayReportTableView, shouldWaitForTransactions as shouldWaitForTransactionsUtil} from '@libs/MoneyRequestReportUtils';
-import {isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
+import {isConciergeChatReport, isInvoiceReport, isMoneyRequestReport, isReportTransactionThread} from '@libs/ReportUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ChatReportActionsView from './report/ChatReportActionsView';
+import ConciergeSidePanelReportActionsView from './report/ConciergeSidePanelReportActionsView';
 import MoneyRequestParentReportActionsView from './report/MoneyRequestParentReportActionsView';
 import TransactionThreadReportActionsView from './report/TransactionThreadReportActionsView';
 
@@ -38,7 +40,10 @@ function ReportActionsList() {
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDFromRoute}`);
     const [reportMetadata = defaultReportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportIDFromRoute}`);
+    const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const {reportActions} = usePaginatedReportActions(reportIDFromRoute);
+
+    const isInSidePanel = useIsInSidePanel();
 
     const allReportTransactions = useReportTransactionsCollection(reportIDFromRoute);
     const reportTransactions = getAllNonDeletedTransactions(allReportTransactions, reportActions, isOffline, true);
@@ -61,6 +66,10 @@ function ReportActionsList() {
 
     if (isMoneyRequestOrInvoiceReport) {
         return <MoneyRequestParentReportActionsView reportID={reportIDFromRoute} />;
+    }
+
+    if (isInSidePanel && isConciergeChatReport(report, conciergeReportID)) {
+        return <ConciergeSidePanelReportActionsView reportID={reportIDFromRoute} />;
     }
 
     return <ChatReportActionsView reportID={reportIDFromRoute} />;

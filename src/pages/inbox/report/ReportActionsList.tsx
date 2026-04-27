@@ -217,6 +217,7 @@ function ReportActionsList({
     const hasHeaderRendered = useRef(false);
 
     const lastAction = sortedVisibleReportActions.at(0);
+    const [shouldMaintainVisibleContentPosition, setShouldMaintainVisibleContentPosition] = useState(() => scrollOffsetRef.current > CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD);
     const sortedVisibleReportActionsObjects: OnyxTypes.ReportActions = useMemo(
         () =>
             sortedVisibleReportActions.reduce((actions, action) => {
@@ -347,7 +348,9 @@ function ReportActionsList({
         unreadMarkerReportActionIndex,
         isInverted: true,
         onTrackScrolling: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-            scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+            const offset = event.nativeEvent.contentOffset.y;
+            scrollOffsetRef.current = offset;
+            setShouldMaintainVisibleContentPosition(offset > CONST.REPORT.ACTIONS.ACTION_VISIBLE_THRESHOLD);
             onScroll?.(event);
         },
         hasOnceLoadedReportActions: !!reportMetadata?.hasOnceLoadedReportActions,
@@ -836,6 +839,7 @@ function ReportActionsList({
                     extraData={extraData}
                     key={listID}
                     getItemType={(item) => item.actionName}
+                    shouldMaintainVisibleContentPosition={shouldMaintainVisibleContentPosition}
                     initialScrollKey={linkedReportActionID}
                     onContentSizeChange={() => {
                         trackVerticalScrolling(undefined);

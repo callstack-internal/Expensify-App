@@ -21,7 +21,7 @@ import CONST from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
 import * as ReportActionUtils from '@src/libs/ReportActionsUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Policy, ReportAction} from '@src/types/onyx';
+import type {ReportAction} from '@src/types/onyx';
 import type {OriginalMessage} from '@src/types/onyx/ReportAction';
 import type ReportActionName from '@src/types/onyx/ReportActionName';
 import {translateLocal} from '../utils/TestHelper';
@@ -388,7 +388,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    policy={dewPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -437,7 +436,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    policy={basicPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -490,7 +488,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    policy={dewPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -535,7 +532,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    policy={dewPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
                                     action={action}

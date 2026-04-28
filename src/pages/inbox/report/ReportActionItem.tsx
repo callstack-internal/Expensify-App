@@ -47,7 +47,6 @@ function ReportActionItem({
     const [originalReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${originalReportID}`);
     const [iouReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getIOUReportIDFromReportActionPreview(action)}`);
 
-    const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
     const transactionsOnIOUReport = useReportTransactions(iouReport?.reportID);
     const transactionID = isMoneyRequestAction(action) && getOriginalMessage(action)?.IOUTransactionID;
 
@@ -66,7 +65,6 @@ function ReportActionItem({
             {...props}
             action={action}
             report={report}
-            policy={policy}
             draftMessage={draftMessage}
             iouReport={iouReport}
             linkedTransactionRouteError={linkedTransactionRouteError}

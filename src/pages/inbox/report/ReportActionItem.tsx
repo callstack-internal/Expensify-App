@@ -15,7 +15,7 @@ import type {PersonalDetailsList, Transaction} from '@src/types/onyx';
 import type {PureReportActionItemProps} from './PureReportActionItem';
 import PureReportActionItem from './PureReportActionItem';
 
-type ReportActionItemProps = Omit<PureReportActionItemProps, 'personalPolicyID'> & {
+type ReportActionItemProps = PureReportActionItemProps & {
     /** Whether to show the draft message or not */
     shouldShowDraftMessage?: boolean;
 
@@ -50,7 +50,6 @@ function ReportActionItem({
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(report?.parentReportID)}`);
 
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
-    const [personalPolicyID] = useOnyx(ONYXKEYS.PERSONAL_POLICY_ID);
     const transactionsOnIOUReport = useReportTransactions(iouReport?.reportID);
     const transactionID = isMoneyRequestAction(action) && getOriginalMessage(action)?.IOUTransactionID;
 
@@ -67,7 +66,6 @@ function ReportActionItem({
         <PureReportActionItem
             // eslint-disable-next-line react/jsx-props-no-spreading
             {...props}
-            personalPolicyID={personalPolicyID}
             action={action}
             report={report}
             policy={policy}

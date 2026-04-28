@@ -152,9 +152,6 @@ import ReportActionItemThread from './ReportActionItemThread';
 import TripSummary from './TripSummary';
 
 type PureReportActionItemProps = {
-    /** The personal policy ID */
-    personalPolicyID: string | undefined;
-
     /** Report for this action */
     report: OnyxEntry<OnyxTypes.Report>;
 
@@ -299,7 +296,6 @@ const emptyHTML = <RenderHTML html="" />;
 const isEmptyHTML = <T extends React.JSX.Element>({props: {html}}: T): boolean => typeof html === 'string' && html.length === 0;
 
 function PureReportActionItem({
-    personalPolicyID,
     action,
     report,
     policy,
@@ -869,7 +865,6 @@ function PureReportActionItem({
                     report={report}
                     originalReport={originalReport}
                     policy={policy}
-                    personalPolicyID={personalPolicyID}
                     originalReportID={originalReportID}
                     resolveActionableMentionWhisper={resolveActionableMentionWhisper}
                 />
@@ -1280,7 +1275,6 @@ export default memo(PureReportActionItem, (prevProps, nextProps) => {
     const prevParentReportAction = prevProps.parentReportAction;
     const nextParentReportAction = nextProps.parentReportAction;
     return (
-        prevProps.personalPolicyID === nextProps.personalPolicyID &&
         prevProps.displayAsGroup === nextProps.displayAsGroup &&
         prevProps.shouldDisplayNewMarker === nextProps.shouldDisplayNewMarker &&
         deepEqual(prevProps.action, nextProps.action) &&

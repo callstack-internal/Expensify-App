@@ -102,7 +102,6 @@ describe('PureReportActionItem', () => {
                     <ScreenWrapper testID="test">
                         <PortalProvider>
                             <PureReportActionItem
-                                personalPolicyID={undefined}
                                 report={undefined}
                                 parentReportAction={undefined}
                                 action={action}
@@ -389,7 +388,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     policy={dewPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
@@ -439,7 +437,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     policy={basicPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
@@ -493,7 +490,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     policy={dewPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
@@ -539,7 +535,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     policy={dewPolicy as Policy}
                                     report={{reportID: 'testReport', policyID: 'testPolicy'}}
                                     parentReportAction={undefined}
@@ -610,7 +605,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={report}
                                     parentReportAction={undefined}
                                     action={action}
@@ -667,7 +661,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={report}
                                     parentReportAction={undefined}
                                     action={action}
@@ -751,7 +744,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={report}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1062,7 +1054,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={report}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1242,7 +1233,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', policyID: 'pol123'}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1334,7 +1324,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport'}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1371,7 +1360,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', ownerAccountID: ACTOR_ACCOUNT_ID}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1409,7 +1397,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', ownerAccountID: ACTOR_ACCOUNT_ID}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1452,7 +1439,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{
                                         reportID: 'threadReport',
                                         type: CONST.REPORT.TYPE.CHAT,
@@ -1496,7 +1482,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', ownerAccountID: ACTOR_ACCOUNT_ID}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1537,7 +1522,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', ownerAccountID: ACTOR_ACCOUNT_ID}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1576,7 +1560,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={undefined}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1614,7 +1597,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={undefined}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1655,7 +1637,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={undefined}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1697,7 +1678,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={undefined}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1784,7 +1764,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', type: CONST.REPORT.TYPE.CHAT}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -1822,7 +1801,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', isWaitingOnBankAccount: true}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -2402,7 +2380,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={{reportID: 'testReport', chatReportID: 'chatReport1'}}
                                     parentReportAction={undefined}
                                     action={action}
@@ -2491,7 +2468,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={undefined}
                                     parentReportAction={undefined}
                                     action={action}
@@ -2540,7 +2516,6 @@ describe('PureReportActionItem', () => {
                         <ScreenWrapper testID="test">
                             <PortalProvider>
                                 <PureReportActionItem
-                                    personalPolicyID={undefined}
                                     report={undefined}
                                     parentReportAction={undefined}
                                     action={action}

@@ -88,6 +88,21 @@ function ImageWithLoading({
             style={[styles.w100, styles.h100, containerStyles]}
             onLayout={onLayout}
         >
+            {isLoading && !!previewUri && !isImageCached && (
+                <Image
+                    // eslint-disable-next-line react/jsx-props-no-spreading
+                    {...rest}
+                    source={{uri: previewUri}}
+                    style={[styles.w100, styles.h100, style]}
+                    resizeMode={resizeMode}
+                    onLoad={(e) => {
+                        setIsThumbnailLoading(false);
+                        onLoad?.(e);
+                    }}
+                    loadingIconSize={loadingIconSize}
+                    loadingIndicatorStyles={loadingIndicatorStyles}
+                />
+            )}
             {/* eslint-disable-next-line react-native-a11y/has-valid-accessibility-ignores-invert-colors -- Custom Image wrapper does not support this prop. */}
             <Image
                 // eslint-disable-next-line react/jsx-props-no-spreading
@@ -115,20 +130,6 @@ function ImageWithLoading({
                 loadingIconSize={loadingIconSize}
                 loadingIndicatorStyles={loadingIndicatorStyles}
             />
-            {isLoading && !!previewUri && !isImageCached && (
-                <Image
-                    // eslint-disable-next-line react/jsx-props-no-spreading
-                    {...rest}
-                    source={{uri: previewUri}}
-                    style={[StyleSheet.absoluteFill, style]}
-                    resizeMode={resizeMode}
-                    onLoad={() => {
-                        setIsThumbnailLoading(false);
-                    }}
-                    loadingIconSize={loadingIconSize}
-                    loadingIndicatorStyles={loadingIndicatorStyles}
-                />
-            )}
             {isLoading && (!previewUri || isThumbnailLoading) && !isImageCached && !isOffline && (
                 <LoadingIndicator
                     iconSize={loadingIconSize}

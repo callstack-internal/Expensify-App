@@ -8,9 +8,7 @@ import {Keyboard, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import * as ActionSheetAwareScrollView from '@components/ActionSheetAwareScrollView';
-import DisplayNames from '@components/DisplayNames';
 import Hoverable from '@components/Hoverable';
-import Icon from '@components/Icon';
 import InlineSystemMessage from '@components/InlineSystemMessage';
 import {ModalActions} from '@components/Modal/Global/ModalContext';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
@@ -36,7 +34,6 @@ import Text from '@components/Text';
 import TextLink from '@components/TextLink';
 import UnreadActionIndicator from '@components/UnreadActionIndicator';
 import useConfirmModal from '@hooks/useConfirmModal';
-import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
@@ -99,9 +96,7 @@ import {
 import {
     canWriteInReport,
     getChatListItemReportName,
-    getDisplayNamesWithTooltips,
     getMovedActionMessage,
-    getWhisperDisplayNames,
     isCompletedTaskReport,
     isExpenseReport,
     isHarvestCreatedExpenseReport as isHarvestCreatedExpenseReportUtils,
@@ -149,6 +144,7 @@ import ReportActionItemGrouped from './ReportActionItemGrouped';
 import ReportActionItemSingle from './ReportActionItemSingle';
 import ReportActionItemThread from './ReportActionItemThread';
 import TripSummary from './TripSummary';
+import WhisperBanner from './WhisperBanner';
 
 type PureReportActionItemProps = {
     /** Report for this action */
@@ -332,7 +328,7 @@ function PureReportActionItem({
 
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const {transitionActionSheetState} = ActionSheetAwareScrollView.useActionSheetAwareScrollViewActions();
-    const {translate, formatPhoneNumber, localeCompare, formatTravelDate, datetimeToCalendarTime} = useLocalize();
+    const {translate, formatTravelDate, datetimeToCalendarTime} = useLocalize();
     const {showConfirmModal} = useConfirmModal();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const reportID = report?.reportID ?? action?.reportID;
@@ -356,7 +352,6 @@ function PureReportActionItem({
     const isReportArchived = useReportIsArchived(reportID);
 
     const isHarvestCreatedExpenseReport = isHarvestCreatedExpenseReportUtils(reportNameValuePairsOrigin, reportNameValuePairsOriginalID);
-    const expensifyIcons = useMemoizedLazyExpensifyIcons(['Eye']);
 
     const [childReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(action.childReportID)}`);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(report?.chatReportID)}`);
@@ -1097,16 +1092,10 @@ function PureReportActionItem({
 
     const hasErrors = !isEmptyValueObject(action.errors);
     const whisperedTo = getWhisperedTo(action);
-    const isMultipleParticipant = whisperedTo.length > 1;
 
     const iouReportID = isMoneyRequestAction(action) && getOriginalMessage(action)?.IOUReportID ? getOriginalMessage(action)?.IOUReportID?.toString() : undefined;
     const transactionsWithReceipts = getTransactionsWithReceipts(iouReportID);
     const isWhisper = whisperedTo.length > 0 && transactionsWithReceipts.length === 0;
-    const whisperedToPersonalDetails = isWhisper
-        ? (Object.values(personalDetails ?? {}).filter((details) => whisperedTo.includes(details?.accountID ?? CONST.DEFAULT_NUMBER_ID)) as OnyxTypes.PersonalDetails[])
-        : [];
-    const isWhisperOnlyVisibleByUser = isWhisper && isCurrentUserTheOnlyParticipant(whisperedTo);
-    const displayNamesWithTooltips = isWhisper ? getDisplayNamesWithTooltips(whisperedToPersonalDetails, isMultipleParticipant, localeCompare, formatPhoneNumber) : [];
 
     const renderSearchHeader = (children: React.ReactNode) => {
         if (!isOnSearch) {
@@ -1217,29 +1206,7 @@ function PureReportActionItem({
                                 >
                                     {renderSearchHeader(
                                         <>
-                                            {isWhisper && (
-                                                <View style={[styles.flexRow, styles.pl5, styles.pt2, styles.pr3]}>
-                                                    <View style={[styles.pl6, styles.mr3]}>
-                                                        <Icon
-                                                            fill={theme.icon}
-                                                            src={expensifyIcons.Eye}
-                                                            small
-                                                        />
-                                                    </View>
-                                                    <Text style={[styles.chatItemMessageHeaderTimestamp]}>
-                                                        {translate('reportActionContextMenu.onlyVisible')}
-                                                        &nbsp;
-                                                    </Text>
-                                                    <DisplayNames
-                                                        fullTitle={getWhisperDisplayNames(translate, formatPhoneNumber, whisperedTo) ?? ''}
-                                                        displayNamesWithTooltips={displayNamesWithTooltips}
-                                                        tooltipEnabled
-                                                        numberOfLines={1}
-                                                        textStyles={[styles.chatItemMessageHeaderTimestamp, styles.flex1]}
-                                                        shouldUseFullTitle={isWhisperOnlyVisibleByUser}
-                                                    />
-                                                </View>
-                                            )}
+                                            {isWhisper && <WhisperBanner whisperedTo={whisperedTo} />}
                                             {renderReportActionItem(!!hovered || !!isReportActionLinked, isWhisper, hasErrors)}
                                         </>,
                                     )}

@@ -30,8 +30,6 @@ import UnreportedTransactionAction from '@components/ReportActionItem/Unreported
 import {SearchStateContext} from '@components/Search/SearchContext';
 import {useIsOnSearch} from '@components/Search/SearchScopeProvider';
 import {ShowContextMenuActionsContext, ShowContextMenuStateContext} from '@components/ShowContextMenuContext';
-import Text from '@components/Text';
-import TextLink from '@components/TextLink';
 import UnreadActionIndicator from '@components/UnreadActionIndicator';
 import useConfirmModal from '@hooks/useConfirmModal';
 import useLocalize from '@hooks/useLocalize';
@@ -95,7 +93,6 @@ import {
 } from '@libs/ReportActionsUtils';
 import {
     canWriteInReport,
-    getChatListItemReportName,
     getMovedActionMessage,
     isCompletedTaskReport,
     isExpenseReport,
@@ -106,7 +103,6 @@ import {
 import SelectionScraper from '@libs/SelectionScraper';
 import {ReactionListContext} from '@pages/inbox/ReportScreenContext';
 import AttachmentModalContext from '@pages/media/AttachmentModalScreen/AttachmentModalContext';
-import variables from '@styles/variables';
 import type {IgnoreDirection} from '@userActions/ClearReportActionErrors';
 import {hideEmojiPicker, isActive} from '@userActions/EmojiPickerAction';
 import {expandURLPreview} from '@userActions/Report';
@@ -143,6 +139,7 @@ import ReportActionItemDraft from './ReportActionItemDraft';
 import ReportActionItemGrouped from './ReportActionItemGrouped';
 import ReportActionItemSingle from './ReportActionItemSingle';
 import ReportActionItemThread from './ReportActionItemThread';
+import SearchActionHeader from './SearchActionHeader';
 import TripSummary from './TripSummary';
 import WhisperBanner from './WhisperBanner';
 
@@ -326,7 +323,6 @@ function PureReportActionItem({
     const isConciergeGreeting = action.reportActionID === CONST.CONCIERGE_GREETING_ACTION_ID;
     const shouldDisplayContextMenuValue = shouldDisplayContextMenu && !isConciergeGreeting;
 
-    const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const {transitionActionSheetState} = ActionSheetAwareScrollView.useActionSheetAwareScrollViewActions();
     const {translate, formatTravelDate, datetimeToCalendarTime} = useLocalize();
     const {showConfirmModal} = useConfirmModal();
@@ -1092,32 +1088,6 @@ function PureReportActionItem({
     const transactionsWithReceipts = getTransactionsWithReceipts(iouReportID);
     const isWhisper = whisperedTo.length > 0 && transactionsWithReceipts.length === 0;
 
-    const renderSearchHeader = (children: React.ReactNode) => {
-        if (!isOnSearch) {
-            return children;
-        }
-
-        return (
-            <View style={[styles.p4]}>
-                <View style={styles.webViewStyles.tagStyles.ol}>
-                    <View style={[styles.flexRow, styles.alignItemsCenter, !isWhisper ? styles.mb3 : {}]}>
-                        <Text style={styles.chatItemMessageHeaderPolicy}>{translate('common.in')}&nbsp;</Text>
-                        <TextLink
-                            fontSize={variables.fontSizeSmall}
-                            onPress={() => {
-                                onPress?.();
-                            }}
-                            numberOfLines={1}
-                        >
-                            {getChatListItemReportName(action, report, conciergeReportID)}
-                        </TextLink>
-                    </View>
-                    {children}
-                </View>
-            </View>
-        );
-    };
-
     // Calculating accessibilityLabel for chat message with sender, date and time and the message content.
     const displayName = getDisplayNameOrDefault(personalDetails?.[action.actorAccountID ?? CONST.DEFAULT_NUMBER_ID]);
     const formattedTimestamp = datetimeToCalendarTime(action.created, false);
@@ -1199,12 +1169,15 @@ function PureReportActionItem({
                                     needsOffscreenAlphaCompositing={isMoneyRequestAction(action)}
                                     shouldDisableStrikeThrough
                                 >
-                                    {renderSearchHeader(
-                                        <>
-                                            {isWhisper && <WhisperBanner whisperedTo={whisperedTo} />}
-                                            {renderReportActionItem(!!hovered || !!isReportActionLinked, isWhisper, hasErrors)}
-                                        </>,
-                                    )}
+                                    <SearchActionHeader
+                                        action={action}
+                                        report={report}
+                                        isWhisper={isWhisper}
+                                        onPress={onPress}
+                                    >
+                                        {isWhisper && <WhisperBanner whisperedTo={whisperedTo} />}
+                                        {renderReportActionItem(!!hovered || !!isReportActionLinked, isWhisper, hasErrors)}
+                                    </SearchActionHeader>
                                 </OfflineWithFeedback>
                             </View>
                         </View>

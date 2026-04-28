@@ -4,7 +4,6 @@ import useOnyx from '@hooks/useOnyx';
 import useOriginalReportID from '@hooks/useOriginalReportID';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportTransactions from '@hooks/useReportTransactions';
-import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getIOUReportIDFromReportActionPreview, getOriginalMessage, isMoneyRequestAction} from '@libs/ReportActionsUtils';
 import {chatIncludesChronosWithID, getTransactionsWithReceipts, isArchivedNonExpenseReport, isClosedExpenseReportWithNoExpenses, isCurrentUserTheOnlyParticipant} from '@libs/ReportUtils';
 import {clearAllRelatedReportActionErrors} from '@userActions/ClearReportActionErrors';
@@ -47,7 +46,6 @@ function ReportActionItem({
     const isOriginalReportArchived = useReportIsArchived(originalReportID);
     const [originalReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${originalReportID}`);
     const [iouReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getIOUReportIDFromReportActionPreview(action)}`);
-    const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(report?.parentReportID)}`);
 
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
     const transactionsOnIOUReport = useReportTransactions(iouReport?.reportID);
@@ -72,7 +70,6 @@ function ReportActionItem({
             draftMessage={draftMessage}
             iouReport={iouReport}
             linkedTransactionRouteError={linkedTransactionRouteError}
-            parentReport={parentReport}
             personalDetails={personalDetails}
             originalReportID={originalReportID}
             originalReport={originalReport}

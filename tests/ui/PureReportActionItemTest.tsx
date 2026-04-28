@@ -1446,7 +1446,6 @@ describe('PureReportActionItem', () => {
                                         parentReportActionID: 'parentAction',
                                         ownerAccountID: 0,
                                     }}
-                                    parentReport={{reportID: 'parentReport', ownerAccountID: ACTOR_ACCOUNT_ID}}
                                     parentReportAction={undefined}
                                     action={action}
                                     displayAsGroup={false}

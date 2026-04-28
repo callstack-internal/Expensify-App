@@ -1,7 +1,5 @@
 /* eslint-disable rulesdir/prefer-early-return */
 import {useIsFocused, useRoute} from '@react-navigation/native';
-import {isUserValidatedSelector} from '@selectors/Account';
-import {tierNameSelector} from '@selectors/UserWallet';
 import isEmpty from 'lodash/isEmpty';
 import React, {useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {LayoutChangeEvent, ListRenderItemInfo, NativeScrollEvent, NativeSyntheticEvent} from 'react-native';
@@ -125,12 +123,6 @@ function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) 
 
     const parentReportAction = useParentReportAction(report);
 
-    const [userWalletTierName] = useOnyx(ONYXKEYS.USER_WALLET, {
-        selector: tierNameSelector,
-    });
-    const [isUserValidated] = useOnyx(ONYXKEYS.ACCOUNT, {
-        selector: isUserValidatedSelector,
-    });
     const [userBillingFundID] = useOnyx(ONYXKEYS.NVP_BILLING_FUND_ID);
     const personalDetails = usePersonalDetails();
     const [tryNewDot] = useOnyx(ONYXKEYS.NVP_TRY_NEW_DOT);
@@ -576,8 +568,6 @@ function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) 
                     isFirstVisibleReportAction={firstVisibleReportActionID === reportAction.reportActionID}
                     shouldHideThreadDividerLine
                     linkedReportActionID={linkedReportActionID}
-                    userWalletTierName={userWalletTierName}
-                    isUserValidated={isUserValidated}
                     personalDetails={personalDetails}
                     userBillingFundID={userBillingFundID}
                     originalReportID={originalReportID}
@@ -598,8 +588,6 @@ function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) 
             unreadMarkerReportActionID,
             firstVisibleReportActionID,
             linkedReportActionID,
-            userWalletTierName,
-            isUserValidated,
             personalDetails,
             userBillingFundID,
             isTryNewDotNVPDismissed,

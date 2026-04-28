@@ -290,9 +290,6 @@ type PureReportActionItemProps = {
 
     /** Report name value pairs originalID */
     reportNameValuePairsOriginalID?: string;
-
-    /** Report metadata for the report */
-    reportMetadata?: OnyxEntry<OnyxTypes.ReportMetadata>;
 };
 
 // This is equivalent to returning a negative boolean in normal functions, but we can keep the element return type
@@ -342,7 +339,6 @@ function PureReportActionItem({
     isTryNewDotNVPDismissed = false,
     reportNameValuePairsOrigin,
     reportNameValuePairsOriginalID,
-    reportMetadata,
 }: PureReportActionItemProps) {
     const isConciergeGreeting = action.reportActionID === CONST.CONCIERGE_GREETING_ACTION_ID;
     const shouldDisplayContextMenuValue = shouldDisplayContextMenu && !isConciergeGreeting;
@@ -776,7 +772,7 @@ function PureReportActionItem({
                 <ApprovalFlowContent
                     action={action}
                     policy={policy}
-                    reportMetadata={reportMetadata}
+                    reportID={reportID}
                     childReport={childReport}
                     originalReport={originalReport}
                 />
@@ -1325,7 +1321,6 @@ export default memo(PureReportActionItem, (prevProps, nextProps) => {
         prevProps.userBillingFundID === nextProps.userBillingFundID &&
         prevProps.shouldHighlight === nextProps.shouldHighlight &&
         prevProps.reportNameValuePairsOrigin === nextProps.reportNameValuePairsOrigin &&
-        prevProps.reportNameValuePairsOriginalID === nextProps.reportNameValuePairsOriginalID &&
-        prevProps.reportMetadata?.pendingExpenseAction === nextProps.reportMetadata?.pendingExpenseAction
+        prevProps.reportNameValuePairsOriginalID === nextProps.reportNameValuePairsOriginalID
     );
 });

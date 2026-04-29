@@ -2088,8 +2088,8 @@ const translations: TranslationDeepObject<typeof en> = {
         account: 'Conta',
         general: 'Geral',
         helpPage: {
-            title: 'Ajuda e suporte',
-            description: 'Estamos aqui para ajudar você 24 horas por dia, 7 dias por semana',
+            title: 'Tem dúvidas?',
+            description: 'Estamos aqui para ajudar, 24 horas por dia.',
             helpSite: 'Site de ajuda',
             conciergeChat: 'Concierge',
             conciergeChatDescription: 'Seu agente de IA pessoal',

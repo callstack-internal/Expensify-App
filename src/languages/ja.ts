@@ -2075,8 +2075,8 @@ const translations: TranslationDeepObject<typeof en> = {
         account: 'アカウント',
         general: '一般',
         helpPage: {
-            title: 'ヘルプとサポート',
-            description: '24時間365日いつでもサポートいたします',
+            title: 'ご質問がありますか？',
+            description: '24時間いつでもサポートします。',
             helpSite: 'ヘルプサイト',
             conciergeChat: 'Concierge',
             conciergeChatDescription: 'あなた専用のAIエージェント',

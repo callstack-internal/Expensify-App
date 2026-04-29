@@ -461,6 +461,7 @@ function ReportActionsList({
         // eslint-disable-next-line @typescript-eslint/no-deprecated
         InteractionManager.runAfterInteractions(() => {
             if (shouldFocusToTopOnMount) {
+                reportScrollManager.scrollToEnd();
                 return;
             }
             setIsFloatingMessageCounterVisible(false);

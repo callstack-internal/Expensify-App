@@ -1,5 +1,6 @@
 import {useRoute} from '@react-navigation/native';
 import type {OnyxEntry} from 'react-native-onyx';
+import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
 import useOnyx from './useOnyx';
@@ -47,8 +48,13 @@ function useReportWithPreview(reportID: string | undefined): OnyxEntry<Report> {
         return undefined;
     }
 
+    // `type: CHAT` lets `isChatThread` recognize the stub so `getReportName` can
+    // synthesize the title from the parent IOU action (already in Onyx) — without
+    // it, the header gates on an empty title and stays on the skeleton until
+    // `openReport` resolves.
     return {
         reportID,
+        type: CONST.REPORT.TYPE.CHAT,
         parentReportID: params?.parentReportID,
         parentReportActionID: params?.parentReportActionID,
         chatReportID: params?.chatReportID,

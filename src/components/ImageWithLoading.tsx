@@ -126,6 +126,7 @@ function ImageWithLoading({
                     isLoadedRef.current = false;
                     setIsImageCached(false);
                     setIsLoading(true);
+                    setIsThumbnailLoading(true);
                     waitForSession?.();
                 }}
                 loadingIconSize={loadingIconSize}

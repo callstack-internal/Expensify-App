@@ -148,6 +148,7 @@ function ReportActionItemImage({
     const isEReceipt = transaction && !hasReceiptSource(transaction) && hasEReceipt(transaction);
     const isPDF = filename && Str.isPDF(filename);
 
+    console.log('morwa effectivePreviewUri', effectivePreviewUri);
     let propsObj: ReceiptImageProps;
 
     if (isEReceipt) {

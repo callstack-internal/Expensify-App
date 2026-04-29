@@ -221,6 +221,7 @@ function ReceiptImage({
         return (
             <ThumbnailImage
                 previewSourceURL={source ?? ''}
+                previewUri={previewUri}
                 style={[styles.w100, styles.h100, style, thumbnailContainerStyles]}
                 isAuthTokenRequired={isAuthTokenRequired ?? false}
                 shouldDynamicallyResize={false}

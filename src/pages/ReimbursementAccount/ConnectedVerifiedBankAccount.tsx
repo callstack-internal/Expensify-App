@@ -62,7 +62,7 @@ function ConnectedVerifiedBankAccount({
     const pendingAction = reimbursementAccount?.pendingAction;
     const shouldShowResetModal = reimbursementAccount?.shouldShowResetModal ?? false;
     const {asset: ThumbsUpStars} = useMemoizedLazyAsset(() => loadIllustration('ThumbsUpStars' as IllustrationName));
-    const icons = useMemoizedLazyExpensifyIcons(['Close']);
+    const icons = useMemoizedLazyExpensifyIcons(['Bank', 'Close']);
     const policyID = reimbursementAccount?.achData?.policyID;
     const currency = reimbursementAccount?.achData?.currency;
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
@@ -119,7 +119,7 @@ function ConnectedVerifiedBankAccount({
                         <Text style={[styles.mv3]}>{translate('workspace.bankAccount.accountDescriptionWithCards')}</Text>
                         <MenuItem
                             title={translate('workspace.bankAccount.changeBankAccount')}
-                            icon={icon}
+                            icon={icons.Bank}
                             onPress={handleChangeBankAccount}
                             shouldShowRightIcon
                             outerWrapperStyle={shouldUseNarrowLayout ? styles.mhn5 : styles.mhn8}

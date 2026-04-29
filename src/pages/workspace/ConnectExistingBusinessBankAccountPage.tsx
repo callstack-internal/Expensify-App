@@ -26,6 +26,7 @@ type ConnectExistingBusinessBankAccountPageProps = PlatformStackScreenProps<Conn
 function ConnectExistingBusinessBankAccountPage({route}: ConnectExistingBusinessBankAccountPageProps) {
     const icons = useMemoizedLazyExpensifyIcons(['ArrowRight']);
     const policyID = route.params?.policyID;
+    const backTo = route.params?.backTo;
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`);
     const [lastPaymentMethod] = useOnyx(ONYXKEYS.NVP_LAST_PAYMENT_METHOD);
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
@@ -43,7 +44,7 @@ function ConnectExistingBusinessBankAccountPage({route}: ConnectExistingBusiness
             prepareNewBankAccountSetup(policyCurrency);
         }
 
-        navigateToBankAccountRoute(hasFullyWorkingConnectedAccount ? {} : {policyID});
+        navigateToBankAccountRoute(hasFullyWorkingConnectedAccount ? {} : {policyID, backTo});
     };
 
     const handleItemPress = ({methodID, accountData}: PaymentMethodPressHandlerParams) => {
@@ -56,6 +57,8 @@ function ConnectExistingBusinessBankAccountPage({route}: ConnectExistingBusiness
         if (bankAccountList && methodID && !bankAccountList[methodID]?.accountData?.policyIDs?.includes(policyID)) {
             setWorkspaceReimbursement({
                 policyID,
+                currentAchAccount: policy?.achAccount,
+                currentReimbursementChoice: policy?.reimbursementChoice,
                 reimbursementChoice: CONST.POLICY.REIMBURSEMENT_CHOICES.REIMBURSEMENT_YES,
                 bankAccountID: methodID ?? CONST.DEFAULT_NUMBER_ID,
                 reimburserEmail: newReimburserEmail,
@@ -72,7 +75,7 @@ function ConnectExistingBusinessBankAccountPage({route}: ConnectExistingBusiness
 
         Navigation.setNavigationActionToMicrotaskQueue(() => {
             if (isBankAccountPartiallySetup(accountData?.state)) {
-                navigateToBankAccountRoute({policyID: route.params.policyID, navigationOptions: {forceReplace: true}});
+                navigateToBankAccountRoute({policyID, backTo, navigationOptions: {forceReplace: true}});
             } else {
                 setReimbursementAccountLoading(false);
                 Navigation.closeRHPFlow();
@@ -100,6 +103,7 @@ function ConnectExistingBusinessBankAccountPage({route}: ConnectExistingBusiness
                     itemIconRight={icons.ArrowRight}
                     filterType={CONST.BANK_ACCOUNT.TYPE.BUSINESS}
                     filterCurrency={policyCurrency}
+                    excludeStates={[CONST.BANK_ACCOUNT.STATE.LOCKED]}
                     excludeBankAccountID={fullyWorkingConnectedAccountBankAccountID}
                     shouldHideDefaultBadge
                 />

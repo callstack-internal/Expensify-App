@@ -88,18 +88,6 @@ function getNvpDismissedProductTraining(): OnyxEntry<DismissedProductTraining> {
             timestamp: '',
             dismissedMethod: 'click',
         },
-        [CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.SCAN_TEST_TOOLTIP]: {
-            timestamp: '',
-            dismissedMethod: 'click',
-        },
-        [CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.SCAN_TEST_TOOLTIP_MANAGER]: {
-            timestamp: '',
-            dismissedMethod: 'click',
-        },
-        [CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.SCAN_TEST_CONFIRMATION]: {
-            timestamp: '',
-            dismissedMethod: 'click',
-        },
         [CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.OUTSTANDING_FILTER]: {
             timestamp: '',
             dismissedMethod: 'click',
@@ -276,7 +264,7 @@ function signOutTestUser() {
  * - fail() - start returning a failure response
  * - success() - go back to returning a success response
  */
-function getGlobalFetchMock(): typeof fetch {
+function getGlobalFetchMock(mockResponse?: Partial<Response>): typeof fetch {
     let queue: QueueItem[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let responses = new Map<string, (params: any) => OnyxResponse<any>>();
@@ -303,6 +291,7 @@ function getGlobalFetchMock(): typeof fetch {
 
                       return Promise.resolve({jsonCode: 200});
                   },
+                  ...mockResponse,
               };
 
     const mockFetch = jest.fn().mockImplementation((input: RequestInfo, options?: RequestInit) => {

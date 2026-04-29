@@ -25,6 +25,7 @@ import type {PlatformStackRouteProp} from '@libs/Navigation/PlatformStackNavigat
 import type {TransactionDuplicateNavigatorParamList} from '@libs/Navigation/types';
 import {getLinkedTransactionID, getReportAction} from '@libs/ReportActionsUtils';
 import {isReportIDApproved, isSettled} from '@libs/ReportUtils';
+import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import {doesDeleteNavigateBackUrlIncludeSpecificDuplicatesReview, getParentReportActionDeletionStatus, hasLoadedReportActions, isThreadReportDeleted} from '@libs/TransactionNavigationUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -43,9 +44,9 @@ function TransactionDuplicateReview() {
     const {isOffline} = useNetwork();
     const isASAPSubmitBetaEnabled = isBetaEnabled(CONST.BETAS.ASAP_SUBMIT);
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${route.params.threadReportID}`);
-    const [parentReportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report?.parentReportID}`);
+    const [parentReportLoadingState] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${report?.parentReportID}`);
     const [deleteTransactionNavigateBackUrl] = useOnyx(ONYXKEYS.NVP_DELETE_TRANSACTION_NAVIGATE_BACK_URL);
-    const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${route.params.threadReportID}`);
+    const [reportLoadingState] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${route.params.threadReportID}`);
     const [expenseReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.parentReportID}`);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
     const reportAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
@@ -71,6 +72,7 @@ function TransactionDuplicateReview() {
     const originalTransactionIDsListRef = useRef<string[] | null>(null);
     const [transactionIDsList = getEmptyArray<string>()] = useOnyx(ONYXKEYS.TRANSACTION_THREAD_NAVIGATION_TRANSACTION_IDS);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
+    const [betas] = useOnyx(ONYXKEYS.BETAS);
 
     const onPreviewPressed = useCallback(
         (reportID: string) => {
@@ -114,8 +116,8 @@ function TransactionDuplicateReview() {
         if (!route.params.threadReportID || report?.reportID) {
             return;
         }
-        openReport({reportID: route.params.threadReportID, introSelected});
-    }, [report?.reportID, route.params.threadReportID, introSelected]);
+        openReport({reportID: route.params.threadReportID, introSelected, betas});
+    }, [report?.reportID, route.params.threadReportID, introSelected, betas]);
 
     useEffect(() => {
         if (!transactionID) {
@@ -124,13 +126,13 @@ function TransactionDuplicateReview() {
         getDuplicateTransactionDetails(transactionID);
     }, [transactionID]);
 
-    const hasLoadedThreadReportActions = hasLoadedReportActions(reportMetadata, isOffline);
-    const isThreadReportDeletedForReview = isThreadReportDeleted(report, reportMetadata, isOffline);
+    const hasLoadedThreadReportActions = hasLoadedReportActions(reportLoadingState, isOffline);
+    const isThreadReportDeletedForReview = isThreadReportDeleted(report, reportLoadingState, isOffline);
     const {hasLoadedParentReportActions, wasParentActionDeleted} = getParentReportActionDeletionStatus({
         parentReportID: report?.parentReportID,
         parentReportActionID: report?.parentReportActionID,
         parentReportAction: reportAction,
-        parentReportMetadata,
+        parentReportLoadingState,
         isOffline,
         shouldRequireParentReportActionID: false,
         shouldTreatMissingParentReportAsDeleted: true,
@@ -166,12 +168,21 @@ function TransactionDuplicateReview() {
     // eslint-disable-next-line rulesdir/no-negated-variables
     const shouldShowNotFound = !isNavigatingBackToDeletedReview && (wasTransactionDeleted || (!isLoadingPage && !transactionID));
 
+    const reasonAttributes: SkeletonSpanReasonAttributes = {
+        context: 'TransactionDuplicateReview',
+        hasLoadedThreadReportActions,
+        hasLoadedParentReportActions,
+    };
+
     if (isLoadingPage) {
         return (
             <ScreenWrapper testID="TransactionDuplicateReview">
                 <View style={[styles.flex1]}>
                     <View style={[styles.appContentHeader, styles.borderBottom]}>
-                        <ReportHeaderSkeletonView onBackButtonPress={() => {}} />
+                        <ReportHeaderSkeletonView
+                            onBackButtonPress={() => {}}
+                            reasonAttributes={reasonAttributes}
+                        />
                     </View>
                     <ReportActionsSkeletonView />
                 </View>

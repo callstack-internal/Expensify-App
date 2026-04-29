@@ -35,8 +35,6 @@ jest.mock('react-native/Libraries/LogBox/LogBox', () => ({
     },
 }));
 
-jest.mock('@libs/Navigation/AppNavigator/usePreloadFullScreenNavigators', () => jest.fn());
-
 jest.mock('@react-navigation/native');
 
 // Mock Avatar component to prevent act() warnings from state updates during render
@@ -191,7 +189,7 @@ function signInAndGetApp(reportName = '', participantAccountIDs?: number[]): Pro
         })
         .then(async () => TestHelper.signInWithTestUser(USER_A_ACCOUNT_ID, USER_A_EMAIL, undefined, undefined, 'A'))
         .then(() => {
-            subscribeToUserEvents(USER_A_ACCOUNT_ID);
+            subscribeToUserEvents(USER_A_ACCOUNT_ID, undefined);
             return waitForBatchedUpdates();
         })
         .then(async () => {

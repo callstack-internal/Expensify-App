@@ -1,6 +1,7 @@
 import {useIsFocused} from '@react-navigation/native';
 import {Str} from 'expensify-common';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {InteractionManager, Keyboard} from 'react-native';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import {useDelegateNoAccessActions, useDelegateNoAccessState} from '@components/DelegateNoAccessModalProvider';
@@ -40,6 +41,7 @@ import {getEarliestErrorField, getLatestErrorField} from '@libs/ErrorUtils';
 import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {SettingsNavigatorParamList} from '@libs/Navigation/types';
+import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import {close} from '@userActions/Modal';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
@@ -58,6 +60,7 @@ function ContactMethodDetailsPage({route}: ContactMethodDetailsPageProps) {
     const [myDomainSecurityGroups, myDomainSecurityGroupsResult] = useOnyx(ONYXKEYS.MY_DOMAIN_SECURITY_GROUPS);
     const [securityGroups, securityGroupsResult] = useOnyx(ONYXKEYS.COLLECTION.SECURITY_GROUP);
     const [isLoadingReportData = true, isLoadingReportDataResult] = useOnyx(ONYXKEYS.IS_LOADING_REPORT_DATA);
+    const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [isValidateCodeFormVisible, setIsValidateCodeFormVisible] = useState(true);
     const {isActingAsDelegate} = useDelegateNoAccessState();
     const {showDelegateNoAccessModal} = useDelegateNoAccessActions();
@@ -92,8 +95,8 @@ function ContactMethodDetailsPage({route}: ContactMethodDetailsPageProps) {
      * Attempt to set this contact method as user's "Default contact method"
      */
     const setAsDefault = useCallback(() => {
-        setContactMethodAsDefault(currentUserPersonalDetails, contactMethod, formatPhoneNumber, backTo);
-    }, [currentUserPersonalDetails, contactMethod, formatPhoneNumber, backTo]);
+        setContactMethodAsDefault(currentUserPersonalDetails, allPolicies, contactMethod, formatPhoneNumber, backTo);
+    }, [currentUserPersonalDetails, allPolicies, contactMethod, formatPhoneNumber, backTo]);
 
     /**
      * Determines whether the user's primary login switching is restricted
@@ -234,8 +237,14 @@ function ContactMethodDetailsPage({route}: ContactMethodDetailsPageProps) {
         return menuItems;
     }, [isValidateCodeFormVisible, translate, turnOnDeleteModal, isDefaultContactMethod, icons.Trashcan]);
 
+    const reasonAttributes: SkeletonSpanReasonAttributes = {
+        context: 'ContactMethodDetailsPage',
+        isLoadingOnyxValues,
+        isLoadingReportData,
+    };
+
     if (isLoadingOnyxValues || (isLoadingReportData && isEmptyObject(loginList))) {
-        return <FullscreenLoadingIndicator />;
+        return <FullscreenLoadingIndicator reasonAttributes={reasonAttributes} />;
     }
 
     if (!contactMethod || !loginData) {

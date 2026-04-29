@@ -1,4 +1,5 @@
 import type {OnyxEntry} from 'react-native-onyx';
+import {getIsOffline} from '@libs/NetworkState';
 import {openReport} from '@userActions/Report';
 import type {Beta, IntroSelected} from '@src/types/onyx';
 
@@ -31,6 +32,9 @@ function markReportSeen(reportID: string): void {
  * prefetcher and reports they opened directly.
  */
 function prefetchReport({reportID, introSelected, betas}: PrefetchInputs): void {
+    if (getIsOffline()) {
+        return;
+    }
     if (seenThisSession.has(reportID)) {
         return;
     }

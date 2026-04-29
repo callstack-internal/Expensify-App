@@ -1,7 +1,7 @@
 import delay from 'lodash/delay';
 import React, {useEffect, useRef, useState} from 'react';
 import type {LayoutChangeEvent, StyleProp, ViewStyle} from 'react-native';
-import {StyleSheet, View} from 'react-native';
+import {View} from 'react-native';
 import useNetwork from '@hooks/useNetwork';
 import useThemeStyles from '@hooks/useThemeStyles';
 import AttachmentOfflineIndicator from './AttachmentOfflineIndicator';
@@ -89,6 +89,7 @@ function ImageWithLoading({
             onLayout={onLayout}
         >
             {isLoading && !!previewUri && !isImageCached && (
+                // eslint-disable-next-line react-native-a11y/has-valid-accessibility-ignores-invert-colors -- Custom Image wrapper does not support this prop.
                 <Image
                     // eslint-disable-next-line react/jsx-props-no-spreading
                     {...rest}

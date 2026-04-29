@@ -1,7 +1,7 @@
 import delay from 'lodash/delay';
 import React, {useEffect, useRef, useState} from 'react';
 import type {LayoutChangeEvent, StyleProp, ViewStyle} from 'react-native';
-import {StyleSheet, View} from 'react-native';
+import {View} from 'react-native';
 import useNetwork from '@hooks/useNetwork';
 import useThemeStyles from '@hooks/useThemeStyles';
 import AttachmentOfflineIndicator from './AttachmentOfflineIndicator';

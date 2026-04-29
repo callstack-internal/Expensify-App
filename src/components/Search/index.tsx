@@ -1188,7 +1188,7 @@ function Search({
                     backTo,
                     parentReportID: transactionItem?.reportID,
                     parentReportActionID: transactionItem?.reportAction?.reportActionID,
-                    chatReportID: transactionItem?.report?.chatReportID,
+                    chatReportID: transactionItem?.reportID,
                     policyID: transactionItem?.policyID,
                 }),
             );

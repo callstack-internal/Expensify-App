@@ -455,7 +455,7 @@ function MoneyRequestReportTransactionList({
                         ...routeParams,
                         parentReportID: report?.reportID,
                         parentReportActionID: iouAction?.reportActionID,
-                        chatReportID: report?.chatReportID,
+                        chatReportID: report?.reportID,
                         policyID: report?.policyID,
                     }),
                 );

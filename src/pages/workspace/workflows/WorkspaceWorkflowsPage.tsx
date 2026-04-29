@@ -1,6 +1,7 @@
 import {hasSeenTourSelector} from '@selectors/Onboarding';
 import {Str} from 'expensify-common';
 import React, {useCallback, useEffect, useMemo} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {InteractionManager, View} from 'react-native';
 import type {TupleToUnion} from 'type-fest';
 import ApprovalWorkflowSection from '@components/ApprovalWorkflowSection';
@@ -117,13 +118,13 @@ function WorkspaceWorkflowsPage({policy, route}: WorkspaceWorkflowsPageProps) {
     const [transactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
     const [betas] = useOnyx(ONYXKEYS.BETAS);
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
-    const [accountManagerReportID] = useOnyx(ONYXKEYS.ACCOUNT_MANAGER_REPORT_ID);
     const workspaceCards = getAllCardsForWorkspace(workspaceAccountID, cardList, cardFeeds);
     const {showConfirmModal} = useConfirmModal();
     const isSmartLimitEnabled = isSmartLimitEnabledUtil(workspaceCards);
     const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
     const [reimbursementAccount] = useOnyx(ONYXKEYS.REIMBURSEMENT_ACCOUNT);
     const [account] = useOnyx(ONYXKEYS.ACCOUNT);
+    const accountManagerReportID = account?.accountManagerReportID;
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
     const [isSelfTourViewed] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {selector: hasSeenTourSelector});

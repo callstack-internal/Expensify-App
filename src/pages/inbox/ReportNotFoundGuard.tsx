@@ -38,7 +38,7 @@ function ReportNotFoundGuard({children}: ReportNotFoundGuardProps) {
 
     const report = useReportWithPreview(reportIDFromRoute);
     const [userLeavingStatus = false] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_USER_IS_LEAVING_ROOM}${reportIDFromRoute}`);
-    const [isLoadingInitialReportActions = true] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${reportIDFromRoute}`, {
+    const [isLoadingInitialReportActions = true] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${reportIDFromRoute}`, {
         selector: isLoadingInitialReportActionsSelector,
     });
     const [isLoadingReportData = true] = useOnyx(ONYXKEYS.IS_LOADING_REPORT_DATA);
@@ -123,14 +123,14 @@ function ReportNotFoundInnerGuard({reportIDFromPath, children}: ReportNotFoundIn
     const reportIDFromRoute = getNonEmptyStringOnyxID(reportIDFromPath);
 
     const report = useReportWithPreview(reportIDFromRoute);
-    const [parentReportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report?.parentReportID}`);
+    const [parentReportLoadingState] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${report?.parentReportID}`);
     const parentReportAction = useParentReportAction(report);
 
     const {isParentActionMissingAfterLoad, isParentActionDeleted} = getParentReportActionDeletionStatus({
         parentReportID: report?.parentReportID,
         parentReportActionID: report?.parentReportActionID,
         parentReportAction,
-        parentReportMetadata,
+        parentReportLoadingState,
         isOffline,
     });
     // eslint-disable-next-line rulesdir/no-negated-variables

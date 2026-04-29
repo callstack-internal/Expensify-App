@@ -2,6 +2,7 @@ import {delegateEmailSelector, isUserValidatedSelector} from '@selectors/Account
 import {hasSeenTourSelector} from '@selectors/Onboarding';
 import truncate from 'lodash/truncate';
 import React, {useContext, useEffect} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {InteractionManager, View} from 'react-native';
 import type {ValueOf} from 'type-fest';
 import Button from '@components/Button';
@@ -424,7 +425,12 @@ function MoneyReportHeaderSecondaryActionsPlaceholder({primaryAction}: {primaryA
 
 function MoneyReportHeaderSecondaryActions({reportID, primaryAction, isReportInSearch, backTo, dropdownMenuRef}: MoneyReportHeaderSecondaryActionsProps) {
     return (
-        <NavigationDeferredMount placeholder={<MoneyReportHeaderSecondaryActionsPlaceholder primaryAction={primaryAction} />}>
+        <NavigationDeferredMount
+            placeholder={<MoneyReportHeaderSecondaryActionsPlaceholder primaryAction={primaryAction} />}
+            // RHPReportScreen remounts this tree on setParams arrow-nav without firing a transition,
+            // so we must not wait for one — see https://github.com/Expensify/App/issues/88931.
+            waitForUpcomingTransition={false}
+        >
             <MoneyReportHeaderSecondaryActionsInner
                 reportID={reportID}
                 primaryAction={primaryAction}

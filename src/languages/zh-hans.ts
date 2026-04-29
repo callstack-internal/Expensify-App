@@ -2040,8 +2040,8 @@ const translations: TranslationDeepObject<typeof en> = {
         account: '账户',
         general: '常规',
         helpPage: {
-            title: '帮助与支持',
-            description: '我们全天候 24/7 为您提供帮助',
+            title: '有疑问吗？',
+            description: '我们全天候为您提供帮助。',
             helpSite: '帮助网站',
             conciergeChat: 'Concierge',
             conciergeChatDescription: '你的个人 AI 助理',

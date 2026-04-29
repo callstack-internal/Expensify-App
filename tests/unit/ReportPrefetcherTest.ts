@@ -1,4 +1,4 @@
-import prefetchReport from '@libs/Search/ReportPrefetcher';
+import {markReportSeen, prefetchReport} from '@libs/Search/ReportPrefetcher';
 import * as ReportActions from '@userActions/Report';
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
 
@@ -10,7 +10,8 @@ const mockOpenReport = jest.mocked(ReportActions.openReport);
 
 // Each test uses a unique reportID because the prefetcher dedupes per-session at module level.
 const REPORT_FRESH = '500001';
-const REPORT_DEDUPED = '500004';
+const REPORT_DEDUPED = '500002';
+const REPORT_ALREADY_SEEN = '500003';
 
 beforeEach(() => {
     mockOpenReport.mockClear();
@@ -32,5 +33,14 @@ describe('prefetchReport', () => {
         await waitForBatchedUpdates();
 
         expect(mockOpenReport).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips a report that was previously marked as seen by direct navigation', async () => {
+        markReportSeen(REPORT_ALREADY_SEEN);
+
+        prefetchReport({reportID: REPORT_ALREADY_SEEN, introSelected: undefined, betas: undefined});
+        await waitForBatchedUpdates();
+
+        expect(mockOpenReport).not.toHaveBeenCalled();
     });
 });

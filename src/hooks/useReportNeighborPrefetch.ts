@@ -1,15 +1,14 @@
 import {useEffect} from 'react';
-import prefetchReport from '@libs/Search/ReportPrefetcher';
+import {markReportSeen, prefetchReport} from '@libs/Search/ReportPrefetcher';
 import ONYXKEYS from '@src/ONYXKEYS';
 import useOnyx from './useOnyx';
 
 /**
- * Number of upcoming reports to warm. Forward-only — Next is the dominant
- * action, the snapshot hydrator already covers the first paint when the user
- * taps Prev, and prefetching `currentIndex - 1` would mostly hit reports the
- * user already loaded by getting to where they are now.
+ * Forward-leaning window — Next is the dominant action, but the user can
+ * also open a middle row directly and tap Prev, so warm one report behind too.
  */
 const PREFETCH_FORWARD_COUNT = 2;
+const PREFETCH_BACKWARD_COUNT = 1;
 
 /**
  * Wait briefly so that rapid Next-Next-Next taps only enqueue one round of
@@ -25,13 +24,14 @@ type Inputs = {
 };
 
 /**
- * Prefetches data for upcoming reports in the current search so tapping Next
- * finds full openReport-shaped data already in Onyx.
+ * Prefetches data for the navigational neighbors (next 2, previous 1) of the
+ * current report so tapping Next/Prev finds full openReport-shaped data
+ * already in Onyx.
  *
  * Inputs are received from the caller, which already pays for `useSearchSections`,
  * so this hook does not trigger a second pass over the snapshot data.
  */
-function useUpcomingReportPrefetch({allReports, currentIndex}: Inputs): void {
+function useReportNeighborPrefetch({allReports, currentIndex}: Inputs): void {
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
     const [betas] = useOnyx(ONYXKEYS.BETAS);
 
@@ -40,9 +40,17 @@ function useUpcomingReportPrefetch({allReports, currentIndex}: Inputs): void {
             return;
         }
 
+        // The page already loads the current report — mark it seen so a later
+        // navigation that puts it at `-1` doesn't refire openReport for it.
+        const currentReportID = allReports.at(currentIndex);
+        if (currentReportID) {
+            markReportSeen(currentReportID);
+        }
+
         const timer = setTimeout(() => {
             const upcoming = allReports.slice(currentIndex + 1, currentIndex + 1 + PREFETCH_FORWARD_COUNT);
-            for (const reportID of upcoming) {
+            const previous = allReports.slice(Math.max(0, currentIndex - PREFETCH_BACKWARD_COUNT), currentIndex);
+            for (const reportID of [...upcoming, ...previous]) {
                 if (!reportID) {
                     continue;
                 }
@@ -54,4 +62,4 @@ function useUpcomingReportPrefetch({allReports, currentIndex}: Inputs): void {
     }, [currentIndex, allReports, introSelected, betas]);
 }
 
-export default useUpcomingReportPrefetch;
+export default useReportNeighborPrefetch;

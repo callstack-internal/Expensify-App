@@ -4,9 +4,9 @@ import type {OnyxEntry} from 'react-native-onyx';
 import PrevNextButtons from '@components/PrevNextButtons';
 import Text from '@components/Text';
 import useOnyx from '@hooks/useOnyx';
+import useReportNeighborPrefetch from '@hooks/useReportNeighborPrefetch';
 import useSearchSections from '@hooks/useSearchSections';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useUpcomingReportPrefetch from '@hooks/useUpcomingReportPrefetch';
 import Navigation from '@navigation/Navigation';
 import {saveLastSearchParams} from '@userActions/ReportNavigation';
 import {search} from '@userActions/Search';
@@ -66,7 +66,7 @@ function MoneyRequestReportNavigationInner({reportID, shouldDisplayNarrowVersion
     const hidePrevButton = currentIndex === 0;
     const shouldDisplayNavigationArrows = allReports.length > 1 && currentIndex !== -1 && !!lastSearchQuery?.queryJSON;
 
-    useUpcomingReportPrefetch({allReports, currentIndex});
+    useReportNeighborPrefetch({allReports, currentIndex});
 
     useEffect(() => {
         if (!lastSearchQuery?.queryJSON) {

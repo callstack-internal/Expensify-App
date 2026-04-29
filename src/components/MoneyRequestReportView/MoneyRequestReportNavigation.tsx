@@ -6,6 +6,7 @@ import Text from '@components/Text';
 import useOnyx from '@hooks/useOnyx';
 import useSearchSections from '@hooks/useSearchSections';
 import useThemeStyles from '@hooks/useThemeStyles';
+import useUpcomingReportPrefetch from '@hooks/useUpcomingReportPrefetch';
 import Navigation from '@navigation/Navigation';
 import {saveLastSearchParams} from '@userActions/ReportNavigation';
 import {search} from '@userActions/Search';
@@ -64,6 +65,8 @@ function MoneyRequestReportNavigationInner({reportID, shouldDisplayNarrowVersion
     const hideNextButton = !lastSearchQuery?.hasMoreResults && currentIndex === allReports.length - 1;
     const hidePrevButton = currentIndex === 0;
     const shouldDisplayNavigationArrows = allReports.length > 1 && currentIndex !== -1 && !!lastSearchQuery?.queryJSON;
+
+    useUpcomingReportPrefetch({allReports, currentIndex});
 
     useEffect(() => {
         if (!lastSearchQuery?.queryJSON) {

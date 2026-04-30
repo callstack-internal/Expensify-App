@@ -795,7 +795,12 @@ function PureReportActionItem({
                 />
             );
         } else if (isSimpleMessageAction(action)) {
-            children = <SimpleMessageContent action={action} />;
+            children = (
+                <SimpleMessageContent
+                    action={action}
+                    report={report}
+                />
+            );
         } else if (isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.FORWARDED)) {
             const wasAutoForwarded = getOriginalMessage(action)?.automaticAction ?? false;
             if (wasAutoForwarded) {

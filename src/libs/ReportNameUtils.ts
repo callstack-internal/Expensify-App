@@ -70,8 +70,8 @@ import {
     getRemovedCardFeedMessage,
     getRenamedAction,
     getRenamedCardFeedMessage,
+    getReportAction,
     getReportActionMessage as getReportActionMessageFromActionsUtils,
-    getReportActionMessageText,
     getReportActionText,
     getSettlementAccountLockedMessage,
     getSubmitsToUpdateMessage,
@@ -114,6 +114,7 @@ import {
     isTagModificationAction,
     isTransactionThread,
     isUnapprovedAction,
+    wasActionTakenByCurrentUser,
 } from './ReportActionsUtils';
 // eslint-disable-next-line import/no-cycle
 import {
@@ -472,7 +473,12 @@ function computeReportNameBasedOnReportAction(
         });
     }
     if (parentReportAction?.actionName === CONST.REPORT.ACTIONS.TYPE.RECEIPT_SCAN_FAILED) {
-        return getReportActionMessageText(parentReportAction) || translate('iou.receiptScanningFailed');
+        // RECEIPT_SCAN_FAILED is submitted by Concierge, so use the IOU action to determine edit permission
+        let iouAction = getReportAction(report?.parentReportID, report?.parentReportActionID);
+        if (!isActionOfType(iouAction, CONST.REPORT.ACTIONS.TYPE.IOU)) {
+            iouAction = getReportAction(parentReport?.parentReportID, parentReport?.parentReportActionID);
+        }
+        return translate('violations.smartscanFailed', {canEdit: wasActionTakenByCurrentUser(iouAction)});
     }
 
     if (isReimbursementDeQueuedOrCanceledAction(parentReportAction)) {

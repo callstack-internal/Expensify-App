@@ -1,0 +1,58 @@
+import type {OnyxEntry} from 'react-native-onyx';
+import {shouldReuseInitialTransaction} from '@libs/TransactionUtils';
+import type {ReceiptFile} from '@pages/iou/request/step/IOURequestStepScan/types';
+import {setMoneyRequestReceipt} from '@userActions/IOU/Receipt';
+import {buildOptimisticTransactionAndCreateDraft} from '@userActions/TransactionEdit';
+import type {CurrentUserPersonalDetails} from '@src/types/onyx/PersonalDetails';
+import type Transaction from '@src/types/onyx/Transaction';
+import type {FileObject} from '@src/types/utils/Attachment';
+
+type BuildReceiptFilesParams = {
+    files: FileObject[];
+    getFileSource: (file: FileObject) => string;
+    initialTransaction: OnyxEntry<Transaction>;
+    initialTransactionID: string;
+    currentUserPersonalDetails: CurrentUserPersonalDetails;
+    reportID: string;
+    shouldAcceptMultipleFiles: boolean;
+    isMultiScanEnabled: boolean;
+    transactions: Transaction[];
+};
+
+/**
+ * Builds ReceiptFile[] from captured/picked files, creating optimistic transaction drafts as needed
+ * and storing receipts in Onyx via setMoneyRequestReceipt.
+ */
+function buildReceiptFiles({
+    files,
+    getFileSource,
+    initialTransaction,
+    initialTransactionID,
+    currentUserPersonalDetails,
+    reportID,
+    shouldAcceptMultipleFiles,
+    isMultiScanEnabled,
+    transactions,
+}: BuildReceiptFilesParams): ReceiptFile[] {
+    const receiptFiles: ReceiptFile[] = [];
+
+    for (const [index, file] of files.entries()) {
+        const source = getFileSource(file);
+        const transaction = shouldReuseInitialTransaction(initialTransaction, shouldAcceptMultipleFiles, index, isMultiScanEnabled, transactions)
+            ? initialTransaction
+            : buildOptimisticTransactionAndCreateDraft({
+                  initialTransaction: initialTransaction as Partial<Transaction>,
+                  currentUserPersonalDetails,
+                  reportID,
+              });
+
+        const transactionID = transaction?.transactionID ?? initialTransactionID;
+        receiptFiles.push({file, source, transactionID});
+        setMoneyRequestReceipt(transactionID, source, file.name ?? '', true, file.type);
+    }
+
+    return receiptFiles;
+}
+
+export default buildReceiptFiles;
+export type {BuildReceiptFilesParams};

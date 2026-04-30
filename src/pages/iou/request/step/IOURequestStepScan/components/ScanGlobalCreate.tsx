@@ -19,6 +19,7 @@ import startScanProcessSpan from '@pages/iou/request/step/IOURequestStepScan/uti
 import useScanFileReadabilityCheck from '@pages/iou/request/step/IOURequestStepScan/utils/useScanFileReadabilityCheck';
 import {setMoneyRequestParticipants, setMoneyRequestParticipantsFromReport} from '@userActions/IOU';
 import {setTransactionReport} from '@userActions/Transaction';
+import {removeDraftTransactionsByIDs} from '@userActions/TransactionEdit';
 import CONST from '@src/CONST';
 import type {IOUType} from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -57,6 +58,10 @@ function ScanGlobalCreate({report, iouType, reportID, transactionID, transaction
     const processReceipts = (files: FileObject[]) => {
         if (files.length === 0) {
             return;
+        }
+
+        if (!isMultiScanEnabled) {
+            removeDraftTransactionsByIDs(Object.keys(draftTransactionIDs ?? {}), true);
         }
 
         const receiptFiles = buildReceiptFiles({

@@ -1,5 +1,6 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
+import {RESULTS} from 'react-native-permissions';
 import withCurrentUserPersonalDetails from '@components/withCurrentUserPersonalDetails';
 import type {WithCurrentUserPersonalDetailsProps} from '@components/withCurrentUserPersonalDetails';
 import useOnyx from '@hooks/useOnyx';
@@ -12,6 +13,7 @@ import useReportAttributes from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import {createTransaction, getMoneyRequestParticipantOptions} from '@libs/actions/IOU/MoneyRequest';
 import {startSplitBill} from '@libs/actions/IOU/Split';
+import {clearUserLocation, setUserLocation} from '@libs/actions/UserLocation';
 import getCurrentPosition from '@libs/getCurrentPosition';
 import {calculateDefaultReimbursable} from '@libs/IOUUtils';
 import Log from '@libs/Log';
@@ -21,10 +23,12 @@ import Camera from '@pages/iou/request/step/IOURequestStepScan/components/Camera
 import GpsPermissionGate from '@pages/iou/request/step/IOURequestStepScan/components/GpsPermissionGate';
 import MultiScanGate from '@pages/iou/request/step/IOURequestStepScan/components/MultiScanGate';
 import useScanCapture from '@pages/iou/request/step/IOURequestStepScan/hooks/useScanCapture';
+import {getLocationPermission} from '@pages/iou/request/step/IOURequestStepScan/LocationPermission';
 import type {ReceiptFile} from '@pages/iou/request/step/IOURequestStepScan/types';
 import buildReceiptFiles from '@pages/iou/request/step/IOURequestStepScan/utils/buildReceiptFiles';
 import getFileSource from '@pages/iou/request/step/IOURequestStepScan/utils/getFileSource';
 import useScanFileReadabilityCheck from '@pages/iou/request/step/IOURequestStepScan/utils/useScanFileReadabilityCheck';
+import {removeDraftTransactionsByIDs} from '@userActions/TransactionEdit';
 import CONST from '@src/CONST';
 import type {IOUType} from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -84,6 +88,28 @@ function ScanSkipConfirmation({report, iouType, reportID, transactionID, transac
     const transactionTaxValue = transaction?.taxValue ?? getTaxValue(policy, transaction, transactionTaxCode) ?? '';
 
     useScanFileReadabilityCheck(transactions, Object.keys(draftTransactionIDs ?? {}), setIsMultiScanEnabled);
+
+    // Pre-fetch location if GPS is required and permission is already granted
+    useEffect(() => {
+        const gpsRequired = transaction?.amount === 0 && iouType !== CONST.IOU.TYPE.SPLIT;
+        if (!gpsRequired) {
+            return;
+        }
+
+        getLocationPermission().then((status) => {
+            if (status !== RESULTS.GRANTED && status !== RESULTS.LIMITED) {
+                return;
+            }
+
+            clearUserLocation();
+            getCurrentPosition(
+                (successData) => {
+                    setUserLocation({longitude: successData.coords.longitude, latitude: successData.coords.latitude});
+                },
+                () => {},
+            );
+        });
+    }, [transaction?.amount, iouType]);
 
     const cancelShutterSpans = () => {
         cancelSpan(CONST.TELEMETRY.SPAN_SCAN_PROCESS_AND_NAVIGATE);
@@ -192,6 +218,10 @@ function ScanSkipConfirmation({report, iouType, reportID, transactionID, transac
     const processReceipts = (files: FileObject[]) => {
         if (files.length === 0) {
             return;
+        }
+
+        if (!isMultiScanEnabled) {
+            removeDraftTransactionsByIDs(Object.keys(draftTransactionIDs ?? {}), true);
         }
 
         const newReceiptFiles = buildReceiptFiles({

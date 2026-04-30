@@ -13,7 +13,7 @@ import getFileSource from '@pages/iou/request/step/IOURequestStepScan/utils/getF
 import startScanProcessSpan from '@pages/iou/request/step/IOURequestStepScan/utils/startScanProcessSpan';
 import useScanFileReadabilityCheck from '@pages/iou/request/step/IOURequestStepScan/utils/useScanFileReadabilityCheck';
 import {setMultipleMoneyRequestParticipantsFromReport} from '@userActions/IOU';
-import {setMoneyRequestReceipt} from '@userActions/IOU/Receipt';
+import {removeDraftTransactionsByIDs} from '@userActions/TransactionEdit';
 import type {IOUType} from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import {validTransactionDraftIDsSelector} from '@src/selectors/TransactionDraft';
@@ -48,6 +48,10 @@ function ScanFromReport({report, iouType, reportID, transactionID, transaction, 
             return;
         }
 
+        if (!isMultiScanEnabled) {
+            removeDraftTransactionsByIDs(Object.keys(draftTransactionIDs ?? {}), true);
+        }
+
         const receiptFiles = buildReceiptFiles({
             files,
             getFileSource,
@@ -76,8 +80,7 @@ function ScanFromReport({report, iouType, reportID, transactionID, transaction, 
         <MultiScanGate>
             {PDFValidationComponent}
             <Camera
-                onCapture={(file, source) => {
-                    setMoneyRequestReceipt(transactionID, source, file.name ?? '', true, file.type);
+                onCapture={(file) => {
                     processReceipts([file]);
                 }}
                 onDrop={validateFiles}

@@ -104,7 +104,6 @@ import {
     getReasonAndReportActionThatRequiresAttention,
     getReportActionWithSmartscanError,
     getReportIDFromLink,
-    getReportName as getReportNameDeprecated,
     getReportOrDraftReport,
     getReportPreviewMessage,
     getReportStatusTranslation,
@@ -271,6 +270,7 @@ const computeReportName = (
     personalDetailsList?: PersonalDetailsList,
     reportActions?: OnyxCollection<ReportActions>,
     currentUserID = currentUserAccountID,
+    conciergeReportID?: string,
 ) =>
     computeReportNameOriginal({
         report,
@@ -282,6 +282,7 @@ const computeReportName = (
         reportActions,
         currentUserAccountID: currentUserID,
         currentUserLogin: currentUserEmail,
+        conciergeReportID,
     });
 const participantsPersonalDetails: PersonalDetailsList = {
     '1': {
@@ -1815,22 +1816,25 @@ describe('ReportUtils', () => {
 
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${fromReport.reportID}`, fromReport);
 
-                const transactionThread = {
-                    ...LHNTestUtils.getFakeReport(),
-                    type: CONST.REPORT.TYPE.CHAT,
-                    reportID: '123',
-                    parentReportID: '456',
-                };
-
                 const unreportedTransactionAction = {
+                    reportActionID: 'unreported-action-id',
                     actionName: CONST.REPORT.ACTIONS.TYPE.UNREPORTED_TRANSACTION,
                     originalMessage: {
                         fromReportID: '789',
                     },
                 } as ReportAction;
 
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                const reportName = getReportNameDeprecated({report: transactionThread, parentReportActionParam: unreportedTransactionAction});
+                const transactionThread = {
+                    ...LHNTestUtils.getFakeReport(),
+                    type: CONST.REPORT.TYPE.CHAT,
+                    reportID: '123',
+                    parentReportID: '456',
+                    parentReportActionID: 'unreported-action-id',
+                };
+
+                const reportName = computeReportName(transactionThread, undefined, undefined, undefined, undefined, undefined, {
+                    [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}456`]: {'unreported-action-id': unreportedTransactionAction},
+                });
 
                 // Should NOT contain HTML tags
                 expect(reportName).not.toContain('<a href');
@@ -2034,16 +2038,17 @@ describe('ReportUtils', () => {
                     participants: buildParticipantsFromAccountIDs([currentUserAccountID, CONST.ACCOUNT_ID.CONCIERGE]),
                 };
 
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                const reportName = getReportNameDeprecated({
+                const reportName = computeReportName(
                     report,
-                    policy,
-                    personalDetails: participantsPersonalDetails,
-                    transactions: [],
-                    isReportArchived: false,
-                    reports: [],
-                    conciergeReportID: explicitConciergeReportID,
-                });
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    participantsPersonalDetails,
+                    undefined,
+                    currentUserAccountID,
+                    explicitConciergeReportID,
+                );
                 expect(reportName).toBe(CONST.CONCIERGE_DISPLAY_NAME);
             });
 
@@ -2054,16 +2059,17 @@ describe('ReportUtils', () => {
                     participants: buildParticipantsFromAccountIDs([currentUserAccountID, 1]),
                 };
 
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                const reportName = getReportNameDeprecated({
+                const reportName = computeReportName(
                     report,
-                    policy,
-                    personalDetails: participantsPersonalDetails,
-                    transactions: [],
-                    isReportArchived: false,
-                    reports: [],
-                    conciergeReportID: explicitConciergeReportID,
-                });
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    participantsPersonalDetails,
+                    undefined,
+                    currentUserAccountID,
+                    explicitConciergeReportID,
+                );
                 expect(reportName).not.toBe(CONST.CONCIERGE_DISPLAY_NAME);
                 // Should generate name from participants instead
                 expect(reportName).toBe('Ragnar Lothbrok');
@@ -2076,8 +2082,7 @@ describe('ReportUtils', () => {
                     participants: buildParticipantsFromAccountIDs([currentUserAccountID, CONST.ACCOUNT_ID.CONCIERGE]),
                 };
 
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
-                const reportName = getReportNameDeprecated({report, policy, personalDetails: participantsPersonalDetails});
+                const reportName = computeReportName(report, undefined, undefined, undefined, undefined, participantsPersonalDetails);
                 expect(reportName).toBe(CONST.CONCIERGE_DISPLAY_NAME);
             });
         });
@@ -13874,8 +13879,7 @@ describe('ReportUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${conciergeReport.reportID}`, conciergeReport);
             await Onyx.merge(ONYXKEYS.CONCIERGE_REPORT_ID, conciergeReport.reportID);
 
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            const name = getReportNameDeprecated({report: conciergeReport, conciergeReportID: conciergeReport.reportID});
+            const name = computeReportName(conciergeReport, undefined, undefined, undefined, undefined, undefined, undefined, currentUserAccountID, conciergeReport.reportID);
             expect(name).toBe(CONST.CONCIERGE_DISPLAY_NAME);
         });
 
@@ -13886,8 +13890,7 @@ describe('ReportUtils', () => {
             };
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${regularReport.reportID}`, regularReport);
 
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            const name = getReportNameDeprecated({report: regularReport, conciergeReportID: '999'});
+            const name = computeReportName(regularReport, undefined, undefined, undefined, undefined, undefined, undefined, currentUserAccountID, '999');
             expect(name).not.toBe(CONST.CONCIERGE_DISPLAY_NAME);
         });
     });

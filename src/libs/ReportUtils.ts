@@ -244,6 +244,7 @@ import {
     getInvoicesChatName,
     getMoneyRequestReportName,
     getPolicyExpenseChatName,
+    getReportName as getReportNameFromNameUtils,
 } from './ReportNameUtils';
 import type {ArchivedReportsIDSet} from './SearchUIUtils';
 import {shouldRestrictUserBillableActions} from './SubscriptionUtils';
@@ -5736,9 +5737,7 @@ function parseReportActionHtmlToText(reportAction: OnyxEntry<ReportAction>, repo
     const reportIDToName: Record<string, string> = {};
     for (const match of matches) {
         if (match[1] !== childReportID) {
-            // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define, @typescript-eslint/no-deprecated
-            reportIDToName[match[1]] = getReportName({report: getReportOrDraftReport(match[1]), conciergeReportID}) ?? '';
+            reportIDToName[match[1]] = getReportNameFromNameUtils(getReportOrDraftReport(match[1]), reportAttributesDerivedValue) ?? '';
         }
     }
 
@@ -6151,9 +6150,7 @@ function getParentNavigationSubtitle(
     }
 
     return {
-        // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        reportName: getReportName({report: parentReport, reportAttributes, conciergeReportID}),
+        reportName: getReportNameFromNameUtils(parentReport, reportAttributes ?? reportAttributesDerivedValue),
         workspaceName: getPolicyName({report: parentReport, policy, returnEmptyIfNotFound: true}),
     };
 }
@@ -6938,9 +6935,7 @@ function getMovedTransactionMessage(translate: LocalizedTranslate, action: Repor
 
     const report = fromReport ?? toReport;
 
-    // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const reportName = Parser.htmlToText(getReportName({report, conciergeReportID}) ?? report?.reportName ?? '');
+    const reportName = Parser.htmlToText(getReportNameFromNameUtils(report, reportAttributesDerivedValue) ?? report?.reportName ?? '');
     const reportUrl = getReportURLForCurrentContext(report?.reportID);
     if (typeof fromReportID === 'undefined') {
         return translate('iou.movedTransactionTo', reportUrl, reportName);
@@ -6959,9 +6954,7 @@ function getUnreportedTransactionMessage(
 
     const fromReport = deprecatedAllReports?.[`${ONYXKEYS.COLLECTION.REPORT}${fromReportID}`];
 
-    // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const reportName = Parser.htmlToText(getReportName({report: fromReport, conciergeReportID}) ?? fromReport?.reportName ?? '');
+    const reportName = Parser.htmlToText(getReportNameFromNameUtils(fromReport, reportAttributesDerivedValue) ?? fromReport?.reportName ?? '');
 
     let reportUrl = getReportURLForCurrentContext(fromReportID);
 
@@ -12867,14 +12860,10 @@ function getChatListItemReportName(action: ReportAction & {reportName?: string},
     }
 
     if (report?.reportID) {
-        // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        return getReportName({report: getReport(report?.reportID, deprecatedAllReports), conciergeReportID});
+        return getReportNameFromNameUtils(getReport(report?.reportID, deprecatedAllReports), reportAttributesDerivedValue);
     }
 
-    // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    return getReportName({report, conciergeReportID});
+    return getReportNameFromNameUtils(report, reportAttributesDerivedValue);
 }
 
 /**
@@ -13767,9 +13756,6 @@ export {
     excludeParticipantsForDisplay,
     getReceiptUploadErrorReason,
     getAncestors,
-    // This will be fixed as follow up https://github.com/Expensify/App/pull/75357
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    getReportName,
     doesReportContainRequestsFromMultipleUsers,
     shouldBlockSubmitDueToStrictPolicyRules,
     isWorkspaceChat,
@@ -13807,6 +13793,5 @@ export type {
     SelfDMParameters,
     OptimisticReportAction,
     OptimisticAnnounceChat,
-    GetReportNameParams,
     CreateDraftTransactionParams,
 };

@@ -5041,6 +5041,7 @@ function getColumnsToShow({
     isExpenseReportViewFromIOUReport = false,
     shouldShowBillableColumn = false,
     shouldShowReimbursableColumn = false,
+    shouldShowCommentsColumn = false,
     reportCurrency,
     shouldUseStrictDefaultExpenseColumns = false,
 }: {
@@ -5053,8 +5054,10 @@ function getColumnsToShow({
     isExpenseReportViewFromIOUReport?: boolean;
     shouldShowBillableColumn?: boolean;
     shouldShowReimbursableColumn?: boolean;
-    shouldUseStrictDefaultExpenseColumns?: boolean;
+    shouldShowCommentsColumn?: boolean;
     reportCurrency?: string;
+    shouldUseStrictDefaultExpenseColumns?: boolean;
+    policy?: OnyxTypes.Policy;
 }): SearchColumnType[] {
     if (type === CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT) {
         const defaultReportColumns: SearchColumnType[] = [
@@ -5168,11 +5171,11 @@ function getColumnsToShow({
               [CONST.SEARCH.TABLE_COLUMNS.TAX_RATE]: false,
               [CONST.SEARCH.TABLE_COLUMNS.TAX_AMOUNT]: false,
               [CONST.SEARCH.TABLE_COLUMNS.EXCHANGE_RATE]: false,
-              [CONST.SEARCH.TABLE_COLUMNS.ORIGINAL_AMOUNT]: false,
               [CONST.SEARCH.TABLE_COLUMNS.REIMBURSABLE]: shouldShowReimbursableColumn,
               [CONST.SEARCH.TABLE_COLUMNS.BILLABLE]: shouldShowBillableColumn,
-              [CONST.SEARCH.TABLE_COLUMNS.COMMENTS]: true,
-              [CONST.SEARCH.TABLE_COLUMNS.TOTAL_AMOUNT]: true,
+              [CONST.SEARCH.TABLE_COLUMNS.TOTAL_AMOUNT]: false,
+              [CONST.SEARCH.TABLE_COLUMNS.TOTAL]: true,
+              [CONST.SEARCH.TABLE_COLUMNS.COMMENTS]: shouldShowCommentsColumn,
           }
         : {
               [CONST.SEARCH.TABLE_COLUMNS.AVATAR]: true,
@@ -5233,7 +5236,7 @@ function getColumnsToShow({
                 }
             }
 
-            if (!addedColumns.has(CONST.SEARCH.TABLE_COLUMNS.COMMENTS)) {
+            if (shouldShowCommentsColumn && !addedColumns.has(CONST.SEARCH.TABLE_COLUMNS.COMMENTS)) {
                 result.push(CONST.SEARCH.TABLE_COLUMNS.COMMENTS);
             }
 
@@ -5296,18 +5299,27 @@ function getColumnsToShow({
                 columns[CONST.SEARCH.TABLE_COLUMNS.CARD] = true;
             }
 
-            if (transaction.taxCode) {
+            // If the transaction has any tax info (code, value, or amount),
+            // show both TAX_RATE and TAX_AMOUNT columns. Zero is valid tax data.
+            const hasTaxInfo = !!transaction.taxCode || transaction.taxAmount != null || (transaction.taxValue !== undefined && transaction.taxValue !== '');
+            if (hasTaxInfo) {
                 columns[CONST.SEARCH.TABLE_COLUMNS.TAX_RATE] = true;
-            }
-
-            if (transaction.taxAmount) {
                 columns[CONST.SEARCH.TABLE_COLUMNS.TAX_AMOUNT] = true;
             }
 
             const hasExchangeRate = getExchangeRate(transaction, reportCurrency) !== '';
-            if (hasExchangeRate || transaction.originalAmount) {
-                columns[CONST.SEARCH.TABLE_COLUMNS.ORIGINAL_AMOUNT] = true;
+            if (hasExchangeRate) {
                 columns[CONST.SEARCH.TABLE_COLUMNS.EXCHANGE_RATE] = true;
+            }
+            // Expense report view: TOTAL (workspace currency) is always shown; add AMOUNT
+            // (transaction's own currency) when a conversion exists so both are visible.
+            // Search page: show ORIGINAL_AMOUNT column (transaction's original amount).
+            if (hasExchangeRate) {
+                if (isExpenseReportView) {
+                    columns[CONST.SEARCH.TABLE_COLUMNS.TOTAL_AMOUNT] = true;
+                } else {
+                    columns[CONST.SEARCH.TABLE_COLUMNS.ORIGINAL_AMOUNT] = true;
+                }
             }
 
             if (!Array.isArray(data)) {
@@ -5390,8 +5402,11 @@ function getColumnsToShow({
             CONST.SEARCH.TABLE_COLUMNS.TYPE,
             CONST.SEARCH.TABLE_COLUMNS.DATE,
             CONST.SEARCH.TABLE_COLUMNS.STATUS,
+            // TOTAL_AMOUNT (Amount) is data-driven in expense report view: shown only when a
+            // conversion exists. In search view, TOTAL_AMOUNT is always-true via the default
+            // columns map, so we don't need to list it here as non-data for either surface.
+            CONST.SEARCH.TABLE_COLUMNS.TOTAL,
             CONST.SEARCH.TABLE_COLUMNS.COMMENTS,
-            CONST.SEARCH.TABLE_COLUMNS.TOTAL_AMOUNT,
             CONST.SEARCH.TABLE_COLUMNS.REIMBURSABLE,
             CONST.SEARCH.TABLE_COLUMNS.BILLABLE,
             CONST.SEARCH.TABLE_COLUMNS.BASE_62_REPORT_ID,

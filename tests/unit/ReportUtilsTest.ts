@@ -590,7 +590,8 @@ describe('ReportUtils', () => {
                     ],
                 },
                 adminsChatReportID: '1',
-                companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                // SMALL keeps this in the tasks path; MICRO routes through Phase 1 followups (no tasks generated).
+                companySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
             });
 
             expect(title).toHaveBeenCalledWith(
@@ -620,7 +621,8 @@ describe('ReportUtils', () => {
                     ],
                 },
                 adminsChatReportID: '1',
-                companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                // SMALL keeps this in the tasks path; MICRO routes through Phase 1 followups (no tasks generated).
+                companySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
             });
 
             expect(description).toHaveBeenCalledWith(
@@ -805,7 +807,10 @@ describe('ReportUtils', () => {
             }
         });
 
-        it('should add guidedSetupData when email has a +', async () => {
+        it('should generate followups (not tasks) for `+` email users in the MANAGE_TEAM + MICRO Phase 1 cohort', async () => {
+            // Phase 1 cohort opens the followups path to all MANAGE_TEAM 1-10 users — including `+` aliases
+            // and phone-primary sign-ups. The `+` exclusion in `isPostingTasksInAdminsRoom` was scoped to
+            // the trial-banner placement (PR #53895, #71355) and must not block followups for cohort users.
             const adminsChatReportID = '1';
             await waitForBatchedUpdates();
 
@@ -821,8 +826,12 @@ describe('ReportUtils', () => {
                 selectedInterestedFeatures: ['areCompanyCardsEnabled'],
                 companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
             });
-            expect(result?.guidedSetupData).toHaveLength(3);
-            expect(result?.optimisticData.filter((i) => i.key === `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${adminsChatReportID}`)).toHaveLength(0);
+            // Followups path active: no tasks generated, bespoke welcome posted optimistically to #admins.
+            expect(result?.guidedSetupData.filter((data) => data.type === 'task')).toHaveLength(0);
+            expect(result?.bespokeWelcomeMessage).toBeDefined();
+            expect(result?.optimisticConciergeReportActionID).toBeDefined();
+            const adminsRoomActions = result?.optimisticData.filter((i) => i.key === `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${adminsChatReportID}`);
+            expect(adminsRoomActions?.length).toBeGreaterThan(0);
         });
 
         it('should not create tasks if the task feature is not in the selected interested features', () => {
@@ -875,7 +884,7 @@ describe('ReportUtils', () => {
             mergeSpy.mockRestore();
         });
 
-        it('passes MICRO company size to onboarding task parameters', () => {
+        it('passes company size to onboarding task parameters', () => {
             const title = jest.fn();
             const description = jest.fn();
 
@@ -895,18 +904,19 @@ describe('ReportUtils', () => {
                     ],
                 },
                 adminsChatReportID: '1',
-                companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                // SMALL keeps the tasks path active; MICRO routes through Phase 1 followups (no tasks generated).
+                companySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
             });
 
             expect(title).toHaveBeenCalledWith(
                 expect.objectContaining<OnboardingTaskLinks>({
-                    onboardingCompanySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                    onboardingCompanySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
                 }),
             );
 
             expect(description).toHaveBeenCalledWith(
                 expect.objectContaining<OnboardingTaskLinks>({
-                    onboardingCompanySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                    onboardingCompanySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
                 }),
             );
         });
@@ -986,7 +996,8 @@ describe('ReportUtils', () => {
                     ],
                 },
                 adminsChatReportID: '1',
-                companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                // SMALL keeps the tasks path active; MANAGE_TEAM + MICRO routes through Phase 1 followups.
+                companySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
                 isSelfTourViewed: true,
             });
 
@@ -1014,7 +1025,8 @@ describe('ReportUtils', () => {
                     ],
                 },
                 adminsChatReportID: '1',
-                companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                // SMALL keeps the tasks path active; MANAGE_TEAM + MICRO routes through Phase 1 followups.
+                companySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
                 isSelfTourViewed: false,
             });
 
@@ -1045,7 +1057,8 @@ describe('ReportUtils', () => {
                     ],
                 },
                 adminsChatReportID: '1',
-                companySize: CONST.ONBOARDING_COMPANY_SIZE.MICRO,
+                // SMALL keeps the tasks path active; MANAGE_TEAM + MICRO routes through Phase 1 followups.
+                companySize: CONST.ONBOARDING_COMPANY_SIZE.SMALL,
                 isSelfTourViewed: undefined,
             });
 

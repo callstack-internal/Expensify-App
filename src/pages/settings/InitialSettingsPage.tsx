@@ -522,13 +522,11 @@ function InitialSettingsPage({currentUserPersonalDetails}: InitialSettingsPagePr
             bottomContent={tabBarContent}
             bottomContentStyle={styles.overflowVisible}
         >
-            {shouldUseNarrowLayout && (
-                <TopBarWithLoadingBar
-                    breadcrumbLabel={translate('initialSettingsPage.account')}
-                    shouldDisplaySearch
-                    shouldDisplayHelpButton
-                />
-            )}
+            <TopBarWithLoadingBar
+                breadcrumbLabel={translate('initialSettingsPage.account')}
+                shouldDisplaySearch={shouldUseNarrowLayout}
+                shouldDisplayHelpButton={shouldUseNarrowLayout}
+            />
             <ScrollView
                 ref={scrollViewRef}
                 onScroll={onScroll}

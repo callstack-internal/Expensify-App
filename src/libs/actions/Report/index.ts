@@ -5256,6 +5256,7 @@ async function completeOnboarding({
         selfDMCreatedReportActionID: selfDMParameters.createdReportActionID,
         bespokeWelcomeMessage,
         optimisticConciergeReportActionID,
+        selectedInterestedFeatures: selectedInterestedFeatures && selectedInterestedFeatures.length > 0 ? JSON.stringify(selectedInterestedFeatures) : undefined,
     };
 
     if (shouldWaitForRHPVariantInitialization) {

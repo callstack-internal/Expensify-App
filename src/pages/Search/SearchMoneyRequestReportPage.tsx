@@ -91,7 +91,8 @@ function SearchMoneyRequestReportPageContent({route, reportIDFromRoute}: SearchM
     const isFocused = useIsFocused();
 
     // State tracks whether the report was ever loaded in this mount lifecycle.
-    // State (not ref) so it can be read during render to suppress the error page.
+    // Must be state (not ref) because it's read during render in shouldShowAccessErrorPage
+    // and the React Compiler forbids ref access during render.
     const [hasEverHadReport, setHasEverHadReport] = useState(false);
     const isInitialMountRef = useRef(true);
 
@@ -162,13 +163,11 @@ function SearchMoneyRequestReportPageContent({route, reportIDFromRoute}: SearchM
     // shouldShowAccessErrorPage uses hasEverHadReport to suppress the "not found"
     // page while dismissal completes.
     useEffect(() => {
-        const shouldMarkAsLoaded = !!report && !hasEverHadReport;
-        const shouldDismiss = !report && hasEverHadReport && isFocused;
-
-        if (shouldMarkAsLoaded) {
+        if (!!report && !hasEverHadReport) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setHasEverHadReport(true);
         }
-        if (shouldDismiss) {
+        if (!report && hasEverHadReport && isFocused) {
             Navigation.dismissModal();
         }
     }, [report, hasEverHadReport, isFocused]);

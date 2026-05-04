@@ -31,7 +31,6 @@ import {READ_COMMANDS, SIDE_EFFECT_REQUEST_COMMANDS, WRITE_COMMANDS} from '@libs
 import asyncOpenURL from '@libs/asyncOpenURL';
 import * as ErrorUtils from '@libs/ErrorUtils';
 import FraudProtection from '@libs/FraudProtection';
-import Fullstory from '@libs/Fullstory';
 import getPlatform from '@libs/getPlatform';
 import HttpUtils from '@libs/HttpUtils';
 import Log from '@libs/Log';
@@ -100,10 +99,17 @@ Onyx.connect({
     },
 });
 
-// Use connectWithoutView because it is only for fullstory initialization
+// Use connectWithoutView because it is only for fullstory initialization.
+// Dynamic import keeps the @fullstory/browser SDK out of the startup chunk; the early-return on missing
+// accountID avoids loading the SDK on the initial cached-callback fire when no user is signed in yet.
 Onyx.connectWithoutView({
     key: ONYXKEYS.USER_METADATA,
-    callback: Fullstory.consentAndIdentify,
+    callback: (value) => {
+        if (!value?.accountID) {
+            return;
+        }
+        import('@libs/Fullstory').then(({default: Fullstory}) => Fullstory.consentAndIdentify(value)).catch(() => {});
+    },
 });
 
 let stashedSession: Session = {};

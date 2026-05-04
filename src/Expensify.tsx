@@ -1,6 +1,6 @@
 import HybridAppModule from '@expensify/react-native-hybrid-app';
 import type * as Sentry from '@sentry/react-native';
-import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import React, {Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import type {NativeEventSubscription} from 'react-native';
 import {AppState, Platform} from 'react-native';
 import Onyx from 'react-native-onyx';
@@ -11,7 +11,6 @@ import CONFIG from './CONFIG';
 import CONST from './CONST';
 import DeepLinkHandler from './DeepLinkHandler';
 import DelegateAccessHandler from './DelegateAccessHandler';
-import FullstoryInitHandler from './FullstoryInitHandler';
 import GlobalModals from './GlobalModals';
 import useDebugShortcut from './hooks/useDebugShortcut';
 import useIsAuthenticated from './hooks/useIsAuthenticated';
@@ -36,6 +35,9 @@ import ONYXKEYS from './ONYXKEYS';
 import PriorityModeHandler from './PriorityModeHandler';
 import type {Route} from './ROUTES';
 import {useSplashScreenActions, useSplashScreenState} from './SplashScreenStateContext';
+
+// Lazy-loaded so the @fullstory/browser SDK is not parsed during the ManualAppStartup span.
+const LazyFullstoryInitHandler = React.lazy(() => import('./FullstoryInitHandler'));
 
 Onyx.registerLogger(({level, message, parameters}) => {
     if (level === 'alert') {
@@ -275,7 +277,9 @@ function Expensify() {
             {shouldInit && <GlobalModals />}
             <PriorityModeHandler />
             <DelegateAccessHandler />
-            <FullstoryInitHandler />
+            <Suspense fallback={null}>
+                <LazyFullstoryInitHandler />
+            </Suspense>
             <DeepLinkHandler onInitialUrl={setInitialUrl} />
             <AppleAuthWrapper />
             {/* Wait for the initial URL to resolve before mounting NavigationRoot, because its initialState

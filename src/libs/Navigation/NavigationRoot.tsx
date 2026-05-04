@@ -10,7 +10,6 @@ import usePrevious from '@hooks/usePrevious';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';
 import useThemePreference from '@hooks/useThemePreference';
-import FS from '@libs/Fullstory';
 import Log from '@libs/Log';
 import shouldOpenLastVisitedPath from '@libs/shouldOpenLastVisitedPath';
 import {getPathFromURL} from '@libs/Url';
@@ -85,10 +84,10 @@ function parseAndLogRoute(state: NavigationState) {
         saveSettingsTabPathToSessionStorage(currentPath);
     }
 
-    // Fullstory Page navigation tracking
+    // Fullstory Page navigation tracking — dynamic import keeps the @fullstory/browser SDK out of the startup chunk.
     const focusedRouteName = focusedRoute?.name;
     if (focusedRouteName) {
-        new FS.Page(focusedRouteName, {path: currentPath}).start();
+        import('@libs/Fullstory').then(({default: FS}) => new FS.Page(focusedRouteName, {path: currentPath}).start()).catch(() => {});
     }
 }
 

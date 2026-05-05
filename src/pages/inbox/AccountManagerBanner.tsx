@@ -1,5 +1,6 @@
 import {personalDetailsSelector} from '@selectors/PersonalDetails';
 import React, {useState} from 'react';
+import type {OnyxEntry} from 'react-native-onyx';
 import Banner from '@components/Banner';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
@@ -12,22 +13,23 @@ import {isConciergeChatReport} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+import type * as OnyxTypes from '@src/types/onyx';
 
 type AccountManagerBannerProps = {
     reportID: string | undefined;
 };
+
+const accountManagerDataSelector = (account: OnyxEntry<OnyxTypes.Account>) => ({
+    accountManagerReportID: account?.accountManagerReportID,
+    accountManagerAccountID: account?.accountManagerAccountID,
+});
 
 function AccountManagerBanner({reportID}: AccountManagerBannerProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Lightbulb']);
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(reportID)}`);
-    const [accountManagerData] = useOnyx(ONYXKEYS.ACCOUNT, {
-        selector: (account) => ({
-            accountManagerReportID: account?.accountManagerReportID,
-            accountManagerAccountID: account?.accountManagerAccountID,
-        }),
-    });
+    const [accountManagerData] = useOnyx(ONYXKEYS.ACCOUNT, {selector: accountManagerDataSelector});
     const accountManagerReportID = accountManagerData?.accountManagerReportID;
     const accountManagerAccountID = Number(accountManagerData?.accountManagerAccountID ?? CONST.DEFAULT_MISSING_ID);
     const [participantPersonalDetail] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {

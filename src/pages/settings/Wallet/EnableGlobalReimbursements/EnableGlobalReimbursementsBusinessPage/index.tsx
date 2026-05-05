@@ -1,4 +1,5 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useMemo} from 'react';
+import type {OnyxEntry} from 'react-native-onyx';
 import InteractiveStepWrapper from '@components/InteractiveStepWrapper';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
@@ -13,6 +14,7 @@ import type {Country} from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
+import type * as OnyxTypes from '@src/types/onyx';
 import AverageReimbursement from './subPages/AverageReimbursement';
 import BusinessType from './subPages/BusinessType';
 import Confirmation from './subPages/Confirmation';
@@ -33,7 +35,8 @@ const pages = [
 function EnableGlobalReimbursementsBusinessPage({route}: EnableGlobalReimbursementsBusinessPageProps) {
     const {translate} = useLocalize();
     const bankAccountID = route.params?.bankAccountID;
-    const [bankAccount] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST, {selector: (list) => list?.[bankAccountID]});
+    const bankAccountSelector = useMemo(() => (list: OnyxEntry<OnyxTypes.BankAccountList>) => list?.[bankAccountID], [bankAccountID]);
+    const [bankAccount] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST, {selector: bankAccountSelector});
     const currency = bankAccount?.bankCurrency ?? '';
     const country = bankAccount?.bankCountry as Country;
 

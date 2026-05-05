@@ -3,7 +3,7 @@ import {createPoliciesForDomainCardsSelector} from '@selectors/Policy';
 import {FlashList} from '@shopify/flash-list';
 import lodashSortBy from 'lodash/sortBy';
 import type {ReactElement} from 'react';
-import React from 'react';
+import React, {useMemo} from 'react';
 import type {GestureResponderEvent, StyleProp, ViewStyle} from 'react-native';
 import {View} from 'react-native';
 import type {OnyxCollection} from 'react-native-onyx';
@@ -198,10 +198,8 @@ function PaymentMethodList({
               .filter((card) => !!card.domainName)
               .map((card) => card.domainName)
         : [];
-    const policiesForDomainCardsSelectorFactory = createPoliciesForDomainCardsSelector(cardDomains);
-    const [policiesForAssignedCards] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {
-        selector: (policies: OnyxCollection<Policy>) => policiesForDomainCardsSelectorFactory(policies),
-    });
+    const policiesForDomainCardsSelectorMemoized = useMemo(() => createPoliciesForDomainCardsSelector(cardDomains), [cardDomains]);
+    const [policiesForAssignedCards] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {selector: policiesForDomainCardsSelectorMemoized});
     // Temporarily disabled because P2P debit cards are disabled.
     // const [fundList = getEmptyObject<FundList>()] = useOnyx(ONYXKEYS.FUND_LIST);
 

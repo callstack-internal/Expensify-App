@@ -1,5 +1,5 @@
 import {accountIDSelector, emailSelector} from '@selectors/Session';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {View} from 'react-native';
 import type {OnyxCollection} from 'react-native-onyx';
 import ActivityIndicator from '@components/ActivityIndicator';
@@ -84,15 +84,16 @@ function NewReportWorkspaceSelectionPage({route}: NewReportWorkspaceSelectionPag
 
     const [allPolicyTags] = useOnyx(ONYXKEYS.COLLECTION.POLICY_TAGS);
 
-    const [policiesWithEmptyReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {
-        selector: (reports: OnyxCollection<OnyxTypes.Report>) => {
+    const policiesWithEmptyReportsSelector = useMemo(
+        () => (reports: OnyxCollection<OnyxTypes.Report>) => {
             if (!accountID) {
                 return {};
             }
-
             return getPolicyIDsWithEmptyReportsForAccount(reports, accountID);
         },
-    });
+        [accountID],
+    );
+    const [policiesWithEmptyReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {selector: policiesWithEmptyReportsSelector});
 
     const navigateToNewReport = (optimisticReportID: string) => {
         if (isRHPOnReportInSearch) {

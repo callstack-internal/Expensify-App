@@ -1,5 +1,6 @@
 import React, {useCallback, useMemo} from 'react';
 import {View} from 'react-native';
+import type {OnyxEntry} from 'react-native-onyx';
 import ConnectionLayout from '@components/ConnectionLayout';
 import RenderHTML from '@components/RenderHTML';
 import SelectionList from '@components/SelectionList';
@@ -23,8 +24,12 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES, {DYNAMIC_ROUTES} from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
+import type * as OnyxTypes from '@src/types/onyx';
 
 type DynamicReconciliationAccountSettingsPageProps = PlatformStackScreenProps<SettingsNavigatorParamList, typeof SCREENS.WORKSPACE.ACCOUNTING.DYNAMIC_RECONCILIATION_ACCOUNT_SETTINGS>;
+
+const policyConnectionsSelector = (policy: OnyxEntry<OnyxTypes.Policy>) => policy?.connections;
+const policyWorkspaceAccountIDSelector = (policy: OnyxEntry<OnyxTypes.Policy>) => policy?.workspaceAccountID;
 
 function DynamicReconciliationAccountSettingsPage({route}: DynamicReconciliationAccountSettingsPageProps) {
     const {policyID, connection} = route.params;
@@ -36,8 +41,8 @@ function DynamicReconciliationAccountSettingsPage({route}: DynamicReconciliation
     const connectionName = getConnectionNameFromRouteParam(connection);
     const defaultFundID = useDefaultFundID(policyID);
 
-    const [connections] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {selector: (policy) => policy?.connections});
-    const [workspaceAccountID = CONST.DEFAULT_NUMBER_ID] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {selector: (policy) => policy?.workspaceAccountID});
+    const [connections] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {selector: policyConnectionsSelector});
+    const [workspaceAccountID = CONST.DEFAULT_NUMBER_ID] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {selector: policyWorkspaceAccountIDSelector});
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
     const [cardSettings] = useOnyx(`${ONYXKEYS.COLLECTION.PRIVATE_EXPENSIFY_CARD_SETTINGS}${defaultFundID}`);
     const programKey = getCardProgramKey(cardSettings);

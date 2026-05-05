@@ -43,6 +43,8 @@ type AmountFieldProps = {
     policy: OnyxEntry<OnyxTypes.Policy>;
 };
 
+const sessionAccountIDSelector = (session: OnyxEntry<OnyxTypes.Session>) => session?.accountID;
+
 function AmountField({
     action,
     amount,
@@ -69,7 +71,7 @@ function AmountField({
     const {getCurrencyDecimals} = useCurrencyListActions();
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [splitDraftTransaction] = useOnyx(`${ONYXKEYS.COLLECTION.SPLIT_TRANSACTION_DRAFT}${transactionID}`);
-    const [currentUserAccountID] = useOnyx(ONYXKEYS.SESSION, {selector: (session) => session?.accountID});
+    const [currentUserAccountID] = useOnyx(ONYXKEYS.SESSION, {selector: sessionAccountIDSelector});
 
     const [isCurrencyPickerVisible, setIsCurrencyPickerVisible] = useState(false);
 

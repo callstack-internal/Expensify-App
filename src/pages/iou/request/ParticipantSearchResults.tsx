@@ -4,6 +4,7 @@ import type {Ref} from 'react';
 import type {GestureResponderEvent} from 'react-native';
 // eslint-disable-next-line no-restricted-imports
 import {InteractionManager} from 'react-native';
+import type {OnyxEntry} from 'react-native-onyx';
 import {RESULTS} from 'react-native-permissions';
 import ContactPermissionModal from '@components/ContactPermissionModal';
 import EmptySelectionListContent from '@components/EmptySelectionListContent';
@@ -44,10 +45,13 @@ import type {IOUAction, IOUType} from '@src/CONST';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+import type * as OnyxTypes from '@src/types/onyx';
 import type {Participant} from '@src/types/onyx/IOU';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import ImportContactButton from './ImportContactButton';
 import ParticipantSelectorFooter from './ParticipantSelectorFooter';
+
+const hasNudgeMigrationTimestampSelector = (tryNewDot: OnyxEntry<OnyxTypes.TryNewDot>) => !!tryNewDot?.nudgeMigration?.timestamp;
 
 const sanitizedSelectedParticipant = (option: Option | OptionData, iouType: IOUType) => ({
     ...lodashPick(option, 'accountID', 'login', 'isPolicyExpenseChat', 'reportID', 'searchText', 'policyID', 'isSelfDM', 'text', 'phoneNumber', 'displayName'),
@@ -143,9 +147,7 @@ function ParticipantSearchResults({
     const [userBillingGracePeriodEnds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END);
     const [ownerBillingGracePeriodEnd] = useOnyx(ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END);
     const [amountOwed] = useOnyx(ONYXKEYS.NVP_PRIVATE_AMOUNT_OWED);
-    const [hasBeenAddedToNudgeMigration] = useOnyx(ONYXKEYS.NVP_TRY_NEW_DOT, {
-        selector: (tryNewDot) => !!tryNewDot?.nudgeMigration?.timestamp,
-    });
+    const [hasBeenAddedToNudgeMigration] = useOnyx(ONYXKEYS.NVP_TRY_NEW_DOT, {selector: hasNudgeMigrationTimestampSelector});
     const {isRestrictedToPreferredPolicy, preferredPolicyID} = usePreferredPolicy();
     const optimisticTransactions = useTransactionDraftValues();
 

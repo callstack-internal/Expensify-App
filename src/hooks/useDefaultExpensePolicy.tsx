@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {OnyxCollection} from 'react-native-onyx';
 import {isPaidGroupPolicy, isPolicyAccessible} from '@libs/PolicyUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -38,9 +39,8 @@ export default function useDefaultExpensePolicy() {
     const [preferredPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${preferredPolicyID}`);
 
     // Selector returns only the qualifying policy ID — stable value, prevents re-renders
-    const [singleGroupPolicyID] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {
-        selector: (policies) => getSingleGroupPolicyID(policies, login),
-    });
+    const singleGroupPolicyIDSelector = useMemo(() => (policies: OnyxCollection<Policy>) => getSingleGroupPolicyID(policies, login), [login]);
+    const [singleGroupPolicyID] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {selector: singleGroupPolicyIDSelector});
 
     // Per-key lookup for the single group policy (only fires when that specific policy changes)
     const [singleGroupPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${singleGroupPolicyID}`);

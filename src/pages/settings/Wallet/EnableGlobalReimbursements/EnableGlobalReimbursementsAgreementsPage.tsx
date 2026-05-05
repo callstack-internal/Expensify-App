@@ -1,4 +1,5 @@
-import React from 'react';
+import React, {useMemo} from 'react';
+import type {OnyxEntry} from 'react-native-onyx';
 import AgreementsFullStep from '@components/SubStepForms/AgreementsFullStep';
 import useOnyx from '@hooks/useOnyx';
 import Navigation from '@libs/Navigation/Navigation';
@@ -9,6 +10,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
 import INPUT_IDS from '@src/types/form/EnableGlobalReimbursementsForm';
+import type * as OnyxTypes from '@src/types/onyx';
 
 type EnableGlobalReimbursementsAgreementsPageProps = PlatformStackScreenProps<SettingsNavigatorParamList, typeof SCREENS.SETTINGS.WALLET.ENABLE_GLOBAL_REIMBURSEMENTS_AGREEMENTS>;
 
@@ -21,7 +23,8 @@ const inputIDs = {
 
 function EnableGlobalReimbursementsAgreementsPage({route}: EnableGlobalReimbursementsAgreementsPageProps) {
     const bankAccountID = route.params?.bankAccountID;
-    const [currency = ''] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST, {selector: (list) => list?.[bankAccountID]?.bankCurrency});
+    const bankCurrencySelector = useMemo(() => (list: OnyxEntry<OnyxTypes.BankAccountList>) => list?.[bankAccountID]?.bankCurrency, [bankAccountID]);
+    const [currency = ''] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST, {selector: bankCurrencySelector});
     const [enableGlobalReimbursementsDraft] = useOnyx(ONYXKEYS.FORMS.ENABLE_GLOBAL_REIMBURSEMENTS_DRAFT);
     const defaultValues: Record<keyof typeof inputIDs, boolean> = Object.fromEntries(
         Object.keys(inputIDs).map((key) => {

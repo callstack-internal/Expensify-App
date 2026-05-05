@@ -1,6 +1,6 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View} from 'react-native';
-import type {OnyxEntry, OnyxKey} from 'react-native-onyx';
+import type {OnyxEntry} from 'react-native-onyx';
 import useAncestors from '@hooks/useAncestors';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useDelegateAccountID from '@hooks/useDelegateAccountID';
@@ -37,17 +37,15 @@ function ChronosTimerHeaderButton({report}: ChronosTimerHeaderButtonProps) {
     const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
 
     const {accountID: currentUserAccountID, timezone: timezoneParam} = useCurrentUserPersonalDetails();
-    const reportActionsOnyxKey = `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}` as OnyxKey;
-    const [isTimerRunning] = useOnyx<OnyxKey, boolean>(
-        reportActionsOnyxKey,
-        {
-            selector: (reportActions: unknown): boolean => {
-                const sorted = getSortedReportActionsForDisplay(reportActions as OnyxEntry<ReportActions>, canPerformWriteAction, false, visibleReportActionsData, report.reportID);
+    const isTimerRunningSelector = useMemo(
+        () =>
+            (reportActions: OnyxEntry<ReportActions>): boolean => {
+                const sorted = getSortedReportActionsForDisplay(reportActions, canPerformWriteAction, false, visibleReportActionsData, report.reportID);
                 return isChronosTimerRunningFromVisibleActions(sorted, currentUserAccountID);
             },
-        },
         [canPerformWriteAction, visibleReportActionsData, report.reportID, currentUserAccountID],
     );
+    const [isTimerRunning] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {selector: isTimerRunningSelector});
 
     const ancestors = useAncestors(report);
     const isInSidePanel = useIsInSidePanel();

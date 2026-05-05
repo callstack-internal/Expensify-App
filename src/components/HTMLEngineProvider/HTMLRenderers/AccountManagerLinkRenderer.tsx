@@ -1,5 +1,6 @@
 import React, {useCallback} from 'react';
 import type {StyleProp, TextStyle} from 'react-native';
+import type {OnyxEntry} from 'react-native-onyx';
 import type {CustomRendererProps, TPhrasing, TText} from 'react-native-render-html';
 import {TNodeChildrenRenderer} from 'react-native-render-html';
 import * as HTMLEngineUtils from '@components/HTMLEngineProvider/htmlEngineUtils';
@@ -11,12 +12,15 @@ import Navigation from '@libs/Navigation/Navigation';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+import type * as OnyxTypes from '@src/types/onyx';
 
 type AccountManagerLinkRendererProps = CustomRendererProps<TText | TPhrasing>;
 
+const accountManagerReportIDSelector = (account: OnyxEntry<OnyxTypes.Account>) => account?.accountManagerReportID;
+
 function AccountManagerLinkRenderer({tnode, style}: AccountManagerLinkRendererProps) {
     const styles = useThemeStyles();
-    const [accountManagerReportID] = useOnyx(ONYXKEYS.ACCOUNT, {selector: (account) => account?.accountManagerReportID});
+    const [accountManagerReportID] = useOnyx(ONYXKEYS.ACCOUNT, {selector: accountManagerReportIDSelector});
 
     // Define link style based on context
     let linkStyle: StyleProp<TextStyle> = styles.link;

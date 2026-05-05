@@ -117,13 +117,7 @@ function ReportActionItemParentAction({
         [ancestors],
     );
 
-    const [ancestorsReportNameValuePairs] = useOnyx(
-        ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
-        {
-            selector: ancestorReportNameValuePairsSelector,
-        },
-        [ancestors],
-    );
+    const [ancestorsReportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {selector: ancestorReportNameValuePairsSelector});
 
     const ancestorReportActionsSelector = useCallback(
         (allReportActions: OnyxCollection<ReportActions>) => {
@@ -133,13 +127,7 @@ function ReportActionItemParentAction({
         [ancestors],
     );
 
-    const [ancestorsReportActions] = useOnyx(
-        ONYXKEYS.COLLECTION.REPORT_ACTIONS,
-        {
-            selector: ancestorReportActionsSelector,
-        },
-        [ancestors],
-    );
+    const [ancestorsReportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS, {selector: ancestorReportActionsSelector});
 
     const ancestorDraftSelector = useCallback(
         (allDrafts: OnyxCollection<ReportActionsDrafts>) => {
@@ -161,7 +149,7 @@ function ReportActionItemParentAction({
         [ancestors, ancestorsReportActions],
     );
 
-    const [ancestorDraftMessages] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS, {selector: ancestorDraftSelector}, [ancestors, ancestorsReportActions]);
+    const [ancestorDraftMessages] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS, {selector: ancestorDraftSelector});
 
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);

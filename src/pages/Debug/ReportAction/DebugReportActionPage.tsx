@@ -43,13 +43,7 @@ function DebugReportActionPage({
         [reportActionID],
     );
 
-    const [reportAction] = useOnyx(
-        `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`,
-        {
-            selector: getReportActionSelector,
-        },
-        [getReportActionSelector],
-    );
+    const [reportAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {selector: getReportActionSelector});
     const transactionID = getLinkedTransactionID(reportAction);
 
     const DebugDetailsTab = useCallback(

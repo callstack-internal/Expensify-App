@@ -76,7 +76,7 @@ function TripDetailsPage({route}: TripDetailsPageProps) {
     const {reservation, prevReservation, reservationType, reservationIcon, isCancelled} = getReservationDetailsFromSequence(icons, tripReservations, Number(sequenceIndex));
     const travelerPersonalDetailsSelector = (personalDetails: OnyxEntry<PersonalDetailsList>) => pickTravelerPersonalDetails(personalDetails, reservation);
 
-    const [travelerPersonalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {selector: travelerPersonalDetailsSelector}, [travelerPersonalDetailsSelector]);
+    const [travelerPersonalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {selector: travelerPersonalDetailsSelector});
 
     return (
         <ScreenWrapper

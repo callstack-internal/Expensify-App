@@ -49,7 +49,7 @@ function ReportDetailsColumnsPage() {
         },
         [reportID],
     );
-    const [reportTransactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {selector: reportTransactionsSelector}, [reportTransactionsSelector]);
+    const [reportTransactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION, {selector: reportTransactionsSelector});
     const currentUserDetails = useCurrentUserPersonalDetails();
 
     const allTypeCustomColumns = Object.values(CONST.SEARCH.REPORT_DETAILS_CUSTOM_COLUMNS) as SearchCustomColumnIds[];

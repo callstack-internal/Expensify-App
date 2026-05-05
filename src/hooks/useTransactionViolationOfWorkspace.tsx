@@ -49,13 +49,7 @@ function useTransactionViolationOfWorkspace(policyID?: string) {
         [transactionIDSet],
     );
 
-    const [transactionViolations] = useOnyx(
-        ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS,
-        {
-            selector: transactionViolationSelector,
-        },
-        [transactionIDSet],
-    );
+    const [transactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS, {selector: transactionViolationSelector});
 
     return {
         reportsToArchive,

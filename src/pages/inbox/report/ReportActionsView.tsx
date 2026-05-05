@@ -127,13 +127,7 @@ function ReportActionsView({reportID, onLayout}: ReportActionsViewProps) {
         [canPerformWriteAction, transactionThreadReportID],
     );
 
-    const [transactionThreadReportActions] = useOnyx(
-        `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${transactionThreadReportID}`,
-        {
-            selector: getTransactionThreadReportActions,
-        },
-        [getTransactionThreadReportActions],
-    );
+    const [transactionThreadReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${transactionThreadReportID}`, {selector: getTransactionThreadReportActions});
     const [transactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transactionThreadReportID}`);
     const [isLoadingApp] = useOnyx(ONYXKEYS.IS_LOADING_APP);
     const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);

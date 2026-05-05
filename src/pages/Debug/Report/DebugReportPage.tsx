@@ -63,13 +63,7 @@ function DebugReportPage({
     const [transactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
     const {isOffline} = useNetwork();
     const reportAttributesSelector = useCallback((attributes: OnyxEntry<ReportAttributesDerivedValue>) => attributes?.reports?.[reportID], [reportID]);
-    const [reportAttributes] = useOnyx(
-        ONYXKEYS.DERIVED.REPORT_ATTRIBUTES,
-        {
-            selector: reportAttributesSelector,
-        },
-        [reportAttributesSelector],
-    );
+    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportAttributesSelector});
     const [draftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
     const [priorityMode] = useOnyx(ONYXKEYS.NVP_PRIORITY_MODE);
     const [betas] = useOnyx(ONYXKEYS.BETAS);

@@ -98,8 +98,8 @@ function SecondaryOverlay() {
     return null;
 }
 
-const loadRHPReportScreen = () => require<ReactComponentModule>('../../../../pages/inbox/RHPReportScreen').default;
-const loadSearchMoneyRequestReportPage = () => require<ReactComponentModule>('../../../../pages/Search/SearchMoneyRequestReportPage').default;
+const loadRHPReportScreen = () => require<ReactComponentModule>('../../../../pages/inbox/reportRoutes/SearchReportRoute').default;
+const loadSearchMoneyRequestReportPage = () => require<ReactComponentModule>('../../../../pages/inbox/reportRoutes/MoneyRequestReportRoute').default;
 const loadSearchSavePage = () => require<ReactComponentModule>('../../../../pages/Search/SearchSavePage').default;
 
 function RightModalNavigator({navigation, route}: RightModalNavigatorProps) {

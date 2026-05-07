@@ -15,7 +15,7 @@ import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import type ReactComponentModule from '@src/types/utils/ReactComponentModule';
 
-const loadReportScreen = () => require<ReactComponentModule>('@pages/inbox/ReportScreen').default;
+const loadReportScreen = () => require<ReactComponentModule>('@pages/inbox/reportRoutes/ReportRoute').default;
 const loadSidebarScreen = () => require<ReactComponentModule>('@pages/inbox/sidebar/BaseSidebarScreen').default;
 const Split = createSplitNavigator<ReportsSplitNavigatorParamList>();
 

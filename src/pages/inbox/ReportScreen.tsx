@@ -37,7 +37,6 @@ import ReportHeader from './ReportHeader';
 import ReportLifecycleHandler from './ReportLifecycleHandler';
 import ReportNavigateAwayHandler from './ReportNavigateAwayHandler';
 import ReportNotFoundGuard from './ReportNotFoundGuard';
-import ReportRouteParamHandler from './ReportRouteParamHandler';
 import {ActionListContext} from './ReportScreenContext';
 import WideRHPReceiptPanel from './WideRHPReceiptPanel';
 
@@ -95,7 +94,6 @@ function ReportScreen({route, navigation}: ReportScreenProps) {
                         {!shouldDeferNonEssentials && (
                             <>
                                 <DeleteTransactionNavigateBackHandler />
-                                <ReportRouteParamHandler />
                                 <ReportFetchHandler />
                                 <ReportNavigateAwayHandler />
                             </>

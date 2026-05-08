@@ -236,15 +236,19 @@ describe('ReplyContextProvider', () => {
         let capturedSetReply: ((reply: {reportActionID: string; previewText: string}) => void) | undefined;
 
         function StateConsumer() {
-            stateRenderCount += 1;
             const reply = useReply();
+            React.useEffect(() => {
+                stateRenderCount += 1;
+            });
             return <Text testID="state-consumer">{reply ? reply.previewText : 'no-reply'}</Text>;
         }
 
         function ActionsConsumer() {
-            actionsRenderCount += 1;
             const {setReply} = useReplyActions();
-            capturedSetReply = setReply;
+            React.useEffect(() => {
+                actionsRenderCount += 1;
+                capturedSetReply = setReply;
+            });
             return <Text testID="actions-consumer">actions</Text>;
         }
 

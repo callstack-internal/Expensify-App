@@ -192,7 +192,9 @@ describe('MoneyRequestReport.Table', () => {
         let capturedSetReceipt: ((id: string | null) => void) | undefined;
 
         function TableProbe() {
-            tableRenderCount += 1;
+            React.useEffect(() => {
+                tableRenderCount += 1;
+            });
             return (
                 <MoneyRequestReportTable
                     reportID={REPORT_ID}
@@ -203,7 +205,9 @@ describe('MoneyRequestReport.Table', () => {
 
         function CaptureActions() {
             const {setReceipt} = useReceiptActions();
-            capturedSetReceipt = setReceipt;
+            React.useEffect(() => {
+                capturedSetReceipt = setReceipt;
+            }, [setReceipt]);
             return null;
         }
 
@@ -237,7 +241,9 @@ describe('MoneyRequestReport.Table', () => {
         let capturedSetSelected: ((ids: string[]) => void) | undefined;
 
         function TableProbe() {
-            tableRenderCount += 1;
+            React.useEffect(() => {
+                tableRenderCount += 1;
+            });
             return (
                 <MoneyRequestReportTable
                     reportID={REPORT_ID}
@@ -248,7 +254,9 @@ describe('MoneyRequestReport.Table', () => {
 
         function CaptureSearchActions() {
             const {setSelectedTransactions} = useSearchActionsContext();
-            capturedSetSelected = (ids) => setSelectedTransactions(ids);
+            React.useEffect(() => {
+                capturedSetSelected = (ids) => setSelectedTransactions(ids);
+            }, [setSelectedTransactions]);
             return null;
         }
 
@@ -289,12 +297,16 @@ describe('MoneyRequestReport compound-row pattern', () => {
 
         function CaptureActions() {
             const {setReceipt} = useReceiptActions();
-            capturedSetReceipt = setReceipt;
+            React.useEffect(() => {
+                capturedSetReceipt = setReceipt;
+            }, [setReceipt]);
             return null;
         }
 
         function CountingRowContent({transaction, onClick}: {transaction: Transaction; onClick: (id: string) => void}) {
-            renderCounts[transaction.transactionID] = (renderCounts[transaction.transactionID] ?? 0) + 1;
+            React.useEffect(() => {
+                renderCounts[transaction.transactionID] = (renderCounts[transaction.transactionID] ?? 0) + 1;
+            });
             return (
                 <MoneyRequestReportRowContent
                     transaction={transaction}
@@ -348,7 +360,9 @@ describe('MoneyRequestReport compound-row pattern', () => {
 
         function CaptureActions() {
             const {setReceipt} = useReceiptActions();
-            capturedSetReceipt = setReceipt;
+            React.useEffect(() => {
+                capturedSetReceipt = setReceipt;
+            }, [setReceipt]);
             return null;
         }
 
@@ -358,9 +372,11 @@ describe('MoneyRequestReport compound-row pattern', () => {
         function CountingHighlightProbe({transactionID, children}: {transactionID: string; children: React.ReactNode}) {
             // Same subscription topology as `RowHighlightFrame`: read receipt state.
             const receipt = useReceipt();
-            // Tracks the per-id render count synchronously by closure. The probe
-            // re-renders whenever its consumed context changes — same as the frame.
-            frameRenderCounts[transactionID] = (frameRenderCounts[transactionID] ?? 0) + 1;
+            // Tracks the per-id render count via useEffect (commits, not call-throughs).
+            // The probe re-renders whenever its consumed context changes — same as the frame.
+            React.useEffect(() => {
+                frameRenderCounts[transactionID] = (frameRenderCounts[transactionID] ?? 0) + 1;
+            });
             return (
                 <MoneyRequestReportRowHighlightFrame transactionID={transactionID}>
                     <Text testID={`probe-${transactionID}`}>{receipt === transactionID ? 'highlighted' : 'normal'}</Text>
@@ -399,12 +415,16 @@ describe('MoneyRequestReport compound-row pattern', () => {
 
         function CaptureSearchActions() {
             const {setSelectedTransactions} = useSearchActionsContext();
-            capturedSetSelected = (ids) => setSelectedTransactions(ids);
+            React.useEffect(() => {
+                capturedSetSelected = (ids) => setSelectedTransactions(ids);
+            }, [setSelectedTransactions]);
             return null;
         }
 
         function CountingRowContent({transaction, onClick}: {transaction: Transaction; onClick: (id: string) => void}) {
-            renderCounts[transaction.transactionID] = (renderCounts[transaction.transactionID] ?? 0) + 1;
+            React.useEffect(() => {
+                renderCounts[transaction.transactionID] = (renderCounts[transaction.transactionID] ?? 0) + 1;
+            });
             return (
                 <MoneyRequestReportRowContent
                     transaction={transaction}
@@ -521,15 +541,19 @@ describe('MoneyRequestReport.ReceiptContextProvider', () => {
         let capturedSetReceipt: ((id: string | null) => void) | undefined;
 
         function StateConsumer() {
-            stateRenderCount += 1;
             const receipt = useReceipt();
+            React.useEffect(() => {
+                stateRenderCount += 1;
+            });
             return <Text testID="state-consumer">{receipt ?? 'no-receipt'}</Text>;
         }
 
         function ActionsConsumer() {
-            actionsRenderCount += 1;
             const {setReceipt} = useReceiptActions();
-            capturedSetReceipt = setReceipt;
+            React.useEffect(() => {
+                actionsRenderCount += 1;
+                capturedSetReceipt = setReceipt;
+            });
             return <Text testID="actions-consumer">actions</Text>;
         }
 

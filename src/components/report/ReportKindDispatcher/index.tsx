@@ -1,6 +1,7 @@
 import type {ReactElement} from 'react';
 import React from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
+import ChatReport from '@components/report/ChatReport';
 import ReportShellSkeleton from '@components/report/ReportShellSkeleton';
 import BootstrapFetcher from '@components/report/shared/BootstrapFetcher';
 import TaskReport from '@components/report/TaskReport';
@@ -86,10 +87,11 @@ type ReportKindDispatcherProps = {
  * subscription targets the phantom `report_undefined` key (never written), so top-level
  * reports never subscribe to a real parent record.
  *
- * In this first decomposition slice the only kind that maps to a new compound is `TASK`.
- * Every other kind renders the `fallthrough` element supplied by the caller route (or a
- * test slot, when supplied), which preserves today's behavior exactly. Subsequent slices
- * replace each fallthrough with its compound.
+ * Compounds wired so far: `TaskReport`, `TransactionThread`, `ChatReport`. The only
+ * remaining `fallthrough` branch is the multi-transaction money-request top-level
+ * report, which Issue 04 replaces with the `MoneyRequestReport` compound. Test slots
+ * still gate every branch — the dispatcher's branch decisions are asserted by injecting
+ * sentinel components per branch.
  */
 function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, slots}: ReportKindDispatcherProps) {
     const onyxReportID = getNonEmptyStringOnyxID(reportID);
@@ -148,7 +150,18 @@ function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, 
                 )
             );
         }
-        return slots?.chatReport ?? fallthrough;
+        return (
+            slots?.chatReport ?? (
+                <>
+                    <BootstrapFetcher reportID={onyxReportID} />
+                    <ChatReport
+                        reportID={onyxReportID}
+                        reportActionID={reportActionID}
+                        referrer={referrer}
+                    />
+                </>
+            )
+        );
     }
 
     // Has parent — transaction thread vs chat thread.
@@ -168,7 +181,18 @@ function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, 
             )
         );
     }
-    return slots?.chatReport ?? fallthrough;
+    return (
+        slots?.chatReport ?? (
+            <>
+                <BootstrapFetcher reportID={onyxReportID} />
+                <ChatReport
+                    reportID={onyxReportID}
+                    reportActionID={reportActionID}
+                    referrer={referrer}
+                />
+            </>
+        )
+    );
 }
 
 ReportKindDispatcher.displayName = 'ReportKindDispatcher';

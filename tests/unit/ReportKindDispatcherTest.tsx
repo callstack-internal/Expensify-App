@@ -46,6 +46,21 @@ jest.mock('@components/report/TransactionThread', () => {
     };
 });
 
+jest.mock('@components/report/ChatReport', () => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const RN = jest.requireActual<typeof import('react-native')>('react-native');
+    function ChatReportMock() {
+        return ReactLocal.createElement(RN.Text, null, 'BRANCH:CHAT_REPORT');
+    }
+    ChatReportMock.displayName = 'ChatReportMock';
+    return {
+        __esModule: true,
+        default: ChatReportMock,
+    };
+});
+
 jest.mock('@components/report/ReportShellSkeleton', () => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
@@ -241,6 +256,59 @@ describe('ReportKindDispatcher', () => {
         await setReport({type: CONST.REPORT.TYPE.INVOICE});
         renderDispatcherProduction();
         await expectBranch('TRANSACTION_THREAD');
+    });
+
+    // Chat-report production-mode coverage: when no `slots` prop is passed, the
+    // dispatcher mounts the real `ChatReport` compound (mocked here to a sentinel)
+    // for every chat sub-kind. Mirrors the assertion shape of the
+    // `mounts the real TransactionThread compound...` cases above.
+    it('mounts the real ChatReport compound for a top-level CHAT (DM) in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a top-level group chat in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.GROUP});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a top-level self-DM in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.SELF_DM});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a top-level admin room in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ADMINS});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a top-level announce room in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ANNOUNCE});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a top-level user-created policy room in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a top-level policy expense chat in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_EXPENSE_CHAT});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
+    });
+
+    it('mounts the real ChatReport compound for a chat thread on a chat parent in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, parentReportID: PARENT_REPORT_ID});
+        await setParentReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM});
+        renderDispatcherProduction();
+        await expectBranch('CHAT_REPORT');
     });
 
     it('does not subscribe to a real parent report when parentReportID is null (top-level reports)', async () => {

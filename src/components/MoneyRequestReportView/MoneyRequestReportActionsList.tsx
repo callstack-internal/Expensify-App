@@ -81,9 +81,18 @@ const BACKFILL_MIN_ACTIONS_THRESHOLD = 50;
 type MoneyRequestReportListProps = {
     /** Callback executed on layout */
     onLayout?: (event: LayoutChangeEvent) => void;
+
+    /**
+     * Whether to render the inline narrow selection toolbar. The new
+     * `MoneyRequestReport` compound owns selection-toolbar mounting at the shell
+     * level via `MoneyRequestReport.SelectionToolbar`; the compound's `Table`
+     * block passes `false` to suppress the duplicate inline mount. Legacy callers
+     * (today's inbox `ReportActionsList`) keep the default `true`.
+     */
+    shouldRenderSelectionToolbar?: boolean;
 };
 
-function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) {
+function MoneyRequestReportActionsList({onLayout, shouldRenderSelectionToolbar = true}: MoneyRequestReportListProps) {
     const styles = useThemeStyles();
     const {translate, getLocalDateFromDatetime} = useLocalize();
     const {isOffline, lastOfflineAt, lastOnlineAt} = useNetworkWithOfflineStatus();
@@ -673,11 +682,13 @@ function MoneyRequestReportActionsList({onLayout}: MoneyRequestReportListProps) 
             style={[styles.flex1]}
             ref={wrapperViewRef}
         >
-            <SelectionToolbar
-                reportID={reportIDFromRoute}
-                transactions={transactions}
-                reportActions={reportActions}
-            />
+            {shouldRenderSelectionToolbar && (
+                <SelectionToolbar
+                    reportID={reportIDFromRoute}
+                    transactions={transactions}
+                    reportActions={reportActions}
+                />
+            )}
             <View style={[styles.flex1, styles.justifyContentEnd, styles.overflowHidden]}>
                 <FloatingMessageCounter
                     hasNewMessages={!!unreadMarkerReportActionID}

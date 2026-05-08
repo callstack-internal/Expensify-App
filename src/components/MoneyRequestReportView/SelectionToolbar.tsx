@@ -1,4 +1,4 @@
-import {useFocusEffect, useRoute} from '@react-navigation/native';
+import {useRoute} from '@react-navigation/native';
 import React, {useState} from 'react';
 import {View} from 'react-native';
 import type {ValueOf} from 'type-fest';
@@ -354,30 +354,10 @@ function SelectionToolbar({reportID, transactions, reportActions}: SelectionTool
     );
 }
 
-function SelectionToolbarGate({reportID, transactions, reportActions}: SelectionToolbarProps) {
-    const {selectedTransactionIDs, currentSelectedTransactionReportID} = useSearchStateContext();
-    const {clearSelectedTransactions, setCurrentSelectedTransactionReportID} = useSearchActionsContext();
-    const isMobileSelectionModeEnabled = useMobileSelectionMode();
-
-    useFocusEffect(() => {
-        if (reportID && currentSelectedTransactionReportID !== reportID && selectedTransactionIDs.length > 0) {
-            clearSelectedTransactions(true);
-        }
-
-        setCurrentSelectedTransactionReportID(reportID);
-    });
-
-    if (selectedTransactionIDs.length === 0 && !isMobileSelectionModeEnabled) {
-        return null;
-    }
-
-    return (
-        <SelectionToolbar
-            reportID={reportID}
-            transactions={transactions}
-            reportActions={reportActions}
-        />
-    );
-}
-
-export default SelectionToolbarGate;
+// Narrow-layout selection toolbar UI for `MoneyRequestReport`. Mounted by
+// `MoneyRequestReport.SelectionToolbar` (the compound block) which owns the
+// gating (focus effect, selection emptiness check, layout switch). Kept as a
+// dedicated component so the JSX stays readable on its own; props are wide
+// (`transactions`, `reportActions`) because the compound block fetches both
+// once and forwards them to whichever variant renders.
+export default SelectionToolbar;

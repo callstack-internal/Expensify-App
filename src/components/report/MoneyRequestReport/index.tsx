@@ -38,6 +38,8 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import React from 'react';
 import {View} from 'react-native';
 import DragAndDropProvider from '@components/DragAndDrop/Provider';
+import MoneyReportHeaderModals from '@components/MoneyReportHeaderModals';
+import {PaymentAnimationsProvider} from '@components/PaymentAnimationsContext';
 import BootstrapFetcher from '@components/report/shared/BootstrapFetcher';
 import ScreenWrapper from '@components/ScreenWrapper';
 import useShowSuperWideRHPVersion from '@components/WideRHPContextProvider/useShowSuperWideRHPVersion';
@@ -131,19 +133,23 @@ function MoneyRequestReport({reportID, referrer}: MoneyRequestReportProps) {
                         <BootstrapFetcher reportID={onyxReportID} />
                         <DragAndDropProvider>
                             <ReceiptContextProvider>
-                                <Header
-                                    reportID={onyxReportID}
-                                    onBackButtonPress={onBackButtonPress}
-                                />
-                                <SelectionToolbar reportID={onyxReportID} />
-                                <SettlementBar reportID={onyxReportID} />
-                                <View style={[styles.flex1, styles.flexRow]}>
-                                    <View style={[styles.overflowHidden, styles.justifyContentEnd, styles.flex1]}>
-                                        <Table reportID={onyxReportID} />
-                                    </View>
-                                    <ReceiptPanel reportID={onyxReportID} />
-                                </View>
-                                <PortalHost name="suggestions" />
+                                <MoneyReportHeaderModals reportID={onyxReportID}>
+                                    <PaymentAnimationsProvider>
+                                        <Header
+                                            reportID={onyxReportID}
+                                            onBackButtonPress={onBackButtonPress}
+                                        />
+                                        <SelectionToolbar reportID={onyxReportID} />
+                                        <SettlementBar reportID={onyxReportID} />
+                                        <View style={[styles.flex1, styles.flexRow]}>
+                                            <View style={[styles.overflowHidden, styles.justifyContentEnd, styles.flex1]}>
+                                                <Table reportID={onyxReportID} />
+                                            </View>
+                                            <ReceiptPanel reportID={onyxReportID} />
+                                        </View>
+                                        <PortalHost name="suggestions" />
+                                    </PaymentAnimationsProvider>
+                                </MoneyReportHeaderModals>
                             </ReceiptContextProvider>
                         </DragAndDropProvider>
                     </ScreenWrapper>

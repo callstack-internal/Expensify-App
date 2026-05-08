@@ -1,20 +1,17 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useRef} from 'react';
 import {View} from 'react-native';
 import type {ValueOf} from 'type-fest';
 import type {ButtonWithDropdownMenuRef} from '@components/ButtonWithDropdownMenu/types';
 import MoneyReportHeaderPrimaryAction from '@components/MoneyReportHeaderPrimaryAction';
-import {useSearchActionsContext, useSearchStateContext} from '@components/Search/SearchContext';
 import useExportAgainModal from '@hooks/useExportAgainModal';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useResponsiveLayoutOnWideRHP from '@hooks/useResponsiveLayoutOnWideRHP';
 import useThemeStyles from '@hooks/useThemeStyles';
-import useTransactionThreadReport from '@hooks/useTransactionThreadReport';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import MoneyReportHeaderSecondaryActions from './MoneyReportHeaderSecondaryActions';
-import MoneyReportHeaderSelectionDropdown from './MoneyReportHeaderSelectionDropdown';
 import type {MoneyReportHeaderActionsProps} from './types';
 
 /**
@@ -42,37 +39,13 @@ function MoneyReportHeaderActions({reportID, primaryAction, isReportInSearch, ba
     const [moneyRequestReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(moneyRequestReport?.chatReportID)}`);
 
-    const {transactionThreadReportID} = useTransactionThreadReport(reportID);
-
     const {triggerExportOrConfirm} = useExportAgainModal(moneyRequestReport?.reportID, moneyRequestReport?.policyID);
 
-    const {selectedTransactionIDs} = useSearchStateContext();
-    const {clearSelectedTransactions} = useSearchActionsContext();
-    const hasSelectedTransactions = !!selectedTransactionIDs.length;
-    const isTransactionThread = !!transactionThreadReportID;
-
-    useEffect(() => {
-        if (!transactionThreadReportID) {
-            return;
-        }
-
-        clearSelectedTransactions(true);
-    }, [transactionThreadReportID]); // eslint-disable-line react-hooks/exhaustive-deps
-
+    // Selection-mode swap moved out of this component.
+    // `MoneyRequestReport.SelectionToolbar` owns the wide selection dropdown and the
+    // narrow selection toolbar; this component now only renders the report-level
+    // primary/secondary action buttons.
     const narrowedPrimaryAction = narrowPrimaryAction(primaryAction);
-
-    if (hasSelectedTransactions && !isTransactionThread) {
-        return (
-            <View style={shouldDisplayNarrowMoreButton ? undefined : [styles.dFlex, styles.w100, styles.ph5, styles.pb3]}>
-                <MoneyReportHeaderSelectionDropdown
-                    reportID={reportID}
-                    primaryAction={narrowedPrimaryAction}
-                    isReportInSearch={isReportInSearch}
-                    wrapperStyle={shouldDisplayNarrowMoreButton ? undefined : styles.w100}
-                />
-            </View>
-        );
-    }
 
     return (
         <View style={[styles.flexRow, styles.gap2, ...(!shouldDisplayNarrowMoreButton ? [styles.pb3, styles.ph5, styles.w100, styles.alignItemsCenter, styles.justifyContentCenter] : [])]}>

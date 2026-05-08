@@ -2,6 +2,7 @@ import type {ReactElement} from 'react';
 import React from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
 import ChatReport from '@components/report/ChatReport';
+import MoneyRequestReport from '@components/report/MoneyRequestReport';
 import ReportShellSkeleton from '@components/report/ReportShellSkeleton';
 import BootstrapFetcher from '@components/report/shared/BootstrapFetcher';
 import TaskReport from '@components/report/TaskReport';
@@ -87,12 +88,17 @@ type ReportKindDispatcherProps = {
  * subscription targets the phantom `report_undefined` key (never written), so top-level
  * reports never subscribe to a real parent record.
  *
- * Compounds wired so far: `TaskReport`, `TransactionThread`, `ChatReport`. The only
- * remaining `fallthrough` branch is the multi-transaction money-request top-level
- * report, which Issue 04 replaces with the `MoneyRequestReport` compound. Test slots
- * still gate every branch — the dispatcher's branch decisions are asserted by injecting
- * sentinel components per branch.
+ * Compounds wired so far: `TaskReport`, `TransactionThread`, `ChatReport`,
+ * `MoneyRequestReport`. With Issue 04 landed, every branch now mounts a real
+ * compound; `fallthrough` remains on the contract for parity (and to give callers
+ * a stable surface for kinds we may add later). Test slots still gate every
+ * branch — the dispatcher's branch decisions are asserted by injecting sentinel
+ * components per branch.
  */
+// `fallthrough` is held on the contract for parity (and to give callers a stable
+// surface for kinds we may add later). With every kind now wired to a real
+// compound, the body no longer reads it directly. See block comment above.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- See block comment above.
 function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, slots}: ReportKindDispatcherProps) {
     const onyxReportID = getNonEmptyStringOnyxID(reportID);
 
@@ -135,7 +141,17 @@ function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, 
         if (isMoneyRequestKind) {
             const isMultiTransaction = (report.transactionCount ?? 0) > 1;
             if (isMultiTransaction) {
-                return slots?.moneyRequestReport ?? fallthrough;
+                return (
+                    slots?.moneyRequestReport ?? (
+                        <>
+                            <BootstrapFetcher reportID={onyxReportID} />
+                            <MoneyRequestReport
+                                reportID={onyxReportID}
+                                referrer={referrer}
+                            />
+                        </>
+                    )
+                );
             }
             return (
                 slots?.transactionThread ?? (

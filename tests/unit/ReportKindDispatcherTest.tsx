@@ -46,6 +46,21 @@ jest.mock('@components/report/TransactionThread', () => {
     };
 });
 
+jest.mock('@components/report/MoneyRequestReport', () => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const RN = jest.requireActual<typeof import('react-native')>('react-native');
+    function MoneyRequestReportMock() {
+        return ReactLocal.createElement(RN.Text, null, 'BRANCH:MONEY_REQUEST_REPORT');
+    }
+    MoneyRequestReportMock.displayName = 'MoneyRequestReportMock';
+    return {
+        __esModule: true,
+        default: MoneyRequestReportMock,
+    };
+});
+
 jest.mock('@components/report/ChatReport', () => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
@@ -256,6 +271,28 @@ describe('ReportKindDispatcher', () => {
         await setReport({type: CONST.REPORT.TYPE.INVOICE});
         renderDispatcherProduction();
         await expectBranch('TRANSACTION_THREAD');
+    });
+
+    // Multi-transaction money-request production-mode coverage: when no `slots` prop
+    // is passed, the dispatcher mounts the real `MoneyRequestReport` compound (mocked
+    // here to a sentinel) for every multi-tx top-level money-request kind. Mirrors
+    // the assertion shape of the `mounts the real TransactionThread...` cases above.
+    it('mounts the real MoneyRequestReport compound for a multi-tx IOU root in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.IOU, transactionCount: 2});
+        renderDispatcherProduction();
+        await expectBranch('MONEY_REQUEST_REPORT');
+    });
+
+    it('mounts the real MoneyRequestReport compound for a multi-tx EXPENSE root in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.EXPENSE, transactionCount: 5});
+        renderDispatcherProduction();
+        await expectBranch('MONEY_REQUEST_REPORT');
+    });
+
+    it('mounts the real MoneyRequestReport compound for a multi-tx INVOICE root in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.INVOICE, transactionCount: 3});
+        renderDispatcherProduction();
+        await expectBranch('MONEY_REQUEST_REPORT');
     });
 
     // Chat-report production-mode coverage: when no `slots` prop is passed, the

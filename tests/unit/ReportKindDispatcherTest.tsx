@@ -31,6 +31,21 @@ jest.mock('@components/report/TaskReport', () => {
     };
 });
 
+jest.mock('@components/report/TransactionThread', () => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const RN = jest.requireActual<typeof import('react-native')>('react-native');
+    function TransactionThreadMock() {
+        return ReactLocal.createElement(RN.Text, null, 'BRANCH:TRANSACTION_THREAD');
+    }
+    TransactionThreadMock.displayName = 'TransactionThreadMock';
+    return {
+        __esModule: true,
+        default: TransactionThreadMock,
+    };
+});
+
 jest.mock('@components/report/ReportShellSkeleton', () => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
@@ -165,6 +180,67 @@ describe('ReportKindDispatcher', () => {
         await setParentReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM});
         renderDispatcher();
         await expectBranch('CHAT_REPORT');
+    });
+
+    // Production-mode coverage: when no `slots` prop is passed, the dispatcher mounts
+    // the real `TransactionThread` compound (mocked here to a sentinel) for every
+    // transaction-thread shape. Mirrors the assertion shape of `routes type === TASK`
+    // above — `BRANCH:TRANSACTION_THREAD` comes from the `TransactionThread` mock.
+    function renderDispatcherProduction() {
+        return render(
+            <OnyxListItemProvider>
+                <ReportKindDispatcher
+                    reportID={REPORT_ID}
+                    fallthrough={<Sentinel label="FALLTHROUGH" />}
+                />
+            </OnyxListItemProvider>,
+        );
+    }
+
+    it('mounts the real TransactionThread compound for a thread on an IOU parent in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, parentReportID: PARENT_REPORT_ID});
+        await setParentReport({type: CONST.REPORT.TYPE.IOU});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
+    });
+
+    it('mounts the real TransactionThread compound for a thread on an EXPENSE parent in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, parentReportID: PARENT_REPORT_ID});
+        await setParentReport({type: CONST.REPORT.TYPE.EXPENSE});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
+    });
+
+    it('mounts the real TransactionThread compound for a thread on an INVOICE parent in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, parentReportID: PARENT_REPORT_ID});
+        await setParentReport({type: CONST.REPORT.TYPE.INVOICE});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
+    });
+
+    it('mounts the real TransactionThread compound for a thread on a SELF_DM chat parent in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.CHAT, parentReportID: PARENT_REPORT_ID});
+        await setParentReport({type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.SELF_DM});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
+    });
+
+    it('mounts the real TransactionThread compound for a top-level single-tx IOU (transactionCount 1) in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.IOU, transactionCount: 1});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
+    });
+
+    it('mounts the real TransactionThread compound for a top-level zero-tx EXPENSE (transactionCount 0) in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.EXPENSE, transactionCount: 0});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
+    });
+
+    it('mounts the real TransactionThread compound for a top-level INVOICE with undefined transactionCount in production mode', async () => {
+        await setReport({type: CONST.REPORT.TYPE.INVOICE});
+        renderDispatcherProduction();
+        await expectBranch('TRANSACTION_THREAD');
     });
 
     it('does not subscribe to a real parent report when parentReportID is null (top-level reports)', async () => {

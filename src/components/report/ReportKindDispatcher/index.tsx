@@ -4,6 +4,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 import ReportShellSkeleton from '@components/report/ReportShellSkeleton';
 import BootstrapFetcher from '@components/report/shared/BootstrapFetcher';
 import TaskReport from '@components/report/TaskReport';
+import TransactionThread from '@components/report/TransactionThread';
 import useOnyx from '@hooks/useOnyx';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import CONST from '@src/CONST';
@@ -134,7 +135,18 @@ function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, 
             if (isMultiTransaction) {
                 return slots?.moneyRequestReport ?? fallthrough;
             }
-            return slots?.transactionThread ?? fallthrough;
+            return (
+                slots?.transactionThread ?? (
+                    <>
+                        <BootstrapFetcher reportID={onyxReportID} />
+                        <TransactionThread
+                            reportID={onyxReportID}
+                            reportActionID={reportActionID}
+                            referrer={referrer}
+                        />
+                    </>
+                )
+            );
         }
         return slots?.chatReport ?? fallthrough;
     }
@@ -143,7 +155,18 @@ function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, 
     const parentIsMoneyRequest = parentReport?.type === CONST.REPORT.TYPE.IOU || parentReport?.type === CONST.REPORT.TYPE.EXPENSE || parentReport?.type === CONST.REPORT.TYPE.INVOICE;
     const parentIsSelfDM = parentReport?.chatType === CONST.REPORT.CHAT_TYPE.SELF_DM;
     if (parentIsMoneyRequest || parentIsSelfDM) {
-        return slots?.transactionThread ?? fallthrough;
+        return (
+            slots?.transactionThread ?? (
+                <>
+                    <BootstrapFetcher reportID={onyxReportID} />
+                    <TransactionThread
+                        reportID={onyxReportID}
+                        reportActionID={reportActionID}
+                        referrer={referrer}
+                    />
+                </>
+            )
+        );
     }
     return slots?.chatReport ?? fallthrough;
 }

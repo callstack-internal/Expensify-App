@@ -103,11 +103,11 @@ function renderDispatcher() {
         <OnyxListItemProvider>
             <ReportKindDispatcher
                 reportID={REPORT_ID}
-                fallthrough={<Sentinel label="FALLTHROUGH" />}
                 slots={{
                     moneyRequestReport: <Sentinel label="MONEY_REQUEST_REPORT" />,
                     transactionThread: <Sentinel label="TRANSACTION_THREAD" />,
                     chatReport: <Sentinel label="CHAT_REPORT" />,
+                    taskReport: <Sentinel label="TASK" />,
                 }}
             />
         </OnyxListItemProvider>,
@@ -219,10 +219,7 @@ describe('ReportKindDispatcher', () => {
     function renderDispatcherProduction() {
         return render(
             <OnyxListItemProvider>
-                <ReportKindDispatcher
-                    reportID={REPORT_ID}
-                    fallthrough={<Sentinel label="FALLTHROUGH" />}
-                />
+                <ReportKindDispatcher reportID={REPORT_ID} />
             </OnyxListItemProvider>,
         );
     }

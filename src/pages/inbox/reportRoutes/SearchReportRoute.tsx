@@ -5,7 +5,6 @@ import MissingReportIdRetry from '@components/report/shared/MissingReportIdRetry
 import ReportActionIdValidator from '@components/report/shared/ReportActionIdValidator';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {RightModalNavigatorParamList} from '@libs/Navigation/types';
-import RHPReportScreen from '@pages/inbox/RHPReportScreen';
 import type SCREENS from '@src/SCREENS';
 
 type SearchReportRouteProps = PlatformStackScreenProps<RightModalNavigatorParamList, typeof SCREENS.RIGHT_MODAL.SEARCH_REPORT>;
@@ -15,10 +14,10 @@ type SearchReportRouteProps = PlatformStackScreenProps<RightModalNavigatorParamL
  *
  * Today's `ReportRouteParamHandler` covered this screen as well as `SCREENS.REPORT`,
  * so the same renderless pair (`MissingReportIdRetry` + `ReportActionIdValidator`)
- * mounts here. The fallthrough is `RHPReportScreen` because this screen needs the
- * `key={reportID}` remount-on-arrow-switch behavior the RHP wrapper provides.
+ * mounts here. The dispatcher mounts a real compound for every report kind, so this
+ * route body has no `fallthrough` to pass.
  */
-function SearchReportRoute({route, navigation}: SearchReportRouteProps) {
+function SearchReportRoute({route}: SearchReportRouteProps) {
     const {reportID, reportActionID, backTo} = route.params ?? {};
 
     return (
@@ -28,12 +27,6 @@ function SearchReportRoute({route, navigation}: SearchReportRouteProps) {
             <ReportKindDispatcher
                 reportID={reportID}
                 reportActionID={reportActionID}
-                fallthrough={
-                    <RHPReportScreen
-                        route={route}
-                        navigation={navigation}
-                    />
-                }
             />
         </RHPLayout>
     );

@@ -5,7 +5,6 @@ import MissingReportIdRetry from '@components/report/shared/MissingReportIdRetry
 import ReportActionIdValidator from '@components/report/shared/ReportActionIdValidator';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {ReportsSplitNavigatorParamList} from '@libs/Navigation/types';
-import ReportScreen from '@pages/inbox/ReportScreen';
 import type SCREENS from '@src/SCREENS';
 
 type ReportRouteProps = PlatformStackScreenProps<ReportsSplitNavigatorParamList, typeof SCREENS.REPORT>;
@@ -19,15 +18,14 @@ type ReportRouteProps = PlatformStackScreenProps<ReportsSplitNavigatorParamList,
  * live in `ReportRouteParamHandler`; splitting them keeps each block's responsibility
  * narrow and lets the dispatcher own the kind-detection alone.
  *
- * The dispatcher's `fallthrough` is today's generic `<ReportScreen/>` so non-task
- * kinds render exactly as they do today. Issue 02 replaces the chat fallthrough with
- * its own compound; this slice only routes the task kind through `TaskReport`.
+ * The dispatcher mounts a real compound for every report kind (Task / TransactionThread
+ * / MoneyRequestReport / ChatReport), so this route body has no `fallthrough` to pass.
  */
-function ReportRoute({route, navigation}: ReportRouteProps) {
-    const {reportID, reportActionID, referrer, openOnAdminRoom, backTo} = route.params ?? {};
+function ReportRoute({route}: ReportRouteProps) {
+    const {reportID, reportActionID, referrer, openOnAdminRoom} = route.params ?? {};
 
     return (
-        <SplitPaneLayout backTo={backTo}>
+        <SplitPaneLayout backTo={route.params?.backTo}>
             <MissingReportIdRetry
                 openOnAdminRoom={openOnAdminRoom}
                 hasReportID={!!reportID}
@@ -37,12 +35,6 @@ function ReportRoute({route, navigation}: ReportRouteProps) {
                 reportID={reportID}
                 reportActionID={reportActionID}
                 referrer={referrer}
-                fallthrough={
-                    <ReportScreen
-                        route={route}
-                        navigation={navigation}
-                    />
-                }
             />
         </SplitPaneLayout>
     );

@@ -24,18 +24,22 @@ jest.mock('@libs/actions/Report', () => {
     };
 });
 
-jest.mock('@components/TaskHeaderActionButton', () => {
+// HeaderView is the real-header sub-component the task Header block mounts when the
+// report record exists. Mock to a simple Text so the test asserts the
+// "block routed to real header" decision without dragging in the heavy header tree.
+// The mock surfaces the report id so the test can confirm forwarding.
+jest.mock('@pages/inbox/HeaderView', () => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
     // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     const RN = jest.requireActual<typeof import('react-native')>('react-native');
-    function TaskHeaderActionButtonMock() {
-        return ReactLocal.createElement(RN.Text, {testID: 'task-header-action-button'}, 'action');
+    function HeaderViewMock(props: {reportID?: string}) {
+        return ReactLocal.createElement(RN.View, {testID: 'task-header-view'}, ReactLocal.createElement(RN.Text, {testID: 'task-header-view-report-id'}, props.reportID ?? 'no-report-id'));
     }
-    TaskHeaderActionButtonMock.displayName = 'TaskHeaderActionButtonMock';
+    HeaderViewMock.displayName = 'HeaderViewMock';
     return {
         __esModule: true,
-        default: TaskHeaderActionButtonMock,
+        default: HeaderViewMock,
     };
 });
 
@@ -52,10 +56,14 @@ describe('TaskReport.Header', () => {
     });
 
     function renderHeader(reportID: string | undefined = REPORT_ID) {
+        const onBack = jest.fn();
         return render(
             <OnyxListItemProvider>
                 <LocaleContextProvider>
-                    <TaskReportHeader reportID={reportID} />
+                    <TaskReportHeader
+                        reportID={reportID}
+                        onBackButtonPress={onBack}
+                    />
                 </LocaleContextProvider>
             </OnyxListItemProvider>,
         );
@@ -64,17 +72,27 @@ describe('TaskReport.Header', () => {
     it('renders the HeaderSkeleton when the report record is null', async () => {
         renderHeader();
         await waitForBatchedUpdatesWithAct();
-        expect(screen.queryByTestId('task-header-action-button')).toBeNull();
+        expect(screen.queryByTestId('task-header-view')).toBeNull();
     });
 
-    it('renders TaskHeaderActionButton as an internal sub-component when the task report exists', async () => {
+    it('renders HeaderView when the task report exists', async () => {
         await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${REPORT_ID}`, {
             reportID: REPORT_ID,
             type: CONST.REPORT.TYPE.TASK,
         });
         renderHeader();
         await waitForBatchedUpdatesWithAct();
-        expect(screen.getByTestId('task-header-action-button')).toBeTruthy();
+        expect(screen.getByTestId('task-header-view')).toBeTruthy();
+    });
+
+    it('forwards reportID to HeaderView', async () => {
+        await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${REPORT_ID}`, {
+            reportID: REPORT_ID,
+            type: CONST.REPORT.TYPE.TASK,
+        });
+        renderHeader();
+        await waitForBatchedUpdatesWithAct();
+        expect(screen.getByTestId('task-header-view-report-id').props.children).toBe(REPORT_ID);
     });
 });
 

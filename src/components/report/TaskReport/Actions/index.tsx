@@ -4,6 +4,13 @@ import ReportActionsList from '@pages/inbox/ReportActionsList';
 type ActionsProps = {
     /** Identity of the task report whose actions list this block renders. */
     reportID: string | undefined;
+
+    /**
+     * Optional linked-action id forwarded by the dispatcher. Used by `ReportActionsList`
+     * (and the orchestrator below it) to scroll the linked action into view and
+     * highlight it on deep-link arrivals like `r/:reportID?reportActionID=:actionID`.
+     */
+    reportActionID?: string;
 };
 
 /**
@@ -19,7 +26,7 @@ type ActionsProps = {
 // the wrapper is recorded in the type so downstream callers commit to the no-`useRoute`
 // contract, and so issue 02's prop-driven orchestrator can flow it straight through.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- See block comment above.
-function Actions({reportID}: ActionsProps) {
+function Actions({reportID, reportActionID}: ActionsProps) {
     return <ReportActionsList />;
 }
 

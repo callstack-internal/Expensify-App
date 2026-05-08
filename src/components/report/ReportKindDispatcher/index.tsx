@@ -44,10 +44,8 @@ const parentReportSelector = (r: OnyxEntry<OnyxTypes.Report>): ParentSelectorRep
         : null;
 
 /**
- * Slots for the compounds that have not yet been authored. Each slot defaults to the
- * supplied `fallthrough` element. Tests inject sentinel components to assert the
- * dispatcher's branch decisions; production never passes `slots` and therefore renders
- * the route's `fallthrough` for every non-task branch.
+ * Per-branch slot overrides for testing. Production never passes `slots`; tests inject
+ * sentinel components to assert the dispatcher's branch decisions.
  */
 type DispatcherSlots = {
     /** Multi-transaction money-request top-level report. */
@@ -56,6 +54,8 @@ type DispatcherSlots = {
     transactionThread?: ReactElement;
     /** Chat root, chat thread on a chat parent. */
     chatReport?: ReactElement;
+    /** Task report. */
+    taskReport?: ReactElement;
 };
 
 type ReportKindDispatcherProps = {
@@ -68,15 +68,6 @@ type ReportKindDispatcherProps = {
     /** Optional analytics tag describing how the user reached this report. */
     referrer?: string;
 
-    /**
-     * Element to render for kinds that have not yet migrated to the new compound
-     * architecture. Each route body picks the right fallthrough for its screen
-     * (today's `ReportScreen` for the chat-stream routes, today's
-     * `SearchMoneyRequestReportPage` for the money-request RHP routes) and passes it
-     * in as a prop. The dispatcher is route-agnostic.
-     */
-    fallthrough: ReactElement;
-
     /** Optional per-branch slot overrides for testing. */
     slots?: DispatcherSlots;
 };
@@ -88,18 +79,10 @@ type ReportKindDispatcherProps = {
  * subscription targets the phantom `report_undefined` key (never written), so top-level
  * reports never subscribe to a real parent record.
  *
- * Compounds wired so far: `TaskReport`, `TransactionThread`, `ChatReport`,
- * `MoneyRequestReport`. With Issue 04 landed, every branch now mounts a real
- * compound; `fallthrough` remains on the contract for parity (and to give callers
- * a stable surface for kinds we may add later). Test slots still gate every
- * branch — the dispatcher's branch decisions are asserted by injecting sentinel
- * components per branch.
+ * Every branch mounts a real compound: `TaskReport`, `TransactionThread`, `ChatReport`,
+ * `MoneyRequestReport`. There is no fallthrough — the decomposition is complete.
  */
-// `fallthrough` is held on the contract for parity (and to give callers a stable
-// surface for kinds we may add later). With every kind now wired to a real
-// compound, the body no longer reads it directly. See block comment above.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- See block comment above.
-function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, slots}: ReportKindDispatcherProps) {
+function ReportKindDispatcher({reportID, reportActionID, referrer, slots}: ReportKindDispatcherProps) {
     const onyxReportID = getNonEmptyStringOnyxID(reportID);
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${onyxReportID}`, {
@@ -124,14 +107,16 @@ function ReportKindDispatcher({reportID, reportActionID, referrer, fallthrough, 
 
     if (report.type === CONST.REPORT.TYPE.TASK) {
         return (
-            <>
-                <BootstrapFetcher reportID={onyxReportID} />
-                <TaskReport
-                    reportID={onyxReportID}
-                    reportActionID={reportActionID}
-                    referrer={referrer}
-                />
-            </>
+            slots?.taskReport ?? (
+                <>
+                    <BootstrapFetcher reportID={onyxReportID} />
+                    <TaskReport
+                        reportID={onyxReportID}
+                        reportActionID={reportActionID}
+                        referrer={referrer}
+                    />
+                </>
+            )
         );
     }
 

@@ -20,7 +20,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import SCREENS from '@src/SCREENS';
 import type {SearchResultsInfo} from '@src/types/onyx/SearchResults';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
-import type {SearchActionsContextValue, SearchContextData, SearchStateContextValue, SelectedTransactions} from './types';
+import type {SearchActionsContextValue, SearchContextData, SearchSnapshotContextValue, SearchStateContextValue, SelectedTransactions} from './types';
 
 type SearchContextProps = {
     children: React.ReactNode;
@@ -66,6 +66,16 @@ const defaultSearchStateContext: SearchStateContextValue = {
     shouldUseLiveData: false,
 };
 
+const defaultSearchSnapshotContext: SearchSnapshotContextValue = {
+    currentSearchHash: -1,
+    currentSimilarSearchHash: -1,
+    currentSearchKey: undefined,
+    currentSearchQueryJSON: undefined,
+    currentSearchResults: undefined,
+    suggestedSearches: {} as SearchSnapshotContextValue['suggestedSearches'],
+    shouldUseLiveData: false,
+};
+
 const defaultSearchActionsContext: SearchActionsContextValue = {
     setLastSearchType: () => {},
     setCurrentSelectedTransactionReportID: () => {},
@@ -80,6 +90,7 @@ const defaultSearchActionsContext: SearchActionsContextValue = {
 
 const SearchStateContext = React.createContext<SearchStateContextValue>(defaultSearchStateContext);
 const SearchActionsContext = React.createContext<SearchActionsContextValue>(defaultSearchActionsContext);
+const SearchSnapshotContext = React.createContext<SearchSnapshotContextValue>(defaultSearchSnapshotContext);
 
 function selectSearchQueryParam(state: NavigationState | undefined) {
     const focused = getDeepestFocusedScreen(state);
@@ -330,6 +341,19 @@ function SearchContextProvider({children}: SearchContextProps) {
         currentSearchQueryJSON,
     };
 
+    // Narrow context for snapshot-only consumers (e.g. list-item rows). Keeping this separate
+    // from SearchStateContext lets the compiler memoize its value based only on snapshot inputs,
+    // so consumers stop re-rendering when selection state or UI flags change.
+    const searchSnapshotContextValue: SearchSnapshotContextValue = {
+        currentSearchHash,
+        currentSimilarSearchHash,
+        currentSearchKey,
+        currentSearchQueryJSON,
+        currentSearchResults,
+        suggestedSearches,
+        shouldUseLiveData,
+    };
+
     const searchActionsContextValue: SearchActionsContextValue = {
         removeTransaction,
         setSelectedTransactions,
@@ -343,9 +367,11 @@ function SearchContextProvider({children}: SearchContextProps) {
     };
 
     return (
-        <SearchStateContext value={searchStateContextValue}>
-            <SearchActionsContext value={searchActionsContextValue}>{children}</SearchActionsContext>
-        </SearchStateContext>
+        <SearchSnapshotContext value={searchSnapshotContextValue}>
+            <SearchStateContext value={searchStateContextValue}>
+                <SearchActionsContext value={searchActionsContextValue}>{children}</SearchActionsContext>
+            </SearchStateContext>
+        </SearchSnapshotContext>
     );
 }
 
@@ -362,4 +388,8 @@ function useSearchActionsContext() {
     return useContext(SearchActionsContext);
 }
 
-export {SearchContextProvider, useSearchStateContext, useSearchActionsContext, SearchStateContext, SearchActionsContext};
+function useSearchSnapshotContext() {
+    return useContext(SearchSnapshotContext);
+}
+
+export {SearchContextProvider, useSearchStateContext, useSearchActionsContext, useSearchSnapshotContext, SearchStateContext, SearchActionsContext, SearchSnapshotContext};

@@ -192,6 +192,19 @@ type SearchStateContextValue = SearchContextData & {
     areAllMatchingItemsSelected: boolean;
 };
 
+/** Narrow context value exposing only snapshot-identity and snapshot-data fields.
+ * Consumers that don't read selection/UI state should subscribe to this instead of
+ * SearchStateContext, so they don't re-render when selection or UI flags change. */
+type SearchSnapshotContextValue = {
+    currentSearchHash: number;
+    currentSimilarSearchHash: number;
+    currentSearchKey: SearchKey | undefined;
+    currentSearchQueryJSON: Readonly<SearchQueryJSON> | undefined;
+    currentSearchResults: SearchResults | undefined;
+    suggestedSearches: Record<SearchKey, SearchTypeMenuItem>;
+    shouldUseLiveData: boolean;
+};
+
 type SearchActionsContextValue = {
     /** If you want to set `selectedTransactionIDs`, pass an array as the first argument, object/record otherwise */
     setSelectedTransactions: {
@@ -398,6 +411,7 @@ export type {
     ReportFieldNegatedKey,
     SortOrder,
     SearchStateContextValue,
+    SearchSnapshotContextValue,
     SearchActionsContextValue,
     SearchContextData,
     ASTNode,

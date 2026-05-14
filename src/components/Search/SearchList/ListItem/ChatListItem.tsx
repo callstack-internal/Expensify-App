@@ -79,10 +79,8 @@ function ChatListItem<TItem extends ListItem>({
                 parentReportAction={undefined}
                 displayAsGroup={false}
                 shouldDisplayNewMarker={false}
-                index={item.index ?? 0}
                 isFirstVisibleReportAction={false}
                 shouldDisplayContextMenu={false}
-                shouldShowDraftMessage={false}
                 shouldShowBorder
                 personalDetails={personalDetails}
             />

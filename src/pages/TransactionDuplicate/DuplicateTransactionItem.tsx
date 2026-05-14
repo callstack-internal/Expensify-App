@@ -7,6 +7,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getOriginalMessage, getReportAction, isMoneyRequestAction} from '@libs/ReportActionsUtils';
 import {getOriginalReportID} from '@libs/ReportUtils';
+import ReportActionIndexContext from '@pages/inbox/report/ReportActionIndexContext';
 import ReportActionItem from '@pages/inbox/report/ReportActionItem';
 import {ReportActionItemActionsContext, ReportActionItemStateContext} from '@pages/inbox/report/ReportActionItemContext';
 import CONST from '@src/CONST';
@@ -58,19 +59,20 @@ function DuplicateTransactionItem({transaction, index, onPreviewPressed}: Duplic
         <View style={styles.pb2}>
             <ReportActionItemStateContext.Provider value={stateValue}>
                 <ReportActionItemActionsContext.Provider value={actionsValue}>
-                    <ReportActionItem
-                        action={action}
-                        report={report}
-                        parentReportAction={getReportAction(report?.parentReportID, report?.parentReportActionID)}
-                        index={index}
-                        displayAsGroup={false}
-                        shouldDisplayNewMarker={false}
-                        isFirstVisibleReportAction={false}
-                        shouldDisplayContextMenu={false}
-                        personalDetails={personalDetails}
-                        draftMessage={matchingDraftMessage}
-                        linkedTransactionRouteError={linkedTransactionRouteError}
-                    />
+                    <ReportActionIndexContext.Provider value={index}>
+                        <ReportActionItem
+                            action={action}
+                            report={report}
+                            parentReportAction={getReportAction(report?.parentReportID, report?.parentReportActionID)}
+                            displayAsGroup={false}
+                            shouldDisplayNewMarker={false}
+                            isFirstVisibleReportAction={false}
+                            shouldDisplayContextMenu={false}
+                            personalDetails={personalDetails}
+                            draftMessage={matchingDraftMessage}
+                            linkedTransactionRouteError={linkedTransactionRouteError}
+                        />
+                    </ReportActionIndexContext.Provider>
                 </ReportActionItemActionsContext.Provider>
             </ReportActionItemStateContext.Provider>
         </View>

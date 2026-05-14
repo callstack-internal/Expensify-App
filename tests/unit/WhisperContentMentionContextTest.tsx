@@ -54,11 +54,6 @@ function createWhisperAction<T extends string>(actionName: T) {
     } as ReportAction;
 }
 
-const report = {
-    reportID: REPORT_ID,
-    policyID: POLICY_ID,
-} as Report;
-
 describe('Whisper content components provide MentionReportContext so room mentions render as links', () => {
     beforeAll(() => {
         Onyx.init({keys: ONYXKEYS});
@@ -95,7 +90,7 @@ describe('Whisper content components provide MentionReportContext so room mentio
                 <ReportMentionWhisperContent
                     action={action as ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.ACTIONABLE_REPORT_MENTION_WHISPER>}
                     reportID={REPORT_ID}
-                    actionReport={report}
+                    actionReportID={REPORT_ID}
                     isReportArchived={false}
                 />
             </OnyxListItemProvider>,
@@ -115,7 +110,7 @@ describe('Whisper content components provide MentionReportContext so room mentio
                     action={action as ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.ACTIONABLE_MENTION_INVITE_TO_SUBMIT_EXPENSE_CONFIRM_WHISPER>}
                     reportID={REPORT_ID}
                     originalReportID={undefined}
-                    actionReport={report}
+                    actionReportID={REPORT_ID}
                 />
             </OnyxListItemProvider>,
         );

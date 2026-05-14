@@ -1,25 +1,29 @@
 import React from 'react';
 import {View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import MentionReportContext from '@components/HTMLEngineProvider/HTMLRenderers/MentionReportRenderer/MentionReportContext';
 import type {ActionableItem} from '@components/ReportActionItem/ActionableItemButtons';
 import ActionableItemButtons from '@components/ReportActionItem/ActionableItemButtons';
+import useOnyx from '@hooks/useOnyx';
 import {getOriginalMessage} from '@libs/ReportActionsUtils';
 import ReportActionItemMessage from '@pages/inbox/report/ReportActionItemMessage';
 import {resolveActionableReportMentionWhisper} from '@userActions/Report';
 import CONST from '@src/CONST';
-import type {Report, ReportAction} from '@src/types/onyx';
+import ONYXKEYS from '@src/ONYXKEYS';
+import type {ReportAction} from '@src/types/onyx';
 
 type ReportMentionWhisperContentProps = {
     action: ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.ACTIONABLE_REPORT_MENTION_WHISPER>;
     reportID: string | undefined;
-    actionReport: OnyxEntry<Report>;
+    actionReportID: string | undefined;
     isReportArchived: boolean;
 };
 
-function ReportMentionWhisperContent({action, reportID, actionReport, isReportArchived}: ReportMentionWhisperContentProps) {
+function ReportMentionWhisperContent({action, reportID, actionReportID, isReportArchived}: ReportMentionWhisperContentProps) {
     const resolution = getOriginalMessage(action)?.resolution;
     const mentionReportContextValue = {currentReportID: reportID, exactlyMatch: true};
+
+    // Subscribe to the raw `actionReport` so the resolver reads live `last*` fields for failure rollback.
+    const [actionReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${actionReportID}`);
 
     const buttons: ActionableItem[] = resolution
         ? []

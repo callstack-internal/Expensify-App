@@ -28,7 +28,10 @@ function MentionWhisperContent({action, report, originalReport, originalReportID
     const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
     const [personalPolicyID] = useOnyx(ONYXKEYS.PERSONAL_POLICY_ID);
 
-    const actionReport = originalReport ?? report;
+    // Subscribe to the raw `actionReport` so the resolver reads live `last*` fields for failure rollback.
+    // The `report`/`originalReport` props are the stripped projection from useStableReportForReportActionItem.
+    const actionReportID = originalReportID ?? report?.reportID;
+    const [actionReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${actionReportID}`);
     const reportPolicyID = report?.policyID;
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${reportPolicyID}`);
 

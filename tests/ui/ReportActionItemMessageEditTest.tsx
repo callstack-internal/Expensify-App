@@ -54,7 +54,6 @@ const defaultProps: ReportActionItemMessageEditProps = {
     draftMessage: '',
     reportID: defaultReport.reportID,
     originalReportID: defaultReport.reportID,
-    index: 0,
     isGroupPolicyReport: false,
 };
 

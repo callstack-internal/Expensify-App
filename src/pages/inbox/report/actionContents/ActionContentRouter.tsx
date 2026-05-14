@@ -75,7 +75,7 @@ type ActionContentRouterProps = {
     originalReport: OnyxEntry<OnyxTypes.Report>;
 
     /** ID of the original report from which the given reportAction is first created */
-    originalReportID: string;
+    originalReportID?: string;
 
     /** The IOU/Expense report we are paying */
     iouReport?: OnyxTypes.Report;
@@ -119,9 +119,6 @@ type ActionContentRouterProps = {
     /** Whether the search-page UI is active */
     isOnSearch: boolean;
 
-    /** Position index of the report action in the overall report FlatList view */
-    index: number;
-
     /** Toggle whether the payment method popover is active */
     setIsPaymentMethodPopoverActive: (value: boolean) => void;
 };
@@ -130,7 +127,7 @@ function ActionContentRouter({
     action,
     report,
     originalReport,
-    originalReportID,
+    originalReportID = '-1',
     iouReport,
     reportID,
     displayAsGroup,
@@ -145,7 +142,6 @@ function ActionContentRouter({
     isHarvestCreatedExpenseReport,
     shouldShowBorder,
     isOnSearch,
-    index,
     setIsPaymentMethodPopoverActive,
 }: ActionContentRouterProps): React.JSX.Element | null {
     const {translate, formatTravelDate} = useLocalize();
@@ -386,7 +382,7 @@ function ActionContentRouter({
             <ReportMentionWhisperContent
                 action={action}
                 reportID={reportID}
-                actionReport={actionReport}
+                actionReportID={actionReportID}
                 isReportArchived={isReportArchived}
             />
         );
@@ -396,7 +392,7 @@ function ActionContentRouter({
             <ConfirmWhisperContent
                 action={action}
                 reportID={reportID}
-                actionReport={actionReport}
+                actionReportID={actionReportID}
                 originalReportID={originalReportID}
             />
         );
@@ -483,7 +479,6 @@ function ActionContentRouter({
             originalReportID={originalReportID}
             displayAsGroup={displayAsGroup}
             draftMessage={draftMessage}
-            index={index}
             isHidden={isHidden}
             updateHiddenState={updateHiddenState}
             isArchivedRoom={isArchivedRoom}

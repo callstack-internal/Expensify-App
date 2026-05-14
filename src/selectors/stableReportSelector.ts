@@ -1,13 +1,30 @@
 import type {OnyxEntry} from 'react-native-onyx';
+import type {TupleToUnion} from 'type-fest';
 import type {Report} from '@src/types/onyx';
+
+type ValidReportKeys<T extends ReadonlyArray<keyof Report>> = T;
+
+/**
+ * Fields deliberately stripped from the projection. They update on routine activity
+ * (incoming/outgoing messages, read receipts) and would invalidate the projection on every
+ * chat heartbeat even though no item-subtree consumer reads them.
+ */
+type ExcludedFields = ValidReportKeys<
+    [
+        'lastMessageText',
+        'lastVisibleActionCreated',
+        'lastReadTime',
+        'lastReadSequenceNumber',
+        'lastMentionedTime',
+        'lastVisibleActionLastModified',
+        'lastMessageHtml',
+        'lastActorAccountID',
+        'lastActionType',
+    ]
+>;
 
 /**
  * Stable `Report` projection for the `ReportActionItem` subtree.
- *
- * `last*` heartbeat fields are deliberately excluded: they update on routine activity
- * (incoming/outgoing messages, read receipts) and would invalidate the projection on every
- * chat heartbeat even though no item-subtree consumer reads them.
- *
  */
 function stableReportSelector(report: OnyxEntry<Report>) {
     if (!report?.reportID) {
@@ -24,11 +41,6 @@ function stableReportSelector(report: OnyxEntry<Report>) {
         hasOutstandingChildTask: report.hasOutstandingChildTask,
         isOwnPolicyExpenseChat: report.isOwnPolicyExpenseChat,
         isPinned: report.isPinned,
-        // lastMessageText: report.lastMessageText,
-        // lastVisibleActionCreated: report.lastVisibleActionCreated,
-        // lastReadTime: report.lastReadTime,
-        // lastReadSequenceNumber: report.lastReadSequenceNumber,
-        // lastMentionedTime: report.lastMentionedTime,
         policyAvatar: report.policyAvatar,
         policyName: report.policyName,
         oldPolicyName: report.oldPolicyName,
@@ -52,10 +64,6 @@ function stableReportSelector(report: OnyxEntry<Report>) {
         // `undefined` keeps the projection stable through that reconciliation.
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         managerID: report.managerID || undefined,
-        // lastVisibleActionLastModified: report.lastVisibleActionLastModified,
-        // lastMessageHtml: report.lastMessageHtml,
-        // lastActorAccountID: report.lastActorAccountID,
-        // lastActionType: report.lastActionType,
         ownerAccountID: report.ownerAccountID,
         participants: report.participants,
         total: report.total,
@@ -81,7 +89,7 @@ function stableReportSelector(report: OnyxEntry<Report>) {
         nextStep: report.nextStep,
         pendingAction: report.pendingAction,
         pendingFields: report.pendingFields,
-    };
+    } satisfies Omit<Report, TupleToUnion<ExcludedFields>>;
 }
 
 export default stableReportSelector;

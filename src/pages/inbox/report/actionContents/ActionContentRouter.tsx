@@ -382,7 +382,7 @@ function ActionContentRouter({
             <ReportMentionWhisperContent
                 action={action}
                 reportID={reportID}
-                actionReport={actionReport}
+                actionReportID={actionReportID}
                 isReportArchived={isReportArchived}
             />
         );
@@ -392,7 +392,7 @@ function ActionContentRouter({
             <ConfirmWhisperContent
                 action={action}
                 reportID={reportID}
-                actionReport={actionReport}
+                actionReportID={actionReportID}
                 originalReportID={originalReportID}
             />
         );

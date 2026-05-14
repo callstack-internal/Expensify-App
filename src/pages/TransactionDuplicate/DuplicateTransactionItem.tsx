@@ -13,6 +13,7 @@ import {ReportActionItemActionsContext, ReportActionItemStateContext} from '@pag
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Transaction} from '@src/types/onyx';
+import stableReportSelector from '@src/selectors/stableReportSelector';
 
 type DuplicateTransactionItemProps = {
     transaction: OnyxEntry<Transaction>;
@@ -26,7 +27,7 @@ function DuplicateTransactionItem({transaction, index, onPreviewPressed}: Duplic
     const styles = useThemeStyles();
     const personalDetails = usePersonalDetails();
 
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transaction?.reportID}`);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transaction?.reportID}`, {selector: stableReportSelector});
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.reportID}`);
 
     const action = Object.values(reportActions ?? {})?.find((reportAction) => {

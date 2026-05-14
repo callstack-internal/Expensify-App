@@ -1,4 +1,5 @@
 import {useIsFocused, useRoute} from '@react-navigation/native';
+import {stableReportSelector} from '@selectors/Report';
 import type {ListRenderItemInfo} from '@shopify/flash-list';
 import React, {memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent} from 'react-native';
@@ -20,7 +21,6 @@ import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportScrollManager from '@hooks/useReportScrollManager';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useScrollToEndOnNewMessageReceived from '@hooks/useScrollToEndOnNewMessageReceived';
-import useStableReportForReportActionItem from '@hooks/useStableReportForReportActionItem';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
@@ -220,7 +220,7 @@ function ReportActionsList({
     const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report.reportID}`);
     const isHarvestCreatedExpenseReportAction = isHarvestCreatedExpenseReport(reportNameValuePairs?.origin, reportNameValuePairs?.originalID);
 
-    const reportStable = useStableReportForReportActionItem(report) ?? report;
+    const [reportStable = report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, {selector: stableReportSelector});
 
     const backTo = route?.params?.backTo as string;
     const linkedReportActionID = route?.params?.reportActionID;
@@ -348,6 +348,7 @@ function ReportActionsList({
         visibleReportActionsWithDraft.push(draftReportAction);
         return visibleReportActionsWithDraft;
     }, [draftReportAction, sortedVisibleReportActions]);
+
     const draftMessageHTML = draftReportAction ? getReportActionMessage(draftReportAction)?.html : undefined;
     const isSyntheticDraftVisible = !!draftReportAction && renderedVisibleReportActions !== sortedVisibleReportActions;
     const draftAutoScrollKey = isSyntheticDraftVisible ? `${draftReportAction.reportActionID}:${draftMessageHTML ?? ''}` : '';

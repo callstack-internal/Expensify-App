@@ -1,3 +1,4 @@
+import {stableReportSelector} from '@selectors/Report';
 import React, {useCallback} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
 import useOnyx from '@hooks/useOnyx';
@@ -26,7 +27,7 @@ function ReportActionItem({action, report, draftMessage, personalDetails, linked
     const reportID = report?.reportID;
     const originalReportID = useOriginalReportID(reportID, action);
     const isOriginalReportArchived = useReportIsArchived(originalReportID);
-    const [originalReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${originalReportID}`);
+    const [originalReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${originalReportID}`, {selector: stableReportSelector});
     const [iouReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getIOUReportIDFromReportActionPreview(action)}`);
 
     const transactionsOnIOUReport = useReportTransactions(iouReport?.reportID);

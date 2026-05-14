@@ -7,7 +7,7 @@ import {View} from 'react-native';
 import {useOnyx as originalUseOnyx} from 'react-native-onyx';
 import {useDelegateNoAccessActions, useDelegateNoAccessState} from '@components/DelegateNoAccessModalProvider';
 import Icon from '@components/Icon';
-import {useSearchSnapshotContext, useSearchSnapshotResultsContext} from '@components/Search/SearchContext';
+import {useSearchSnapshotContext} from '@components/Search/SearchContext';
 import BaseListItem from '@components/SelectionList/ListItem/BaseListItem';
 import type {ListItem} from '@components/SelectionList/types';
 import Text from '@components/Text';
@@ -17,6 +17,7 @@ import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
+import useSearchSnapshotEntry from '@hooks/useSearchSnapshotEntry';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -30,7 +31,7 @@ import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import {isActionLoadingSelector} from '@src/selectors/ReportMetaData';
-import type {Policy, Report} from '@src/types/onyx';
+import type {Policy, Report, ReportAction} from '@src/types/onyx';
 import ExpenseReportListItemRow from './ExpenseReportListItemRow';
 import type {ExpenseReportListItemProps, ExpenseReportListItemType} from './types';
 import UserInfoAndActionButtonRow from './UserInfoAndActionButtonRow';
@@ -65,7 +66,6 @@ function ExpenseReportListItem<TItem extends ListItem>({
     const {translate} = useLocalize();
     const {isLargeScreenWidth} = useResponsiveLayout();
     const {currentSearchHash, currentSearchKey} = useSearchSnapshotContext();
-    const {currentSearchResults} = useSearchSnapshotResultsContext();
     const [isActionLoading] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${reportItem.reportID}`, {selector: isActionLoadingSelector});
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['DotIndicator']);
     const currentUserDetails = useCurrentUserPersonalDetails();
@@ -75,20 +75,10 @@ function ExpenseReportListItem<TItem extends ListItem>({
     const [parentReport] = originalUseOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(reportItem.reportID)}`);
     const [policyCategories] = originalUseOnyx(`${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}${getNonEmptyStringOnyxID(reportItem.policyID)}`);
 
-    const searchData = currentSearchResults?.data;
-
-    const snapshotReport = useMemo(() => {
-        return (searchData?.[`${ONYXKEYS.COLLECTION.REPORT}${reportItem.reportID}`] ?? {}) as Report;
-    }, [searchData, reportItem.reportID]);
-
-    const snapshotPolicy = useMemo(() => {
-        return (searchData?.[`${ONYXKEYS.COLLECTION.POLICY}${reportItem.policyID}`] ?? {}) as Policy;
-    }, [searchData, reportItem.policyID]);
-
-    const reportActions = useMemo(() => {
-        const actionsData = searchData?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportItem.reportID}`];
-        return actionsData ? Object.values(actionsData) : [];
-    }, [searchData, reportItem.reportID]);
+    const snapshotReport = (useSearchSnapshotEntry<Report>(`${ONYXKEYS.COLLECTION.REPORT}${reportItem.reportID}`) ?? {}) as Report;
+    const snapshotPolicy = (useSearchSnapshotEntry<Policy>(`${ONYXKEYS.COLLECTION.POLICY}${reportItem.policyID}`) ?? {}) as Policy;
+    const reportActionsData = useSearchSnapshotEntry<Record<string, ReportAction>>(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportItem.reportID}`);
+    const reportActions = reportActionsData ? Object.values(reportActionsData) : [];
 
     const isDisabledCheckbox = useMemo(() => {
         return reportItem.isDisabled ?? reportItem.isDisabledCheckbox;

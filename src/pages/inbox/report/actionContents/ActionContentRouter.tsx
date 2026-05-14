@@ -119,9 +119,6 @@ type ActionContentRouterProps = {
     /** Whether the search-page UI is active */
     isOnSearch: boolean;
 
-    /** Position index of the report action in the overall report FlatList view */
-    index: number;
-
     /** Toggle whether the payment method popover is active */
     setIsPaymentMethodPopoverActive: (value: boolean) => void;
 };
@@ -145,7 +142,6 @@ function ActionContentRouter({
     isHarvestCreatedExpenseReport,
     shouldShowBorder,
     isOnSearch,
-    index,
     setIsPaymentMethodPopoverActive,
 }: ActionContentRouterProps): React.JSX.Element | null {
     const {translate, formatTravelDate} = useLocalize();
@@ -483,7 +479,6 @@ function ActionContentRouter({
             originalReportID={originalReportID}
             displayAsGroup={displayAsGroup}
             draftMessage={draftMessage}
-            index={index}
             isHidden={isHidden}
             updateHiddenState={updateHiddenState}
             isArchivedRoom={isArchivedRoom}

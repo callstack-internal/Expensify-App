@@ -20,6 +20,7 @@ import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportScrollManager from '@hooks/useReportScrollManager';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useScrollToEndOnNewMessageReceived from '@hooks/useScrollToEndOnNewMessageReceived';
+import useStableReportForReportActionItem from '@hooks/useStableReportForReportActionItem';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
@@ -74,6 +75,7 @@ import type * as OnyxTypes from '@src/types/onyx';
 import FloatingMessageCounter from './FloatingMessageCounter';
 import getInitialNumToRender from './getInitialNumReportActionsToRender';
 import getReportActionsListInitialNumToRender from './getReportActionsListInitialNumToRender';
+import ReportActionIndexContext from './ReportActionIndexContext';
 import ReportActionsListHeader from './ReportActionsListHeader';
 import ReportActionsListItemRenderer from './ReportActionsListItemRenderer';
 import {getUnreadMarkerReportAction} from './shouldDisplayNewMarkerOnReportAction';
@@ -217,6 +219,8 @@ function ReportActionsList({
     const prevIsLoadingInitialReportActions = usePrevious(reportLoadingState?.isLoadingInitialReportActions);
     const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report.reportID}`);
     const isHarvestCreatedExpenseReportAction = isHarvestCreatedExpenseReport(reportNameValuePairs?.origin, reportNameValuePairs?.originalID);
+
+    const reportStable = useStableReportForReportActionItem(report) ?? report;
 
     const backTo = route?.params?.backTo as string;
     const linkedReportActionID = route?.params?.reportActionID;
@@ -770,7 +774,7 @@ function ReportActionsList({
 
     const renderItem = useCallback(
         ({item: reportAction, index}: ListRenderItemInfo<OnyxTypes.ReportAction>) => {
-            const originalReportID = getOriginalReportID(report.reportID, reportAction, reportActionsFromOnyx);
+            const originalReportID = getOriginalReportID(reportStable?.reportID, reportAction, reportActionsFromOnyx);
 
             // Use the action's actual index in sortedVisibleReportActions rather than the FlashList-provided index,
             // because useFlashListScrollKey may slice the data for deep-link scroll positioning, making the
@@ -778,13 +782,12 @@ function ReportActionsList({
             const safeIndex = actionIndexMap.get(reportAction.reportActionID) ?? index;
 
             return (
-                <>
+                <ReportActionIndexContext.Provider value={index}>
                     <ReportActionsListItemRenderer
                         reportAction={reportAction}
                         parentReportAction={parentReportAction}
                         parentReportActionForTransactionThread={parentReportActionForTransactionThread}
-                        index={index}
-                        report={report}
+                        report={reportStable}
                         transactionThreadReport={transactionThreadReport}
                         linkedReportActionID={linkedReportActionID}
                         displayAsGroup={
@@ -802,19 +805,19 @@ function ReportActionsList({
                         isHarvestCreatedExpenseReport={isHarvestCreatedExpenseReportAction}
                     />
                     <ShowPreviousMessagesButton
-                        reportID={report.reportID}
+                        reportID={reportStable?.reportID}
                         actionType={reportAction.actionName}
                         hasPreviousMessages={!!hasPreviousMessages}
                         showFullHistory={!showHiddenHistory}
                         onPress={onShowPreviousMessages}
                     />
-                </>
+                </ReportActionIndexContext.Provider>
             );
         },
         [
             parentReportAction,
             parentReportActionForTransactionThread,
-            report,
+            reportStable,
             isOffline,
             transactionThreadReport,
             linkedReportActionID,

@@ -1,6 +1,6 @@
 import lodashDebounce from 'lodash/debounce';
 import type {ForwardedRef} from 'react';
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {InteractionManager, View} from 'react-native';
 import type {BlurEvent, MeasureInWindowOnSuccessCallback, TextInput, TextInputKeyPressEvent, TextInputScrollEvent} from 'react-native';
@@ -59,6 +59,7 @@ import getCursorPosition from './ReportActionCompose/getCursorPosition';
 import getScrollPosition from './ReportActionCompose/getScrollPosition';
 import type {SuggestionsRef} from './ReportActionCompose/ReportActionCompose';
 import Suggestions from './ReportActionCompose/Suggestions';
+import ReportActionIndexContext from './ReportActionIndexContext';
 import shouldUseEmojiPickerSelection from './shouldUseEmojiPickerSelection';
 
 type ReportActionItemMessageEditProps = {
@@ -76,9 +77,6 @@ type ReportActionItemMessageEditProps = {
 
     /** PolicyID of the policy the report belongs to */
     policyID?: string;
-
-    /** Position index of the report action in the overall report FlatList view */
-    index: number;
 
     /** Whether or not the emoji picker is disabled */
     shouldDisableEmojiPicker?: boolean;
@@ -106,11 +104,11 @@ function ReportActionItemMessageEdit({
     reportID,
     originalReportID,
     policyID,
-    index,
     isGroupPolicyReport,
     shouldDisableEmojiPicker = false,
     ref,
 }: ReportActionItemMessageEditProps) {
+    const index = useContext(ReportActionIndexContext);
     const [preferredSkinTone = CONST.EMOJI_DEFAULT_SKIN_TONE] = useOnyx(ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE);
     const {email} = useCurrentUserPersonalDetails();
     const theme = useTheme();

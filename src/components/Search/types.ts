@@ -192,17 +192,25 @@ type SearchStateContextValue = SearchContextData & {
     areAllMatchingItemsSelected: boolean;
 };
 
-/** Narrow context value exposing only snapshot-identity and snapshot-data fields.
- * Consumers that don't read selection/UI state should subscribe to this instead of
- * SearchStateContext, so they don't re-render when selection or UI flags change. */
+/** Narrow context value exposing snapshot-identity fields only — primitives plus rarely-changing
+ * values. Excludes `currentSearchResults` (own context, see below) and `suggestedSearches`
+ * (kept on SearchStateContext where existing consumers read it; getSuggestedSearches allocates
+ * a fresh object each call, so it would otherwise flip the snapshot context value every render).
+ * Result: consumers subscribing here don't re-render on Onyx snapshot pushes or unrelated state
+ * updates. */
 type SearchSnapshotContextValue = {
     currentSearchHash: number;
     currentSimilarSearchHash: number;
     currentSearchKey: SearchKey | undefined;
     currentSearchQueryJSON: Readonly<SearchQueryJSON> | undefined;
-    currentSearchResults: SearchResults | undefined;
-    suggestedSearches: Record<SearchKey, SearchTypeMenuItem>;
     shouldUseLiveData: boolean;
+};
+
+/** Context value holding only the snapshot results. Separated from SearchSnapshotContext so
+ * `currentSearchResults` ref churn (every Onyx push within the snapshot, every isLoading flip)
+ * doesn't fan out to consumers that only need identity fields. */
+type SearchSnapshotResultsContextValue = {
+    currentSearchResults: SearchResults | undefined;
 };
 
 type SearchActionsContextValue = {
@@ -412,6 +420,7 @@ export type {
     SortOrder,
     SearchStateContextValue,
     SearchSnapshotContextValue,
+    SearchSnapshotResultsContextValue,
     SearchActionsContextValue,
     SearchContextData,
     ASTNode,

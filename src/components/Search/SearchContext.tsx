@@ -20,7 +20,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import SCREENS from '@src/SCREENS';
 import type {SearchResultsInfo} from '@src/types/onyx/SearchResults';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
-import type {SearchActionsContextValue, SearchContextData, SearchSnapshotContextValue, SearchStateContextValue, SelectedTransactions} from './types';
+import type {SearchActionsContextValue, SearchContextData, SearchSnapshotContextValue, SearchSnapshotResultsContextValue, SearchStateContextValue, SelectedTransactions} from './types';
 
 type SearchContextProps = {
     children: React.ReactNode;
@@ -71,9 +71,11 @@ const defaultSearchSnapshotContext: SearchSnapshotContextValue = {
     currentSimilarSearchHash: -1,
     currentSearchKey: undefined,
     currentSearchQueryJSON: undefined,
-    currentSearchResults: undefined,
-    suggestedSearches: {} as SearchSnapshotContextValue['suggestedSearches'],
     shouldUseLiveData: false,
+};
+
+const defaultSearchSnapshotResultsContext: SearchSnapshotResultsContextValue = {
+    currentSearchResults: undefined,
 };
 
 const defaultSearchActionsContext: SearchActionsContextValue = {
@@ -91,6 +93,7 @@ const defaultSearchActionsContext: SearchActionsContextValue = {
 const SearchStateContext = React.createContext<SearchStateContextValue>(defaultSearchStateContext);
 const SearchActionsContext = React.createContext<SearchActionsContextValue>(defaultSearchActionsContext);
 const SearchSnapshotContext = React.createContext<SearchSnapshotContextValue>(defaultSearchSnapshotContext);
+const SearchSnapshotResultsContext = React.createContext<SearchSnapshotResultsContextValue>(defaultSearchSnapshotResultsContext);
 
 function selectSearchQueryParam(state: NavigationState | undefined) {
     const focused = getDeepestFocusedScreen(state);
@@ -341,17 +344,24 @@ function SearchContextProvider({children}: SearchContextProps) {
         currentSearchQueryJSON,
     };
 
-    // Narrow context for snapshot-only consumers (e.g. list-item rows). Keeping this separate
-    // from SearchStateContext lets the compiler memoize its value based only on snapshot inputs,
-    // so consumers stop re-rendering when selection state or UI flags change.
+    // Narrow context for snapshot-identity consumers (e.g. list-item rows). Excludes
+    // `currentSearchResults` (own context — heavy churn) and `suggestedSearches` (fresh object
+    // ref each provider render; kept on SearchStateContext where existing consumers read it).
+    // Result: this value's ref stays stable across Onyx snapshot pushes and unrelated state
+    // updates, so consumers reading only hash/key/queryJSON don't re-render on those.
     const searchSnapshotContextValue: SearchSnapshotContextValue = {
         currentSearchHash,
         currentSimilarSearchHash,
         currentSearchKey,
         currentSearchQueryJSON,
-        currentSearchResults,
-        suggestedSearches,
         shouldUseLiveData,
+    };
+
+    // Heavy-churn context holding only the snapshot data. Subscribed to by consumers that need
+    // `currentSearchResults` for per-key data lookups. A follow-up PR will introduce a per-row
+    // Onyx-selector hook that bypasses this context, removing direct row subscriptions.
+    const searchSnapshotResultsContextValue: SearchSnapshotResultsContextValue = {
+        currentSearchResults,
     };
 
     const searchActionsContextValue: SearchActionsContextValue = {
@@ -368,9 +378,11 @@ function SearchContextProvider({children}: SearchContextProps) {
 
     return (
         <SearchSnapshotContext value={searchSnapshotContextValue}>
-            <SearchStateContext value={searchStateContextValue}>
-                <SearchActionsContext value={searchActionsContextValue}>{children}</SearchActionsContext>
-            </SearchStateContext>
+            <SearchSnapshotResultsContext value={searchSnapshotResultsContextValue}>
+                <SearchStateContext value={searchStateContextValue}>
+                    <SearchActionsContext value={searchActionsContextValue}>{children}</SearchActionsContext>
+                </SearchStateContext>
+            </SearchSnapshotResultsContext>
         </SearchSnapshotContext>
     );
 }
@@ -392,4 +404,18 @@ function useSearchSnapshotContext() {
     return useContext(SearchSnapshotContext);
 }
 
-export {SearchContextProvider, useSearchStateContext, useSearchActionsContext, useSearchSnapshotContext, SearchStateContext, SearchActionsContext, SearchSnapshotContext};
+function useSearchSnapshotResultsContext() {
+    return useContext(SearchSnapshotResultsContext);
+}
+
+export {
+    SearchContextProvider,
+    useSearchStateContext,
+    useSearchActionsContext,
+    useSearchSnapshotContext,
+    useSearchSnapshotResultsContext,
+    SearchStateContext,
+    SearchActionsContext,
+    SearchSnapshotContext,
+    SearchSnapshotResultsContext,
+};

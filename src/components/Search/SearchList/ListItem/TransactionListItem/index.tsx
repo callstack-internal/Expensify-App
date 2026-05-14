@@ -8,7 +8,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 // eslint-disable-next-line no-restricted-imports
 import {useOnyx as originalUseOnyx} from 'react-native-onyx';
 import {useDelegateNoAccessActions, useDelegateNoAccessState} from '@components/DelegateNoAccessModalProvider';
-import {useSearchSnapshotContext} from '@components/Search/SearchContext';
+import {useSearchSnapshotContext, useSearchSnapshotResultsContext} from '@components/Search/SearchContext';
 import type {TransactionListItemProps, TransactionListItemType} from '@components/Search/SearchList/ListItem/types';
 import type {ListItem} from '@components/SelectionList/types';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
@@ -57,7 +57,8 @@ function TransactionListItem<TItem extends ListItem>({
     const isDeletedTransaction = isDeletedTransactionUtil(transactionItem);
 
     const {isLargeScreenWidth} = useResponsiveLayout();
-    const {currentSearchHash, currentSearchKey, currentSearchResults} = useSearchSnapshotContext();
+    const {currentSearchHash, currentSearchKey} = useSearchSnapshotContext();
+    const {currentSearchResults} = useSearchSnapshotResultsContext();
     const snapshotReport = (currentSearchResults?.data?.[`${ONYXKEYS.COLLECTION.REPORT}${transactionItem.reportID}`] ?? {}) as Report;
 
     const [isActionLoading] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${transactionItem.reportID}`, {selector: isActionLoadingSelector});

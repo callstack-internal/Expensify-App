@@ -1,5 +1,5 @@
 import {useIsFocused, useRoute} from '@react-navigation/native';
-import {stableReportSelector} from '@selectors/Report';
+import stableReportSelector from '@selectors/stableReportSelector';
 import type {ListRenderItemInfo} from '@shopify/flash-list';
 import React, {memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent} from 'react-native';
@@ -220,7 +220,7 @@ function ReportActionsList({
     const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report.reportID}`);
     const isHarvestCreatedExpenseReportAction = isHarvestCreatedExpenseReport(reportNameValuePairs?.origin, reportNameValuePairs?.originalID);
 
-    const [reportStable = report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, {selector: stableReportSelector});
+    const [reportStable] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, {selector: stableReportSelector});
 
     const backTo = route?.params?.backTo as string;
     const linkedReportActionID = route?.params?.reportActionID;
@@ -805,13 +805,15 @@ function ReportActionsList({
                         isReportArchived={isReportArchived}
                         isHarvestCreatedExpenseReport={isHarvestCreatedExpenseReportAction}
                     />
-                    <ShowPreviousMessagesButton
-                        reportID={reportStable?.reportID}
-                        actionType={reportAction.actionName}
-                        hasPreviousMessages={!!hasPreviousMessages}
-                        showFullHistory={!showHiddenHistory}
-                        onPress={onShowPreviousMessages}
-                    />
+                    {!!reportStable?.reportID && (
+                        <ShowPreviousMessagesButton
+                            reportID={reportStable.reportID}
+                            actionType={reportAction.actionName}
+                            hasPreviousMessages={!!hasPreviousMessages}
+                            showFullHistory={!showHiddenHistory}
+                            onPress={onShowPreviousMessages}
+                        />
+                    )}
                 </ReportActionIndexContext.Provider>
             );
         },

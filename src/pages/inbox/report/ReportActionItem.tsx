@@ -1,4 +1,4 @@
-import {stableReportSelector} from '@selectors/Report';
+import stableReportSelector from '@selectors/stableReportSelector';
 import React, {useCallback} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
 import useOnyx from '@hooks/useOnyx';

@@ -1,3 +1,4 @@
+import stableReportSelector from '@selectors/stableReportSelector';
 import React from 'react';
 import BaseListItem from '@components/SelectionList/ListItem/BaseListItem';
 import type {ListItem} from '@components/SelectionList/types';
@@ -28,7 +29,7 @@ function ChatListItem<TItem extends ListItem>({
     personalDetails,
 }: ChatListItemProps<TItem>) {
     const reportActionItem = item as unknown as ReportActionListItemType;
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportActionItem?.reportID}`);
+    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportActionItem?.reportID}`, {selector: stableReportSelector});
     const styles = useThemeStyles();
     const theme = useTheme();
     const animatedHighlightStyle = useAnimatedHighlightStyle({

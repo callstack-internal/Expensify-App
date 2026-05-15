@@ -16,16 +16,14 @@ type ReportActionItemProps = PureReportActionItemProps & {
     /** Whether to show the draft message or not */
     shouldShowDraftMessage?: boolean;
 
-    /** Draft message for the report action */
-    draftMessage?: string;
-
     /** Personal details list */
     personalDetails: OnyxEntry<PersonalDetailsList>;
+
+    /** The original report ID for draft message lookups */
+    originalReportID?: string;
 };
 
-function ReportActionItem({action, report, draftMessage, personalDetails, linkedTransactionRouteError: linkedTransactionRouteErrorProp, ...props}: ReportActionItemProps) {
-    const reportID = report?.reportID;
-    const originalReportID = useOriginalReportID(reportID, action);
+function ReportActionItem({action, report, originalReportID, personalDetails, linkedTransactionRouteError: linkedTransactionRouteErrorProp, ...props}: ReportActionItemProps) {
     const isOriginalReportArchived = useReportIsArchived(originalReportID);
     const [originalReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${originalReportID}`, {selector: stableReportSelector});
     const [iouReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getIOUReportIDFromReportActionPreview(action)}`);
@@ -48,7 +46,6 @@ function ReportActionItem({action, report, draftMessage, personalDetails, linked
             {...props}
             action={action}
             report={report}
-            draftMessage={draftMessage}
             iouReport={iouReport}
             linkedTransactionRouteError={linkedTransactionRouteError}
             personalDetails={personalDetails}

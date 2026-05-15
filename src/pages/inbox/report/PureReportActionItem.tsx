@@ -2,7 +2,7 @@
 import {useNavigation} from '@react-navigation/native';
 import {deepEqual} from 'fast-equals';
 import mapValues from 'lodash/mapValues';
-import React, {memo, useContext, useEffect, useRef, useState} from 'react';
+import React, {memo, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import type {GestureResponderEvent, TextInput} from 'react-native';
 import {Keyboard, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
@@ -17,6 +17,7 @@ import RenderHTML from '@components/RenderHTML';
 import ChronosOOOListActions from '@components/ReportActionItem/ChronosOOOListActions';
 import {useIsOnSearch} from '@components/Search/SearchScopeProvider';
 import {ShowContextMenuActionsContext, ShowContextMenuStateContext} from '@components/ShowContextMenuContext';
+import Text from '@components/Text';
 import UnreadActionIndicator from '@components/UnreadActionIndicator';
 import useConfirmModal from '@hooks/useConfirmModal';
 import useLocalize from '@hooks/useLocalize';
@@ -125,9 +126,6 @@ type PureReportActionItemProps = {
     /** Whether context menu should be displayed */
     shouldDisplayContextMenu?: boolean;
 
-    /** ReportAction draft message */
-    draftMessage?: string;
-
     /** The IOU/Expense report we are paying */
     iouReport?: OnyxTypes.Report;
 
@@ -174,7 +172,6 @@ function PureReportActionItem({
     shouldUseThreadDividerLine = false,
     shouldDisplayContextMenu = true,
     parentReportActionForTransactionThread,
-    draftMessage,
     iouReport,
     linkedTransactionRouteError,
     personalDetails,
@@ -188,6 +185,9 @@ function PureReportActionItem({
 }: PureReportActionItemProps) {
     const isConciergeGreeting = action.reportActionID === CONST.CONCIERGE_GREETING_ACTION_ID;
     const shouldDisplayContextMenuValue = shouldDisplayContextMenu && !isConciergeGreeting;
+
+    const selectDraftMessage = useCallback((drafts: OnyxEntry<OnyxTypes.ReportActionsDrafts>) => drafts?.[action.reportActionID]?.message, [action.reportActionID]);
+    const [draftMessage] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${originalReportID}`, {selector: selectDraftMessage});
 
     const {transitionActionSheetState} = ActionSheetAwareScrollView.useActionSheetAwareScrollViewActions();
     const {translate, datetimeToCalendarTime} = useLocalize();
@@ -474,11 +474,21 @@ function PureReportActionItem({
     const shouldDisplayThreadReplies = shouldDisplayThreadRepliesUtils(action, isThreadReportParentAction) && !isOnSearch;
 
     // Calculating accessibilityLabel for chat message with sender, date and time and the message content.
+    // const displayName = 'test';
     const displayName = getDisplayNameOrDefault(personalDetails?.[action.actorAccountID ?? CONST.DEFAULT_NUMBER_ID]);
     const formattedTimestamp = datetimeToCalendarTime(action.created, false);
     const plainMessage = getReportActionText(action);
     const accessibilityLabel = `${displayName}, ${formattedTimestamp}, ${plainMessage}`;
 
+    // console.log(
+    //     'TEST action displayName comparison',
+    //     'actorAccountID',
+    //     action.actorAccountID,
+    //     'personalDetails',
+    //     personalDetails?.[action.actorAccountID ?? CONST.DEFAULT_NUMBER_ID],
+    //     '---- DATA ACTION',
+    //     JSON.stringify(action.person, null, 2),
+    // );
     return (
         <ShowContextMenuStateContext.Provider value={contextMenuStateValue}>
             <ShowContextMenuActionsContext.Provider value={contextMenuActionsValue}>
@@ -513,6 +523,7 @@ function PureReportActionItem({
                         accessibilityRole={CONST.ROLE.BUTTON}
                         sentryLabel={CONST.SENTRY_LABEL.REPORT.PURE_REPORT_ACTION_ITEM}
                     >
+                        {/* <Text>{JSON.stringify(action.person, null, 2)}</Text> */}
                         <Hoverable
                             shouldHandleScroll
                             isDisabled={hasDraft}
@@ -682,7 +693,6 @@ export default memo(PureReportActionItem, (prevProps, nextProps) => {
         deepEqual(prevProps.report?.fieldList, nextProps.report?.fieldList) &&
         deepEqual(prevProps.transactionThreadReport, nextProps.transactionThreadReport) &&
         deepEqual(prevParentReportAction, nextParentReportAction) &&
-        prevProps.draftMessage === nextProps.draftMessage &&
         prevProps.iouReport?.reportID === nextProps.iouReport?.reportID &&
         deepEqual(prevProps.linkedTransactionRouteError, nextProps.linkedTransactionRouteError) &&
         deepEqual(prevProps.personalDetails, nextProps.personalDetails) &&

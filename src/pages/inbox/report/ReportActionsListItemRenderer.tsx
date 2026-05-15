@@ -1,11 +1,9 @@
-import React, {memo, useMemo} from 'react';
-import type {OnyxEntry} from 'react-native-onyx';
-import useOnyx from '@hooks/useOnyx';
-import {getOriginalMessage, isSentMoneyReportAction, isTransactionThread} from '@libs/ReportActionsUtils';
-import {isChatThread} from '@libs/ReportUtils';
+import { getOriginalMessage, isSentMoneyReportAction, isTransactionThread } from '@libs/ReportActionsUtils';
+import { isChatThread } from '@libs/ReportUtils';
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetailsList, Report, ReportAction} from '@src/types/onyx';
+import type { PersonalDetailsList, Report, ReportAction } from '@src/types/onyx';
+import React, { memo, useMemo } from 'react';
+import type { OnyxEntry } from 'react-native-onyx';
 import ReportActionItem from './ReportActionItem';
 import ReportActionItemParentAction from './ReportActionItemParentAction';
 
@@ -81,8 +79,7 @@ function ReportActionsListItemRenderer({
     isReportArchived = false,
     isHarvestCreatedExpenseReport = false,
 }: ReportActionsListItemRendererProps) {
-    const [reportDraftMessages] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${originalReportID}`);
-    const draftMessage = reportDraftMessages?.[reportAction.reportActionID]?.message;
+    // Subscribe only to this row's draft slice so a draft edit on one row doesn't re-render every other row.
 
     const originalMessage = useMemo(() => getOriginalMessage(reportAction), [reportAction]);
 
@@ -192,7 +189,7 @@ function ReportActionsListItemRenderer({
             shouldUseThreadDividerLine={shouldUseThreadDividerLine}
             shouldHighlight={shouldHighlight}
             personalDetails={personalDetails}
-            draftMessage={draftMessage}
+            originalReportID={originalReportID}
             isHarvestCreatedExpenseReport={isHarvestCreatedExpenseReport}
         />
     );

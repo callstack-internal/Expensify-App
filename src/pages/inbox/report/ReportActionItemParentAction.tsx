@@ -22,7 +22,7 @@ import {
 } from '@libs/ReportUtils';
 import {navigateToConciergeChatAndDeleteReport} from '@userActions/Report';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetailsList, Report, ReportAction, ReportActions, ReportActionsDrafts, ReportNameValuePairs, Transaction} from '@src/types/onyx';
+import type {PersonalDetailsList, Report, ReportAction, ReportActions, ReportNameValuePairs, Transaction} from '@src/types/onyx';
 import AnimatedEmptyStateBackground from './AnimatedEmptyStateBackground';
 import RepliesDivider from './RepliesDivider';
 import ReportActionItem from './ReportActionItem';
@@ -129,27 +129,27 @@ function ReportActionItemParentAction({
         [ancestors],
     );
 
-    const ancestorDraftSelector = useCallback(
-        (allDrafts: OnyxCollection<ReportActionsDrafts>) => {
-            if (!allDrafts) {
-                return {};
-            }
-            const result: OnyxCollection<ReportActionsDrafts> = {};
-            for (const ancestor of ancestors) {
-                const origID = getOriginalReportID(
-                    ancestor.report.reportID,
-                    ancestor.reportAction,
-                    ancestorsReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${ancestor.report.reportID}`],
-                );
-                const key = `${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${origID}`;
-                result[key] = allDrafts[key];
-            }
-            return result;
-        },
-        [ancestors, ancestorsReportActions],
-    );
+    // const ancestorDraftSelector = useCallback(
+    //     (allDrafts: OnyxCollection<ReportActionsDrafts>) => {
+    //         if (!allDrafts) {
+    //             return {};
+    //         }
+    //         const result: OnyxCollection<ReportActionsDrafts> = {};
+    //         for (const ancestor of ancestors) {
+    //             const origID = getOriginalReportID(
+    //                 ancestor.report.reportID,
+    //                 ancestor.reportAction,
+    //                 ancestorsReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${ancestor.report.reportID}`],
+    //             );
+    //             const key = `${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${origID}`;
+    //             result[key] = allDrafts[key];
+    //         }
+    //         return result;
+    //     },
+    //     [ancestors, ancestorsReportActions],
+    // );
 
-    const [ancestorDraftMessages] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS, {selector: ancestorDraftSelector}, [ancestors, ancestorsReportActions]);
+    // const [ancestorDraftMessages] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS, {selector: ancestorDraftSelector}, [ancestors, ancestorsReportActions]);
 
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
@@ -177,9 +177,9 @@ function ReportActionItemParentAction({
                         ancestorReportAction,
                         ancestorsReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${ancestorReport.reportID}`],
                     );
-                    const reportDraftMessages = originalReportID ? ancestorDraftMessages?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${originalReportID}`] : undefined;
-                    const matchingDraftMessage = reportDraftMessages?.[ancestorReportAction.reportActionID];
-                    const matchingDraftMessageString = matchingDraftMessage?.message;
+                    // const reportDraftMessages = originalReportID ? ancestorDraftMessages?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${originalReportID}`] : undefined;
+                    // const matchingDraftMessage = reportDraftMessages?.[ancestorReportAction.reportActionID];
+                    // const matchingDraftMessageString = matchingDraftMessage?.message;
 
                     return (
                         <OfflineWithFeedback
@@ -214,7 +214,7 @@ function ReportActionItemParentAction({
                                 shouldUseThreadDividerLine={shouldUseThreadDividerLine}
                                 isThreadReportParentAction
                                 personalDetails={personalDetails}
-                                draftMessage={matchingDraftMessageString}
+                                originalReportID={originalReportID}
                                 linkedTransactionRouteError={linkedTransactionRouteError}
                             />
                         </OfflineWithFeedback>

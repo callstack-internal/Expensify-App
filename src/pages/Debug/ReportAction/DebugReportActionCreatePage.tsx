@@ -109,6 +109,7 @@ function DebugReportActionCreatePage({
                                 <ReportActionItem
                                     action={JSON.parse(draftReportAction.replaceAll('\n', '')) as ReportAction}
                                     report={{reportID}}
+                                    originalReportID={reportID}
                                     parentReportAction={undefined}
                                     displayAsGroup={false}
                                     shouldDisplayNewMarker={false}

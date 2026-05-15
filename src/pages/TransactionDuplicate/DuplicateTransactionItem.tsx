@@ -37,7 +37,7 @@ function DuplicateTransactionItem({transaction, index, onPreviewPressed}: Duplic
 
     const originalReportID = getOriginalReportID(report?.reportID, action, reportActions);
 
-    const [draftMessage] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${originalReportID}`);
+    // const [draftMessage] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_DRAFTS}${originalReportID}`);
 
     const [linkedTransactionRouteError] = useOnyx(
         `${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(isMoneyRequestAction(action) ? getOriginalMessage(action)?.IOUTransactionID : undefined)}`,
@@ -53,8 +53,8 @@ function DuplicateTransactionItem({transaction, index, onPreviewPressed}: Duplic
         return null;
     }
 
-    const reportDraftMessage = draftMessage?.[action.reportActionID];
-    const matchingDraftMessage = reportDraftMessage?.message;
+    // const reportDraftMessage = draftMessage?.[action.reportActionID];
+    // const matchingDraftMessage = reportDraftMessage?.message;
 
     return (
         <View style={styles.pb2}>
@@ -70,7 +70,7 @@ function DuplicateTransactionItem({transaction, index, onPreviewPressed}: Duplic
                             isFirstVisibleReportAction={false}
                             shouldDisplayContextMenu={false}
                             personalDetails={personalDetails}
-                            draftMessage={matchingDraftMessage}
+                            originalReportID={originalReportID}
                             linkedTransactionRouteError={linkedTransactionRouteError}
                         />
                     </ReportActionIndexContext.Provider>

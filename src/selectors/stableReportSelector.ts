@@ -23,6 +23,8 @@ type ExcludedFields = ValidReportKeys<
     ]
 >;
 
+type StableReport = Omit<Report, TupleToUnion<ExcludedFields>>;
+
 /**
  * Stable `Report` projection for the `ReportActionItem` subtree.
  */
@@ -89,7 +91,7 @@ function stableReportSelector(report: OnyxEntry<Report>) {
         nextStep: report.nextStep,
         pendingAction: report.pendingAction,
         pendingFields: report.pendingFields,
-    } satisfies Omit<Report, TupleToUnion<ExcludedFields>>;
+    } satisfies Record<keyof StableReport, unknown> & StableReport;
 }
 
 export default stableReportSelector;

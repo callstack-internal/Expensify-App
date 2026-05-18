@@ -26,7 +26,14 @@ type ExcludedFields = ValidReportKeys<
 type StableReport = Omit<Report, TupleToUnion<ExcludedFields>>;
 
 /**
- * Stable `Report` projection for the `ReportActionItem` subtree.
+ * Stable `Report` projection for components that must not re-render on chat heartbeat
+ * fields (`last*` on `Report`). Intended as a bridge until rows subscribe to derived per-row facts.
+ *
+ * If a consumer needs excluded fields (e.g. ConfirmWhisperContent), subscribe separately to the
+ * full report — do not add those fields back into this projection.
+ *
+ * When adding a new `Report` field: include it in the return object below; only add to
+ * `ExcludedFields` if it updates on every message/read and the subtree does not read it.
  */
 function stableReportSelector(report: OnyxEntry<Report>) {
     if (!report?.reportID) {

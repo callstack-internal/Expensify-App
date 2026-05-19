@@ -4,13 +4,10 @@ import MenuItemWithTopDescription from '@components/MenuItemWithTopDescription';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import type {OfflineWithFeedbackProps} from '@components/OfflineWithFeedback';
 
-type FieldRowOfflineProps = Pick<
-    OfflineWithFeedbackProps,
-    'pendingAction' | 'errors' | 'onClose' | 'errorRowStyles' | 'errorRowTextStyles' | 'contentContainerStyle' | 'shouldDisplayErrorAbove' | 'shouldHideOnDelete' | 'dismissError'
->;
+type FieldRowOfflineProps = Omit<OfflineWithFeedbackProps, 'children'>;
 
 type FieldRowProps = MenuItemProps & {
-    /** Should the menu item be highlighted? */
+    /** Forwarded to MenuItemWithTopDescription for tag-row dependent-level highlighting; mirrors HighlightableMenuItem. */
     highlighted?: boolean;
 } & FieldRowOfflineProps;
 
@@ -40,13 +37,11 @@ function FieldRow({
         >
             <MenuItemWithTopDescription
                 // eslint-disable-next-line react/jsx-props-no-spreading
-                {...(menuItemProps as MenuItemProps & {highlighted?: boolean})}
+                {...menuItemProps}
             />
         </OfflineWithFeedback>
     );
 }
-
-FieldRow.displayName = 'FieldRow';
 
 export default FieldRow;
 export type {FieldRowProps};

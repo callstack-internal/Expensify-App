@@ -1,3 +1,10 @@
+// Consumer rows must layer these composite overlays on top of the per-field
+// permission exposed here (variant identity is encoded by which shell mounts;
+// the provider only knows base writability):
+//   - isGPSDistanceRequest (gates amount/distance edits)
+//   - canEditDistanceOrRate (policy-accessibility + track-expense + p2p distance)
+//   - shouldShowSplitIndicator && isSplitAvailable (amount edit override)
+//   - per-diem submission gates on the REPORT field
 import React, {createContext, useContext} from 'react';
 import type {ValueOf} from 'type-fest';
 import useOnyx from '@hooks/useOnyx';
@@ -26,7 +33,6 @@ type ThreadProviderProps = {
     transactionThreadReportID: string | undefined;
     policyID: string | undefined;
     transaction: Transaction | undefined;
-    readonly?: boolean;
     children: React.ReactNode;
 };
 
@@ -51,7 +57,7 @@ function buildPermissionMap(): PermissionMap {
     };
 }
 
-function ThreadProvider({parentReportID, transactionThreadReportID, policyID, transaction, readonly = false, children}: ThreadProviderProps) {
+function ThreadProvider({parentReportID, transactionThreadReportID, policyID, transaction, children}: ThreadProviderProps) {
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${parentReportID}`);
     const [transactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${transactionThreadReportID}`);
     const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentReportID}`);
@@ -64,7 +70,7 @@ function ThreadProvider({parentReportID, transactionThreadReportID, policyID, tr
 
     const parentReportAction = transactionThreadReport?.parentReportActionID ? parentReportActions?.[transactionThreadReport.parentReportActionID] : undefined;
 
-    const isEditable = !!canUserPerformWriteAction(transactionThreadReport, isReportArchived) && !readonly;
+    const isEditable = !!canUserPerformWriteAction(transactionThreadReport, isReportArchived);
     const canEdit = isMoneyRequestAction(parentReportAction) && canEditMoneyRequest(parentReportAction, transaction, isChatReportArchived, parentReport, policy) && isEditable;
 
     const permission = buildPermissionMap();

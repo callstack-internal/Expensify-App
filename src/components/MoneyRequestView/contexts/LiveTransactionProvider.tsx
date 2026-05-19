@@ -12,7 +12,7 @@ const LiveTransactionContext = createContext<LiveTransactionContextValue | null>
 
 type LiveTransactionProviderProps = {
     transactionID: string;
-    policyID: string;
+    policyID: string | undefined;
     children: React.ReactNode;
 };
 

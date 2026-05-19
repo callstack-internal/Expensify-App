@@ -10,7 +10,7 @@ const SnapshotTransactionContext = createContext<SnapshotTransactionContextValue
 
 type SnapshotTransactionProviderProps = {
     source: Transaction;
-    policyID: string;
+    policyID: string | undefined;
     children: React.ReactNode;
 };
 

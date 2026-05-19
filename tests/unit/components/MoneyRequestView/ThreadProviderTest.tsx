@@ -1,5 +1,6 @@
 import {renderHook} from '@testing-library/react-native';
 import React from 'react';
+import LiveTransactionProvider from '@components/MoneyRequestView/contexts/LiveTransactionProvider';
 import ThreadProvider, {useFieldEditPermission, useParentReportID, useTransactionThreadReport} from '@components/MoneyRequestView/contexts/ThreadProvider';
 import useOnyx from '@hooks/useOnyx';
 import useReportIsArchived from '@hooks/useReportIsArchived';
@@ -84,22 +85,28 @@ function makeTransaction(): Transaction {
 }
 
 function setupOnyx(overrides: Record<string, unknown>) {
-    mockUseOnyx.mockImplementation(((key: string) => {
-        return [key in overrides ? overrides[key] : undefined, {status: 'loaded'}];
+    mockUseOnyx.mockImplementation(((key: string, options?: {selector?: (data: unknown) => unknown}) => {
+        const raw = key in overrides ? overrides[key] : undefined;
+        const value = options?.selector ? options.selector(raw) : raw;
+        return [value, {status: 'loaded'}];
     }) as typeof useOnyx);
 }
 
-function wrap({transaction}: {transaction: Transaction | undefined}) {
+function wrap() {
     function Wrapper({children}: {children: React.ReactNode}) {
         return (
-            <ThreadProvider
-                parentReportID={PARENT_REPORT_ID}
-                transactionThreadReportID={THREAD_REPORT_ID}
+            <LiveTransactionProvider
+                transactionID={TRANSACTION_ID}
                 policyID={POLICY_ID}
-                transaction={transaction}
             >
-                {children}
-            </ThreadProvider>
+                <ThreadProvider
+                    parentReportID={PARENT_REPORT_ID}
+                    transactionThreadReportID={THREAD_REPORT_ID}
+                    policyID={POLICY_ID}
+                >
+                    {children}
+                </ThreadProvider>
+            </LiveTransactionProvider>
         );
     }
     return Wrapper;
@@ -129,6 +136,7 @@ describe('ThreadProvider', () => {
             [`${ONYXKEYS.COLLECTION.REPORT}${THREAD_REPORT_ID}`]: threadReport,
             [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${PARENT_REPORT_ID}`]: {[PARENT_ACTION_ID]: action},
             [`${ONYXKEYS.COLLECTION.POLICY}${POLICY_ID}`]: policy,
+            [`${ONYXKEYS.COLLECTION.TRANSACTION}${TRANSACTION_ID}`]: transaction,
         });
 
         const {result} = renderHook(
@@ -136,7 +144,7 @@ describe('ThreadProvider', () => {
                 parentID: useParentReportID(),
                 report: useTransactionThreadReport(),
             }),
-            {wrapper: wrap({transaction})},
+            {wrapper: wrap()},
         );
 
         expect(result.current.parentID).toBe(PARENT_REPORT_ID);
@@ -155,6 +163,7 @@ describe('ThreadProvider', () => {
             [`${ONYXKEYS.COLLECTION.REPORT}${THREAD_REPORT_ID}`]: threadReport,
             [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${PARENT_REPORT_ID}`]: {[PARENT_ACTION_ID]: action},
             [`${ONYXKEYS.COLLECTION.POLICY}${POLICY_ID}`]: policy,
+            [`${ONYXKEYS.COLLECTION.TRANSACTION}${TRANSACTION_ID}`]: transaction,
         });
 
         const spy = jest.spyOn(ReportUtils, 'canEditFieldOfMoneyRequest').mockReturnValue(true);
@@ -162,7 +171,7 @@ describe('ThreadProvider', () => {
         jest.spyOn(ReportUtils, 'canEditMoneyRequest').mockReturnValue(true);
 
         const {result} = renderHook(() => useFieldEditPermission(CONST.EDIT_REQUEST_FIELD.AMOUNT), {
-            wrapper: wrap({transaction}),
+            wrapper: wrap(),
         });
 
         expect(result.current).toBe(true);
@@ -181,6 +190,7 @@ describe('ThreadProvider', () => {
             [`${ONYXKEYS.COLLECTION.REPORT}${THREAD_REPORT_ID}`]: threadReport,
             [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${PARENT_REPORT_ID}`]: {[PARENT_ACTION_ID]: action},
             [`${ONYXKEYS.COLLECTION.POLICY}${POLICY_ID}`]: policy,
+            [`${ONYXKEYS.COLLECTION.TRANSACTION}${TRANSACTION_ID}`]: transaction,
         });
 
         jest.spyOn(ReportUtils, 'canUserPerformWriteAction').mockReturnValue(false);
@@ -191,7 +201,7 @@ describe('ThreadProvider', () => {
                 merchant: useFieldEditPermission(CONST.EDIT_REQUEST_FIELD.MERCHANT),
                 date: useFieldEditPermission(CONST.EDIT_REQUEST_FIELD.DATE),
             }),
-            {wrapper: wrap({transaction})},
+            {wrapper: wrap()},
         );
 
         expect(result.current.amount).toBe(false);
@@ -211,13 +221,14 @@ describe('ThreadProvider', () => {
             [`${ONYXKEYS.COLLECTION.REPORT}${THREAD_REPORT_ID}`]: threadReport,
             [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${PARENT_REPORT_ID}`]: {[PARENT_ACTION_ID]: action},
             [`${ONYXKEYS.COLLECTION.POLICY}${POLICY_ID}`]: policy,
+            [`${ONYXKEYS.COLLECTION.TRANSACTION}${TRANSACTION_ID}`]: transaction,
         });
 
         jest.spyOn(ReportUtils, 'canUserPerformWriteAction').mockReturnValue(true);
         jest.spyOn(ReportUtils, 'canEditFieldOfMoneyRequest').mockReturnValue(true);
 
         const {result} = renderHook(() => useFieldEditPermission(CONST.EDIT_REQUEST_FIELD.CATEGORY), {
-            wrapper: wrap({transaction}),
+            wrapper: wrap(),
         });
 
         expect(typeof result.current).toBe('boolean');

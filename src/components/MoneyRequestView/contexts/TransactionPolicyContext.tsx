@@ -1,13 +1,13 @@
 import React, {createContext, useContext} from 'react';
 
 type TransactionPolicyContextValue = {
-    policyID: string;
+    policyID: string | undefined;
 };
 
 const TransactionPolicyContext = createContext<TransactionPolicyContextValue | null>(null);
 
 type TransactionPolicyProviderProps = {
-    policyID: string;
+    policyID: string | undefined;
     children: React.ReactNode;
 };
 
@@ -16,7 +16,7 @@ function TransactionPolicyProvider({policyID, children}: TransactionPolicyProvid
     return <TransactionPolicyContext.Provider value={value}>{children}</TransactionPolicyContext.Provider>;
 }
 
-function useTransactionPolicyID(): string {
+function useTransactionPolicyID(): string | undefined {
     const ctx = useContext(TransactionPolicyContext);
     if (!ctx) {
         throw new Error('TransactionPolicyContext missing');

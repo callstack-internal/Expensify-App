@@ -4,7 +4,7 @@ import ThreadProvider from './contexts/ThreadProvider';
 import ViolationsProvider from './contexts/ViolationsProvider';
 
 type MoneyRequestViewInThreadProps = {
-    transactionID: string;
+    transactionID: string | undefined;
     parentReportID: string | undefined;
     policyID: string | undefined;
     children: React.ReactNode;

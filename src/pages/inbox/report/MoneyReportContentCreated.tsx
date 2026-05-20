@@ -1,9 +1,25 @@
 import React from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
+import MoneyRequestViewInThread from '@components/MoneyRequestView/MoneyRequestViewInThread';
+import {AmountRow} from '@components/MoneyRequestView/rows/AmountRow';
+import {AttendeesRow} from '@components/MoneyRequestView/rows/AttendeesRow';
+import {BillableRow} from '@components/MoneyRequestView/rows/BillableRow';
+import {CardRow} from '@components/MoneyRequestView/rows/CardRow';
+import {CategoryRow} from '@components/MoneyRequestView/rows/CategoryRow';
+import CompanyCardConnectionWarning from '@components/MoneyRequestView/rows/CompanyCardConnectionWarning';
+import {DateRow} from '@components/MoneyRequestView/rows/DateRow';
+import {DescriptionRow} from '@components/MoneyRequestView/rows/DescriptionRow';
+import {MerchantOrDistanceRow} from '@components/MoneyRequestView/rows/MerchantOrDistanceRow';
+import {ReceiptCard} from '@components/MoneyRequestView/rows/ReceiptCard';
+import {ReimbursableRow} from '@components/MoneyRequestView/rows/ReimbursableRow';
+import {ReportRow} from '@components/MoneyRequestView/rows/ReportRow';
+import {TagRows} from '@components/MoneyRequestView/rows/TagRows';
+import {TaxRow} from '@components/MoneyRequestView/rows/TaxRow';
+import {TransactionViolationsBlock} from '@components/MoneyRequestView/rows/TransactionViolationsBlock';
+import {ViewTripDetailsRow} from '@components/MoneyRequestView/rows/ViewTripDetailsRow';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import MoneyReportView from '@components/ReportActionItem/MoneyReportView';
-import MoneyRequestView from '@components/ReportActionItem/MoneyRequestView';
 import type {ShowContextMenuActionsContextType, ShowContextMenuStateContextType} from '@components/ShowContextMenuContext';
 import {ShowContextMenuActionsContext, ShowContextMenuStateContext} from '@components/ShowContextMenuContext';
 import useReportTransactions from '@hooks/useReportTransactions';
@@ -83,12 +99,28 @@ function MoneyReportContentCreated({
                     <ShowContextMenuStateContext.Provider value={disabledStateValue}>
                         <ShowContextMenuActionsContext.Provider value={contextMenuActionsValue}>
                             <View>
-                                <MoneyRequestView
-                                    transactionThreadReport={transactionThreadReport}
+                                <MoneyRequestViewInThread
+                                    transactionID={transactionThreadReport?.reportID}
                                     parentReportID={transactionThreadReport?.parentReportID}
-                                    expensePolicy={policy}
-                                    shouldShowAnimatedBackground={false}
-                                />
+                                    policyID={policy?.id}
+                                >
+                                    <ReceiptCard />
+                                    <AmountRow />
+                                    <DescriptionRow />
+                                    <MerchantOrDistanceRow />
+                                    <DateRow />
+                                    <CategoryRow />
+                                    <TagRows />
+                                    <TaxRow />
+                                    <CardRow />
+                                    <AttendeesRow />
+                                    <BillableRow />
+                                    <ReimbursableRow />
+                                    <ReportRow />
+                                    <ViewTripDetailsRow />
+                                    <TransactionViolationsBlock />
+                                    <CompanyCardConnectionWarning />
+                                </MoneyRequestViewInThread>
                                 {threadDivider}
                             </View>
                         </ShowContextMenuActionsContext.Provider>

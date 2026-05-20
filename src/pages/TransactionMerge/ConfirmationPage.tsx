@@ -1,12 +1,20 @@
 import React, {useState} from 'react';
 import {View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 import FullPageNotFoundView from '@components/BlockingViews/FullPageNotFoundView';
 import Button from '@components/Button';
 import FixedFooter from '@components/FixedFooter';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
-import MoneyRequestView from '@components/ReportActionItem/MoneyRequestView';
+import MoneyRequestViewPreview from '@components/MoneyRequestView/MoneyRequestViewPreview';
+import {AttendeesRowSnapshot} from '@components/MoneyRequestView/rows/AttendeesRow';
+import {CategoryRowSnapshot} from '@components/MoneyRequestView/rows/CategoryRow';
+import {DateRowSnapshot} from '@components/MoneyRequestView/rows/DateRow';
+import {DescriptionRowSnapshot} from '@components/MoneyRequestView/rows/DescriptionRow';
+import {MerchantOrDistanceRowSnapshot} from '@components/MoneyRequestView/rows/MerchantOrDistanceRow';
+import MergeAmountSummary from '@components/MoneyRequestView/rows/MergeAmountSummary';
+import {ReceiptCardSnapshot} from '@components/MoneyRequestView/rows/ReceiptCard';
+import {TagRowsSnapshot} from '@components/MoneyRequestView/rows/TagRows';
+import {TaxRowSnapshot} from '@components/MoneyRequestView/rows/TaxRow';
 import ScreenWrapper from '@components/ScreenWrapper';
 import ScrollView from '@components/ScrollView';
 import Text from '@components/Text';
@@ -30,7 +38,6 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type SCREENS from '@src/SCREENS';
-import type {Transaction} from '@src/types/onyx';
 import isLoadingOnyxValue from '@src/types/utils/isLoadingOnyxValue';
 
 type ConfirmationPageProps = PlatformStackScreenProps<MergeTransactionNavigatorParamList, typeof SCREENS.MERGE_TRANSACTION.CONFIRMATION_PAGE>;
@@ -42,7 +49,7 @@ function ConfirmationPage({route}: ConfirmationPageProps) {
 
     const {transactionID, isOnSearch, backTo} = route.params;
     const [mergeTransaction, mergeTransactionMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.MERGE_TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`);
-    const {targetTransaction, sourceTransaction, targetTransactionReport, targetTransactionPolicy} = useMergeTransactions({mergeTransaction});
+    const {targetTransaction, sourceTransaction, targetTransactionPolicy} = useMergeTransactions({mergeTransaction});
     const [allTransactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
 
     const [policyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${targetTransactionPolicy?.id}`);
@@ -61,7 +68,6 @@ function ConfirmationPage({route}: ConfirmationPageProps) {
 
     const selfDMReport = useSelfDMReport();
 
-    // Build the merged transaction data for display
     const mergedTransactionData = buildMergedTransactionData(targetTransaction, mergeTransaction);
 
     const handleMergeExpenses = () => {
@@ -93,7 +99,6 @@ function ConfirmationPage({route}: ConfirmationPageProps) {
 
         const searchReportIDToOpen = targetTransactionThreadReportID ?? reportIDToDismiss;
 
-        // If we're in search (or the topmost route is search), dismiss the modal and open the expense in the RHP
         if ((isOnSearch || isSearchTopmostFullScreenRoute()) && searchReportIDToOpen) {
             Navigation.dismissModal();
             Navigation.setNavigationActionToMicrotaskQueue(() => {
@@ -135,14 +140,22 @@ function ConfirmationPage({route}: ConfirmationPageProps) {
                     <View style={[styles.ph5, styles.pb8]}>
                         <Text>{translate('transactionMerge.confirmationPage.pageTitle')}</Text>
                     </View>
-                    <MoneyRequestView
-                        expensePolicy={targetTransactionPolicy}
-                        parentReportID={targetTransactionReport?.reportID}
-                        shouldShowAnimatedBackground={false}
-                        readonly
-                        updatedTransaction={mergedTransactionData as unknown as OnyxEntry<Transaction>}
-                        mergeTransactionID={transactionID}
-                    />
+                    {!!mergedTransactionData && (
+                        <MoneyRequestViewPreview
+                            source={mergedTransactionData}
+                            policyID={targetTransactionPolicy?.id}
+                        >
+                            <ReceiptCardSnapshot />
+                            <MergeAmountSummary />
+                            <DescriptionRowSnapshot />
+                            <MerchantOrDistanceRowSnapshot />
+                            <DateRowSnapshot />
+                            <CategoryRowSnapshot />
+                            <TagRowsSnapshot />
+                            <TaxRowSnapshot />
+                            <AttendeesRowSnapshot />
+                        </MoneyRequestViewPreview>
+                    )}
                 </ScrollView>
                 <FixedFooter style={styles.ph5}>
                     <Button

@@ -1,4 +1,4 @@
-import React, {memo, useMemo} from 'react';
+import React from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import MoneyRequestViewInThread from '@components/MoneyRequestView/MoneyRequestViewInThread';
@@ -21,8 +21,7 @@ import {ViewTripDetailsRow} from '@components/MoneyRequestView/rows/ViewTripDeta
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import RenderHTML from '@components/RenderHTML';
 import TaskView from '@components/ReportActionItem/TaskView';
-import type {ShowContextMenuActionsContextType, ShowContextMenuStateContextType} from '@components/ShowContextMenuContext';
-import {ShowContextMenuActionsContext, ShowContextMenuStateContext} from '@components/ShowContextMenuContext';
+import {ShowContextMenuActionsContext, ShowContextMenuStateContext, useShowContextMenuActions, useShowContextMenuState} from '@components/ShowContextMenuContext';
 import SpacerView from '@components/SpacerView';
 import UnreadActionIndicator from '@components/UnreadActionIndicator';
 import useLocalize from '@hooks/useLocalize';
@@ -42,12 +41,6 @@ import ReportActionItemCreated from './ReportActionItemCreated';
 import ReportActionItemSingle from './ReportActionItemSingle';
 
 type ReportActionItemContentCreatedProps = {
-    /** The state context value containing the report and action data */
-    contextMenuStateValue: ShowContextMenuStateContextType;
-
-    /** The actions context value containing the show context menu callbacks */
-    contextMenuActionsValue: ShowContextMenuActionsContextType;
-
     /** Report action belonging to the report's parent */
     parentReportAction: OnyxEntry<OnyxTypes.ReportAction>;
 
@@ -61,38 +54,29 @@ type ReportActionItemContentCreatedProps = {
     shouldHideThreadDividerLine: boolean;
 };
 
-function ReportActionItemContentCreated({
-    contextMenuStateValue,
-    contextMenuActionsValue,
-    parentReportAction,
-    transactionID,
-    draftMessage,
-    shouldHideThreadDividerLine,
-}: ReportActionItemContentCreatedProps) {
+function ReportActionItemContentCreated({parentReportAction, transactionID, draftMessage, shouldHideThreadDividerLine}: ReportActionItemContentCreatedProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
+    const contextMenuStateValue = useShowContextMenuState();
+    const contextMenuActionsValue = useShowContextMenuActions();
     const {report, action, transactionThreadReport} = contextMenuStateValue;
     const policy = usePolicy(report?.policyID === CONST.POLICY.OWNER_EMAIL_FAKE ? undefined : report?.policyID);
     const [transaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(transactionID)}`);
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(report?.parentReportID)}`);
 
-    const renderThreadDivider = useMemo(
-        () =>
-            shouldHideThreadDividerLine ? (
-                <UnreadActionIndicator
-                    reportActionID={report?.reportID}
-                    shouldHideThreadDividerLine={shouldHideThreadDividerLine}
-                />
-            ) : (
-                <SpacerView
-                    shouldShow={!shouldHideThreadDividerLine}
-                    style={[!shouldHideThreadDividerLine ? styles.reportHorizontalRule : {}]}
-                />
-            ),
-        [shouldHideThreadDividerLine, report?.reportID, styles.reportHorizontalRule],
+    const renderThreadDivider = shouldHideThreadDividerLine ? (
+        <UnreadActionIndicator
+            reportActionID={report?.reportID}
+            shouldHideThreadDividerLine={shouldHideThreadDividerLine}
+        />
+    ) : (
+        <SpacerView
+            shouldShow={!shouldHideThreadDividerLine}
+            style={[!shouldHideThreadDividerLine ? styles.reportHorizontalRule : {}]}
+        />
     );
 
-    const disabledStateValue = useMemo(() => ({...contextMenuStateValue, isDisabled: true}), [contextMenuStateValue]);
+    const disabledStateValue = {...contextMenuStateValue, isDisabled: true};
 
     if (isTransactionThread(parentReportAction)) {
         const isReversedTransaction = isReversedTransactionReportActionsUtils(parentReportAction);
@@ -182,6 +166,7 @@ function ReportActionItemContentCreated({
             <View style={[styles.pRelative]}>
                 <AnimatedEmptyStateBackground />
                 <View>
+                    {/* TaskView opens its own ShowContextMenu* providers with task-scoped, disabled values, so no wrapping needed here. */}
                     <TaskView
                         report={report}
                         parentReport={parentReport}
@@ -201,8 +186,6 @@ function ReportActionItemContentCreated({
                 transaction={transaction}
                 transactionThreadReport={transactionThreadReport}
                 action={action}
-                contextMenuActionsValue={contextMenuActionsValue}
-                disabledStateValue={disabledStateValue}
                 shouldHideThreadDividerLine={shouldHideThreadDividerLine}
                 threadDivider={renderThreadDivider}
             />
@@ -217,13 +200,4 @@ function ReportActionItemContentCreated({
     );
 }
 
-export default memo(
-    ReportActionItemContentCreated,
-    (prevProps, nextProps) =>
-        prevProps.contextMenuStateValue === nextProps.contextMenuStateValue &&
-        prevProps.contextMenuActionsValue === nextProps.contextMenuActionsValue &&
-        prevProps.parentReportAction === nextProps.parentReportAction &&
-        prevProps.transactionID === nextProps.transactionID &&
-        prevProps.draftMessage === nextProps.draftMessage &&
-        prevProps.shouldHideThreadDividerLine === nextProps.shouldHideThreadDividerLine,
-);
+export default ReportActionItemContentCreated;

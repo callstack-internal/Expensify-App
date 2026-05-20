@@ -124,6 +124,10 @@ function useParentReportID(): string | undefined {
     return useThreadContext().parentReportID;
 }
 
+function useCanEditTransaction(): boolean {
+    return useThreadContext().permission.canEdit;
+}
+
 export default ThreadProvider;
-export {useFieldEditPermission, useTransactionThreadReport, useParentReportID};
+export {useFieldEditPermission, useTransactionThreadReport, useParentReportID, useCanEditTransaction};
 export type {TransactionField};

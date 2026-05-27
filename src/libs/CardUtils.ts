@@ -1792,26 +1792,29 @@ function getCardHintText(validFrom: string | undefined, validThru: string | unde
  * This ensures the report layout matches the search page.
  */
 function resolveTransactionCardFields<T extends Transaction>(transactions: T[], cardList: CardList | undefined, translate: LocalizedTranslate): Array<T & {isCardFeedDeleted?: boolean}> {
-    return transactions.map((transaction) => {
-        let updates: Partial<T & {isCardFeedDeleted?: boolean}> = {};
+    // Preserve the input array identity when no transaction needs a card-field update.
+    // The downstream `useMemo` chain (sortedTransactions → groupedTransactions → listItems → FlashList data)
+    // is keyed on this reference, so an unconditional `.map(...)` allocation invalidates the entire
+    // virtualized list on every cardList Onyx tick and flushes FlashList's recycle pool.
+    let result: Array<T & {isCardFeedDeleted?: boolean}> | null = null;
 
-        // Resolve card name from cardList
-        if (cardList) {
-            const card = transaction.cardID ? cardList[transaction.cardID] : undefined;
-            if (card) {
-                const resolvedCardName = getCardDescription(card, translate);
-                if (resolvedCardName && resolvedCardName !== transaction.cardName) {
-                    updates = {...updates, cardName: resolvedCardName};
-                }
+    for (let i = 0; i < transactions.length; i++) {
+        const transaction = transactions[i];
+        const card = cardList && transaction.cardID ? cardList[transaction.cardID] : undefined;
+        const resolvedCardName = card ? getCardDescription(card, translate) : undefined;
+        const needsUpdate = !!resolvedCardName && resolvedCardName !== transaction.cardName;
+
+        if (needsUpdate) {
+            if (!result) {
+                result = transactions.slice(0, i);
             }
+            result.push({...transaction, cardName: resolvedCardName});
+        } else if (result) {
+            result.push(transaction);
         }
+    }
 
-        if (Object.keys(updates).length === 0) {
-            return transaction;
-        }
-
-        return {...transaction, ...updates};
-    });
+    return result ?? transactions;
 }
 
 export {

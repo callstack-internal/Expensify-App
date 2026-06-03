@@ -146,7 +146,6 @@ import {
     excludeParticipantsForDisplay,
     formatReportLastMessageText,
     getAllReportActionsErrorsAndReportActionThatRequiresAttention,
-    getChatRoomSubtitle,
     getDisplayNameForParticipant,
     getDisplayNamesWithTooltips,
     getIcons,
@@ -157,7 +156,6 @@ import {
     getReportDescription,
     getReportMetadata,
     getReportNotificationPreference,
-    getReportParticipantsTitle,
     getReportSubtitlePrefix,
     getUnreportedTransactionMessage,
     getViolatingReportIDForRBRInLHN,
@@ -178,7 +176,6 @@ import {
     isHiddenForCurrentUser,
     isInvoiceReport,
     isInvoiceRoom,
-    isIOUOwnedByCurrentUser,
     isJoinRequestInAdminRoom,
     isMoneyRequestReport,
     isOneOnOneChat,
@@ -190,7 +187,6 @@ import {
     isThread,
     isTripRoom,
     isUnread,
-    isUnreadWithMention,
     isWorkspaceTaskReport,
     shouldReportBeInOptionList,
     shouldReportShowSubscript,
@@ -772,7 +768,7 @@ function getOptionData({
     report,
     reportAttributes,
     oneTransactionThreadReport,
-    reportNameValuePairs,
+    privateIsArchived,
     personalDetails,
     policy,
     parentReportAction,
@@ -795,7 +791,7 @@ function getOptionData({
 }: {
     report: OnyxEntry<Report>;
     oneTransactionThreadReport: OnyxEntry<Report>;
-    reportNameValuePairs: OnyxEntry<ReportNameValuePairs>;
+    privateIsArchived: string | undefined;
     personalDetails: OnyxEntry<PersonalDetailsList>;
     policy: OnyxEntry<Policy>;
     parentReportAction: OnyxEntry<ReportAction> | undefined;
@@ -829,39 +825,20 @@ function getOptionData({
         alternateText: undefined,
         allReportErrors: reportAttributes?.reportErrors,
         brickRoadIndicator: null,
-        tooltipText: null,
-        subtitle: undefined,
-        login: undefined,
-        accountID: undefined,
         reportID: '',
-        phoneNumber: undefined,
-        isUnread: null,
-        isUnreadWithMention: null,
-        hasDraftComment: false,
         keyForList: '',
-        searchText: undefined,
+        isUnread: null,
         isPinned: false,
-        hasOutstandingChildRequest: false,
-        hasOutstandingChildTask: false,
-        hasParentAccess: undefined,
-        isIOUReportOwner: null,
         isChatRoom: false,
         private_isArchived: undefined,
-        shouldShowSubscript: false,
         isPolicyExpenseChat: false,
         isMoneyRequestReport: false,
-        isExpenseRequest: false,
-        isWaitingOnBankAccount: false,
         isAllowedToComment: true,
-        isDeletedParentAction: false,
-        isConciergeChat: false,
     };
     const reportMetadata = getReportMetadata(report?.reportID);
     const participantAccountIDs = getParticipantsAccountIDsForDisplay(report);
     const participantAccountIDsExcludeCurrentUser = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, reportMetadata, {shouldExcludeCurrentUser: true});
     const participantPersonalDetailListExcludeCurrentUser = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDsExcludeCurrentUser, personalDetails));
-
-    const visibleParticipantAccountIDs = excludeParticipantsForDisplay(participantAccountIDs, report.participants ?? {}, reportMetadata, {shouldExcludeHidden: true});
 
     const participantPersonalDetailList = Object.values(getPersonalDetailsForAccountIDs(participantAccountIDs, personalDetails));
     const personalDetail = participantPersonalDetailList.at(0) ?? ({} as PersonalDetails);
@@ -871,9 +848,8 @@ function getOptionData({
     result.isTaskReport = isTaskReport(report);
     result.isInvoiceReport = isInvoiceReport(report);
     result.parentReportAction = parentReportAction;
-    result.private_isArchived = !!reportNameValuePairs?.private_isArchived;
+    result.private_isArchived = !!privateIsArchived;
     result.isPolicyExpenseChat = isPolicyExpenseChat(report);
-    result.isExpenseRequest = isExpenseRequest(report);
     result.isMoneyRequestReport = isMoneyRequestReport(report);
     const rawShouldShowSubscript = shouldReportShowSubscript(report, isReportArchived);
     const isWorkspaceExpenseRequest = isExpenseRequest(report) && !!policy && policy.type !== CONST.POLICY.TYPE.PERSONAL;
@@ -898,9 +874,7 @@ function getOptionData({
     // When the only message of a report is deleted lastVisibleActionCreated is not reset leading to wrongly
     // setting it Unread so we add additional condition here to avoid empty chat LHN from being bold.
     result.isUnread = isUnread(report, oneTransactionThreadReport, isReportArchived) && !!report.lastActorAccountID;
-    result.isUnreadWithMention = isUnreadWithMention(report);
     result.isPinned = report.isPinned;
-    result.iouReportID = report.iouReportID;
     result.keyForList = String(report.reportID);
     result.hasOutstandingChildRequest = report.hasOutstandingChildRequest;
     result.parentReportID = report.parentReportID;
@@ -908,18 +882,9 @@ function getOptionData({
     result.isWaitingOnBankAccount = report.isWaitingOnBankAccount;
     result.notificationPreference = getReportNotificationPreference(report);
     result.isAllowedToComment = canUserPerformWriteActionUtil(report, isReportArchived);
-    result.chatType = report.chatType;
-    result.isDeletedParentAction = report.isDeletedParentAction;
-    result.isSelfDM = isSelfDM(report);
-    result.tooltipText = getReportParticipantsTitle(visibleParticipantAccountIDs);
-    result.hasOutstandingChildTask = report.hasOutstandingChildTask;
-    result.hasParentAccess = report.hasParentAccess;
-    result.isConciergeChat = isConciergeChatReport(report, conciergeReportID);
-    result.participants = report.participants;
 
     const isExpense = isExpenseReport(report);
     const hasMultipleParticipants = participantPersonalDetailList.length > 1 || result.isChatRoom || result.isPolicyExpenseChat || isExpense;
-    const subtitle = getChatRoomSubtitle(report, false, isReportArchived);
 
     const status = personalDetail?.status ?? '';
 
@@ -1254,7 +1219,7 @@ function getOptionData({
                         lastActorDetails,
                         currentUserAccountID,
                         personalDetails,
-                        !!reportNameValuePairs?.private_isArchived,
+                        !!privateIsArchived,
                         visibleReportActionsData,
                         lastAction,
                     )) ||
@@ -1308,7 +1273,7 @@ function getOptionData({
                         lastActorDetails,
                         currentUserAccountID,
                         personalDetails,
-                        !!reportNameValuePairs?.private_isArchived,
+                        !!privateIsArchived,
                         visibleReportActionsData,
                         lastAction,
                     )) ||
@@ -1318,8 +1283,6 @@ function getOptionData({
             result.alternateText = formatReportLastMessageText(lastMessageText);
         }
     }
-
-    result.isIOUReportOwner = isIOUOwnedByCurrentUser(result as Report);
 
     if (isJoinRequestInAdminRoom(report)) {
         result.isUnread = true;
@@ -1334,8 +1297,6 @@ function getOptionData({
     const reportName = getReportNameFromDerived(report, reportAttributesDerived);
 
     result.text = reportName;
-    result.subtitle = subtitle;
-    result.participantsList = participantPersonalDetailList;
 
     const reportIcons = getIcons(
         report,
@@ -1364,7 +1325,6 @@ function getOptionData({
     if (status) {
         result.status = status;
     }
-    result.type = report.type;
 
     return result;
 }

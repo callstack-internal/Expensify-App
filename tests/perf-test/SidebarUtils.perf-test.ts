@@ -65,15 +65,13 @@ describe('SidebarUtils', () => {
         const report = createRandomReport(1, undefined);
         const policy = createRandomPolicy(1);
         const parentReportAction = createRandomReportAction(1);
-        const reportNameValuePairs = {};
-
         await waitForBatchedUpdates();
 
         await measureFunction(() =>
             SidebarUtils.getOptionData({
                 report,
                 reportAttributes: undefined,
-                reportNameValuePairs,
+                privateIsArchived: undefined,
                 personalDetails,
                 policy,
                 invoiceReceiverPolicy: undefined,

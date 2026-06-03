@@ -77,7 +77,7 @@ type AvatarResult = {
  * Simulates the full 4-stage LHN avatar pipeline using real production functions.
  *
  * Stage 1 (SidebarUtils.getOptionData): shouldShowSubscript + icon trimming
- * Stage 2 (OptionRowLHNData): IOU sender trimming
+ * Stage 2 (useLHNOptionData): IOU sender trimming
  * Stage 3 (OptionRowLHN): Delegate icon replacement
  * Stage 4 (LHNAvatar): Avatar type decision
  */
@@ -100,7 +100,7 @@ function computeAvatarResult({report, policy = TEST_POLICY, isReportArchived = f
         icons = firstIcon ? [firstIcon] : [];
     }
 
-    // Stage 2: OptionRowLHNData — IOU sender trimming
+    // Stage 2: useLHNOptionData — IOU sender trimming
     if (report.type === CONST.REPORT.TYPE.IOU && iouSenderID !== undefined && icons.length > 1) {
         const senderIcon = icons.find((icon) => Number(icon.id) === iouSenderID);
         icons = [senderIcon ?? icons.at(0)].filter((icon): icon is Icon => !!icon);

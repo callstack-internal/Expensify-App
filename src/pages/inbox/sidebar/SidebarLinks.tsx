@@ -1,4 +1,4 @@
-import React, {memo, useCallback, useEffect, useMemo} from 'react';
+import React, {memo, useEffect, useMemo} from 'react';
 import {StyleSheet, View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {EdgeInsets} from 'react-native-safe-area-context';
@@ -12,7 +12,6 @@ import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {setSidebarLoaded} from '@libs/actions/App';
 import Navigation from '@libs/Navigation/Navigation';
-import type {OptionData} from '@libs/ReportUtils';
 import {cancelSpan} from '@libs/telemetry/activeSpans';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import * as ReportActionContextMenu from '@pages/inbox/report/ContextMenu/ReportActionContextMenu';
@@ -48,31 +47,27 @@ function SidebarLinks({insets, optionListItems, priorityMode = CONST.PRIORITY_MO
     /**
      * Show Report page with selected report id
      */
-    const showReportPage = useCallback(
-        (option: Report & Pick<OptionData, 'actionTargetReportActionID'>) => {
-            // Prevent opening Report page when clicking LHN row quickly after clicking FAB icon
-            // or when clicking the active LHN row on large screens
-            // or when continuously clicking different LHNs, only apply to small screen
-            // since getTopmostReportId always returns on other devices
-            const reportActionID = Navigation.getTopmostReportActionId();
-            const actionTargetReportActionID = option.actionTargetReportActionID;
+    const showReportPage = (selectedReportID: string) => {
+        // Prevent opening Report page when clicking LHN row quickly after clicking FAB icon
+        // or when clicking the active LHN row on large screens
+        // or when continuously clicking different LHNs, only apply to small screen
+        // since getTopmostReportId always returns on other devices
+        const reportActionID = Navigation.getTopmostReportActionId();
 
-            // Prevent opening a new Report page if the user quickly taps on another conversation
-            // before the first one is displayed.
-            const shouldBlockReportNavigation = Navigation.getActiveRoute() !== `/${ROUTES.INBOX}` && shouldUseNarrowLayout;
+        // Prevent opening a new Report page if the user quickly taps on another conversation
+        // before the first one is displayed.
+        const shouldBlockReportNavigation = Navigation.getActiveRoute() !== `/${ROUTES.INBOX}` && shouldUseNarrowLayout;
 
-            if (
-                (option.reportID === Navigation.getTopmostReportId() && !reportActionID && !actionTargetReportActionID) ||
-                (shouldUseNarrowLayout && isActiveReport(option.reportID) && !reportActionID && !actionTargetReportActionID) ||
-                shouldBlockReportNavigation
-            ) {
-                cancelSpan(`${CONST.TELEMETRY.SPAN_OPEN_REPORT}_${option.reportID}`);
-                return;
-            }
-            Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(option.reportID, actionTargetReportActionID));
-        },
-        [shouldUseNarrowLayout, isActiveReport],
-    );
+        if (
+            (selectedReportID === Navigation.getTopmostReportId() && !reportActionID) ||
+            (shouldUseNarrowLayout && isActiveReport(selectedReportID) && !reportActionID) ||
+            shouldBlockReportNavigation
+        ) {
+            cancelSpan(`${CONST.TELEMETRY.SPAN_OPEN_REPORT}_${selectedReportID}`);
+            return;
+        }
+        Navigation.navigate(ROUTES.REPORT_WITH_ID.getRoute(selectedReportID));
+    };
 
     const viewMode = priorityMode === CONST.PRIORITY_MODE.GSD ? CONST.OPTION_MODE.COMPACT : CONST.OPTION_MODE.DEFAULT;
 

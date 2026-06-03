@@ -1,23 +1,26 @@
-import {useRoute} from '@react-navigation/native';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import {useIsFocused, useRoute} from '@react-navigation/native';
+import reportsSelector from '@selectors/Attributes';
 import type {FlashListProps, FlashListRef} from '@shopify/flash-list';
 import {FlashList} from '@shopify/flash-list';
 import type {ReactElement} from 'react';
-import React, {memo, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import React, {useContext, useEffect, useRef} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {ScrollOffsetContext} from '@components/ScrollOffsetContextProvider';
-import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
-import useReportAttributes from '@hooks/useReportAttributes';
+import useRootNavigationState from '@hooks/useRootNavigationState';
 import useScrollEventEmitter from '@hooks/useScrollEventEmitter';
 import useThemeStyles from '@hooks/useThemeStyles';
 import getPlatform from '@libs/getPlatform';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
+import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
-import LHNTooltipContextProvider from './LHNTooltipContextProvider';
-import OptionRowLHNData from './OptionRowLHN';
+import {isEmptyObject} from '@src/types/utils/EmptyObject';
+import {LHNListContext} from './LHNListContext';
+import OptionRowLHN from './OptionRowLHN';
 import OptionRowRendererComponent from './OptionRowRendererComponent';
 import type {LHNOptionsListProps, RenderItemProps} from './types';
 
@@ -27,80 +30,68 @@ const isWeb = platform === CONST.PLATFORM.WEB;
 
 function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optionMode, shouldDisableFocusOptions = false, onFirstItemRendered = () => {}}: LHNOptionsListProps) {
     const {saveScrollOffset, getScrollOffset, saveScrollIndex, getScrollIndex} = useContext(ScrollOffsetContext);
-    const {isOffline} = useNetwork();
     const flashListRef = useRef<FlashListRef<Report>>(null);
     const route = useRoute();
-    const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
-    const reportAttributes = useReportAttributes();
-    const [policy] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
-    const [personalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST);
+    const isScreenFocused = useIsFocused();
+
+    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
 
     const styles = useThemeStyles();
+    const isReportsSplitNavigatorLast = useRootNavigationState((state) => state?.routes?.at(-1)?.name === NAVIGATORS.REPORTS_SPLIT_NAVIGATOR);
     const estimatedItemSize = optionMode === CONST.OPTION_MODE.COMPACT ? variables.optionRowHeightCompact : variables.optionRowHeight;
 
+    const firstReportIDWithGBRorRBR = (() => {
+        const firstReportWithGBRorRBR = data.find((report) => {
+            const itemReportErrors = reportAttributes?.[report.reportID]?.reportErrors;
+            if (!report) {
+                return false;
+            }
+            if (!isEmptyObject(itemReportErrors)) {
+                return true;
+            }
+            const hasGBR = reportAttributes?.[report.reportID]?.requiresAttention;
+            return hasGBR;
+        });
+
+        return firstReportWithGBRorRBR?.reportID;
+    })();
+
     // When the first item renders we want to call the onFirstItemRendered callback.
-    // At this point in time we know that the list is actually displaying items.
     const hasCalledOnLayout = React.useRef(false);
-    const onLayoutItem = useCallback(() => {
+    const onLayoutItem = () => {
         if (hasCalledOnLayout.current) {
             return;
         }
         hasCalledOnLayout.current = true;
         onFirstItemRendered();
-    }, [onFirstItemRendered]);
+    };
 
     // Controls the visibility of the educational tooltip based on user scrolling.
-    // Hides the tooltip when the user is scrolling and displays it once scrolling stops.
     const triggerScrollEvent = useScrollEventEmitter();
+
+    const lhnListContextValue = {
+        isReportsSplitNavigatorLast,
+        isScreenFocused,
+        optionMode,
+        isOptionFocusEnabled: !shouldDisableFocusOptions,
+        firstReportIDWithGBRorRBR,
+    };
 
     /**
      * Function which renders a row in the list
      */
-    const renderItem = useCallback(
-        ({item, index}: RenderItemProps): ReactElement | null => {
-            if (!item) {
-                return null;
-            }
-            const reportID = item.reportID;
-            const itemReportAttributes = reportAttributes?.[reportID];
-            const itemParentReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${item.parentReportID}`];
-            const itemOneTransactionThreadReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${itemReportAttributes?.oneTransactionThreadReportID}`];
+    const renderItem = ({item, index}: RenderItemProps): ReactElement => {
+        return (
+            <OptionRowLHN
+                reportID={item.reportID}
+                onSelectRow={onSelectRow}
+                onLayout={onLayoutItem}
+                testID={index}
+            />
+        );
+    };
 
-            let invoiceReceiverPolicyID = '-1';
-            if (item.invoiceReceiver && 'policyID' in item.invoiceReceiver) {
-                invoiceReceiverPolicyID = item.invoiceReceiver.policyID;
-            }
-            if (itemParentReport?.invoiceReceiver && 'policyID' in itemParentReport.invoiceReceiver) {
-                invoiceReceiverPolicyID = itemParentReport.invoiceReceiver.policyID;
-            }
-            const itemInvoiceReceiverPolicy = policy?.[`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`];
-            const itemPolicy = policy?.[`${ONYXKEYS.COLLECTION.POLICY}${item.policyID}`];
-
-            return (
-                <OptionRowLHNData
-                    reportID={reportID}
-                    fullReport={item}
-                    reportAttributes={itemReportAttributes}
-                    reportAttributesDerived={reportAttributes}
-                    oneTransactionThreadReport={itemOneTransactionThreadReport}
-                    policy={itemPolicy}
-                    invoiceReceiverPolicy={itemInvoiceReceiverPolicy}
-                    personalDetails={personalDetails ?? {}}
-                    viewMode={optionMode}
-                    isOptionFocused={!shouldDisableFocusOptions}
-                    onSelectRow={onSelectRow}
-                    onLayout={onLayoutItem}
-                    testID={index}
-                />
-            );
-        },
-        [reportAttributes, reports, policy, personalDetails, optionMode, shouldDisableFocusOptions, onSelectRow, onLayoutItem],
-    );
-
-    const extraData = useMemo(
-        () => [reports, reportAttributes, policy, personalDetails, data.length, optionMode, isOffline],
-        [reports, reportAttributes, policy, personalDetails, data.length, optionMode, isOffline],
-    );
+    const extraData = [reportAttributes, data.length, optionMode, isScreenFocused, isReportsSplitNavigatorLast];
 
     const previousOptionMode = usePrevious(optionMode);
 
@@ -113,23 +104,20 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
         flashListRef.current.scrollToOffset({offset: 0});
     }, [previousOptionMode, optionMode]);
 
-    const onScroll = useCallback<NonNullable<FlashListProps<string>['onScroll']>>(
-        (e) => {
-            // If the layout measurement is 0, it means the FlashList is not displayed but the onScroll may be triggered with offset value 0.
-            // We should ignore this case.
-            if (e.nativeEvent.layoutMeasurement.height === 0) {
-                return;
-            }
-            saveScrollOffset(route, e.nativeEvent.contentOffset.y);
-            if (isWeb) {
-                saveScrollIndex(route, Math.floor(e.nativeEvent.contentOffset.y / estimatedItemSize));
-            }
-            triggerScrollEvent();
-        },
-        [estimatedItemSize, route, saveScrollIndex, saveScrollOffset, triggerScrollEvent],
-    );
+    const onScroll = (e: Parameters<NonNullable<FlashListProps<string>['onScroll']>>[0]) => {
+        // If the layout measurement is 0, it means the FlashList is not displayed but the onScroll may be triggered with offset value 0.
+        // We should ignore this case.
+        if (e.nativeEvent.layoutMeasurement.height === 0) {
+            return;
+        }
+        saveScrollOffset(route, e.nativeEvent.contentOffset.y);
+        if (isWeb) {
+            saveScrollIndex(route, Math.floor(e.nativeEvent.contentOffset.y / estimatedItemSize));
+        }
+        triggerScrollEvent();
+    };
 
-    const onLayout = useCallback(() => {
+    const onLayout = () => {
         const offset = getScrollOffset(route);
 
         if (!(offset && flashListRef.current) || isWeb) {
@@ -143,14 +131,11 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
             }
             flashListRef.current.scrollToOffset({offset});
         });
-    }, [getScrollOffset, route]);
-
-    const savedScrollIndex = getScrollIndex(route);
-    const initialScrollIndex = isWeb && savedScrollIndex !== undefined && savedScrollIndex >= 0 && savedScrollIndex < data.length ? savedScrollIndex : undefined;
+    };
 
     return (
         <View style={style ?? styles.flex1}>
-            <LHNTooltipContextProvider data={data}>
+            <LHNListContext.Provider value={lhnListContextValue}>
                 <FlashList
                     ref={flashListRef}
                     indicatorStyle="white"
@@ -165,14 +150,14 @@ function LHNOptionsList({style, contentContainerStyles, data, onSelectRow, optio
                     showsVerticalScrollIndicator={false}
                     onLayout={onLayout}
                     onScroll={onScroll}
-                    initialScrollIndex={initialScrollIndex}
+                    initialScrollIndex={isWeb ? getScrollIndex(route) : undefined}
                     maintainVisibleContentPosition={{disabled: true}}
                     drawDistance={250}
                     removeClippedSubviews
                 />
-            </LHNTooltipContextProvider>
+            </LHNListContext.Provider>
         </View>
     );
 }
 
-export default memo(LHNOptionsList);
+export default LHNOptionsList;

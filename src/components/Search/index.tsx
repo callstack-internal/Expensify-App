@@ -10,7 +10,7 @@ import FullPageErrorView from '@components/BlockingViews/FullPageErrorView';
 import FullPageOfflineBlockingView from '@components/BlockingViews/FullPageOfflineBlockingView';
 import type {SelectionListHandle} from '@components/SelectionList/types';
 import SearchRowSkeleton from '@components/Skeletons/SearchRowSkeleton';
-import {useWideRHPActions} from '@components/WideRHPContextProvider';
+import {useWideRHPActions, useWideRHPState} from '@components/WideRHPContextProvider';
 import useActionLoadingReportIDs from '@hooks/useActionLoadingReportIDs';
 import useArchivedReportsIdSet from '@hooks/useArchivedReportsIdSet';
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
@@ -284,6 +284,10 @@ function Search({
     const isFocused = useIsFocused();
 
     const {markReportIDAsExpense, markReportIDAsMultiTransactionExpense, unmarkReportIDAsMultiTransactionExpense} = useWideRHPActions();
+    const {isSuperWideRHPFocused} = useWideRHPState();
+    // Search is actually obscured only when a screen fully covers it: any RHP on narrow/native (full-screen modal),
+    // or a Super Wide RHP overlay on wide (fills the central pane). A normal Wide RHP side-panel leaves Search visible.
+    const isSearchCovered = !isFocused && (shouldUseNarrowLayout || isSuperWideRHPFocused);
     const {currentSearchHash, currentSearchKey, shouldResetSearchQuery, suggestedSearches} = useSearchQueryContext();
     const {lastSearchType, shouldUseLiveData} = useSearchResultsContext();
     const {selectedTransactions, shouldTurnOffSelectionMode, areAllMatchingItemsSelected} = useSearchSelectionContext();
@@ -535,53 +539,72 @@ function Search({
 
     const prevIsSearchResultEmpty = usePrevious(isSearchResultsEmpty);
 
+    // Holds the last heavy getSections result so we can reuse it while this screen is blurred.
+    const heavyResultRef = useRef<{baseFilteredData: ReturnType<typeof getSections>[0]; filteredDataLength: number; allDataLength: number; hasDeletedTransaction: boolean}>({
+        baseFilteredData: [],
+        filteredDataLength: 0,
+        allDataLength: 0,
+        hasDeletedTransaction: false,
+    });
+
     const {baseFilteredData, filteredDataLength, allDataLength, hasDeletedTransaction} = useMemo(() => {
+        // While this screen is fully covered (e.g. an RHP report is open on top of it), skip the heavy
+        // getSections recompute. OPEN_REPORT re-sends the search snapshot, bumping `searchResults` by
+        // reference, but that churn (lastReadTime, transactionThreadReportID, ...) doesn't change the
+        // rendered rows. Reuse the last computed result and recompute once the screen is visible again.
+        // Note: we gate on "covered" not "blurred" so a side-panel Wide RHP (where Search stays visible
+        // on wide layouts) still recomputes.
+        if (isSearchCovered) {
+            return heavyResultRef.current;
+        }
+
+        let result: typeof heavyResultRef.current;
         if (shouldDeferHeavySearchWork || searchResults === undefined || !isDataLoaded || !searchDataWithOptimisticTransaction) {
-            return {baseFilteredData: [], filteredDataLength: 0, allDataLength: 0, hasDeletedTransaction: false};
+            result = {baseFilteredData: [], filteredDataLength: 0, allDataLength: 0, hasDeletedTransaction: false};
+        } else if (validGroupBy && (type === CONST.SEARCH.DATA_TYPES.CHAT || type === CONST.SEARCH.DATA_TYPES.TASK)) {
+            // Group-by option cannot be used for chats or tasks
+            result = {baseFilteredData: [], filteredDataLength: 0, allDataLength: 0, hasDeletedTransaction: false};
+        } else {
+            const [filteredData1, allLength, hasDeletedTransactionFromSections] = getSections({
+                type,
+                data: searchDataWithOptimisticTransaction,
+                policies,
+                currentAccountID: accountID,
+                currentUserEmail: email ?? '',
+                translate,
+                formatPhoneNumber,
+                bankAccountList,
+                groupBy: validGroupBy,
+                reportActions: exportReportActions,
+                currentSearch: currentSearchKey,
+                archivedReportsIDList: archivedReportsIdSet,
+                queryJSON,
+                isActionLoadingSet,
+                cardFeeds,
+                cardList: nonPersonalAndWorkspaceCards,
+                isOffline,
+                allTransactionViolations: violations,
+                customCardNames,
+                allReportMetadata,
+                conciergeReportID,
+                onyxPersonalDetailsList,
+                policyForMovingExpenses,
+                reportAttributesDerivedValue,
+                convertToDisplayString,
+                optimisticTransactionID: optimisticTrackingState.optimisticWatchKey?.toString().replace(ONYXKEYS.COLLECTION.TRANSACTION, ''),
+            });
+            result = {
+                baseFilteredData: filteredData1,
+                filteredDataLength: filteredData1.length,
+                allDataLength: allLength,
+                hasDeletedTransaction: hasDeletedTransactionFromSections,
+            };
         }
 
-        // Group-by option cannot be used for chats or tasks
-        const isChat = type === CONST.SEARCH.DATA_TYPES.CHAT;
-        const isTask = type === CONST.SEARCH.DATA_TYPES.TASK;
-        if (validGroupBy && (isChat || isTask)) {
-            return {baseFilteredData: [], filteredDataLength: 0, allDataLength: 0, hasDeletedTransaction: false};
-        }
-
-        const [filteredData1, allLength, hasDeletedTransactionFromSections] = getSections({
-            type,
-            data: searchDataWithOptimisticTransaction,
-            policies,
-            currentAccountID: accountID,
-            currentUserEmail: email ?? '',
-            translate,
-            formatPhoneNumber,
-            bankAccountList,
-            groupBy: validGroupBy,
-            reportActions: exportReportActions,
-            currentSearch: currentSearchKey,
-            archivedReportsIDList: archivedReportsIdSet,
-            queryJSON,
-            isActionLoadingSet,
-            cardFeeds,
-            cardList: nonPersonalAndWorkspaceCards,
-            isOffline,
-            allTransactionViolations: violations,
-            customCardNames,
-            allReportMetadata,
-            conciergeReportID,
-            onyxPersonalDetailsList,
-            policyForMovingExpenses,
-            reportAttributesDerivedValue,
-            convertToDisplayString,
-            optimisticTransactionID: optimisticTrackingState.optimisticWatchKey?.toString().replace(ONYXKEYS.COLLECTION.TRANSACTION, ''),
-        });
-        return {
-            baseFilteredData: filteredData1,
-            filteredDataLength: filteredData1.length,
-            allDataLength: allLength,
-            hasDeletedTransaction: hasDeletedTransactionFromSections,
-        };
+        heavyResultRef.current = result;
+        return result;
     }, [
+        isSearchCovered,
         currentSearchKey,
         isOffline,
         exportReportActions,

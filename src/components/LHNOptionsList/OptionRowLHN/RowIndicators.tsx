@@ -1,14 +1,16 @@
-import reportsSelector from '@selectors/Attributes';
 import React from 'react';
 import {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
+import Badge from '@components/Badge';
 import Icon from '@components/Icon';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import {useReportAttributesByID} from '@hooks/useReportAttributes';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {canUserPerformWriteAction} from '@libs/ReportUtils';
+import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report, ReportNameValuePairs} from '@src/types/onyx';
@@ -28,12 +30,26 @@ function isPinnedSelector(report: OnyxEntry<Report>): boolean {
 function GBRIndicator({reportID}: {reportID: string}) {
     const theme = useTheme();
     const styles = useThemeStyles();
+    const {translate} = useLocalize();
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['DotIndicator']);
-    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
-    const brickRoadIndicator = reportAttributesDerived?.[reportID]?.brickRoadStatus;
+    const reportAttributes = useReportAttributesByID(reportID);
+    const brickRoadIndicator = reportAttributes?.brickRoadStatus;
+    const actionBadge = reportAttributes?.actionBadge;
 
     if (brickRoadIndicator !== CONST.BRICK_ROAD_INDICATOR_STATUS.INFO) {
         return null;
+    }
+
+    const actionBadgeText = actionBadge ? translate(`common.actionBadge.${actionBadge}`) : '';
+
+    if (actionBadgeText) {
+        return (
+            <Badge
+                text={actionBadgeText}
+                success
+                isStrong
+            />
+        );
     }
 
     return (
@@ -71,6 +87,8 @@ function DraftIndicator({reportID}: {reportID: string}) {
                 testID="Pencil Icon"
                 fill={theme.icon}
                 src={expensifyIcons.Pencil}
+                width={variables.iconSizeSmall}
+                height={variables.iconSizeSmall}
             />
         </View>
     );
@@ -82,8 +100,8 @@ function PinIndicator({reportID}: {reportID: string}) {
     const {translate} = useLocalize();
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Pin']);
     const [isPinned] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: isPinnedSelector});
-    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
-    const brickRoadIndicator = reportAttributesDerived?.[reportID]?.brickRoadStatus;
+    const reportAttributes = useReportAttributesByID(reportID);
+    const brickRoadIndicator = reportAttributes?.brickRoadStatus;
 
     if (brickRoadIndicator || !isPinned) {
         return null;
@@ -98,6 +116,8 @@ function PinIndicator({reportID}: {reportID: string}) {
                 testID="Pin Icon"
                 fill={theme.icon}
                 src={expensifyIcons.Pin}
+                width={variables.iconSizeSmall}
+                height={variables.iconSizeSmall}
             />
         </View>
     );

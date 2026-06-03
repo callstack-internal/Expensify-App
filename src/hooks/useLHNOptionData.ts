@@ -1,22 +1,20 @@
-import reportsSelector from '@selectors/Attributes';
 import {deepEqual} from 'fast-equals';
 import type {OnyxEntry} from 'react-native-onyx';
 import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
 import {getLastMessageTextForReport} from '@libs/OptionsListUtils';
 import {
+    getLastVisibleActionIncludingTransactionThread,
     getOneTransactionThreadReportID,
     getOriginalMessage,
-    getSortedReportActions,
     getSortedReportActionsForDisplay,
     isInviteOrRemovedAction,
-    isReportActionVisibleAsLastAction,
 } from '@libs/ReportActionsUtils';
 import type {OptionData} from '@libs/ReportUtils';
 import {canUserPerformWriteAction as canUserPerformWriteActionUtil} from '@libs/ReportUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetails, ReportAction, ReportNameValuePairs} from '@src/types/onyx';
+import type {PersonalDetails, ReportNameValuePairs} from '@src/types/onyx';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useGetExpensifyCardFromReportAction from './useGetExpensifyCardFromReportAction';
 import useLocalize from './useLocalize';
@@ -25,6 +23,7 @@ import useOnyx from './useOnyx';
 import useParentReportAction from './useParentReportAction';
 import usePolicyForMovingExpenses from './usePolicyForMovingExpenses';
 import usePrevious from './usePrevious';
+import useReportAttributes from './useReportAttributes';
 
 type LHNOptionData = Pick<OptionData, 'text' | 'alternateText' | 'icons'>;
 
@@ -33,7 +32,7 @@ function privateIsArchivedSelector(reportNameValuePairs: OnyxEntry<ReportNameVal
 }
 
 function useLHNOptionData(reportID: string): LHNOptionData | undefined {
-    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
+    const reportAttributesDerived = useReportAttributes();
     const reportAttributes = reportAttributesDerived?.[reportID];
 
     const {translate, localeCompare} = useLocalize();
@@ -71,16 +70,7 @@ function useLHNOptionData(reportID: string): LHNOptionData | undefined {
     const sortedReportActions = getSortedReportActionsForDisplay(reportActions, canUserPerformWrite);
     const lastReportAction = sortedReportActions.at(0);
 
-    let lastAction: ReportAction | undefined;
-    if (!reportActions || !fullReport) {
-        lastAction = undefined;
-    } else {
-        const actionsArray = getSortedReportActions(Object.values(reportActions));
-        const reportActionsForDisplay = actionsArray.filter(
-            (reportAction) => isReportActionVisibleAsLastAction(reportAction, canUserPerformWrite) && reportAction.actionName !== CONST.REPORT.ACTIONS.TYPE.CREATED,
-        );
-        lastAction = reportActionsForDisplay.at(-1);
-    }
+    const lastAction = getLastVisibleActionIncludingTransactionThread(reportID, canUserPerformWrite, undefined, undefined, oneTransactionThreadReportID);
 
     const lastActionOriginalMessage = isInviteOrRemovedAction(lastAction) && lastAction?.actionName ? getOriginalMessage(lastAction) : null;
     const lastActionReportID = lastActionOriginalMessage?.reportID;

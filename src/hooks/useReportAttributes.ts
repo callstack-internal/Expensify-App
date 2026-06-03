@@ -1,4 +1,7 @@
+import type {OnyxEntry} from 'react-native-onyx';
 import ONYXKEYS from '@src/ONYXKEYS';
+import type {ReportAttributesDerivedValue} from '@src/types/onyx';
+import type {ReportAttributes} from '@src/types/onyx/DerivedValues';
 import useOnyx from './useOnyx';
 
 /**
@@ -19,8 +22,8 @@ function useReportAttributes() {
  * Deep comparison is cheap (single small object), so re-renders only occur
  * when that specific report's attributes change — not on every global report change.
  */
-function useReportAttributesByID(reportID: string | undefined) {
-    const reportAttributesByIDSelector = (value: {reports?: Record<string, unknown>} | undefined) => (reportID ? value?.reports?.[reportID] : undefined);
+function useReportAttributesByID(reportID: string | undefined): OnyxEntry<ReportAttributes> {
+    const reportAttributesByIDSelector = (value: OnyxEntry<ReportAttributesDerivedValue>) => (reportID ? value?.reports?.[reportID] : undefined);
     const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
         selector: reportAttributesByIDSelector,
     });

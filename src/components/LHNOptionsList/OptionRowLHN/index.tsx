@@ -1,4 +1,3 @@
-import reportsSelector from '@selectors/Attributes';
 import React, {useRef, useState} from 'react';
 import type {GestureResponderEvent, ViewStyle} from 'react-native';
 import {StyleSheet, View} from 'react-native';
@@ -8,11 +7,14 @@ import {useLHNListContext} from '@components/LHNOptionsList/LHNListContext';
 import type {OptionRowLHNProps} from '@components/LHNOptionsList/types';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import PressableWithSecondaryInteraction from '@components/PressableWithSecondaryInteraction';
+import getContextMenuAccessibilityHint from '@components/utils/getContextMenuAccessibilityHint';
+import getContextMenuAccessibilityProps from '@components/utils/getContextMenuAccessibilityProps';
 import {useCurrentReportIDState} from '@hooks/useCurrentReportID';
 import useLHNIsUnread from '@hooks/useLHNIsUnread';
 import useLHNOptionData from '@hooks/useLHNOptionData';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import {useReportAttributesByID} from '@hooks/useReportAttributes';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
@@ -47,8 +49,7 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
     const isOptionFocused = isOptionFocusEnabled && currentReportID === reportID;
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: reportSelector});
-    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportsSelector});
-    const reportAttributes = reportAttributesDerived?.[reportID];
+    const reportAttributes = useReportAttributesByID(reportID);
 
     const option = useLHNOptionData(reportID);
     const isUnread = useLHNIsUnread(reportID);
@@ -82,6 +83,29 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
     const pendingAction = report?.pendingFields?.addWorkspaceRoom ?? report?.pendingFields?.createChat;
     const allReportErrors = reportAttributes?.reportErrors;
     const brickRoadIndicator = reportAttributes?.brickRoadStatus ?? undefined;
+    const actionBadge = reportAttributes?.actionBadge;
+
+    const actionBadgeText = actionBadge ? translate(`common.actionBadge.${actionBadge}`) : '';
+    let accessibilityLabelForBadge = '';
+    if (brickRoadIndicator) {
+        accessibilityLabelForBadge = [translate('common.yourReviewIsRequired'), actionBadgeText].filter(Boolean).join(', ');
+    } else if (isPinned) {
+        accessibilityLabelForBadge = translate('common.pinned');
+    }
+    const accessibilityLabel = [
+        `${translate('accessibilityHints.navigatesToChat')} ${option.text}`,
+        isUnread ? translate('common.unread') : '',
+        option.alternateText ?? '',
+        accessibilityLabelForBadge,
+    ]
+        .filter(Boolean)
+        .join('. ');
+    const contextMenuHint = getContextMenuAccessibilityHint({translate});
+    const {accessibilityLabel: accessibilityLabelWithContextMenuHint, accessibilityHint} = getContextMenuAccessibilityProps({
+        accessibilityLabel,
+        nativeAccessibilityHint: accessibilityLabel,
+        contextMenuHint,
+    });
 
     const showPopover = (event: MouseEvent | GestureResponderEvent) => {
         if (!isScreenFocused && shouldUseNarrowLayout) {
@@ -96,8 +120,6 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
             report: {
                 reportID,
                 originalReportID: reportID,
-                isPinnedChat: isPinned,
-                isUnreadChat: isUnread,
             },
             reportAction: {
                 reportActionID: '-1',
@@ -164,7 +186,8 @@ function OptionRowLHN({reportID, onSelectRow = () => {}, style, onLayout = () =>
                                     (hovered || isContextMenuActive) && !isOptionFocused ? styles.sidebarLinkHover : null,
                                 ]}
                                 role={CONST.ROLE.BUTTON}
-                                accessibilityLabel={`${translate('accessibilityHints.navigatesToChat')} ${option.text}. ${isUnread ? `${translate('common.unread')}.` : ''} ${option.alternateText}${brickRoadIndicator ? `. ${translate('common.yourReviewIsRequired')}` : ''}`}
+                                accessibilityLabel={accessibilityLabelWithContextMenuHint}
+                                accessibilityHint={accessibilityHint}
                                 onLayout={onLayout}
                                 needsOffscreenAlphaCompositing={(option?.icons?.length ?? 0) >= 2}
                                 sentryLabel={CONST.SENTRY_LABEL.LHN.OPTION_ROW}

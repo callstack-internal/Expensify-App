@@ -119,8 +119,8 @@ function RowAlternateText({reportID, text, style}: {reportID: string; text: stri
     const shouldBoldText = isUnread && notificationPreference !== CONST.REPORT.NOTIFICATION_PREFERENCE.MUTE && !isHiddenForCurrentUser(notificationPreference);
     const textStyle = isOptionFocused ? styles.sidebarLinkActiveText : styles.sidebarLinkText;
     const alternateTextStyle = isInFocusMode
-        ? [shouldBoldText ? [textStyle, styles.sidebarLinkTextBold] : textStyle, styles.textLabelSupporting, styles.optionAlternateTextCompact, styles.ml2, style]
-        : [shouldBoldText ? [textStyle, styles.sidebarLinkTextBold] : textStyle, styles.optionAlternateText, styles.textLabelSupporting, style];
+        ? [shouldBoldText ? [textStyle, styles.sidebarLinkTextBold] : textStyle, styles.textLabelSupporting, styles.optionAlternateTextCompact, styles.pre, styles.ml2, style]
+        : [shouldBoldText ? [textStyle, styles.sidebarLinkTextBold] : textStyle, styles.optionAlternateText, styles.textLabelSupporting, styles.pre, style];
 
     const alternateTextContainsCustomEmojiWithText = containsCustomEmojiUtils(text) && !containsOnlyCustomEmoji(text);
     const alternateTextFSClass = FS.getChatFSClass(report);

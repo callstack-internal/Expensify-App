@@ -110,6 +110,15 @@ jobs:
           STRUCTURED_OUTPUT: ${{ steps.code-review.outputs.structured_output }}
         run: postCodeReviewResults.sh "$PR_NUMBER"
 
+      # Monitoring: report prompt-cache health (token counts only) and warn,
+      # non-blocking, if the cached rule prefix went cold. Detects silent caching
+      # regressions (rules edit, action/CLI bump, model change, TTL revert).
+      - name: Report reviewer cache health
+        if: always() && steps.code-review.outputs.execution_file != ''
+        env:
+          EXEC_FILE: ${{ steps.code-review.outputs.execution_file }}
+        run: .github/scripts/report-cache-health.sh
+
       - name: Run Claude Code (docs)
         if: steps.set-authorized.outputs.IS_AUTHORIZED == 'true' && steps.filter.outputs.docs == 'true'
         uses: anthropics/claude-code-action@4d7e1f0cd85743fdc93b1c8040ab54395da024e2 # v1.0.149

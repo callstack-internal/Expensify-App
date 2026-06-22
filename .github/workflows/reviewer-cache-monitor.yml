@@ -1,0 +1,39 @@
+name: Reviewer cache monitor
+
+# Out-of-band collector for reviewer prompt-cache health. Scans recent
+# "PR Reviews with Claude Code" runs' logs for the CACHE_USAGE line and fails
+# (a red scheduled run = built-in alert) if caching has regressed across a
+# meaningful sample. Reads logs only - no message content, no artifacts.
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly
+  workflow_dispatch:
+    inputs:
+      lookback:
+        description: How many recent reviewer runs to scan
+        required: false
+        default: "30"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: reviewer-cache-monitor
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Scan reviewer runs for cache health
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LOOKBACK: ${{ github.event.inputs.lookback || '30' }}
+        run: .github/scripts/collect-cache-health.sh

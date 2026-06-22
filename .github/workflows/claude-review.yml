@@ -110,14 +110,14 @@ jobs:
           STRUCTURED_OUTPUT: ${{ steps.code-review.outputs.structured_output }}
         run: postCodeReviewResults.sh "$PR_NUMBER"
 
-      # Monitoring: report prompt-cache health (token counts only) and warn,
-      # non-blocking, if the cached rule prefix went cold. Detects silent caching
-      # regressions (rules edit, action/CLI bump, model change, TTL revert).
-      - name: Report reviewer cache health
+      # Monitoring (emit only): print prompt-cache token counts to the log so the
+      # out-of-band collector (.github/workflows/reviewer-cache-monitor.yml) can
+      # track cache health across runs. Counts only - no message content.
+      - name: Emit reviewer cache usage
         if: always() && steps.code-review.outputs.execution_file != ''
         env:
           EXEC_FILE: ${{ steps.code-review.outputs.execution_file }}
-        run: .github/scripts/report-cache-health.sh
+        run: .github/scripts/emit-cache-usage.sh
 
       - name: Run Claude Code (docs)
         if: steps.set-authorized.outputs.IS_AUTHORIZED == 'true' && steps.filter.outputs.docs == 'true'

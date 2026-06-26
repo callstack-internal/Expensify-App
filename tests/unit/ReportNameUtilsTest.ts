@@ -18,6 +18,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetailsList, Policy, PolicyTagLists, Report, ReportAction, ReportActions, ReportAttributesDerivedValue, ReportNameValuePairs, Transaction} from '@src/types/onyx';
 import createRandomPolicy from '../utils/collections/policies';
 import {createAdminRoom, createExpenseReport, createPolicyExpenseChat, createRegularChat, createRegularTaskReport, createSelfDM, createWorkspaceThread} from '../utils/collections/reports';
+import createRandomTransaction from '../utils/collections/transaction';
 import {fakePersonalDetails} from '../utils/LHNTestUtils';
 import {formatPhoneNumber} from '../utils/TestHelper';
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
@@ -78,7 +79,6 @@ describe('ReportNameUtils', () => {
             pronouns: 'She/her',
         },
     ].reduce((acc, detail) => {
-        // eslint-disable-next-line no-param-reassign
         acc[String(detail.accountID)] = detail;
         return acc;
     }, {} as PersonalDetailsList);
@@ -550,6 +550,7 @@ describe('ReportNameUtils', () => {
                 report: thread,
                 reports: emptyCollections.reports,
                 policies: emptyCollections.policies,
+                transactions: {},
                 personalDetailsList: participantsPersonalDetails,
                 reportActions: reportActionsCollection,
                 currentUserAccountID,
@@ -558,6 +559,385 @@ describe('ReportNameUtils', () => {
             });
 
             expect(name).toContain('Cost Center');
+        });
+
+        test('ADD_CARD_FEED parent action', () => {
+            const thread: Report = createWorkspaceThread(100);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ADD_CARD_FEED,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    feedName: 'Visa Commercial',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('added card feed "Visa Commercial"');
+        });
+
+        test('UPDATE_REQUIRE_COMPANY_CARDS_ENABLED parent action', () => {
+            const thread: Report = createWorkspaceThread(150);
+            const enabledParentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_REQUIRE_COMPANY_CARDS_ENABLED,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    enabled: true,
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: enabledParentAction},
+            };
+
+            const enabledName = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(enabledName).toBe('enabled the company card purchases requirement');
+
+            const disabledParentAction: ReportAction = {
+                ...enabledParentAction,
+                originalMessage: {
+                    enabled: false,
+                },
+            } as unknown as ReportAction;
+            const disabledReportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: disabledParentAction},
+            };
+            const disabledName = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                disabledReportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(disabledName).toBe('disabled the company card purchases requirement');
+        });
+
+        test('UPDATE_CATEGORY_TAX_RATE parent action renders the rendered category default tax rate change', () => {
+            const thread: Report = createWorkspaceThread(160);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CATEGORY_TAX_RATE,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    categoryName: 'Office Supplies',
+                    oldTaxName: 'Tax Exempt',
+                    oldTaxPercentage: '0%',
+                    newTaxName: 'Tax Rate 1',
+                    newTaxPercentage: '5%',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {
+                    [actionId]: parentAction,
+                },
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('changed the "Office Supplies" category default tax rate to "Tax Rate 1 (5%)" (previously "Tax Exempt (0%)")');
+        });
+
+        test('DELETE_CARD_FEED parent action', () => {
+            const thread: Report = createWorkspaceThread(101);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_CARD_FEED,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    feedName: 'Amex Corporate',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('removed card feed "Amex Corporate"');
+        });
+
+        test('RENAME_CARD_FEED parent action', () => {
+            const thread: Report = createWorkspaceThread(102);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.RENAME_CARD_FEED,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    oldName: 'Old Feed Name',
+                    newName: 'New Feed Name',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('renamed card feed to "New Feed Name" (previously "Old Feed Name")');
+        });
+
+        test('ASSIGN_COMPANY_CARD parent action', () => {
+            const thread: Report = createWorkspaceThread(103);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ASSIGN_COMPANY_CARD,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    email: 'user@example.com',
+                    feedName: 'US Bank',
+                    cardLastFour: '1234',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('assigned user@example.com "US Bank" company card ending in 1234');
+        });
+
+        test('UNASSIGN_COMPANY_CARD parent action', () => {
+            const thread: Report = createWorkspaceThread(104);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UNASSIGN_COMPANY_CARD,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    email: 'user@example.com',
+                    feedName: 'US Bank',
+                    cardLastFour: '5678',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('unassigned user@example.com "US Bank" company card ending in 5678');
+        });
+
+        test('UPDATE_CARD_FEED_LIABILITY parent action with ALLOW type', () => {
+            const thread: Report = createWorkspaceThread(105);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CARD_FEED_LIABILITY,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    feedName: 'Visa Commercial',
+                    liabilityType: CONST.TRANSACTION.LIABILITY_TYPE.ALLOW,
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('enabled cardholders to delete card transactions for card feed "Visa Commercial"');
+        });
+
+        test('UPDATE_CARD_FEED_STATEMENT_PERIOD parent action with numeric days', () => {
+            const thread: Report = createWorkspaceThread(106);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CARD_FEED_STATEMENT_PERIOD,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    feedName: 'Visa Commercial',
+                    statementPeriodEndDay: '15',
+                    previousStatementPeriodEndDay: '20',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {[actionId]: parentAction},
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('changed card feed "Visa Commercial" statement period end day to "15" (previously "20")');
+        });
+
+        test('UPDATE_MCC_GROUP_CATEGORY parent action renders the friendly MCC group label', () => {
+            const thread: Report = createWorkspaceThread(75);
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_MCC_GROUP_CATEGORY,
+                reportActionID: String(thread.parentReportActionID),
+                message: [],
+                created: '',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    mccGroupName: 'Airlines',
+                    oldCategory: 'Insurance',
+                    newCategory: 'Travel',
+                },
+            } as unknown as ReportAction;
+
+            const parentId = String(thread.parentReportID);
+            const actionId = String(thread.parentReportActionID);
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentId}`]: {
+                    [actionId]: parentAction,
+                },
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                undefined,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+            expect(name).toBe('changed the default spend category for "Airlines" to "Travel" (previously "Insurance")');
         });
     });
 
@@ -664,6 +1044,7 @@ describe('ReportNameUtils', () => {
                 report,
                 receiverPolicy,
                 personalDetails: participantsPersonalDetails,
+                policy: undefined,
                 currentUserAccountID,
             });
 
@@ -682,6 +1063,7 @@ describe('ReportNameUtils', () => {
                 report,
                 receiverPolicy,
                 personalDetails: participantsPersonalDetails,
+                policy: undefined,
                 currentUserAccountID,
             });
 
@@ -906,6 +1288,134 @@ describe('ReportNameUtils', () => {
 
             // Then it should NOT return empty string — it should fall through to dynamic name computation
             expect(reportName).not.toBe('');
+        });
+    });
+
+    describe('computeReportName - Transaction thread with linkedTransaction', () => {
+        test('returns formatted expense name for transaction thread', () => {
+            const transactionID = '999';
+            const parentReportID = '100';
+            const parentReportActionID = '200';
+            const expenseReportID = '300';
+
+            const thread: Report = {
+                ...createWorkspaceThread(60),
+                parentReportID,
+                parentReportActionID,
+            };
+
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                reportActionID: parentReportActionID,
+                message: [{type: 'TEXT', text: 'test'}],
+                created: '2024-01-01 00:00:00',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    IOUTransactionID: transactionID,
+                    IOUReportID: expenseReportID,
+                    amount: 2500,
+                    currency: CONST.CURRENCY.USD,
+                    participantAccountIDs: [1, 2],
+                },
+            } as ReportAction;
+
+            const transaction: Transaction = {
+                ...createRandomTransaction(1),
+                transactionID,
+                reportID: expenseReportID,
+                merchant: 'Coffee Shop',
+                modifiedMerchant: '',
+                amount: -2500,
+                currency: CONST.CURRENCY.USD,
+                comment: {comment: ''},
+            };
+
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentReportID}`]: {
+                    [parentReportActionID]: parentAction,
+                },
+            };
+
+            const transactionsCollection: Record<string, Transaction> = {
+                [`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`]: transaction,
+            };
+
+            const expenseReport: Report = {
+                ...createExpenseReport(300),
+                reportID: expenseReportID,
+                type: CONST.REPORT.TYPE.EXPENSE,
+            };
+
+            const reportsCollection: Record<string, Report> = {
+                [`${ONYXKEYS.COLLECTION.REPORT}${parentReportID}`]: createRegularChat(100, [1, 2]),
+                [`${ONYXKEYS.COLLECTION.REPORT}${expenseReportID}`]: expenseReport,
+            };
+
+            const name = computeReportName(
+                thread,
+                reportsCollection,
+                emptyCollections.policies,
+                transactionsCollection,
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+
+            expect(name).toContain('$25.00');
+            expect(name).toContain('Coffee Shop');
+        });
+
+        test('returns expense fallback when transaction is not in collection', () => {
+            const transactionID = '888';
+            const parentReportID = '101';
+            const parentReportActionID = '201';
+
+            const thread: Report = {
+                ...createWorkspaceThread(61),
+                parentReportID,
+                parentReportActionID,
+            };
+
+            const parentAction: ReportAction = {
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                reportActionID: parentReportActionID,
+                message: [{type: 'TEXT', text: 'test'}],
+                created: '2024-01-01 00:00:00',
+                lastModified: '',
+                actorAccountID: 1,
+                person: [],
+                originalMessage: {
+                    type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    IOUTransactionID: transactionID,
+                    IOUReportID: '301',
+                    amount: 1000,
+                    currency: CONST.CURRENCY.USD,
+                    participantAccountIDs: [1, 2],
+                },
+            } as ReportAction;
+
+            const reportActionsCollection: Record<string, ReportActions> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentReportID}`]: {
+                    [parentReportActionID]: parentAction,
+                },
+            };
+
+            const name = computeReportName(
+                thread,
+                emptyCollections.reports,
+                emptyCollections.policies,
+                {},
+                undefined,
+                participantsPersonalDetails,
+                reportActionsCollection,
+                currentUserAccountID,
+            );
+
+            expect(name).toBe(translate(CONST.LOCALES.EN, 'iou.expense'));
         });
     });
 });

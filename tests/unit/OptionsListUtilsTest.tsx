@@ -24,13 +24,12 @@ import {
     filterWorkspaceChats,
     formatMemberForList,
     formatSectionsFromSearchTerm,
-    getCurrentUserSearchTerms,
     getFilteredRecentAttendees,
     getIOUReportIDOfLastAction,
     getLastActorDisplayName,
     getLastActorDisplayNameFromLastVisibleActions,
     getLastMessageTextForReport,
-    getPersonalDetailSearchTerms,
+    getParticipantsOption,
     getPolicyExpenseReportOption,
     getReportDisplayOption,
     getReportOption,
@@ -40,18 +39,28 @@ import {
     getValidOptions,
     optionsOrderBy,
     orderOptions,
+    orderPersonalDetailsOptions,
     orderWorkspaceOptions,
     recentReportComparator,
     shouldShowLastActorDisplayName,
     sortAlphabetically,
 } from '@libs/OptionsListUtils';
+import {getCurrentUserSearchTerms, getPersonalDetailSearchTerms} from '@libs/OptionsListUtils/searchMatchUtils';
 import Parser from '@libs/Parser';
 import {
+    getAddedCardFeedMessage,
+    getAssignedCompanyCardMessage,
     getChangedApproverActionMessage,
     getCurrencyDefaultTaxUpdateMessage,
     getCustomTaxNameUpdateMessage,
     getDynamicExternalWorkflowRoutedMessage,
     getForeignCurrencyDefaultTaxUpdateMessage,
+    getRemovedCardFeedMessage,
+    getRenamedCardFeedMessage,
+    getRequireCompanyCardsEnabledMessage,
+    getUnassignedCompanyCardMessage,
+    getUpdatedCardFeedLiabilityMessage,
+    getUpdatedCardFeedStatementPeriodMessage,
 } from '@libs/ReportActionsUtils';
 import {
     canCreateTaskInReport,
@@ -72,12 +81,12 @@ import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetails, Policy, Report, ReportAction, ReportNameValuePairs, Transaction} from '@src/types/onyx';
 import type {ReportAttributes} from '@src/types/onyx/DerivedValues';
-import type {Participant} from '@src/types/onyx/IOU';
+import type {Attendee, Participant} from '@src/types/onyx/IOU';
 import createRandomReportAction from '../utils/collections/reportActions';
 import {createRandomReport, createRegularChat} from '../utils/collections/reports';
 import createRandomTransaction from '../utils/collections/transaction';
 import {getFakeAdvancedReportAction} from '../utils/LHNTestUtils';
-import {getNvpDismissedProductTraining, localeCompare, translateLocal} from '../utils/TestHelper';
+import {localeCompare, translateLocal} from '../utils/TestHelper';
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
 
 jest.mock('@rnmapbox/maps', () => {
@@ -90,6 +99,7 @@ jest.mock('@rnmapbox/maps', () => {
 
 jest.mock('@src/libs/Navigation/Navigation', () => ({
     navigate: jest.fn(),
+    getActiveRouteWithoutParams: jest.fn(() => ''),
     dismissModal: jest.fn(),
     dismissModalWithReport: jest.fn(),
     goBack: jest.fn(),
@@ -111,7 +121,6 @@ const renderLocaleContextProvider = () => {
     );
 };
 
-const nvpDismissedProductTraining = getNvpDismissedProductTraining();
 const EMPTY_PRIVATE_IS_ARCHIVED_MAP: PrivateIsArchivedMap = {};
 
 describe('OptionsListUtils', () => {
@@ -422,22 +431,6 @@ describe('OptionsListUtils', () => {
         },
     };
 
-    const REPORTS_WITH_MANAGER_MCTEST: OnyxCollection<Report> = {
-        ...REPORTS,
-        '18': {
-            lastReadTime: '2021-01-14 11:25:39.302',
-            lastVisibleActionCreated: '2022-11-22 03:26:02.022',
-            isPinned: false,
-            reportID: '18',
-            participants: {
-                2: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
-                1003: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
-            },
-            reportName: 'Manager McTest',
-            type: CONST.REPORT.TYPE.CHAT,
-        },
-    };
-
     const activePolicyID = 'DEF456';
 
     // And a set of personalDetails some with existing reports and some without
@@ -556,17 +549,6 @@ describe('OptionsListUtils', () => {
             displayName: 'Receipts',
             login: 'receipts@expensify.com',
             keyForList: 'receipts@expensify.com',
-            reportID: '',
-        },
-    };
-
-    const PERSONAL_DETAILS_WITH_MANAGER_MCTEST: PersonalDetailsList = {
-        ...PERSONAL_DETAILS,
-        '1003': {
-            accountID: 1003,
-            displayName: 'Manager McTest',
-            login: CONST.EMAIL.MANAGER_MCTEST,
-            keyForList: CONST.EMAIL.MANAGER_MCTEST,
             reportID: '',
         },
     };
@@ -727,13 +709,10 @@ describe('OptionsListUtils', () => {
     const MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CHRONOS = createMockReportAttributesDerived(REPORTS_WITH_CHRONOS, PERSONAL_DETAILS_WITH_CHRONOS, CURRENT_USER_ACCOUNT_ID);
     const MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_RECEIPTS = createMockReportAttributesDerived(REPORTS_WITH_RECEIPTS, PERSONAL_DETAILS_WITH_RECEIPTS, CURRENT_USER_ACCOUNT_ID);
     const MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_WORKSPACE_ROOM = createMockReportAttributesDerived(REPORTS_WITH_WORKSPACE_ROOMS, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID);
-    const MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_MANAGER_MCTEST = createMockReportAttributesDerived(REPORTS_WITH_MANAGER_MCTEST, PERSONAL_DETAILS_WITH_MANAGER_MCTEST, CURRENT_USER_ACCOUNT_ID);
-
     let OPTIONS_WITH_CONCIERGE: OptionList;
     let OPTIONS_WITH_CHRONOS: OptionList;
     let OPTIONS_WITH_RECEIPTS: OptionList;
     let OPTIONS_WITH_WORKSPACE_ROOM: OptionList;
-    let OPTIONS_WITH_MANAGER_MCTEST: OptionList;
 
     // Set the currently logged in user, report data, and personal details
     beforeAll(async () => {
@@ -761,41 +740,28 @@ describe('OptionsListUtils', () => {
         await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}10`, reportNameValuePairs);
         await waitForBatchedUpdates();
 
-        OPTIONS = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, MOCK_REPORT_ATTRIBUTES_DERIVED);
+        OPTIONS = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, allPolicies, MOCK_REPORT_ATTRIBUTES_DERIVED);
         OPTIONS_WITH_CONCIERGE = createOptionList(
             PERSONAL_DETAILS_WITH_CONCIERGE,
-            CURRENT_USER_ACCOUNT_ID,
             EMPTY_PRIVATE_IS_ARCHIVED_MAP,
             REPORTS_WITH_CONCIERGE,
+            undefined,
             MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CONCIERGE,
         );
-        OPTIONS_WITH_CHRONOS = createOptionList(
-            PERSONAL_DETAILS_WITH_CHRONOS,
-            CURRENT_USER_ACCOUNT_ID,
-            EMPTY_PRIVATE_IS_ARCHIVED_MAP,
-            REPORTS_WITH_CHRONOS,
-            MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CHRONOS,
-        );
+        OPTIONS_WITH_CHRONOS = createOptionList(PERSONAL_DETAILS_WITH_CHRONOS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_CHRONOS, undefined, MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CHRONOS);
         OPTIONS_WITH_RECEIPTS = createOptionList(
             PERSONAL_DETAILS_WITH_RECEIPTS,
-            CURRENT_USER_ACCOUNT_ID,
             EMPTY_PRIVATE_IS_ARCHIVED_MAP,
             REPORTS_WITH_RECEIPTS,
+            undefined,
             MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_RECEIPTS,
         );
         OPTIONS_WITH_WORKSPACE_ROOM = createOptionList(
             PERSONAL_DETAILS,
-            CURRENT_USER_ACCOUNT_ID,
             EMPTY_PRIVATE_IS_ARCHIVED_MAP,
             REPORTS_WITH_WORKSPACE_ROOMS,
+            undefined,
             MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_WORKSPACE_ROOM,
-        );
-        OPTIONS_WITH_MANAGER_MCTEST = createOptionList(
-            PERSONAL_DETAILS_WITH_MANAGER_MCTEST,
-            CURRENT_USER_ACCOUNT_ID,
-            EMPTY_PRIVATE_IS_ARCHIVED_MAP,
-            REPORTS_WITH_MANAGER_MCTEST,
-            MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_MANAGER_MCTEST,
         );
     });
 
@@ -803,17 +769,18 @@ describe('OptionsListUtils', () => {
         it('should return all options when no search value is provided', () => {
             // Given a set of options
             // When we call getSearchOptions with all betas
-            const results = getSearchOptions({
+            const {options: results} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then all personal details (including those that have reports) should be returned
@@ -826,10 +793,9 @@ describe('OptionsListUtils', () => {
         it('should include current user when includeCurrentUser is true for type:chat from suggestions', () => {
             // Given a set of options where the current user is Iron Man (accountID: 2)
             // When we call getSearchOptions with includeCurrentUser set to true
-            const results = getSearchOptions({
+            const {options: results} = getSearchOptions({
                 options: OPTIONS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 betas: [CONST.BETAS.ALL],
                 isUsedInChatFinder: true,
                 includeReadOnly: true,
@@ -843,6 +809,8 @@ describe('OptionsListUtils', () => {
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then the current user should be included in personalDetails
@@ -858,10 +826,9 @@ describe('OptionsListUtils', () => {
         it('should exclude current user when includeCurrentUser is false', () => {
             // Given a set of options where the current user is Iron Man (accountID: 2)
             // When we call getSearchOptions with includeCurrentUser set to false (default behavior)
-            const results = getSearchOptions({
+            const {options: results} = getSearchOptions({
                 options: OPTIONS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 betas: [CONST.BETAS.ALL],
                 isUsedInChatFinder: true,
                 includeReadOnly: true,
@@ -874,6 +841,8 @@ describe('OptionsListUtils', () => {
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then the current user should not be included in personalDetails
@@ -887,10 +856,9 @@ describe('OptionsListUtils', () => {
         it('should use policyCollection to filter workspace chats correctly', () => {
             // Given a set of options with workspace rooms
             // When we call getSearchOptions with policyCollection
-            const results = getSearchOptions({
+            const {options: results} = getSearchOptions({
                 options: OPTIONS_WITH_WORKSPACE_ROOM,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 betas: [CONST.BETAS.ALL],
                 isUsedInChatFinder: true,
                 includeReadOnly: true,
@@ -903,6 +871,8 @@ describe('OptionsListUtils', () => {
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then recent reports should include the workspace room
@@ -916,10 +886,9 @@ describe('OptionsListUtils', () => {
         it('should handle empty policyCollection', () => {
             // Given a set of options
             // When we call getSearchOptions with empty policyCollection
-            const results = getSearchOptions({
+            const {options: results} = getSearchOptions({
                 options: OPTIONS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 betas: [CONST.BETAS.ALL],
                 isUsedInChatFinder: true,
                 includeReadOnly: true,
@@ -932,6 +901,8 @@ describe('OptionsListUtils', () => {
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then it should still return personal details
@@ -944,10 +915,9 @@ describe('OptionsListUtils', () => {
         it('should handle undefined policyCollection', () => {
             // Given a set of options
             // When we call getSearchOptions with undefined policyCollection
-            const results = getSearchOptions({
+            const {options: results} = getSearchOptions({
                 options: OPTIONS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 betas: [CONST.BETAS.ALL],
                 isUsedInChatFinder: true,
                 includeReadOnly: true,
@@ -960,6 +930,8 @@ describe('OptionsListUtils', () => {
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then it should still return personal details
@@ -968,24 +940,100 @@ describe('OptionsListUtils', () => {
             // Then it should still return recent reports
             expect(results.recentReports.length).toBeGreaterThan(0);
         });
+
+        it('should pass conciergeReportID through to results when provided', () => {
+            // Given a set of options that includes Concierge and a valid conciergeReportID
+            const conciergeReportID = '11';
+            // When we call getSearchOptions with conciergeReportID
+            const {options: results} = getSearchOptions({
+                options: OPTIONS_WITH_CONCIERGE,
+                reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CONCIERGE,
+                draftComments: {},
+                loginList,
+                betas: [CONST.BETAS.ALL],
+                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
+                currentUserEmail: CURRENT_USER_EMAIL,
+                policyCollection: allPolicies,
+                personalDetails: PERSONAL_DETAILS_WITH_CONCIERGE,
+                conciergeReportID,
+                sortedActions: undefined,
+            });
+
+            // Then the Concierge report should be included in recent reports
+            const conciergeOption = results.recentReports.find((option) => option.login === 'concierge@expensify.com');
+            expect(conciergeOption).toBeDefined();
+            // And the concierge option's reportID should match the provided conciergeReportID
+            expect(conciergeOption?.reportID).toBe(conciergeReportID);
+        });
+
+        it('should handle undefined conciergeReportID without errors', () => {
+            // Given a set of options with Concierge
+            // When we call getSearchOptions with conciergeReportID set to undefined
+            const {options: results} = getSearchOptions({
+                options: OPTIONS_WITH_CONCIERGE,
+                reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CONCIERGE,
+                draftComments: {},
+                loginList,
+                betas: [CONST.BETAS.ALL],
+                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
+                currentUserEmail: CURRENT_USER_EMAIL,
+                policyCollection: allPolicies,
+                personalDetails: PERSONAL_DETAILS_WITH_CONCIERGE,
+                conciergeReportID: undefined,
+                sortedActions: undefined,
+            });
+
+            // Then the function should complete without errors
+            expect(results.recentReports).toBeDefined();
+            expect(results.personalDetails).toBeDefined();
+            // And the Concierge report should still appear in recent reports
+            const conciergeOption = results.recentReports.find((option) => option.login === 'concierge@expensify.com');
+            expect(conciergeOption).toBeDefined();
+        });
+
+        it('should include Concierge in results with matching conciergeReportID when searching', () => {
+            // Given a search query that matches Concierge
+            const conciergeReportID = '11';
+            // When we call getSearchOptions with a search query matching Concierge
+            const {options: results} = getSearchOptions({
+                options: OPTIONS_WITH_CONCIERGE,
+                reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CONCIERGE,
+                draftComments: {},
+                loginList,
+                betas: [CONST.BETAS.ALL],
+                searchQuery: 'Concierge',
+                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
+                currentUserEmail: CURRENT_USER_EMAIL,
+                policyCollection: allPolicies,
+                personalDetails: PERSONAL_DETAILS_WITH_CONCIERGE,
+                conciergeReportID,
+                sortedActions: undefined,
+            });
+
+            // Then the Concierge report should be in recent reports
+            const conciergeOption = results.recentReports.find((option) => option.login === 'concierge@expensify.com');
+            expect(conciergeOption).toBeDefined();
+            expect(conciergeOption?.reportID).toBe(conciergeReportID);
+        });
     });
 
     describe('orderOptions()', () => {
         it('should sort options alphabetically and preserves reportID for personal details with existing reports', () => {
             // Given a set of reports and personalDetails
             // When we call getValidOptions()
-            let results: Pick<Options, 'personalDetails' | 'recentReports'> = getValidOptions(
+            const {options: validOptions} = getValidOptions(
                 {
                     reports: OPTIONS.reports,
                     personalDetails: OPTIONS.personalDetails,
                 },
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
+            let results: Pick<Options, 'personalDetails' | 'recentReports'> = validOptions;
             // When we call orderOptions()
             results = orderOptions(results);
 
@@ -1016,15 +1064,16 @@ describe('OptionsListUtils', () => {
 
         it('should sort personal details options alphabetically when only personal details are provided', () => {
             // Given a set of personalDetails and an empty reports array
-            let results: Pick<Options, 'personalDetails' | 'recentReports'> = getValidOptions(
+            const {options: validOptions} = getValidOptions(
                 {personalDetails: OPTIONS.personalDetails, reports: []},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
+            let results: Pick<Options, 'personalDetails' | 'recentReports'> = validOptions;
             // When we call orderOptions()
             results = orderOptions(results);
 
@@ -1051,7 +1100,7 @@ describe('OptionsListUtils', () => {
         it('should return empty options when no reports or personal details are provided', () => {
             // Given empty arrays of reports and personalDetails
             // When we call getValidOptions()
-            const results = getValidOptions({reports: [], personalDetails: []}, allPolicies, {}, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL);
+            const {options: results} = getValidOptions({reports: [], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined);
 
             // Then the result should be empty
             expect(results.personalDetails).toEqual([]);
@@ -1065,14 +1114,14 @@ describe('OptionsListUtils', () => {
         it('should include Concierge by default in results', () => {
             // Given a set of reports and personalDetails that includes Concierge
             // When we call getValidOptions()
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS_WITH_CONCIERGE.reports, personalDetails: OPTIONS_WITH_CONCIERGE.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
 
             // Then the result should include all personalDetails except the currently logged in user
@@ -1084,19 +1133,20 @@ describe('OptionsListUtils', () => {
         it('should exclude Concierge when excludedLogins is specified', () => {
             // Given a set of reports and personalDetails that includes Concierge and a config object that excludes Concierge
             // When we call getValidOptions()
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {
                     reports: OPTIONS_WITH_CONCIERGE.reports,
                     personalDetails: OPTIONS_WITH_CONCIERGE.personalDetails,
                 },
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {[CONST.EMAIL.CONCIERGE]: true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1106,19 +1156,41 @@ describe('OptionsListUtils', () => {
             expect(results.personalDetails).not.toEqual(expect.arrayContaining([expect.objectContaining({login: 'concierge@expensify.com'})]));
         });
 
-        it('should exclude Chronos when excludedLogins is specified', () => {
-            // Given a set of reports and personalDetails that includes Chronos and a config object that excludes Chronos
-            // When we call getValidOptions()
-            const results = getValidOptions(
-                {reports: OPTIONS_WITH_CHRONOS.reports, personalDetails: OPTIONS_WITH_CHRONOS.personalDetails},
+        it('should pass conciergeReportID through to options when provided', () => {
+            // Given a set of reports that includes Concierge and a valid conciergeReportID
+            const conciergeReportID = '11';
+            // When we call getValidOptions() with a conciergeReportID
+            const {options: results} = getValidOptions(
+                {reports: OPTIONS_WITH_CONCIERGE.reports, personalDetails: OPTIONS_WITH_CONCIERGE.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                conciergeReportID,
+            );
+
+            // Then the result should still include Concierge in the results
+            expect(results.recentReports).toEqual(expect.arrayContaining([expect.objectContaining({login: 'concierge@expensify.com'})]));
+            // And the concierge report should have a valid reportID
+            const conciergeOption = results.recentReports.find((option) => option.login === 'concierge@expensify.com');
+            expect(conciergeOption?.reportID).toBe(conciergeReportID);
+        });
+
+        it('should exclude Chronos when excludedLogins is specified', () => {
+            // Given a set of reports and personalDetails that includes Chronos and a config object that excludes Chronos
+            // When we call getValidOptions()
+            const {options: results} = getValidOptions(
+                {reports: OPTIONS_WITH_CHRONOS.reports, personalDetails: OPTIONS_WITH_CHRONOS.personalDetails},
+                allPolicies,
+                {},
+                loginList,
+                CURRENT_USER_ACCOUNT_ID,
+                CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {[CONST.EMAIL.CHRONOS]: true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1131,19 +1203,20 @@ describe('OptionsListUtils', () => {
         it('should exclude Receipts option from results when excludedLogins is specified', () => {
             // Given a set of reports and personalDetails that includes receipts and a config object that excludes receipts
             // When we call getValidOptions()
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {
                     reports: OPTIONS_WITH_RECEIPTS.reports,
                     personalDetails: OPTIONS_WITH_RECEIPTS.personalDetails,
                 },
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {[CONST.EMAIL.RECEIPTS]: true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1151,93 +1224,6 @@ describe('OptionsListUtils', () => {
             expect(results.personalDetails.length).toBe(Object.values(OPTIONS_WITH_RECEIPTS.personalDetails).length - 2);
             // Then the result should not include receipts
             expect(results.personalDetails).not.toEqual(expect.arrayContaining([expect.objectContaining({login: 'receipts@expensify.com'})]));
-        });
-
-        it('should include Manager McTest in results by default', () => {
-            // Given a set of reports and personalDetails that includes Manager McTest
-            // When we call getValidOptions()
-            const result = getValidOptions(
-                {reports: OPTIONS_WITH_MANAGER_MCTEST.reports, personalDetails: OPTIONS_WITH_MANAGER_MCTEST.personalDetails},
-                allPolicies,
-                {},
-                {
-                    // @ts-expect-error Mocked for testing
-                    [CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.RENAME_SAVED_SEARCH]: {
-                        timestamp: DateUtils.getDBTime(new Date().valueOf()),
-                    },
-                },
-                loginList,
-                CURRENT_USER_ACCOUNT_ID,
-                CURRENT_USER_EMAIL,
-                {
-                    includeP2P: true,
-                    canShowManagerMcTest: true,
-                    betas: [CONST.BETAS.NEWDOT_MANAGER_MCTEST],
-                },
-            );
-
-            // Then the result should include all personalDetails except the currently logged in user
-            expect(result.personalDetails.length).toBe(Object.values(OPTIONS_WITH_MANAGER_MCTEST.personalDetails).length - 1);
-            // Then the result should include Manager McTest
-            expect(result.personalDetails).toEqual(expect.arrayContaining([expect.objectContaining({login: CONST.EMAIL.MANAGER_MCTEST})]));
-        });
-
-        it('should exclude Manager McTest from results if flag is set to false', () => {
-            // Given a set of reports and personalDetails that includes Manager McTest and a config object that excludes Manager McTest
-            // When we call getValidOptions()
-            const result = getValidOptions(
-                {reports: OPTIONS_WITH_MANAGER_MCTEST.reports, personalDetails: OPTIONS_WITH_MANAGER_MCTEST.personalDetails},
-                allPolicies,
-                {},
-                nvpDismissedProductTraining,
-                loginList,
-                CURRENT_USER_ACCOUNT_ID,
-                CURRENT_USER_EMAIL,
-                {
-                    includeP2P: true,
-                    canShowManagerMcTest: false,
-                    betas: [CONST.BETAS.NEWDOT_MANAGER_MCTEST],
-                },
-            );
-
-            // Then the result should include all personalDetails except the currently logged in user and Manager McTest
-            expect(result.personalDetails.length).toBe(Object.values(OPTIONS_WITH_MANAGER_MCTEST.personalDetails).length - 2);
-            // Then the result should not include Manager McTest
-            expect(result.personalDetails).not.toEqual(expect.arrayContaining([expect.objectContaining({login: CONST.EMAIL.MANAGER_MCTEST})]));
-        });
-
-        it('should exclude Manager McTest from results if user dismissed the tooltip', () => {
-            return waitForBatchedUpdates()
-                .then(() =>
-                    // Given that the user has dismissed the tooltip
-                    Onyx.set(ONYXKEYS.NVP_DISMISSED_PRODUCT_TRAINING, {
-                        [CONST.PRODUCT_TRAINING_TOOLTIP_NAMES.SCAN_TEST_TOOLTIP]: {
-                            timestamp: DateUtils.getDBTime(new Date().valueOf()),
-                        },
-                    }),
-                )
-                .then(() => {
-                    // When we call getValidOptions()
-                    const optionsWhenUserAlreadySubmittedExpense = getValidOptions(
-                        {reports: OPTIONS_WITH_MANAGER_MCTEST.reports, personalDetails: OPTIONS_WITH_MANAGER_MCTEST.personalDetails},
-                        allPolicies,
-                        {},
-                        nvpDismissedProductTraining,
-                        loginList,
-                        CURRENT_USER_ACCOUNT_ID,
-                        CURRENT_USER_EMAIL,
-                        {
-                            includeP2P: true,
-                            canShowManagerMcTest: true,
-                            betas: [CONST.BETAS.NEWDOT_MANAGER_MCTEST],
-                        },
-                    );
-
-                    // Then the result should include all personalDetails except the currently logged in user and Manager McTest
-                    expect(optionsWhenUserAlreadySubmittedExpense.personalDetails.length).toBe(Object.values(OPTIONS_WITH_MANAGER_MCTEST.personalDetails).length - 2);
-                    // Then the result should not include Manager McTest
-                    expect(optionsWhenUserAlreadySubmittedExpense.personalDetails).not.toEqual(expect.arrayContaining([expect.objectContaining({login: CONST.EMAIL.MANAGER_MCTEST})]));
-                });
         });
 
         it('should keep admin rooms if specified', () => {
@@ -1275,16 +1261,17 @@ describe('OptionsListUtils', () => {
                 notificationPreference: 'hidden',
             };
             // When we call getValidOptions with includeMultipleParticipantReports set to true
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: [adminRoom], personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     includeMultipleParticipantReports: true,
+                    sortedActions: undefined,
                 },
             );
             const adminRoomOption = results.recentReports.find((report) => report.reportID === '1455140530846319');
@@ -1329,19 +1316,11 @@ describe('OptionsListUtils', () => {
                 notificationPreference: 'hidden',
                 brickRoadIndicator: CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR,
             };
-            const results = getValidOptions(
-                {reports: [workspaceChat], personalDetails: []},
-                allPolicies,
-                {},
-                nvpDismissedProductTraining,
-                loginList,
-                CURRENT_USER_ACCOUNT_ID,
-                CURRENT_USER_EMAIL,
-                {
-                    includeMultipleParticipantReports: true,
-                    showRBR: true,
-                },
-            );
+            const {options: results} = getValidOptions({reports: [workspaceChat], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeMultipleParticipantReports: true,
+                showRBR: true,
+                sortedActions: undefined,
+            });
             expect(results.recentReports.at(0)?.brickRoadIndicator).toBe(CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR);
         });
 
@@ -1381,19 +1360,11 @@ describe('OptionsListUtils', () => {
                 notificationPreference: 'hidden',
                 brickRoadIndicator: CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR,
             };
-            const results = getValidOptions(
-                {reports: [workspaceChat], personalDetails: []},
-                allPolicies,
-                {},
-                nvpDismissedProductTraining,
-                loginList,
-                CURRENT_USER_ACCOUNT_ID,
-                CURRENT_USER_EMAIL,
-                {
-                    includeMultipleParticipantReports: true,
-                    showRBR: false,
-                },
-            );
+            const {options: results} = getValidOptions({reports: [workspaceChat], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeMultipleParticipantReports: true,
+                showRBR: false,
+                sortedActions: undefined,
+            });
             expect(results.recentReports.at(0)?.brickRoadIndicator).toBe(null);
         });
 
@@ -1437,20 +1408,12 @@ describe('OptionsListUtils', () => {
                 isBold: false,
             };
 
-            const results = getValidOptions(
-                {reports: [inputOption], personalDetails: []},
-                allPolicies,
-                {},
-                nvpDismissedProductTraining,
-                loginList,
-                CURRENT_USER_ACCOUNT_ID,
-                CURRENT_USER_EMAIL,
-                {
-                    includeRecentReports: true,
-                    shouldUnreadBeBold: true,
-                    includeMultipleParticipantReports: true,
-                },
-            );
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                shouldUnreadBeBold: true,
+                includeMultipleParticipantReports: true,
+                sortedActions: undefined,
+            });
 
             expect(results.recentReports.at(0)?.isBold).toBe(true);
             expect(results.recentReports.at(0)?.isUnread).toBe(true);
@@ -1472,16 +1435,17 @@ describe('OptionsListUtils', () => {
             };
 
             // When we call getValidOptions with personalDetails parameter
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 {},
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     personalDetails: customPersonalDetails,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1490,17 +1454,78 @@ describe('OptionsListUtils', () => {
             expect(results.recentReports.length).toBeGreaterThan(0);
             expect(results.personalDetails.length).toBeGreaterThan(0);
         });
+
+        it('should mark a personal detail as selected in place when it matches a selected option and includeSelectedOptions is true', () => {
+            // Given a selected option matching Spider-Man (accountID 3) by accountID and login
+            const selectedOptions = [{accountID: 3, login: 'peterparker@expensify.com'}];
+
+            // When we call getValidOptions with that selected option and includeSelectedOptions enabled
+            const {options: results} = getValidOptions(
+                {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
+                allPolicies,
+                {},
+                loginList,
+                CURRENT_USER_ACCOUNT_ID,
+                CURRENT_USER_EMAIL,
+                undefined,
+                {
+                    selectedOptions,
+                    includeSelectedOptions: true,
+                    sortedActions: undefined,
+                },
+            );
+
+            // Then the matching personal detail should be kept in the list and marked as selected
+            const selectedDetail = results.personalDetails.find((option) => option.login === 'peterparker@expensify.com');
+            expect(selectedDetail).toBeDefined();
+            expect(selectedDetail?.isSelected).toBe(true);
+
+            // And other personal details should not be marked as selected
+            const otherDetail = results.personalDetails.find((option) => option.login === 'reedrichards@expensify.com');
+            expect(otherDetail?.isSelected).not.toBe(true);
+        });
+
+        it('should return hasMore true when there are more options than maxElements', () => {
+            const {hasMore} = getValidOptions(
+                {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
+                allPolicies,
+                {},
+                loginList,
+                CURRENT_USER_ACCOUNT_ID,
+                CURRENT_USER_EMAIL,
+                undefined,
+                {maxElements: 1},
+            );
+
+            expect(hasMore).toBe(true);
+        });
+
+        it('should return hasMore false when maxElements is larger than the total number of options', () => {
+            const {hasMore} = getValidOptions(
+                {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
+                allPolicies,
+                {},
+                loginList,
+                CURRENT_USER_ACCOUNT_ID,
+                CURRENT_USER_EMAIL,
+                undefined,
+                {maxElements: 100},
+            );
+
+            expect(hasMore).toBe(false);
+        });
     });
 
     describe('getValidOptions() for chat room', () => {
         it('should include all reports by default', () => {
             // Given a set of reports and personalDetails that includes workspace rooms
             // When we call getValidOptions()
-            const results = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, {
+            const {options: results} = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
                 includeRecentReports: true,
                 includeMultipleParticipantReports: true,
                 includeP2P: true,
                 includeOwnedWorkspaceChats: true,
+                sortedActions: undefined,
             });
 
             // Then the result should include all reports except the currently logged in user
@@ -1528,13 +1553,14 @@ describe('OptionsListUtils', () => {
             };
 
             // When we call getValidOptions with shouldSeparateWorkspaceChat and personalDetails config
-            const results = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, {
+            const {options: results} = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
                 includeRecentReports: true,
                 includeMultipleParticipantReports: true,
                 includeP2P: true,
                 includeOwnedWorkspaceChats: true,
                 shouldSeparateWorkspaceChat: true,
                 personalDetails: customPersonalDetails,
+                sortedActions: undefined,
             });
 
             // Then the function should process without errors and return workspace chats
@@ -1546,13 +1572,14 @@ describe('OptionsListUtils', () => {
         it('should handle undefined personalDetails config in workspace chat lookups', () => {
             // Given a set of reports with workspace rooms
             // When we call getValidOptions with shouldSeparateWorkspaceChat but no personalDetails config
-            const results = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, {
+            const {options: results} = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
                 includeRecentReports: true,
                 includeMultipleParticipantReports: true,
                 includeP2P: true,
                 includeOwnedWorkspaceChats: true,
                 shouldSeparateWorkspaceChat: true,
                 personalDetails: undefined,
+                sortedActions: undefined,
             });
 
             // Then the function should fall back to allPersonalDetails and process without errors
@@ -1563,13 +1590,14 @@ describe('OptionsListUtils', () => {
         it('should handle empty personalDetails config in workspace chat lookups', () => {
             // Given a set of reports with workspace rooms
             // When we call getValidOptions with shouldSeparateWorkspaceChat and empty personalDetails
-            const results = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, {
+            const {options: results} = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
                 includeRecentReports: true,
                 includeMultipleParticipantReports: true,
                 includeP2P: true,
                 includeOwnedWorkspaceChats: true,
                 shouldSeparateWorkspaceChat: true,
                 personalDetails: {},
+                sortedActions: undefined,
             });
 
             // Then the function should fall back to allPersonalDetails and process without errors
@@ -1580,13 +1608,14 @@ describe('OptionsListUtils', () => {
         it('should handle null personalDetails config in workspace chat lookups', () => {
             // Given a set of reports with workspace rooms
             // When we call getValidOptions with shouldSeparateWorkspaceChat and null personalDetails
-            const results = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, {
+            const {options: results} = getValidOptions(OPTIONS_WITH_WORKSPACE_ROOM, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
                 includeRecentReports: true,
                 includeMultipleParticipantReports: true,
                 includeP2P: true,
                 includeOwnedWorkspaceChats: true,
                 shouldSeparateWorkspaceChat: true,
                 personalDetails: {},
+                sortedActions: undefined,
             });
 
             // Then the function should fall back to allPersonalDetails and process without errors
@@ -1599,14 +1628,14 @@ describe('OptionsListUtils', () => {
         it('should exclude users with recent reports from personalDetails', () => {
             // Given a set of reports and personalDetails
             // When we call getValidOptions with no search value
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             const reportLogins = new Set(results.recentReports.map((reportOption) => reportOption.login));
             const personalDetailsOverlapWithReports = results.personalDetails.every((personalDetailOption) => reportLogins.has(personalDetailOption.login));
@@ -1620,16 +1649,17 @@ describe('OptionsListUtils', () => {
         it('should exclude selected options', () => {
             // Given a set of reports and personalDetails
             // When we call getValidOptions with excludeLogins param
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {'peterparker@expensify.com': true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1641,14 +1671,14 @@ describe('OptionsListUtils', () => {
         it('should include Concierge in the results by default', () => {
             // Given a set of report and personalDetails that include Concierge
             // When we call getValidOptions()
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS_WITH_CONCIERGE.reports, personalDetails: OPTIONS_WITH_CONCIERGE.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
 
             // Then the result should include all personalDetails except the currently logged in user
@@ -1660,19 +1690,20 @@ describe('OptionsListUtils', () => {
         it('should exclude Concierge from the results when it is specified in excludedLogins', () => {
             // Given a set of reports and personalDetails that includes Concierge
             // When we call getValidOptions with excludeLogins param
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {
                     reports: OPTIONS_WITH_CONCIERGE.reports,
                     personalDetails: OPTIONS_WITH_CONCIERGE.personalDetails,
                 },
                 undefined,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {[CONST.EMAIL.CONCIERGE]: true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1686,16 +1717,17 @@ describe('OptionsListUtils', () => {
         it('should exclude Chronos from the results when it is specified in excludedLogins', () => {
             // given a set of reports and personalDetails that includes Chronos
             // When we call getValidOptions() with excludeLogins param
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS_WITH_CHRONOS.reports, personalDetails: OPTIONS_WITH_CHRONOS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {[CONST.EMAIL.CHRONOS]: true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1709,19 +1741,20 @@ describe('OptionsListUtils', () => {
         it('should exclude Receipts from the results when it is specified in excludedLogins', () => {
             // Given a set of reports and personalDetails that includes receipts
             // When we call getValidOptions() with excludeLogins param
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {
                     reports: OPTIONS_WITH_RECEIPTS.reports,
                     personalDetails: OPTIONS_WITH_RECEIPTS.personalDetails,
                 },
                 undefined,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: {[CONST.EMAIL.RECEIPTS]: true},
+                    sortedActions: undefined,
                 },
             );
 
@@ -1736,16 +1769,17 @@ describe('OptionsListUtils', () => {
             // Given a set of reports and personalDetails with multiple reports
             // When we call getValidOptions with maxRecentReportElements set to 2
             const maxRecentReports = 2;
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     maxRecentReportElements: maxRecentReports,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1756,25 +1790,26 @@ describe('OptionsListUtils', () => {
         it('should show all reports when maxRecentReportElements is not specified', () => {
             // Given a set of reports and personalDetails
             // When we call getValidOptions without maxRecentReportElements
-            const resultsWithoutLimit = getValidOptions(
+            const {options: resultsWithoutLimit} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
-            const resultsWithLimit = getValidOptions(
+            const {options: resultsWithLimit} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     maxRecentReportElements: 2,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1785,25 +1820,26 @@ describe('OptionsListUtils', () => {
         it('should not affect personalDetails count when maxRecentReportElements is specified', () => {
             // Given a set of reports and personalDetails
             // When we call getValidOptions with and without maxRecentReportElements
-            const resultsWithoutLimit = getValidOptions(
+            const {options: resultsWithoutLimit} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
-            const resultsWithLimit = getValidOptions(
+            const {options: resultsWithLimit} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     maxRecentReportElements: 2,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1816,17 +1852,18 @@ describe('OptionsListUtils', () => {
             // When we call getValidOptions with both maxElements and maxRecentReportElements
             const maxRecentReports = 3;
             const maxTotalElements = 10;
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     maxElements: maxTotalElements,
                     maxRecentReportElements: maxRecentReports,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1850,14 +1887,14 @@ describe('OptionsListUtils', () => {
             }, []);
 
             // When we call getValidOptions for share destination with an empty search value
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: filteredReports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     betas: [],
                     includeMultipleParticipantReports: true,
@@ -1871,6 +1908,7 @@ describe('OptionsListUtils', () => {
                     includeSelfDM: true,
                     searchString: '',
                     includeUserToInvite: false,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1883,7 +1921,7 @@ describe('OptionsListUtils', () => {
             const filteredReportsWithWorkspaceRooms = Object.values(OPTIONS_WITH_WORKSPACE_ROOM.reports).reduce<OptionList['reports']>((filtered, option) => {
                 const report = option.item;
                 const {result: isReportArchived} = renderHook(() => useReportIsArchived(report.reportID));
-                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
                 if (canUserPerformWriteAction(report, isReportArchived.current) || isExpensifyOnlyParticipantInReport(report)) {
                     filtered.push(option);
                 }
@@ -1891,14 +1929,14 @@ describe('OptionsListUtils', () => {
             }, []);
 
             // When we call getValidOptions for share destination with an empty search value
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: filteredReportsWithWorkspaceRooms, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     betas: [],
                     includeMultipleParticipantReports: true,
@@ -1912,6 +1950,7 @@ describe('OptionsListUtils', () => {
                     includeSelfDM: true,
                     searchString: '',
                     includeUserToInvite: false,
+                    sortedActions: undefined,
                 },
             );
 
@@ -1988,25 +2027,6 @@ describe('OptionsListUtils', () => {
             const lastAction: ReportAction = {
                 ...createRandomReportAction(1),
                 actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
-            };
-
-            const result = shouldShowLastActorDisplayName(report, lastActorDetails, lastAction, currentUserAccountID);
-            expect(result).toBe(false);
-        });
-
-        it('should return false when the last action is a REPORT_PREVIEW with MANAGER_MCTEST as participant', () => {
-            // Given a report with a REPORT_PREVIEW last action and MANAGER_MCTEST as participant
-            const report = {
-                ...REPORTS['1'],
-                participants: {
-                    2: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
-                    [CONST.ACCOUNT_ID.MANAGER_MCTEST]: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
-                },
-            } as Report;
-            const lastActorDetails = PERSONAL_DETAILS['2'];
-            const lastAction: ReportAction = {
-                ...createRandomReportAction(1),
-                actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
             };
 
             const result = shouldShowLastActorDisplayName(report, lastActorDetails, lastAction, currentUserAccountID);
@@ -2098,17 +2118,18 @@ describe('OptionsListUtils', () => {
         it('should return all options when search is empty', () => {
             // Given a set of options
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with an empty search value
             const filteredOptions = filterAndOrderOptions(options, '', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2121,17 +2142,18 @@ describe('OptionsListUtils', () => {
             const searchText = 'man';
             // Given a set of options
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value and sortByReportTypeInSearch param
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, {
@@ -2153,17 +2175,18 @@ describe('OptionsListUtils', () => {
             const searchText = 'mistersinister@marauders.com';
             // Given a set of options
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2178,21 +2201,22 @@ describe('OptionsListUtils', () => {
             const searchText = 'Archived';
             // Given a set of options with report 10 marked as archived
             const archivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}10`]: reportNameValuePairs.private_isArchived,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}10`]: !!reportNameValuePairs.private_isArchived,
             };
-            const OPTIONS_WITH_ARCHIVED = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, archivedMap, REPORTS, MOCK_REPORT_ATTRIBUTES_DERIVED);
+            const OPTIONS_WITH_ARCHIVED = createOptionList(PERSONAL_DETAILS, archivedMap, REPORTS, undefined, MOCK_REPORT_ATTRIBUTES_DERIVED);
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_ARCHIVED,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2207,18 +2231,19 @@ describe('OptionsListUtils', () => {
             // cspell:disable-next-line
             const searchText = 'barryallen';
             // Given a set of options created from PERSONAL_DETAILS_WITH_PERIODS
-            const OPTIONS_WITH_PERIODS = createOptionList(PERSONAL_DETAILS_WITH_PERIODS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS);
+            const OPTIONS_WITH_PERIODS = createOptionList(PERSONAL_DETAILS_WITH_PERIODS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, undefined);
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_PERIODS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 policyCollection: allPolicies,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS_WITH_PERIODS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value and sortByReportTypeInSearch param
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS_WITH_PERIODS, {
@@ -2235,16 +2260,17 @@ describe('OptionsListUtils', () => {
             const searchText = 'avengers';
             // Given a set of options with workspace rooms
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_WORKSPACE_ROOM,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 policyCollection: allPolicies,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2258,17 +2284,18 @@ describe('OptionsListUtils', () => {
         it('should put exact match by login on the top of the list', () => {
             const searchText = 'reedrichards@expensify.com';
             // Given a set of options with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2285,22 +2312,23 @@ describe('OptionsListUtils', () => {
             const MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CHAT_ROOM = createMockReportAttributesDerived(REPORTS_WITH_CHAT_ROOM, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID);
             const OPTIONS_WITH_CHAT_ROOMS = createOptionList(
                 PERSONAL_DETAILS,
-                CURRENT_USER_ACCOUNT_ID,
                 EMPTY_PRIVATE_IS_ARCHIVED_MAP,
                 REPORTS_WITH_CHAT_ROOM,
+                undefined,
                 MOCK_REPORT_ATTRIBUTES_DERIVED_WITH_CHAT_ROOM,
             );
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_CHAT_ROOMS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 policyCollection: allPolicies,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we pass the returned options to filterAndOrderOptions with a search value
             const filterOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2315,16 +2343,17 @@ describe('OptionsListUtils', () => {
             renderLocaleContextProvider();
             const searchText = 'fantastic';
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2340,16 +2369,18 @@ describe('OptionsListUtils', () => {
         it('should return the user to invite when the search value is a valid, non-existent email', () => {
             const searchText = 'test@email.com';
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
                 loginList,
-                nvpDismissedProductTraining,
+
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2361,16 +2392,17 @@ describe('OptionsListUtils', () => {
         it('should not return any results if the search value is on an excluded logins list', () => {
             const searchText = 'admin@expensify.com';
             // Given a set of options with excluded logins list
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     excludeLogins: CONST.EXPENSIFY_EMAILS_OBJECT,
+                    sortedActions: undefined,
                 },
             );
             // When we call filterAndOrderOptions with a search value and excluded logins list
@@ -2385,16 +2417,18 @@ describe('OptionsListUtils', () => {
         it('should return the user to invite when the search value is a valid, non-existent email and the user is not excluded', () => {
             const searchText = 'test@email.com';
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
                 loginList,
-                nvpDismissedProductTraining,
+
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value and excludeLogins
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, {
@@ -2408,16 +2442,18 @@ describe('OptionsListUtils', () => {
         it('should return limited amount of recent reports if the limit is set', () => {
             const searchText = '';
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
                 loginList,
-                nvpDismissedProductTraining,
+
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value and maxRecentReportsToShow set to 2
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, {
@@ -2440,17 +2476,18 @@ describe('OptionsListUtils', () => {
         it('should not return any user to invite if email exists on the personal details list', () => {
             const searchText = 'natasharomanoff@expensify.com';
             // Given a set of options with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchText, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2471,14 +2508,14 @@ describe('OptionsListUtils', () => {
                 return filtered;
             }, []);
             // When we call getValidOptions for share destination with the filteredReports
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: filteredReports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     betas: [],
                     includeMultipleParticipantReports: true,
@@ -2492,6 +2529,7 @@ describe('OptionsListUtils', () => {
                     includeSelfDM: true,
                     searchString: '',
                     includeUserToInvite: false,
+                    sortedActions: undefined,
                 },
             );
             // When we pass the returned options to filterAndOrderOptions with a search value that does not match the group chat name
@@ -2505,7 +2543,7 @@ describe('OptionsListUtils', () => {
             // Given a set of filtered current Reports (as we do in the component) before getting share destination options
             const filteredReportsWithWorkspaceRooms = Object.values(OPTIONS_WITH_WORKSPACE_ROOM.reports).reduce<OptionList['reports']>((filtered, option) => {
                 const report = option.item;
-                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
                 if (canUserPerformWriteAction(report, false) || isExpensifyOnlyParticipantInReport(report)) {
                     filtered.push(option);
                 }
@@ -2513,14 +2551,14 @@ describe('OptionsListUtils', () => {
             }, []);
 
             // When we call getValidOptions for share destination with the filteredReports
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: filteredReportsWithWorkspaceRooms, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     betas: [],
                     includeMultipleParticipantReports: true,
@@ -2534,6 +2572,7 @@ describe('OptionsListUtils', () => {
                     includeSelfDM: true,
                     searchString: '',
                     includeUserToInvite: false,
+                    sortedActions: undefined,
                 },
             );
             // When we pass the returned options to filterAndOrderOptions with a search value that matches the group chat name
@@ -2547,7 +2586,7 @@ describe('OptionsListUtils', () => {
             // Given a set of filtered current Reports (as we do in the component) before getting share destination options
             const filteredReportsWithWorkspaceRooms = Object.values(OPTIONS_WITH_WORKSPACE_ROOM.reports).reduce<OptionList['reports']>((filtered, option) => {
                 const report = option.item;
-                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
                 if (canUserPerformWriteAction(report, false) || isExpensifyOnlyParticipantInReport(report)) {
                     filtered.push(option);
                 }
@@ -2555,14 +2594,14 @@ describe('OptionsListUtils', () => {
             }, []);
 
             // When we call getValidOptions for share destination with the filteredReports
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: filteredReportsWithWorkspaceRooms, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     betas: [],
                     includeMultipleParticipantReports: true,
@@ -2576,6 +2615,7 @@ describe('OptionsListUtils', () => {
                     includeSelfDM: true,
                     searchString: '',
                     includeUserToInvite: false,
+                    sortedActions: undefined,
                 },
             );
             // When we pass the returned options to filterAndOrderOptions with a search value that does not match the group chat name
@@ -2587,14 +2627,14 @@ describe('OptionsListUtils', () => {
 
         it('should show the option from personal details when searching for personal detail with no existing report', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that matches a personal detail with no existing report
             const filteredOptions = filterAndOrderOptions(options, 'hulk', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2626,13 +2666,12 @@ describe('OptionsListUtils', () => {
                 },
             };
 
-            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT);
+            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT, undefined);
 
             // When we call getSearchOptions with a search query that matches a participant display name
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_GROUP_CHAT,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
@@ -2640,6 +2679,8 @@ describe('OptionsListUtils', () => {
                 personalDetails: PERSONAL_DETAILS,
                 searchQuery: 'Spider-Man',
                 policyCollection: allPolicies,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then one report should be returned
@@ -2667,13 +2708,12 @@ describe('OptionsListUtils', () => {
                 },
             };
 
-            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT);
+            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT, undefined);
 
             // When we call getSearchOptions with a search query that matches a participant login
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_GROUP_CHAT,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
@@ -2681,6 +2721,8 @@ describe('OptionsListUtils', () => {
                 personalDetails: PERSONAL_DETAILS,
                 searchQuery: 'peterparker@expensify.com',
                 policyCollection: allPolicies,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then one report should be returned
@@ -2708,13 +2750,12 @@ describe('OptionsListUtils', () => {
                 },
             };
 
-            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT);
+            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT, undefined);
 
             // When we call getSearchOptions with a search query that matches a participant name
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_GROUP_CHAT,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
@@ -2722,6 +2763,8 @@ describe('OptionsListUtils', () => {
                 personalDetails: PERSONAL_DETAILS,
                 searchQuery: 'Black Panther',
                 policyCollection: allPolicies,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then one report should be returned
@@ -2749,13 +2792,12 @@ describe('OptionsListUtils', () => {
                 },
             };
 
-            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT);
+            const OPTIONS_WITH_GROUP_CHAT = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT, undefined);
 
             // When we call getSearchOptions with a search query that does not match any participant
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_GROUP_CHAT,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
@@ -2763,6 +2805,8 @@ describe('OptionsListUtils', () => {
                 personalDetails: PERSONAL_DETAILS,
                 searchQuery: 'Wolverine',
                 policyCollection: allPolicies,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then no reports should be returned
@@ -2787,24 +2831,20 @@ describe('OptionsListUtils', () => {
                 },
             };
 
-            const OPTIONS_WITH_GROUP_CHAT_NO_PARTICIPANTS = createOptionList(
-                PERSONAL_DETAILS,
-                CURRENT_USER_ACCOUNT_ID,
-                EMPTY_PRIVATE_IS_ARCHIVED_MAP,
-                REPORTS_WITH_GROUP_CHAT_NO_PARTICIPANTS,
-            );
+            const OPTIONS_WITH_GROUP_CHAT_NO_PARTICIPANTS = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_GROUP_CHAT_NO_PARTICIPANTS, undefined);
 
             // When we call getSearchOptions with all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_GROUP_CHAT_NO_PARTICIPANTS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
                 policyCollection: allPolicies,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // When we pass the returned options to filterAndOrderOptions with any search value
@@ -2817,14 +2857,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return any options or user to invite if there are no search results and the string does not match a potential email or phone', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports
             const filteredOptions = filterAndOrderOptions(options, 'marc@expensify', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2838,14 +2878,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return any options but should return an user to invite if no matching options exist and the search value is a potential email', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports
             const filteredOptions = filterAndOrderOptions(options, 'marc@expensify.com', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2859,14 +2899,14 @@ describe('OptionsListUtils', () => {
 
         it('should return user to invite when search term has a period with options for it that do not contain the period', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports but matches user to invite
             const filteredOptions = filterAndOrderOptions(options, 'peter.parker@expensify.com', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2879,14 +2919,14 @@ describe('OptionsListUtils', () => {
 
         it('should return user which has displayName with accent mark when search value without accent mark', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value without accent mark
             const filteredOptions = filterAndOrderOptions(options, 'Timothee', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2897,14 +2937,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return options but should return an user to invite if no matching options exist and the search value is a potential phone number', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports but matches user to invite
             const filteredOptions = filterAndOrderOptions(options, '5005550006', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2920,14 +2960,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return options but should return an user to invite if no matching options exist and the search value is a potential phone number with country code added', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports but matches user to invite
             const filteredOptions = filterAndOrderOptions(options, '+15005550006', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2943,14 +2983,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return options but should return an user to invite if no matching options exist and the search value is a potential phone number with special characters added', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports but matches user to invite
             const filteredOptions = filterAndOrderOptions(options, '+1 (800)324-3233', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2966,14 +3006,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return any options or user to invite if contact number contains alphabet characters', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details or reports
             const filteredOptions = filterAndOrderOptions(options, '998243aaaa', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -2987,16 +3027,17 @@ describe('OptionsListUtils', () => {
 
         it('should not return userToInvite for plain text name when shouldAcceptName is false', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 {},
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     includeUserToInvite: true,
+                    sortedActions: undefined,
                 },
             );
 
@@ -3011,16 +3052,17 @@ describe('OptionsListUtils', () => {
 
         it('should return userToInvite for plain text name when shouldAcceptName is true', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 {},
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     includeUserToInvite: true,
+                    sortedActions: undefined,
                 },
             );
 
@@ -3035,14 +3077,14 @@ describe('OptionsListUtils', () => {
 
         it('should not return any options if search value does not match any personal details', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that does not match any personal details
             const filteredOptions = filterAndOrderOptions(options, 'magneto', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -3053,14 +3095,14 @@ describe('OptionsListUtils', () => {
 
         it('should return one recent report and no personal details if a search value provides an email', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that matches an email
             const filteredOptions = filterAndOrderOptions(options, 'peterparker@expensify.com', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, {
@@ -3077,14 +3119,14 @@ describe('OptionsListUtils', () => {
 
         it('should return all matching reports and personal details', () => {
             // Given a set of options
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
             // When we call filterAndOrderOptions with a search value that matches both reports and personal details and maxRecentReportsToShow param
             const filteredOptions = filterAndOrderOptions(options, '.com', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, {
@@ -3104,16 +3146,17 @@ describe('OptionsListUtils', () => {
 
         it('should return matching option when searching (getSearchOptions)', () => {
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value that matches a personal detail
             const filteredOptions = filterAndOrderOptions(options, 'spider', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -3126,16 +3169,17 @@ describe('OptionsListUtils', () => {
 
         it('should return latest lastVisibleActionCreated item on top when search value matches multiple items (getSearchOptions)', () => {
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value that matches multiple items
             const filteredOptions = filterAndOrderOptions(options, 'fantastic', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -3151,17 +3195,18 @@ describe('OptionsListUtils', () => {
                 .then(() => Onyx.set(ONYXKEYS.PERSONAL_DETAILS_LIST, PERSONAL_DETAILS_WITH_PERIODS))
                 .then(() => {
                     // Given a set of options with periods
-                    const OPTIONS_WITH_PERIODS = createOptionList(PERSONAL_DETAILS_WITH_PERIODS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS);
+                    const OPTIONS_WITH_PERIODS = createOptionList(PERSONAL_DETAILS_WITH_PERIODS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, undefined);
                     // When we call getSearchOptions
-                    const results = getSearchOptions({
+                    const {options: results} = getSearchOptions({
                         options: OPTIONS_WITH_PERIODS,
                         draftComments: {},
-                        nvpDismissedProductTraining,
                         loginList,
                         currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                         currentUserEmail: CURRENT_USER_EMAIL,
                         policyCollection: allPolicies,
                         personalDetails: PERSONAL_DETAILS_WITH_PERIODS,
+                        sortedActions: undefined,
+                        conciergeReportID: undefined,
                     });
                     // When we pass the returned options to filterAndOrderOptions with a search value
                     const filteredResults = filterAndOrderOptions(
@@ -3191,17 +3236,18 @@ describe('OptionsListUtils', () => {
             OPTIONS.personalDetails = OPTIONS.personalDetails.flatMap((obj) => [obj, {...obj}]);
 
             // Given a set of options
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 reportAttributesDerived: MOCK_REPORT_ATTRIBUTES_DERIVED,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 policyCollection: allPolicies,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a an empty search value
             const filteredOptions = filterAndOrderOptions(options, '', COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -3215,19 +3261,20 @@ describe('OptionsListUtils', () => {
 
         it('should order self dm always on top if the search matches with the self dm login', () => {
             const searchTerm = 'tonystark@expensify.com';
-            const OPTIONS_WITH_SELF_DM = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_SELF_DM);
+            const OPTIONS_WITH_SELF_DM = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS_WITH_SELF_DM, undefined);
 
             // Given a set of options with self dm and all betas
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS_WITH_SELF_DM,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 betas: [CONST.BETAS.ALL],
                 policyCollection: allPolicies,
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
             // When we call filterAndOrderOptions with a search value
             const filteredOptions = filterAndOrderOptions(options, searchTerm, COUNTRY_CODE, loginList, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS);
@@ -3273,27 +3320,24 @@ describe('OptionsListUtils', () => {
             expect(canCreate).toBe(false);
         });
 
-        it('createOptionList() localization', () => {
+        it('createOptionList() localization', async () => {
             renderLocaleContextProvider();
             // Given a set of reports and personal details
             // When we call createOptionList and extract the reports
-            const reports = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS).reports;
+            const reports = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, allPolicies).reports;
 
             // Then the returned reports should match the expected values
             expect(reports.at(10)?.subtitle).toBe(`Submits to Mister Fantastic`);
 
-            return (
-                waitForBatchedUpdates()
-                    // When we set the preferred locale to Spanish
-                    .then(() => Onyx.set(ONYXKEYS.NVP_PREFERRED_LOCALE, CONST.LOCALES.ES))
-                    .then(() => {
-                        // When we call createOptionList again
-                        const newReports = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS).reports;
-                        // Then the returned reports should change to Spanish
-                        // cspell:disable-next-line
-                        expect(newReports.at(10)?.subtitle).toBe('Se envía a Mister Fantastic');
-                    })
-            );
+            await Onyx.set(ONYXKEYS.NVP_PREFERRED_LOCALE, CONST.LOCALES.ES);
+
+            await waitForBatchedUpdates();
+
+            // When we call createOptionList again
+            const newReports = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, allPolicies).reports;
+            // Then the returned reports should change to Spanish
+            // cspell:disable-next-line
+            expect(newReports.at(10)?.subtitle).toBe('Se envía a Mister Fantastic');
         });
     });
 
@@ -3367,11 +3411,13 @@ describe('OptionsListUtils', () => {
                     '1': getFakeAdvancedReportAction(CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT),
                 },
             });
+            await waitForBatchedUpdates();
+
             // When we call createOptionList with report 10 marked as archived
             const archivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}10`]: reportNameValuePairs.private_isArchived,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}10`]: !!reportNameValuePairs.private_isArchived,
             };
-            const reports = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, archivedMap, REPORTS).reports;
+            const reports = createOptionList(PERSONAL_DETAILS, archivedMap, REPORTS, undefined).reports;
             const archivedReport = reports.find((report) => report.reportID === '10');
 
             // Then the returned report should contain default archived reason
@@ -3383,15 +3429,15 @@ describe('OptionsListUtils', () => {
             // Given a privateIsArchivedMap with an archived report for a 1:1 chat
             // Report '3' is a 1:1 chat between account 2 (current user) and account 1 (Mister Fantastic)
             const privateIsArchivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: '2023-06-15 10:00:00',
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: true,
             };
 
             // When we call createOptionList with this privateIsArchivedMap
-            const result = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, privateIsArchivedMap, REPORTS);
+            const result = createOptionList(PERSONAL_DETAILS, privateIsArchivedMap, REPORTS, undefined);
 
             // Then the personal detail option for account 1 (Mister Fantastic) should have private_isArchived set
             const misterFantasticOption = result.personalDetails.find((pd) => pd.item?.accountID === 1);
-            expect(misterFantasticOption?.private_isArchived).toBe('2023-06-15 10:00:00');
+            expect(misterFantasticOption?.private_isArchived).toBe(true);
         });
 
         it('should not set private_isArchived when privateIsArchivedMap is empty', () => {
@@ -3400,7 +3446,7 @@ describe('OptionsListUtils', () => {
             const emptyMap: PrivateIsArchivedMap = {};
 
             // When we call createOptionList with an empty privateIsArchivedMap
-            const result = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, emptyMap, REPORTS);
+            const result = createOptionList(PERSONAL_DETAILS, emptyMap, REPORTS, undefined);
 
             // Then no personal details options should have private_isArchived set
             const optionsWithArchived = result.personalDetails.filter((pd) => pd.private_isArchived);
@@ -3411,39 +3457,39 @@ describe('OptionsListUtils', () => {
             renderLocaleContextProvider();
             // Given a privateIsArchivedMap with multiple archived reports
             const privateIsArchivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: '2023-06-15 10:00:00', // Report for account 1
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: '2023-07-20 15:30:00', // Report for account 5
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: true, // Report for account 1
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: true, // Report for account 5
             };
 
             // When we call createOptionList with this privateIsArchivedMap
-            const result = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, privateIsArchivedMap, REPORTS);
+            const result = createOptionList(PERSONAL_DETAILS, privateIsArchivedMap, REPORTS, undefined);
 
             // Then the personal detail options should have the correct private_isArchived values
             const misterFantasticOption = result.personalDetails.find((pd) => pd.item?.accountID === 1);
             const invisibleWomanOption = result.personalDetails.find((pd) => pd.item?.accountID === 5);
 
-            expect(misterFantasticOption?.private_isArchived).toBe('2023-06-15 10:00:00');
-            expect(invisibleWomanOption?.private_isArchived).toBe('2023-07-20 15:30:00');
+            expect(misterFantasticOption?.private_isArchived).toBe(true);
+            expect(invisibleWomanOption?.private_isArchived).toBe(true);
         });
 
         it('should set private_isArchived on report options when privateIsArchivedMap is provided', () => {
             renderLocaleContextProvider();
             // Given a privateIsArchivedMap with archived reports
             const privateIsArchivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: '2023-06-15 10:00:00',
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: '2023-07-20 15:30:00',
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: true,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: true,
             };
 
             // When we call createOptionList with this privateIsArchivedMap
-            const result = createOptionList(PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, privateIsArchivedMap, REPORTS);
+            const result = createOptionList(PERSONAL_DETAILS, privateIsArchivedMap, REPORTS, undefined);
 
             // Then the report options should have the correct private_isArchived values
             const report3Option = result.reports.find((r) => r.item?.reportID === '3');
             const report5Option = result.reports.find((r) => r.item?.reportID === '5');
             const report1Option = result.reports.find((r) => r.item?.reportID === '1');
 
-            expect(report3Option?.private_isArchived).toBe('2023-06-15 10:00:00');
-            expect(report5Option?.private_isArchived).toBe('2023-07-20 15:30:00');
+            expect(report3Option?.private_isArchived).toBe(true);
+            expect(report5Option?.private_isArchived).toBe(true);
             // Report 1 should not have private_isArchived since it's not in the map
             expect(report1Option?.private_isArchived).toBeUndefined();
         });
@@ -3454,20 +3500,20 @@ describe('OptionsListUtils', () => {
             renderLocaleContextProvider();
             // Given a privateIsArchivedMap with archived reports
             const privateIsArchivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: '2023-06-15 10:00:00',
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: '2023-07-20 15:30:00',
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: true,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: true,
             };
 
             // When we call createFilteredOptionList with this privateIsArchivedMap
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, privateIsArchivedMap);
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, privateIsArchivedMap, undefined);
 
             // Then the report options should have the correct private_isArchived values
             const report3Option = result.reports.find((r) => r.item?.reportID === '3');
             const report5Option = result.reports.find((r) => r.item?.reportID === '5');
             const report1Option = result.reports.find((r) => r.item?.reportID === '1');
 
-            expect(report3Option?.private_isArchived).toBe('2023-06-15 10:00:00');
-            expect(report5Option?.private_isArchived).toBe('2023-07-20 15:30:00');
+            expect(report3Option?.private_isArchived).toBe(true);
+            expect(report5Option?.private_isArchived).toBe(true);
             // Report 1 should not have private_isArchived since it's not in the map
             expect(report1Option?.private_isArchived).toBeUndefined();
         });
@@ -3478,7 +3524,7 @@ describe('OptionsListUtils', () => {
             const emptyMap: PrivateIsArchivedMap = {};
 
             // When we call createFilteredOptionList with an empty privateIsArchivedMap
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, emptyMap);
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, emptyMap, undefined);
 
             // Then reports NOT in Onyx (like report 3, 5) should not have private_isArchived set
             // Note: Report 10 gets private_isArchived from Onyx (set in beforeAll)
@@ -3492,14 +3538,14 @@ describe('OptionsListUtils', () => {
             renderLocaleContextProvider();
             // Given a privateIsArchivedMap with multiple archived reports
             const privateIsArchivedMap: PrivateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}1`]: '2023-01-01 00:00:00',
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: '2023-06-15 10:00:00',
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: '2023-07-20 15:30:00',
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}7`]: '2023-12-31 23:59:59',
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}1`]: true,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}3`]: true,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}5`]: true,
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}7`]: true,
             };
 
             // When we call createFilteredOptionList with this privateIsArchivedMap
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, privateIsArchivedMap);
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, privateIsArchivedMap, undefined);
 
             // Then the report options should have the correct private_isArchived values
             const report1Option = result.reports.find((r) => r.item?.reportID === '1');
@@ -3508,12 +3554,31 @@ describe('OptionsListUtils', () => {
             const report7Option = result.reports.find((r) => r.item?.reportID === '7');
             const report2Option = result.reports.find((r) => r.item?.reportID === '2');
 
-            expect(report1Option?.private_isArchived).toBe('2023-01-01 00:00:00');
-            expect(report3Option?.private_isArchived).toBe('2023-06-15 10:00:00');
-            expect(report5Option?.private_isArchived).toBe('2023-07-20 15:30:00');
-            expect(report7Option?.private_isArchived).toBe('2023-12-31 23:59:59');
+            expect(report1Option?.private_isArchived).toBe(true);
+            expect(report3Option?.private_isArchived).toBe(true);
+            expect(report5Option?.private_isArchived).toBe(true);
+            expect(report7Option?.private_isArchived).toBe(true);
             // Report 2 should not have private_isArchived since it's not in the map
             expect(report2Option?.private_isArchived).toBeUndefined();
+        });
+
+        it('should respect maxRecentReports option while preserving archived status', () => {
+            renderLocaleContextProvider();
+            // Given a privateIsArchivedMap and a maxRecentReports limit larger than the total reports count
+            // Note: Report 7 has largest lastVisibleActionCreated but is archived, so it sorts last
+            // (archived reports use "0_" prefix vs "1_" for non-archived in the sort comparator)
+            const privateIsArchivedMap: PrivateIsArchivedMap = {
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}7`]: true,
+            };
+
+            // When we call createFilteredOptionList with a maxRecentReports limit that includes all reports
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, privateIsArchivedMap, undefined, {
+                maxRecentReports: 20,
+            });
+
+            // Then the report 7 (most recent) should still have private_isArchived set
+            const report7Option = result.reports.find((r) => r.item?.reportID === '7');
+            expect(report7Option?.private_isArchived).toBe(true);
         });
     });
 
@@ -3672,7 +3737,7 @@ describe('OptionsListUtils', () => {
                 {reportID: '4', lastVisibleActionCreated: '2022-01-01T13:00:00Z'} as OptionData,
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
-            const result = optionsOrderBy(options, comparator, 2);
+            const result = optionsOrderBy(options, comparator, 2).options;
             expect(result.length).toBe(2);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             expect(result.at(0)!.reportID).toBe('4');
@@ -3686,7 +3751,7 @@ describe('OptionsListUtils', () => {
                 {reportID: '2', lastVisibleActionCreated: '2022-01-01T12:00:00Z'} as OptionData,
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
-            const result = optionsOrderBy(options, comparator, 5);
+            const result = optionsOrderBy(options, comparator, 5).options;
             expect(result.length).toBe(2);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             expect(result.at(0)!.reportID).toBe('2');
@@ -3695,7 +3760,7 @@ describe('OptionsListUtils', () => {
         });
 
         it('returns empty array if options is empty', () => {
-            const result = optionsOrderBy([], recentReportComparator, 3);
+            const result = optionsOrderBy([], recentReportComparator, 3).options;
             expect(result).toEqual([]);
         });
 
@@ -3706,7 +3771,7 @@ describe('OptionsListUtils', () => {
                 {reportID: '3', lastVisibleActionCreated: '2022-01-01T09:00:00Z', isPinned: true} as OptionData,
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
-            const result = optionsOrderBy(options, comparator, 2, (option) => option.isPinned);
+            const result = optionsOrderBy(options, comparator, 2, (option) => option.isPinned).options;
             expect(result.length).toBe(2);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             expect(result.at(0)!.reportID).toBe('1');
@@ -3721,17 +3786,17 @@ describe('OptionsListUtils', () => {
                 {reportID: '3', lastVisibleActionCreated: '2022-01-01T09:00:00Z'} as OptionData,
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
-            const result = optionsOrderBy(options, comparator, -1);
+            const result = optionsOrderBy(options, comparator, -1).options;
             expect(result).toEqual([]);
         });
 
         it('handles negative limit with large absolute value', () => {
             const options: OptionData[] = [
-                {reportID: '1', lastVisibleActionCreated: '2022-01-01T10:00:00Z'} as OptionData,
-                {reportID: '2', lastVisibleActionCreated: '2022-01-01T12:00:00Z'} as OptionData,
+                {reportID: '1', lastVisibleActionCreated: '2022-01-01T10:00:00Z', keyForList: '1'},
+                {reportID: '2', lastVisibleActionCreated: '2022-01-01T12:00:00Z', keyForList: '2'},
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
-            const result = optionsOrderBy(options, comparator, -100);
+            const result = optionsOrderBy(options, comparator, -100).options;
             expect(result).toEqual([]);
         });
 
@@ -3741,7 +3806,7 @@ describe('OptionsListUtils', () => {
                 {reportID: '2', lastVisibleActionCreated: '2022-01-01T12:00:00Z'} as OptionData,
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
-            const result = optionsOrderBy(options, comparator, 0);
+            const result = optionsOrderBy(options, comparator, 0).options;
             expect(result).toEqual([]);
         });
 
@@ -3754,7 +3819,7 @@ describe('OptionsListUtils', () => {
             ];
             const comparator = (option: OptionData) => option.lastVisibleActionCreated ?? '';
             // We will pass reversed === true to sort the list in ascending order
-            const result = optionsOrderBy(options, comparator, 2, undefined, true);
+            const result = optionsOrderBy(options, comparator, 2, undefined, true).options;
             expect(result.length).toBe(2);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             expect(result.at(0)!.reportID).toBe('3');
@@ -3891,7 +3956,6 @@ describe('OptionsListUtils', () => {
                     },
                 ],
                 originalMessage: {
-                    IOUReportID: '456',
                     IOUTransactionID: '123456',
                     amount: 3400,
                     comment: '',
@@ -3900,6 +3964,7 @@ describe('OptionsListUtils', () => {
                 },
                 actionName: 'IOU',
                 reportActionID: '789',
+                reportID: '456',
             } as unknown as ReportAction;
 
             const transaction = {
@@ -3924,7 +3989,13 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`, transaction);
             await waitForBatchedUpdates();
 
-            const result = createOption([1, 2], PERSONAL_DETAILS, report, CURRENT_USER_ACCOUNT_ID, undefined, {showChatPreviewLine: true});
+            const result = createOption({
+                accountIDs: [1, 2],
+                personalDetails: PERSONAL_DETAILS,
+                report,
+                privateIsArchived: undefined,
+                config: {showChatPreviewLine: true},
+            });
 
             expect(result.alternateText).toBe('Iron Man owes ₫34');
         });
@@ -3952,7 +4023,7 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${chatReportID}`, chatReport);
             await waitForBatchedUpdates();
 
-            const result = createOption([1, 2], PERSONAL_DETAILS, report, 1, undefined, undefined);
+            const result = createOption({accountIDs: [1, 2], personalDetails: PERSONAL_DETAILS, report, privateIsArchived: undefined});
 
             expect(result.reportID).toBe(reportID);
             expect(typeof result.text).toBe('string');
@@ -3971,9 +4042,89 @@ describe('OptionsListUtils', () => {
             await waitForBatchedUpdates();
 
             // Should not throw when reports is undefined
-            const result = createOption([1, 2], PERSONAL_DETAILS, report, 1, undefined, undefined, undefined);
+            const result = createOption({accountIDs: [1, 2], personalDetails: PERSONAL_DETAILS, report, privateIsArchived: undefined});
 
             expect(result.reportID).toBe(report.reportID);
+        });
+    });
+
+    describe('getParticipantsOption', () => {
+        it('returns the personal-detail display name for a known Expensify user', () => {
+            const participant: Participant = {accountID: 2, login: 'tonystark@expensify.com'};
+            const result = getParticipantsOption(participant, PERSONAL_DETAILS);
+
+            // formatPhoneNumber replaces spaces with non-breaking spaces, so normalize before comparing.
+            expect(result.text?.replaceAll(String.fromCharCode(0xa0), ' ')).toBe('Iron Man');
+            expect(result.login).toBe('tonystark@expensify.com');
+            expect(result.accountID).toBe(2);
+            expect(result.keyForList).toBe('2');
+        });
+
+        it('prefers participant.displayName over the personal-detail name when provided', () => {
+            const participant: Participant = {accountID: 2, login: 'tonystark@expensify.com', displayName: 'Override Name'};
+            const result = getParticipantsOption(participant, PERSONAL_DETAILS);
+
+            // participant.displayName takes precedence and is returned as-is.
+            expect(result.text).toBe('Override Name');
+        });
+
+        it('falls back to the device-contact name (participant.text) when the personal detail has no login', () => {
+            // Optimistic accountID for an imported device contact: not in PERSONAL_DETAILS,
+            // so getPersonalDetailsForAccountIDs returns a stub with no login.
+            const participant: Participant = {
+                accountID: 9999999,
+                login: '+12025550123@expensify.sms',
+                text: 'John Smith',
+            };
+
+            const result = getParticipantsOption(participant, PERSONAL_DETAILS);
+
+            expect(result.text).toBe('John Smith');
+            expect(result.login).toBe('+12025550123@expensify.sms');
+        });
+
+        it('falls back to the formatted phone number when neither displayName, personal-detail login, nor participant.text exist', () => {
+            const participant: Participant = {
+                accountID: 9999998,
+                login: '+12025550124@expensify.sms',
+            };
+
+            const result = getParticipantsOption(participant, PERSONAL_DETAILS);
+
+            // The display name should be derived from the login (formatted phone), not be empty.
+            expect(result.text).toBeTruthy();
+            expect(result.text).not.toBe('');
+        });
+
+        it('uses participant.login when no accountID is provided', () => {
+            const participant: Participant = {login: 'guest@example.com'};
+
+            const result = getParticipantsOption(participant, PERSONAL_DETAILS);
+
+            expect(result.login).toBe('guest@example.com');
+            expect(result.keyForList).toBe('guest@example.com');
+        });
+
+        it('returns the avatar, firstName, and lastName from the personal detail when available', () => {
+            const personalDetails: PersonalDetailsList = {
+                '42': {
+                    accountID: 42,
+                    login: 'agent@example.com',
+                    displayName: 'Agent Smith',
+                    firstName: 'Agent',
+                    lastName: 'Smith',
+                    avatar: 'https://example.com/avatar.png',
+                    keyForList: 'agent@example.com',
+                    reportID: '',
+                },
+            };
+
+            const participant: Participant = {accountID: 42};
+            const result = getParticipantsOption(participant, personalDetails);
+
+            expect(result.firstName).toBe('Agent');
+            expect(result.lastName).toBe('Smith');
+            expect(result.icons?.[0]?.source).toBe('https://example.com/avatar.png');
         });
     });
 
@@ -4032,9 +4183,471 @@ describe('OptionsListUtils', () => {
                     [iouAction.reportActionID]: iouAction,
                 });
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`, transaction);
-                const reportPreviewMessage = getReportPreviewMessage(iouReport, iouAction, true, false, null, true, reportPreviewAction);
+                const reportPreviewMessage = getReportPreviewMessage({
+                    reportOrID: iouReport,
+                    iouReportAction: iouAction,
+                    shouldConsiderScanningReceiptOrPendingRoute: true,
+                    policy: null,
+                    isForListPreview: true,
+                    originalReportAction: reportPreviewAction,
+                });
                 const formattedMessage = formatReportLastMessageText(Parser.htmlToText(reportPreviewMessage));
                 expect(formattedMessage).toBe('$1.00 for A A A');
+            });
+        });
+        describe('canonical money request preview fallback', () => {
+            it('should preserve the minus sign when formatting negative expense previews', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-1',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(1),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(2),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 10:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -2500,
+                        currency: CONST.CURRENCY.USD,
+                        comment: '<strong>Dinner</strong>',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('-$25.00 for Dinner');
+            });
+
+            it('should ignore deleted money request actions when building canonical expense preview', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-2',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(3),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const deletedMoneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(4),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 11:00:00.000',
+                    pendingAction: CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -9900,
+                        currency: CONST.CURRENCY.USD,
+                        comment: 'Deleted comment',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+                const visibleMoneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(5),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 10:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -4500,
+                        currency: CONST.CURRENCY.USD,
+                        comment: 'Visible comment',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [deletedMoneyRequestAction.reportActionID]: deletedMoneyRequestAction,
+                    [visibleMoneyRequestAction.reportActionID]: visibleMoneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('-$45.00 for Visible comment');
+            });
+
+            it('should format amount-only preview when the canonical money request has an empty comment', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-3',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(6),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(7),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 12:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -2500,
+                        currency: CONST.CURRENCY.USD,
+                        comment: '',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('-$25.00');
+            });
+
+            it('should format zero-value expense previews without adding a minus sign', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-zero',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(14),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(15),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 16:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: 0,
+                        currency: CONST.CURRENCY.USD,
+                        comment: 'Zero amount',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('$0.00 for Zero amount');
+            });
+
+            it('should format preview correctly for non-USD currencies', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-4',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.EUR,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(8),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(9),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 13:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -2500,
+                        currency: CONST.CURRENCY.EUR,
+                        comment: 'Lunch',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('-€25.00 for Lunch');
+            });
+
+            it('should return an empty preview when the canonical money request is missing amount', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-5',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(10),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(11),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 14:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        currency: CONST.CURRENCY.USD,
+                        comment: 'Missing amount',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('');
+            });
+
+            it('should return an empty preview when only a created action is visible after expense deletion', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-deleted',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                    lastMessageText: '-$25.00 for Deleted expense',
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(16),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('');
+            });
+
+            it('should preserve last visible message fallback for non-expense IOU reports', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'iou-report-created-last-action',
+                    type: CONST.REPORT.TYPE.IOU,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                    ownerAccountID: 1,
+                    managerID: CURRENT_USER_ACCOUNT_ID,
+                    isWaitingOnBankAccount: false,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(17),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    created: '2026-04-01 09:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const transaction: Transaction = {
+                    ...createRandomTransaction(1),
+                    amount: 2500,
+                    currency: CONST.CURRENCY.USD,
+                    merchant: 'Coffee',
+                    modifiedMerchant: '',
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(18),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    actorAccountID: 1,
+                    created: '2026-04-01 10:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -2500,
+                        currency: CONST.CURRENCY.USD,
+                        IOUTransactionID: transaction.transactionID,
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`, transaction);
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('');
+            });
+
+            it('should fall back to the report currency when the canonical money request is missing currency', async () => {
+                const report: Report = {
+                    ...createRandomReport(0, undefined),
+                    reportID: 'expense-report-6',
+                    type: CONST.REPORT.TYPE.EXPENSE,
+                    currency: CONST.CURRENCY.USD,
+                    transactionCount: 1,
+                };
+                const createdAction: ReportAction = {
+                    ...createRandomReportAction(12),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.CREATED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {},
+                };
+                const moneyRequestAction: ReportAction = {
+                    ...createRandomReportAction(13),
+                    reportID: report.reportID,
+                    actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                    created: '2026-04-01 15:00:00.000',
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        amount: -2500,
+                        comment: 'Missing currency',
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                    },
+                };
+
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [createdAction.reportActionID]: createdAction,
+                    [moneyRequestAction.reportActionID]: moneyRequestAction,
+                });
+                await waitForBatchedUpdates();
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    isReportArchived: false,
+                    lastAction: createdAction,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('-$25.00 for Missing currency');
             });
         });
         it('MOVED_TRANSACTION action', async () => {
@@ -4059,6 +4672,7 @@ describe('OptionsListUtils', () => {
                 [movedTransactionAction.reportActionID]: movedTransactionAction,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4085,6 +4699,7 @@ describe('OptionsListUtils', () => {
                     [submittedAction.reportActionID]: submittedAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4112,6 +4727,7 @@ describe('OptionsListUtils', () => {
                     [approvedAction.reportActionID]: approvedAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4124,6 +4740,35 @@ describe('OptionsListUtils', () => {
             });
         });
         describe('FORWARDED action', () => {
+            it('should return forwarded message with memo', async () => {
+                const report: Report = createRandomReport(0, undefined);
+                const memo = 'Testing approval memo';
+                const forwardedAction: ReportAction = {
+                    ...createRandomReportAction(1),
+                    actionName: CONST.REPORT.ACTIONS.TYPE.FORWARDED,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
+                        automaticAction: false,
+                        message: memo,
+                    },
+                };
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [forwardedAction.reportActionID]: forwardedAction,
+                });
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    policy: undefined,
+                    isReportArchived: false,
+
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+                expect(lastMessage).toBe(translateLocal('iou.forwarded', memo));
+            });
+
             it('should return automatic forwarded message if forwarded automatically', async () => {
                 const report: Report = createRandomReport(0, undefined);
                 const forwardedAction: ReportAction = {
@@ -4139,6 +4784,7 @@ describe('OptionsListUtils', () => {
                     [forwardedAction.reportActionID]: forwardedAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4163,6 +4809,7 @@ describe('OptionsListUtils', () => {
                     [corporateForceUpgradeAction.reportActionID]: corporateForceUpgradeAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4186,6 +4833,7 @@ describe('OptionsListUtils', () => {
                 [action.reportActionID]: action,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4208,6 +4856,7 @@ describe('OptionsListUtils', () => {
                 [action.reportActionID]: action,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4230,6 +4879,7 @@ describe('OptionsListUtils', () => {
                 [action.reportActionID]: action,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4239,6 +4889,183 @@ describe('OptionsListUtils', () => {
                 currentUserLogin: CURRENT_USER_EMAIL,
             });
             expect(lastMessage).toBe(getForeignCurrencyDefaultTaxUpdateMessage(translateLocal, action));
+        });
+        it('UPDATE_REQUIRE_COMPANY_CARDS_ENABLED action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_REQUIRE_COMPANY_CARDS_ENABLED,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {enabled: true},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getRequireCompanyCardsEnabledMessage(translateLocal, action));
+        });
+        it('ADD_CARD_FEED action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ADD_CARD_FEED,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {feedName: 'Visa Commercial'},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getAddedCardFeedMessage(translateLocal, action));
+        });
+        it('DELETE_CARD_FEED action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_CARD_FEED,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {feedName: 'Amex Corporate'},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getRemovedCardFeedMessage(translateLocal, action));
+        });
+        it('RENAME_CARD_FEED action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.RENAME_CARD_FEED,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {oldName: 'Old Feed', newName: 'New Feed'},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getRenamedCardFeedMessage(translateLocal, action));
+        });
+        it('ASSIGN_COMPANY_CARD action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ASSIGN_COMPANY_CARD,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {email: 'user@example.com', feedName: 'US Bank', cardLastFour: '1234'},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getAssignedCompanyCardMessage(translateLocal, action));
+        });
+        it('UNASSIGN_COMPANY_CARD action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UNASSIGN_COMPANY_CARD,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {email: 'user@example.com', feedName: 'US Bank', cardLastFour: '5678'},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getUnassignedCompanyCardMessage(translateLocal, action));
+        });
+        it('UPDATE_CARD_FEED_LIABILITY action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CARD_FEED_LIABILITY,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {feedName: 'Visa Commercial', liabilityType: CONST.TRANSACTION.LIABILITY_TYPE.ALLOW},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getUpdatedCardFeedLiabilityMessage(translateLocal, action));
+        });
+        it('UPDATE_CARD_FEED_STATEMENT_PERIOD action', async () => {
+            const report: Report = createRandomReport(0, undefined);
+            const action: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CARD_FEED_STATEMENT_PERIOD,
+                message: [{type: 'COMMENT', text: ''}],
+                originalMessage: {feedName: 'Visa Commercial', statementPeriodEndDay: '15', previousStatementPeriodEndDay: '20'},
+            };
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                [action.reportActionID]: action,
+            });
+            const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
+                translate: translateLocal,
+                report,
+                lastActorDetails: null,
+                policy: undefined,
+                isReportArchived: false,
+                currentUserLogin: CURRENT_USER_EMAIL,
+            });
+            expect(lastMessage).toBe(getUpdatedCardFeedStatementPeriodMessage(translateLocal, action));
         });
         it('TAKE_CONTROL action', async () => {
             const report: Report = createRandomReport(0, undefined);
@@ -4252,6 +5079,7 @@ describe('OptionsListUtils', () => {
                 [takeControlAction.reportActionID]: takeControlAction,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4274,6 +5102,7 @@ describe('OptionsListUtils', () => {
                 [rerouteAction.reportActionID]: rerouteAction,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4296,6 +5125,7 @@ describe('OptionsListUtils', () => {
                 [movedAction.reportActionID]: movedAction,
             });
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4322,6 +5152,7 @@ describe('OptionsListUtils', () => {
 
             // When getting the last message text for the report
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4350,6 +5181,7 @@ describe('OptionsListUtils', () => {
 
             const expectedVisibleText = '';
             const result = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4369,6 +5201,7 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
 
             const lastMessage = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4400,6 +5233,7 @@ describe('OptionsListUtils', () => {
             await waitForBatchedUpdates();
 
             const result = getLastMessageTextForReport({
+                personalDetails: undefined,
                 translate: translateLocal,
                 report,
                 lastActorDetails: null,
@@ -4440,6 +5274,7 @@ describe('OptionsListUtils', () => {
             await waitForBatchedUpdates();
 
             const result = getLastMessageTextForReport({
+                personalDetails: undefined,
                 report,
                 translate: translateLocal,
                 lastActorDetails: null,
@@ -4491,6 +5326,7 @@ describe('OptionsListUtils', () => {
                     [submittedAction.reportActionID]: submittedAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4526,6 +5362,7 @@ describe('OptionsListUtils', () => {
                     [dewSubmitFailedAction.reportActionID]: dewSubmitFailedAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4557,6 +5394,7 @@ describe('OptionsListUtils', () => {
                     [dewSubmitFailedAction.reportActionID]: dewSubmitFailedAction,
                 });
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4595,6 +5433,7 @@ describe('OptionsListUtils', () => {
                 });
 
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4636,6 +5475,7 @@ describe('OptionsListUtils', () => {
                 });
 
                 const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
                     translate: translateLocal,
                     report,
                     lastActorDetails: null,
@@ -4651,6 +5491,69 @@ describe('OptionsListUtils', () => {
                         policyName: policy.name,
                     }),
                 );
+            });
+        });
+        describe('UPDATE_CATEGORY_TAX_RATE action', () => {
+            it('should surface the rendered category default tax rate change in the last-message preview', async () => {
+                const report: Report = createRandomReport(0, undefined);
+                const changelogAction: ReportAction = {
+                    ...createRandomReportAction(1),
+                    actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_CATEGORY_TAX_RATE,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        categoryName: 'Office Supplies',
+                        oldTaxName: 'Tax Exempt',
+                        oldTaxPercentage: '0%',
+                        newTaxName: 'Tax Rate 1',
+                        newTaxPercentage: '5%',
+                    },
+                };
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [changelogAction.reportActionID]: changelogAction,
+                });
+
+                const lastMessage = getLastMessageTextForReport({
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    policy: undefined,
+                    personalDetails: undefined,
+                    isReportArchived: false,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('changed the "Office Supplies" category default tax rate to "Tax Rate 1 (5%)" (previously "Tax Exempt (0%)")');
+            });
+        });
+
+        describe('UPDATE_MCC_GROUP_CATEGORY action', () => {
+            it('should surface the friendly MCC group label in the last-message preview', async () => {
+                const report: Report = createRandomReport(0, undefined);
+                const changelogAction: ReportAction = {
+                    ...createRandomReportAction(1),
+                    actionName: CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_MCC_GROUP_CATEGORY,
+                    message: [{type: 'COMMENT', text: ''}],
+                    originalMessage: {
+                        mccGroupName: 'Airlines',
+                        oldCategory: 'Insurance',
+                        newCategory: 'Travel',
+                    },
+                };
+                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, {
+                    [changelogAction.reportActionID]: changelogAction,
+                });
+
+                const lastMessage = getLastMessageTextForReport({
+                    personalDetails: undefined,
+                    translate: translateLocal,
+                    report,
+                    lastActorDetails: null,
+                    policy: undefined,
+                    isReportArchived: false,
+                    currentUserLogin: CURRENT_USER_EMAIL,
+                });
+
+                expect(lastMessage).toBe('changed the default spend category for "Airlines" to "Travel" (previously "Insurance")');
             });
         });
     });
@@ -4874,8 +5777,8 @@ describe('OptionsListUtils', () => {
             };
             const personalDetails: PersonalDetailsList = PERSONAL_DETAILS;
 
-            // When we pass a non-empty privateIsArchived string (archived report)
-            const privateIsArchived = '2023-01-01 00:00:00';
+            // When we pass true for privateIsArchived (archived report)
+            const privateIsArchived = true;
             const result = getLastActorDisplayNameFromLastVisibleActions(report, lastActorDetails, CURRENT_USER_ACCOUNT_ID, personalDetails, privateIsArchived);
 
             // Then it should still return the display name from lastActorDetails since there's no last visible action
@@ -4902,7 +5805,7 @@ describe('OptionsListUtils', () => {
             const personalDetails: PersonalDetailsList = PERSONAL_DETAILS;
 
             // When we call getReportDisplayOption
-            const result = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, personalDetails, undefined, undefined);
+            const result = getReportDisplayOption(report, undefined, personalDetails, undefined, undefined);
 
             // Then it should return an option with isSelfDM and alternateText set
             expect(result.isSelfDM).toBe(true);
@@ -4922,7 +5825,7 @@ describe('OptionsListUtils', () => {
             const personalDetails: PersonalDetailsList = PERSONAL_DETAILS;
 
             // When we call getReportDisplayOption
-            const result = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, personalDetails, undefined, undefined);
+            const result = getReportDisplayOption(report, undefined, personalDetails, undefined, undefined);
 
             // Then it should return an option with invoice room text and alternateText
             expect(result.isInvoiceRoom).toBe(true);
@@ -4944,7 +5847,7 @@ describe('OptionsListUtils', () => {
             const personalDetails: PersonalDetailsList = PERSONAL_DETAILS;
 
             // When we call getReportDisplayOption
-            const result = getReportDisplayOption(report, unknownUserDetails, CURRENT_USER_ACCOUNT_ID, personalDetails, undefined, undefined);
+            const result = getReportDisplayOption(report, unknownUserDetails, personalDetails, undefined, undefined);
 
             // Then it should return an option with unknownUserDetails data
             expect(result.text).toBe('Unknown User');
@@ -4965,7 +5868,7 @@ describe('OptionsListUtils', () => {
             const personalDetails: PersonalDetailsList = PERSONAL_DETAILS;
 
             // When we call getReportDisplayOption
-            const result = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, personalDetails, undefined, undefined);
+            const result = getReportDisplayOption(report, undefined, personalDetails, undefined, undefined);
 
             // Then it should return an option with workspace name
             expect(result.text).toBe(POLICY.name);
@@ -4992,7 +5895,7 @@ describe('OptionsListUtils', () => {
             };
 
             // When we call getReportDisplayOption with custom personalDetails
-            const result = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, customPersonalDetails, undefined, undefined);
+            const result = getReportDisplayOption(report, undefined, customPersonalDetails, undefined, undefined);
 
             // Then it should use the custom personalDetails parameter
             expect(result).toBeDefined();
@@ -5009,7 +5912,7 @@ describe('OptionsListUtils', () => {
             const emptyPersonalDetails: PersonalDetailsList = {};
 
             // When we call getReportDisplayOption
-            const result = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, emptyPersonalDetails, undefined, undefined);
+            const result = getReportDisplayOption(report, undefined, emptyPersonalDetails, undefined, undefined);
 
             // Then it should not throw and return a valid option
             expect(result).toBeDefined();
@@ -5021,7 +5924,7 @@ describe('OptionsListUtils', () => {
             const personalDetails: PersonalDetailsList = PERSONAL_DETAILS;
 
             // When we call getReportDisplayOption with undefined report
-            const result = getReportDisplayOption(undefined, undefined, CURRENT_USER_ACCOUNT_ID, personalDetails, undefined, undefined);
+            const result = getReportDisplayOption(undefined, undefined, personalDetails, undefined, undefined);
 
             // Then it should return a valid option (createOption handles undefined)
             expect(result).toBeDefined();
@@ -5046,7 +5949,7 @@ describe('OptionsListUtils', () => {
             const policies = {[`${ONYXKEYS.COLLECTION.POLICY}${policy.id}`]: policy};
 
             // Test that getValidOptions accepts policies collection as second parameter
-            const results = getValidOptions({reports: [], personalDetails: []}, policies, undefined, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL);
+            const {options: results} = getValidOptions({reports: [], personalDetails: []}, policies, undefined, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined);
 
             expect(results).toBeDefined();
             expect(results.recentReports).toBeDefined();
@@ -5055,7 +5958,7 @@ describe('OptionsListUtils', () => {
 
         it('should work with undefined policies', () => {
             const options = {reports: [], personalDetails: []};
-            const results = getValidOptions(options, undefined, undefined, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL);
+            const {options: results} = getValidOptions(options, undefined, undefined, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined);
 
             expect(results).toBeDefined();
             expect(results.recentReports).toBeDefined();
@@ -5064,7 +5967,7 @@ describe('OptionsListUtils', () => {
 
         it('should work with empty policies collection', () => {
             const options = {reports: [], personalDetails: []};
-            const results = getValidOptions(options, {}, undefined, nvpDismissedProductTraining, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL);
+            const {options: results} = getValidOptions(options, {}, undefined, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined);
 
             expect(results).toBeDefined();
             expect(results.recentReports).toBeDefined();
@@ -5088,17 +5991,18 @@ describe('OptionsListUtils', () => {
             const policies = {[`${ONYXKEYS.COLLECTION.POLICY}${testPolicyID}`]: policy};
 
             // Verify function works with policies parameter
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 policies,
                 undefined,
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
                 {
                     betas: [],
                     includeRecentReports: true,
+                    sortedActions: undefined,
                 },
             );
 
@@ -5146,7 +6050,7 @@ describe('OptionsListUtils', () => {
                 isPolicyExpenseChat: true,
             };
 
-            const option = getReportOption(participant, undefined, policy, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, policy, {}, undefined, undefined, undefined);
 
             expect(option.text).toBe('Test Workspace');
             expect(option.alternateText).toBe(translateLocal('workspace.common.workspace'));
@@ -5201,7 +6105,7 @@ describe('OptionsListUtils', () => {
                 isPolicyExpenseChat: true,
             };
 
-            const option = getReportOption(participant, undefined, policy, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, policy, {}, undefined, undefined, undefined);
 
             expect(option.text).toBe('Test Workspace with Submit');
             // The submitsTo logic may or may not apply depending on complex approval rules
@@ -5224,7 +6128,7 @@ describe('OptionsListUtils', () => {
                 reportID,
             };
 
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, report);
 
             expect(option.isDisabled).toBe(true);
         });
@@ -5260,7 +6164,7 @@ describe('OptionsListUtils', () => {
                 isSelfDM: true,
             };
 
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, personalDetails);
+            const option = getReportOption(participant, undefined, POLICY, personalDetails, undefined, undefined, undefined);
 
             // The option.isSelfDM is set by createOption based on the report type
             // Just verify the alternateText is correct for self DM
@@ -5295,7 +6199,7 @@ describe('OptionsListUtils', () => {
                 isInvoiceRoom: true,
             };
 
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
 
             expect(option.isInvoiceRoom).toBe(true);
             expect(option.alternateText).toBe(translateLocal('workspace.common.invoices'));
@@ -5336,7 +6240,7 @@ describe('OptionsListUtils', () => {
             });
             await waitForBatchedUpdates();
 
-            const option = getReportOption(participant, reportNameValuePair?.private_isArchived, POLICY, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, !!reportNameValuePair?.private_isArchived, POLICY, {}, undefined, undefined, undefined);
 
             expect(option.text).toBe(POLICY.name);
             expect(option.alternateText).toBeTruthy();
@@ -5361,10 +6265,6 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_DRAFT}19`, draftReport);
             await waitForBatchedUpdates();
 
-            const draftReports = {
-                '19': draftReport,
-            };
-
             const participant: Participant = {
                 reportID: '19',
                 selected: false,
@@ -5380,9 +6280,64 @@ describe('OptionsListUtils', () => {
             });
             await waitForBatchedUpdates();
 
-            const option = getReportOption(participant, reportNameValuePair?.private_isArchived, POLICY, CURRENT_USER_ACCOUNT_ID, {}, undefined, draftReports);
+            const option = getReportOption(participant, !!reportNameValuePair?.private_isArchived, POLICY, {}, undefined, {}, draftReport);
 
             expect(option.isDisabled).toBe(true);
+        });
+
+        it('should not disable option when reportDraft is undefined for a regular report', async () => {
+            const reportID = '200';
+            const report: Report = {
+                reportID,
+                reportName: 'Regular Report',
+                type: CONST.REPORT.TYPE.CHAT,
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const participant: Participant = {reportID, selected: false};
+
+            // Pass reportDraft = undefined → not a draft, should NOT be disabled
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
+
+            expect(option.isDisabled).toBeFalsy();
+        });
+
+        it('should disable option when reportDraft is explicitly passed', async () => {
+            const reportID = '201';
+            const draftReport: Report = {
+                reportID,
+                reportName: 'Explicit Draft Report',
+                type: CONST.REPORT.TYPE.CHAT,
+            };
+
+            const participant: Participant = {reportID, selected: false};
+
+            // Pass reportDraft explicitly → should be disabled regardless of Onyx state
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, draftReport);
+
+            expect(option.isDisabled).toBe(true);
+        });
+
+        it('should not disable option when reportDraft param is undefined even if report exists in REPORT_DRAFT', async () => {
+            const reportID = '202';
+            const draftReport: Report = {
+                reportID,
+                reportName: 'Global Draft Report',
+                type: CONST.REPORT.TYPE.CHAT,
+            };
+
+            // Draft exists in Onyx but is NOT passed as param
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_DRAFT}${reportID}`, draftReport);
+            await waitForBatchedUpdates();
+
+            const participant: Participant = {reportID, selected: false};
+
+            // Callers are responsible for passing reportDraft explicitly — undefined means not disabled
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
+
+            expect(option.isDisabled).toBeFalsy();
         });
     });
 
@@ -5402,12 +6357,12 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
             await waitForBatchedUpdates();
 
-            const option = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, reportNameValuePair?.private_isArchived, undefined);
+            const option = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, !!reportNameValuePair?.private_isArchived, undefined);
 
             expect(option).toBeDefined();
             expect(option.reportID).toBe(reportID);
             expect(option.private_isArchived).toBeDefined();
-            expect(option.private_isArchived).toBe(reportNameValuePair.private_isArchived);
+            expect(option.private_isArchived).toBe(true);
             expect(option.isDisabled).toBe(true);
             expect(option.isSelected).toBe(false);
         });
@@ -5425,11 +6380,11 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
             await waitForBatchedUpdates();
 
-            const option = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, reportNameValuePair?.private_isArchived, undefined);
+            const option = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, !!reportNameValuePair?.private_isArchived, undefined);
 
             expect(option).toBeDefined();
             expect(option.reportID).toBe(reportID);
-            expect(option.private_isArchived).toBeUndefined();
+            expect(option.private_isArchived).toBe(false);
             expect(option.isDisabled).toBe(true);
             expect(option.isSelected).toBe(false);
         });
@@ -5445,7 +6400,7 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
             await waitForBatchedUpdates();
 
-            const option = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, undefined, undefined);
+            const option = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, undefined, undefined);
 
             expect(option).toBeDefined();
             expect(option.reportID).toBe(reportID);
@@ -5469,13 +6424,13 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
             await waitForBatchedUpdates();
 
-            const option = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, reportNameValuePair?.private_isArchived, undefined);
+            const option = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, !!reportNameValuePair?.private_isArchived, undefined);
 
             expect(option).toBeDefined();
             expect(option.reportID).toBe(reportID);
             expect(option.isInvoiceRoom).toBe(true);
             expect(option.private_isArchived).toBeDefined();
-            expect(option.private_isArchived).toBe(reportNameValuePair.private_isArchived);
+            expect(option.private_isArchived).toBe(true);
         });
 
         it('should use reportNameValuePair for self DM reports', async () => {
@@ -5493,7 +6448,7 @@ describe('OptionsListUtils', () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
             await waitForBatchedUpdates();
 
-            const option = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, reportNameValuePair?.private_isArchived, undefined);
+            const option = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, !!reportNameValuePair?.private_isArchived, undefined);
 
             expect(option).toBeDefined();
             expect(option.reportID).toBe(reportID);
@@ -5516,7 +6471,7 @@ describe('OptionsListUtils', () => {
                 selected: true,
             };
 
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
 
             expect(option.isSelected).toBe(true);
             expect(option.selected).toBe(true);
@@ -5537,7 +6492,7 @@ describe('OptionsListUtils', () => {
                 reportID,
             };
 
-            const option = getReportOption(participant, undefined, undefined, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, undefined, {}, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBeDefined();
@@ -5559,7 +6514,7 @@ describe('OptionsListUtils', () => {
             };
 
             // Test that the function works with reportAttributesDerived parameter (optional)
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
         });
@@ -5593,7 +6548,7 @@ describe('OptionsListUtils', () => {
                 reportID,
             };
 
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, testPersonalDetails);
+            const option = getReportOption(participant, undefined, POLICY, testPersonalDetails, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
             // The createOption function uses personalDetails to build display names
@@ -5654,7 +6609,7 @@ describe('OptionsListUtils', () => {
                 isPolicyExpenseChat: true,
             };
 
-            const option = getReportOption(participant, undefined, policy, CURRENT_USER_ACCOUNT_ID, testPersonalDetails);
+            const option = getReportOption(participant, undefined, policy, testPersonalDetails, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBe('Test Workspace with Approver');
@@ -5679,7 +6634,7 @@ describe('OptionsListUtils', () => {
             };
 
             // Pass empty personalDetails
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, {});
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBeDefined();
@@ -5701,7 +6656,7 @@ describe('OptionsListUtils', () => {
             };
 
             // Pass undefined personalDetails
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, undefined);
+            const option = getReportOption(participant, undefined, POLICY, undefined, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBeDefined();
@@ -5747,12 +6702,108 @@ describe('OptionsListUtils', () => {
                 isInvoiceRoom: true,
             };
 
-            const option = getReportOption(participant, undefined, POLICY, CURRENT_USER_ACCOUNT_ID, testPersonalDetails);
+            const option = getReportOption(participant, undefined, POLICY, testPersonalDetails, undefined, undefined, undefined);
 
             expect(option).toBeDefined();
             expect(option.isInvoiceRoom).toBe(true);
             // personalDetails is used in computeReportName for invoice rooms
             expect(option.text).toBeDefined();
+        });
+
+        it('should accept conciergeReportID and create a valid option', async () => {
+            const reportID = '114';
+            const conciergeReportID = '999';
+            const report: Report = {
+                reportID,
+                reportName: 'Test Report',
+                type: CONST.REPORT.TYPE.CHAT,
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const participant = {reportID};
+
+            const option = getReportOption(participant, undefined, POLICY, {}, conciergeReportID, undefined, undefined);
+
+            expect(option).toBeDefined();
+            expect(option.reportID).toBe(reportID);
+        });
+
+        it('should accept undefined conciergeReportID without breaking option creation', async () => {
+            const reportID = '115';
+            const report: Report = {
+                reportID,
+                reportName: 'Test Report',
+                type: CONST.REPORT.TYPE.CHAT,
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const participant = {reportID};
+
+            const option = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
+
+            expect(option).toBeDefined();
+            expect(option.reportID).toBe(reportID);
+        });
+
+        it('should use Concierge display name in lastMessageText when conciergeReportID matches a referenced report', async () => {
+            const reportID = '116';
+            const conciergeReportID = reportID;
+            const participantAccountID = 12345;
+            const report: Report = {
+                reportID,
+                reportName: 'Test Chat',
+                type: CONST.REPORT.TYPE.CHAT,
+                participants: {
+                    [participantAccountID]: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                },
+            };
+
+            const testPersonalDetails = {
+                [participantAccountID]: {
+                    accountID: participantAccountID,
+                    displayName: 'Some User',
+                    login: 'user@test.com',
+                },
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, testPersonalDetails);
+            await waitForBatchedUpdates();
+
+            const participant = {reportID};
+
+            // Passing conciergeReportID matching the reportID identifies this as the Concierge chat,
+            // which affects getMovedTransactionMessage to use CONST.CONCIERGE_DISPLAY_NAME ('Concierge')
+            const option = getReportOption(participant, undefined, POLICY, testPersonalDetails, conciergeReportID, undefined, undefined);
+
+            expect(option).toBeDefined();
+            expect(option.reportID).toBe(reportID);
+        });
+
+        it('should not treat report as concierge chat when conciergeReportID does not match reportID', async () => {
+            const reportID = '117';
+            const differentConciergeReportID = '9999';
+            const report: Report = {
+                reportID,
+                reportName: 'Regular Chat',
+                type: CONST.REPORT.TYPE.CHAT,
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const participant = {reportID};
+
+            const optionWithConcierge = getReportOption(participant, undefined, POLICY, {}, differentConciergeReportID, undefined, undefined);
+            const optionWithoutConcierge = getReportOption(participant, undefined, POLICY, {}, undefined, undefined, undefined);
+
+            // Both should produce the same result since the IDs don't match
+            expect(optionWithConcierge.reportID).toBe(optionWithoutConcierge.reportID);
+            expect(optionWithConcierge.text).toBe(optionWithoutConcierge.text);
         });
     });
 
@@ -5804,7 +6855,7 @@ describe('OptionsListUtils', () => {
                 selected: true,
             };
 
-            const option = getPolicyExpenseReportOption(participant, undefined, CURRENT_USER_ACCOUNT_ID, testPersonalDetails, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, undefined, testPersonalDetails, report, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBe('Test Workspace Policy');
@@ -5865,7 +6916,7 @@ describe('OptionsListUtils', () => {
                 isPolicyExpenseChat: true,
             };
 
-            const option = getPolicyExpenseReportOption(participant, undefined, CURRENT_USER_ACCOUNT_ID, testPersonalDetails, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, undefined, testPersonalDetails, report, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBe('Team Workspace');
@@ -5909,7 +6960,7 @@ describe('OptionsListUtils', () => {
             };
 
             // Should not throw when personalDetails is empty
-            const option = getPolicyExpenseReportOption(participant, undefined, CURRENT_USER_ACCOUNT_ID, {}, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, undefined, {}, report, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBe('Workspace Without Details');
@@ -5953,7 +7004,7 @@ describe('OptionsListUtils', () => {
             };
 
             // Should not throw when personalDetails is undefined
-            const option = getPolicyExpenseReportOption(participant, undefined, CURRENT_USER_ACCOUNT_ID, undefined, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, undefined, undefined, report, undefined);
 
             expect(option).toBeDefined();
             expect(option.text).toBe('Workspace Undefined Details');
@@ -6005,10 +7056,10 @@ describe('OptionsListUtils', () => {
                 selected: false,
             };
 
-            const optionSelected = getPolicyExpenseReportOption(participantSelected, undefined, CURRENT_USER_ACCOUNT_ID, {}, report, undefined);
+            const optionSelected = getPolicyExpenseReportOption(participantSelected, undefined, {}, report, undefined);
 
             // eslint-disable-next-line rulesdir/no-negated-variables
-            const optionNotSelected = getPolicyExpenseReportOption(participantNotSelected, undefined, CURRENT_USER_ACCOUNT_ID, {}, report, undefined);
+            const optionNotSelected = getPolicyExpenseReportOption(participantNotSelected, undefined, {}, report, undefined);
 
             expect(optionSelected.isSelected).toBe(true);
             expect(optionSelected.selected).toBe(true);
@@ -6022,8 +7073,6 @@ describe('OptionsListUtils', () => {
             const reportID = '301';
             const testPolicyID = 'policy301';
             const ownerAccountID = 2001;
-            const archivedTimestamp = DateUtils.getDBTime();
-
             const report: Report = {
                 reportID,
                 reportName: 'Archived Policy Expense',
@@ -6066,10 +7115,10 @@ describe('OptionsListUtils', () => {
                 selected: false,
             };
 
-            const option = getPolicyExpenseReportOption(participant, archivedTimestamp, CURRENT_USER_ACCOUNT_ID, testPersonalDetails, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, true, testPersonalDetails, report, undefined);
 
             expect(option).toBeDefined();
-            expect(option.private_isArchived).toBe(archivedTimestamp);
+            expect(option.private_isArchived).toBe(true);
             expect(option.text).toBe('Archived Workspace');
         });
 
@@ -6110,7 +7159,7 @@ describe('OptionsListUtils', () => {
                 isPolicyExpenseChat: true,
             };
 
-            const option = getPolicyExpenseReportOption(participant, undefined, CURRENT_USER_ACCOUNT_ID, {}, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, undefined, {}, report, undefined);
 
             expect(option).toBeDefined();
             expect(option.private_isArchived).toBeUndefined();
@@ -6180,9 +7229,8 @@ describe('OptionsListUtils', () => {
         });
 
         it('should pass privateIsArchived from map to policy expense options when searchTerm is empty and shouldGetOptionDetails is true', () => {
-            const archivedTimestamp = DateUtils.getDBTime();
-            const privateIsArchivedMap: Record<string, string | undefined> = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: archivedTimestamp,
+            const privateIsArchivedMap: Record<string, boolean> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: true,
             };
 
             const selectedOptions: SearchOptionData[] = [
@@ -6196,16 +7244,16 @@ describe('OptionsListUtils', () => {
                 } as SearchOptionData,
             ];
 
-            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, true);
+            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, true);
 
             expect(result.section.data).toHaveLength(1);
 
             const option = result.section.data.at(0) as SearchOptionData;
-            expect(option.private_isArchived).toBe(archivedTimestamp);
+            expect(option.private_isArchived).toBe(true);
         });
 
         it('should not set private_isArchived when report is not in the archived map', () => {
-            const privateIsArchivedMap: Record<string, string | undefined> = {};
+            const privateIsArchivedMap: Record<string, boolean> = {};
 
             const selectedOptions: SearchOptionData[] = [
                 {
@@ -6218,7 +7266,7 @@ describe('OptionsListUtils', () => {
                 } as SearchOptionData,
             ];
 
-            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, true);
+            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, true);
 
             expect(result.section.data).toHaveLength(1);
 
@@ -6227,9 +7275,8 @@ describe('OptionsListUtils', () => {
         });
 
         it('should handle mix of archived and non-archived policy expense chats', () => {
-            const archivedTimestamp = DateUtils.getDBTime();
-            const privateIsArchivedMap: Record<string, string | undefined> = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: archivedTimestamp,
+            const privateIsArchivedMap: Record<string, boolean> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: true,
             };
 
             const selectedOptions: SearchOptionData[] = [
@@ -6251,20 +7298,19 @@ describe('OptionsListUtils', () => {
                 } as SearchOptionData,
             ];
 
-            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, true);
+            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, true);
 
             expect(result.section.data).toHaveLength(2);
 
             const archivedOption = result.section.data.at(0) as SearchOptionData;
             const activeOption = result.section.data.at(1) as SearchOptionData;
-            expect(archivedOption.private_isArchived).toBe(archivedTimestamp);
+            expect(archivedOption.private_isArchived).toBe(true);
             expect(activeOption.private_isArchived).toBeUndefined();
         });
 
         it('should not transform options when shouldGetOptionDetails is false', () => {
-            const archivedTimestamp = DateUtils.getDBTime();
-            const privateIsArchivedMap: Record<string, string | undefined> = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: archivedTimestamp,
+            const privateIsArchivedMap: Record<string, boolean> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: true,
             };
 
             const selectedOptions: SearchOptionData[] = [
@@ -6278,7 +7324,7 @@ describe('OptionsListUtils', () => {
                 } as SearchOptionData,
             ];
 
-            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, false);
+            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, false);
 
             expect(result.section.data).toHaveLength(1);
             // When shouldGetOptionDetails is false, the original selectedOptions are returned unchanged
@@ -6286,9 +7332,8 @@ describe('OptionsListUtils', () => {
         });
 
         it('should pass privateIsArchived from map when searchTerm matches and participant is not in filtered lists', () => {
-            const archivedTimestamp = DateUtils.getDBTime();
-            const privateIsArchivedMap: Record<string, string | undefined> = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: archivedTimestamp,
+            const privateIsArchivedMap: Record<string, boolean> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: true,
             };
 
             const selectedOptions: SearchOptionData[] = [
@@ -6306,18 +7351,17 @@ describe('OptionsListUtils', () => {
             ];
 
             // Pass empty filtered lists so the selected option is not deduplicated
-            const result = formatSectionsFromSearchTerm('format', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, true);
+            const result = formatSectionsFromSearchTerm('format', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, true);
 
             expect(result.section.data).toHaveLength(1);
 
             const option = result.section.data.at(0) as SearchOptionData;
-            expect(option.private_isArchived).toBe(archivedTimestamp);
+            expect(option.private_isArchived).toBe(true);
         });
 
         it('should handle non-policy expense chat participants without privateIsArchived', () => {
-            const archivedTimestamp = DateUtils.getDBTime();
-            const privateIsArchivedMap: Record<string, string | undefined> = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: archivedTimestamp,
+            const privateIsArchivedMap: Record<string, boolean> = {
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${formatReportID1}`]: true,
             };
 
             const selectedOptions: SearchOptionData[] = [
@@ -6334,7 +7378,7 @@ describe('OptionsListUtils', () => {
                 } as SearchOptionData,
             ];
 
-            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, true);
+            const result = formatSectionsFromSearchTerm('', selectedOptions, [], [], privateIsArchivedMap, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, true);
 
             expect(result.section.data).toHaveLength(1);
 
@@ -6346,7 +7390,7 @@ describe('OptionsListUtils', () => {
         });
 
         it('should return empty section when no selectedOptions are provided', () => {
-            const result = formatSectionsFromSearchTerm('', [], [], [], {}, CURRENT_USER_ACCOUNT_ID, formatPersonalDetails, true);
+            const result = formatSectionsFromSearchTerm('', [], [], [], {}, CURRENT_USER_ACCOUNT_ID, undefined, formatPersonalDetails, true);
 
             expect(result.section.data).toHaveLength(0);
         });
@@ -6358,7 +7402,6 @@ describe('OptionsListUtils', () => {
                 searchValue: 'Jeff Amazon',
                 personalDetails: PERSONAL_DETAILS,
                 loginList: {},
-                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
             });
             expect(result).toBeNull();
@@ -6370,7 +7413,6 @@ describe('OptionsListUtils', () => {
                 personalDetails: PERSONAL_DETAILS,
                 shouldAcceptName: true,
                 loginList: {},
-                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
             });
             expect(result).not.toBeNull();
@@ -6381,14 +7423,14 @@ describe('OptionsListUtils', () => {
     describe('reports parameter functionality', () => {
         it('getValidOptions should use reports parameter to look up chat reports', () => {
             // When we call getValidOptions with the reports collection
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
 
             // Then the function should complete without errors and return valid results
@@ -6399,14 +7441,14 @@ describe('OptionsListUtils', () => {
 
         it('filterAndOrderOptions should use reports parameter correctly', () => {
             // Given a set of options and reports collection
-            const options = getValidOptions(
+            const {options} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
 
             // When we call filterAndOrderOptions with the reports parameter
@@ -6420,18 +7462,38 @@ describe('OptionsListUtils', () => {
 
         it('getSearchOptions should use reports parameter from config', () => {
             // When we call getSearchOptions with reports in the config
-            const options = getSearchOptions({
+            const {options} = getSearchOptions({
                 options: OPTIONS,
                 draftComments: {},
-                nvpDismissedProductTraining,
                 loginList,
                 policyCollection: {},
                 currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
             });
 
             // Then the function should complete without errors and return valid results
+            expect(options).toBeDefined();
+            expect(options.recentReports).toBeDefined();
+            expect(options.personalDetails).toBeDefined();
+        });
+
+        it('getSearchOptions should forward sortedActions to getValidOptions', () => {
+            const sortedActions = {};
+            const {options} = getSearchOptions({
+                options: OPTIONS,
+                draftComments: {},
+                loginList,
+                policyCollection: {},
+                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
+                currentUserEmail: CURRENT_USER_EMAIL,
+                personalDetails: PERSONAL_DETAILS,
+                sortedActions,
+                conciergeReportID: undefined,
+            });
+
             expect(options).toBeDefined();
             expect(options.recentReports).toBeDefined();
             expect(options.personalDetails).toBeDefined();
@@ -6442,7 +7504,6 @@ describe('OptionsListUtils', () => {
             const result = getUserToInviteOption({
                 searchValue: 'newuser@example.com',
                 loginList: {},
-                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
                 currentUserEmail: CURRENT_USER_EMAIL,
                 personalDetails: PERSONAL_DETAILS,
             });
@@ -6454,14 +7515,14 @@ describe('OptionsListUtils', () => {
 
         it('should work correctly when reports is an empty object', () => {
             // When we call getValidOptions with empty reports
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
 
             // Then the function should still work correctly
@@ -6472,14 +7533,14 @@ describe('OptionsListUtils', () => {
 
         it('should work correctly when reports is undefined', () => {
             // When we call getValidOptions without reports parameter
-            const results = getValidOptions(
+            const {options: results} = getValidOptions(
                 {reports: OPTIONS.reports, personalDetails: OPTIONS.personalDetails},
                 allPolicies,
                 {},
-                nvpDismissedProductTraining,
                 loginList,
                 CURRENT_USER_ACCOUNT_ID,
                 CURRENT_USER_EMAIL,
+                undefined,
             );
 
             // Then the function should still work correctly
@@ -6516,7 +7577,12 @@ describe('OptionsListUtils', () => {
             await waitForBatchedUpdates();
 
             // When we call createOption with the linked chat report
-            const result = createOption([1, 2], PERSONAL_DETAILS, expenseReport, CURRENT_USER_ACCOUNT_ID, undefined, undefined);
+            const result = createOption({
+                accountIDs: [1, 2],
+                personalDetails: PERSONAL_DETAILS,
+                report: expenseReport,
+                privateIsArchived: undefined,
+            });
 
             // Then the option should be created successfully
             expect(result).toBeDefined();
@@ -6546,7 +7612,7 @@ describe('OptionsListUtils', () => {
             await waitForBatchedUpdates();
 
             // When we call getReportDisplayOption with chat report
-            const option = getReportDisplayOption(report, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, undefined, undefined);
+            const option = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, undefined, undefined);
 
             // Then the option should be created successfully using the reports collection
             expect(option).toBeDefined();
@@ -6587,7 +7653,7 @@ describe('OptionsListUtils', () => {
             };
 
             // When we call getPolicyExpenseReportOption with report passed directly
-            const option = getPolicyExpenseReportOption(participant, undefined, CURRENT_USER_ACCOUNT_ID, PERSONAL_DETAILS, report, undefined);
+            const option = getPolicyExpenseReportOption(participant, undefined, PERSONAL_DETAILS, report, undefined);
 
             // Then the option should be created successfully
             expect(option).toBeDefined();
@@ -6606,8 +7672,10 @@ describe('OptionsListUtils', () => {
                     1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
                 },
             };
+            const reportAction = createRandomReportAction(1);
+            const sortedActions = {[report.reportID]: [reportAction]};
 
-            const result = createOptionFromReport(report, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, undefined, undefined);
+            const result = createOptionFromReport(report, PERSONAL_DETAILS, undefined, undefined, sortedActions);
 
             expect(result).toBeDefined();
             expect(result.reportID).toBe('1');
@@ -6624,12 +7692,13 @@ describe('OptionsListUtils', () => {
                     1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
                 },
             };
+            const reportAction = createRandomReportAction(1);
+            const sortedActions = {[report.reportID]: [reportAction]};
 
-            const privateIsArchived = DateUtils.getDBTime();
-            const result = createOptionFromReport(report, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, privateIsArchived);
+            const result = createOptionFromReport(report, PERSONAL_DETAILS, true, undefined, sortedActions);
 
             expect(result).toBeDefined();
-            expect(result.private_isArchived).toBe(privateIsArchived);
+            expect(result.private_isArchived).toBe(true);
         });
 
         it('should not mark report as archived when privateIsArchived is undefined', () => {
@@ -6642,8 +7711,10 @@ describe('OptionsListUtils', () => {
                     1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
                 },
             };
+            const reportAction = createRandomReportAction(1);
+            const sortedActions = {[report.reportID]: [reportAction]};
 
-            const result = createOptionFromReport(report, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, undefined, undefined);
+            const result = createOptionFromReport(report, PERSONAL_DETAILS, undefined, undefined, sortedActions);
 
             expect(result).toBeDefined();
             expect(result.private_isArchived).toBeUndefined();
@@ -6659,9 +7730,10 @@ describe('OptionsListUtils', () => {
                     1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
                 },
             };
+            const reportAction = createRandomReportAction(1);
+            const sortedActions = {[report.reportID]: [reportAction]};
 
-            // Pass undefined for reportAttributesDerived - the function should handle it gracefully
-            const result = createOptionFromReport(report, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, undefined, undefined, undefined);
+            const result = createOptionFromReport(report, PERSONAL_DETAILS, undefined, undefined, sortedActions);
 
             expect(result).toBeDefined();
             expect(result.reportID).toBe('1');
@@ -6677,9 +7749,11 @@ describe('OptionsListUtils', () => {
                     1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
                 },
             };
+            const reportAction = createRandomReportAction(1);
+            const sortedActions = {[report.reportID]: [reportAction]};
 
             const config = {showPersonalDetails: true};
-            const result = createOptionFromReport(report, PERSONAL_DETAILS, CURRENT_USER_ACCOUNT_ID, undefined, undefined, config);
+            const result = createOptionFromReport(report, PERSONAL_DETAILS, undefined, undefined, sortedActions, undefined, config);
 
             expect(result).toBeDefined();
             expect(result.reportID).toBe('1');
@@ -6688,7 +7762,7 @@ describe('OptionsListUtils', () => {
 
     describe('createFilteredOptionList', () => {
         it('should return report options limited by maxRecentReports', () => {
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, {}, {maxRecentReports: 5});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, {}, undefined, {maxRecentReports: 5});
 
             expect(result).toBeDefined();
             expect(result.reports.length).toBeLessThanOrEqual(5);
@@ -6728,13 +7802,13 @@ describe('OptionsListUtils', () => {
                 },
             };
 
-            const result = createFilteredOptionList(PERSONAL_DETAILS, reportsWithDates, CURRENT_USER_ACCOUNT_ID, undefined, {}, {maxRecentReports: 3});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, reportsWithDates, undefined, {}, undefined, {maxRecentReports: 3});
 
             expect(result.reports.length).toBeGreaterThan(0);
         });
 
         it('should include personal details when includeP2P is true', () => {
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, {}, {includeP2P: true});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, {}, undefined, {includeP2P: true});
 
             expect(result).toBeDefined();
             expect(result.personalDetails).toBeDefined();
@@ -6742,21 +7816,21 @@ describe('OptionsListUtils', () => {
         });
 
         it('should exclude personal details when includeP2P is false', () => {
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, {}, {includeP2P: false});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, {}, undefined, {includeP2P: false});
 
             expect(result).toBeDefined();
             expect(result.personalDetails.length).toBe(0);
         });
 
         it('should handle empty reports collection', () => {
-            const result = createFilteredOptionList(PERSONAL_DETAILS, {}, CURRENT_USER_ACCOUNT_ID, undefined, {});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, {}, undefined, {}, undefined);
 
             expect(result).toBeDefined();
             expect(result.reports.length).toBe(0);
         });
 
         it('should handle undefined reports collection', () => {
-            const result = createFilteredOptionList(PERSONAL_DETAILS, undefined, CURRENT_USER_ACCOUNT_ID, undefined, {});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, undefined, undefined, {}, undefined);
 
             expect(result).toBeDefined();
             expect(result.reports.length).toBe(0);
@@ -6779,23 +7853,30 @@ describe('OptionsListUtils', () => {
             };
 
             const privateIsArchivedMap = {
-                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}999`]: DateUtils.getDBTime(),
+                [`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}999`]: true,
             };
 
-            const result = createFilteredOptionList(PERSONAL_DETAILS, reportsCollection, CURRENT_USER_ACCOUNT_ID, undefined, privateIsArchivedMap, {maxRecentReports: 10});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, reportsCollection, undefined, privateIsArchivedMap, undefined, {maxRecentReports: 10});
 
             expect(result).toBeDefined();
         });
 
-        it('should return all reports when searchTerm is provided (isSearching is true)', () => {
+        it('should handle isSearching filtering', () => {
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, {}, undefined, {isSearching: true});
+
+            expect(result).toBeDefined();
+            expect(result.reports.length).toBe(Object.keys(REPORTS).length);
+        });
+
+        it('should return all reports when isSearching is true', () => {
             const result = createFilteredOptionList(
                 PERSONAL_DETAILS,
                 REPORTS,
-                CURRENT_USER_ACCOUNT_ID,
                 undefined,
                 {},
+                {},
                 {
-                    searchTerm: 'Report',
+                    isSearching: true,
                     maxRecentReports: 2,
                 },
             );
@@ -6805,7 +7886,7 @@ describe('OptionsListUtils', () => {
         });
 
         it('should return both reports and personal details', () => {
-            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, CURRENT_USER_ACCOUNT_ID, undefined, {});
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, {}, undefined);
 
             expect(result).toBeDefined();
             expect(result).toHaveProperty('reports');
@@ -6857,6 +7938,134 @@ describe('OptionsListUtils', () => {
             // Name-only attendee should have displayName as login
             const johnSmith = result.find((r) => r.login === 'John Smith');
             expect(johnSmith).toBeDefined();
+        });
+
+        it('should preserve displayName for recent attendees with undefined email', () => {
+            const personalDetails = {};
+            const attendees: Array<{email: string; displayName: string; avatarUrl: string}> = [];
+            const recentAttendees: Attendee[] = [{displayName: 'Login Only User', avatarUrl: ''}];
+
+            const result = getFilteredRecentAttendees(personalDetails, attendees, recentAttendees, CURRENT_USER_EMAIL, CURRENT_USER_ACCOUNT_ID);
+
+            expect(result.find((r) => r.login === 'Login Only User')).toBeDefined();
+        });
+    });
+
+    describe('getValidOptions() with recentAttendees', () => {
+        const recentAttendees = Array.from({length: 8}, (_, index) => ({
+            login: `john${index}@example.com`,
+            text: `John ${index}`,
+            accountID: 1000 + index,
+        }));
+
+        it('caps recent attendees to maxRecentReportElements when there is no search term', () => {
+            // When we call getValidOptions with more recent attendees than the display cap and no search term
+            const {options: results} = getValidOptions({reports: [], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: false,
+                recentAttendees,
+                maxRecentReportElements: 5,
+                sortedActions: undefined,
+            });
+
+            // Then only the first 5 recent attendees are shown
+            expect(results.recentReports.length).toBe(5);
+        });
+
+        it('shows all matching recent attendees beyond the cap when there is a search term', () => {
+            // When we call getValidOptions with a search term that matches all recent attendees
+            const {options: results} = getValidOptions({reports: [], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: false,
+                recentAttendees,
+                maxRecentReportElements: 5,
+                searchString: 'john',
+                sortedActions: undefined,
+            });
+
+            // Then all matching recent attendees are shown, not just the first 5
+            expect(results.recentReports.length).toBe(8);
+        });
+    });
+
+    describe('policy parameter passing', () => {
+        it('createOptionList should accept policiesCollection parameter', () => {
+            const result = createOptionList(PERSONAL_DETAILS, EMPTY_PRIVATE_IS_ARCHIVED_MAP, REPORTS, allPolicies, MOCK_REPORT_ATTRIBUTES_DERIVED);
+            expect(result).toBeDefined();
+            expect(result.reports).toBeDefined();
+            expect(result.personalDetails).toBeDefined();
+        });
+
+        it('createFilteredOptionList should accept policiesCollection parameter', () => {
+            const result = createFilteredOptionList(PERSONAL_DETAILS, REPORTS, undefined, EMPTY_PRIVATE_IS_ARCHIVED_MAP, allPolicies);
+            expect(result).toBeDefined();
+            expect(result.reports).toBeDefined();
+            expect(result.personalDetails).toBeDefined();
+        });
+
+        it('createOptionFromReport should accept policy parameter', () => {
+            const report: Report = {
+                reportID: '10',
+                reportName: 'Policy Report',
+                type: CONST.REPORT.TYPE.CHAT,
+                policyID,
+                participants: {
+                    [CURRENT_USER_ACCOUNT_ID]: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                    1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                },
+            };
+            const reportAction = createRandomReportAction(1);
+            const sortedActions = {[report.reportID]: [reportAction]};
+
+            const result = createOptionFromReport(report, PERSONAL_DETAILS, undefined, POLICY, sortedActions);
+            expect(result).toBeDefined();
+            expect(result.policyID).toBe(policyID);
+        });
+
+        it('getReportDisplayOption should accept policy parameter', () => {
+            const report: Report = {
+                reportID: '10',
+                reportName: 'Display Option Policy Report',
+                type: CONST.REPORT.TYPE.CHAT,
+                policyID,
+                participants: {
+                    [CURRENT_USER_ACCOUNT_ID]: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                    1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                },
+            };
+
+            const result = getReportDisplayOption(report, undefined, PERSONAL_DETAILS, undefined, POLICY);
+            expect(result).toBeDefined();
+            expect(result.policyID).toBe(policyID);
+        });
+
+        it('getPolicyExpenseReportOption should accept policy parameter', () => {
+            const report: Report = {
+                reportID: '10',
+                reportName: "SHIELD's workspace",
+                type: CONST.REPORT.TYPE.EXPENSE,
+                policyID,
+                ownerAccountID: 1,
+                participants: {
+                    [CURRENT_USER_ACCOUNT_ID]: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                    1: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.ALWAYS},
+                },
+            };
+
+            const participant = {
+                accountID: CURRENT_USER_ACCOUNT_ID,
+                reportID: '10',
+                isPolicyExpenseChat: true,
+                selected: true,
+            };
+
+            const result = getPolicyExpenseReportOption(participant, undefined, PERSONAL_DETAILS, report, POLICY);
+            expect(result).toBeDefined();
+            expect(result.policyID).toBe(policyID);
+        });
+
+        it('formatSectionsFromSearchTerm should accept policy parameter', () => {
+            const result = formatSectionsFromSearchTerm('', [], [], [], {}, CURRENT_USER_ACCOUNT_ID, allPolicies, PERSONAL_DETAILS, true);
+            expect(result).toBeDefined();
+            expect(result.section).toBeDefined();
         });
     });
 
@@ -6928,8 +8137,8 @@ describe('OptionsListUtils', () => {
             await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
             await waitForBatchedUpdates();
 
-            // When we pass a non-empty privateIsArchived string, the report is considered archived
-            const privateIsArchived = '2023-01-01 00:00:00';
+            // When we pass true for privateIsArchived, the report is considered archived
+            const privateIsArchived = true;
 
             // With no lastAction provided and no visible actions in Onyx, it falls through to the lastVisibleAction lookup
             // which returns undefined, so isReportPreviewAction returns false
@@ -6950,6 +8159,661 @@ describe('OptionsListUtils', () => {
             // privateIsArchived is undefined means the report is not archived
             const result = getIOUReportIDOfLastAction(report, undefined, undefined, lastAction);
             expect(result).toBeUndefined();
+        });
+    });
+
+    describe('prepareReportOptionsForDisplay with sortedActions', () => {
+        it('should use sortedActions to compute lastIOUCreationDate for expense report sorting', async () => {
+            const reportID = 'sorted-test-1';
+            const iouReportID = 'sorted-iou-1';
+            const iouActionModified = '2025-06-15 10:30:00.000';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Test Report',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const reportPreviewAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
+                originalMessage: {linkedReportID: iouReportID},
+            } as ReportAction;
+
+            const iouAction: ReportAction = {
+                ...createRandomReportAction(2),
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                lastModified: iouActionModified,
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Test Report',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {
+                [reportID]: [reportPreviewAction],
+                [iouReportID]: [iouAction],
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                includeMultipleParticipantReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions,
+            });
+
+            expect(results.recentReports.length).toBe(1);
+            const resultOption = results.recentReports.at(0);
+            expect(resultOption?.lastIOUCreationDate).toBe(iouActionModified);
+        });
+
+        it('should not have lastIOUCreationDate when sortedActions is empty', async () => {
+            const reportID = 'sorted-test-2';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Test Report 2',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Test Report 2',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {};
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions,
+            });
+
+            const resultOption = results.recentReports.at(0);
+            expect(resultOption?.lastIOUCreationDate).toBeUndefined();
+        });
+
+        it('should not have lastIOUCreationDate when sortedActions is undefined', async () => {
+            const reportID = 'sorted-test-3';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Test Report 3',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Test Report 3',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions: undefined,
+            });
+
+            const resultOption = results.recentReports.at(0);
+            expect(resultOption?.lastIOUCreationDate).toBeUndefined();
+        });
+
+        it('should pick the correct lastIOUCreationDate from multiple IOU actions', async () => {
+            const reportID = 'sorted-test-4';
+            const iouReportID = 'sorted-iou-4';
+            const olderDate = '2025-06-10 08:00:00.000';
+            const newerDate = '2025-06-15 10:30:00.000';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Test Report 4',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const reportPreviewAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
+                originalMessage: {linkedReportID: iouReportID},
+            } as ReportAction;
+
+            const newerIOUAction: ReportAction = {
+                ...createRandomReportAction(2),
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                lastModified: newerDate,
+            } as ReportAction;
+
+            const olderIOUAction: ReportAction = {
+                ...createRandomReportAction(3),
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                lastModified: olderDate,
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Test Report 4',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {
+                [reportID]: [reportPreviewAction],
+                [iouReportID]: [newerIOUAction, olderIOUAction],
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                includeMultipleParticipantReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions,
+            });
+
+            expect(results.recentReports.length).toBe(1);
+            const resultOption = results.recentReports.at(0);
+            expect(resultOption?.lastIOUCreationDate).toBe(newerDate);
+        });
+
+        it('should not set lastIOUCreationDate when action is not CREATE', async () => {
+            const reportID = 'sorted-test-5';
+            const iouReportID = 'sorted-iou-5';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Test Report 5',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const reportPreviewAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
+                originalMessage: {linkedReportID: iouReportID},
+            } as ReportAction;
+
+            const iouAction: ReportAction = {
+                ...createRandomReportAction(2),
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                lastModified: '2025-06-15 10:30:00.000',
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Test Report 5',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {
+                [reportID]: [reportPreviewAction],
+                [iouReportID]: [iouAction],
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                sortedActions,
+            });
+
+            const resultOption = results.recentReports.at(0);
+            expect(resultOption?.lastIOUCreationDate).toBeUndefined();
+        });
+
+        it('should not set lastIOUCreationDate when report has no REPORT_PREVIEW action in sortedActions', async () => {
+            const reportID = 'sorted-test-6';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Test Report 6',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const nonPreviewAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT,
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Test Report 6',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {
+                [reportID]: [nonPreviewAction],
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions,
+            });
+
+            const resultOption = results.recentReports.at(0);
+            expect(resultOption?.lastIOUCreationDate).toBeUndefined();
+        });
+    });
+
+    describe('orderPersonalDetailsOptions()', () => {
+        it('sorts options alphabetically using text values', () => {
+            const options = [
+                {accountID: 1, text: 'Charlie', login: 'c@example.com'},
+                {accountID: 2, text: 'aaron', login: 'a@example.com'},
+                {accountID: 3, text: 'Bob', login: 'b@example.com'},
+            ] as SearchOptionData[];
+
+            const sorted = orderPersonalDetailsOptions(options);
+
+            expect(sorted.map((option) => option.text)).toEqual(['aaron', 'Bob', 'Charlie']);
+        });
+
+        it('falls back to alternateText and login when text is missing', () => {
+            const options = [
+                {accountID: 1, text: undefined, alternateText: 'mango', login: 'm@example.com'},
+                {accountID: 2, text: 'apple', login: 'a@example.com'},
+                {accountID: 3, text: undefined, alternateText: undefined, login: 'banana@example.com'},
+            ] as SearchOptionData[];
+
+            const sorted = orderPersonalDetailsOptions(options);
+
+            expect(sorted.map((option) => option.accountID)).toEqual([2, 3, 1]);
+        });
+    });
+
+    describe('getValidOptions with sortedActions', () => {
+        it('returns lastIOUCreationDate from the latest IOU action linked via REPORT_PREVIEW', async () => {
+            const reportID = 'gvo-sorted-1';
+            const iouReportID = 'gvo-iou-1';
+            const expectedDate = '2025-06-15 10:30:00.000';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Expense Chat',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const reportPreviewAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW,
+                originalMessage: {linkedReportID: iouReportID},
+            } as ReportAction;
+
+            const iouAction: ReportAction = {
+                ...createRandomReportAction(2),
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+                lastModified: expectedDate,
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Expense Chat',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {
+                [reportID]: [reportPreviewAction],
+                [iouReportID]: [iouAction],
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                includeMultipleParticipantReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions,
+            });
+
+            expect(results.recentReports.length).toBe(1);
+            expect(results.recentReports.at(0)?.lastIOUCreationDate).toBe(expectedDate);
+        });
+
+        it('returns undefined lastIOUCreationDate when sortedActions has no matching IOU actions', async () => {
+            const reportID = 'gvo-sorted-2';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Chat with no IOU',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const commentAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT,
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Chat with no IOU',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const {options: results} = getValidOptions({reports: [inputOption], personalDetails: []}, allPolicies, {}, loginList, CURRENT_USER_ACCOUNT_ID, CURRENT_USER_EMAIL, undefined, {
+                includeRecentReports: true,
+                action: CONST.IOU.ACTION.CREATE,
+                sortedActions: {[reportID]: [commentAction]},
+            });
+
+            expect(results.recentReports.at(0)?.lastIOUCreationDate).toBeUndefined();
+        });
+    });
+
+    describe('getSearchOptions with sortedActions', () => {
+        it('should not have lastIOUCreationDate when sortedActions is undefined', async () => {
+            const reportID = 'search-sorted-2';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Search Sorted Test 2',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Search Sorted Test 2',
+                isUnread: false,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: true,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const {options: results} = getSearchOptions({
+                options: {reports: [inputOption], personalDetails: []},
+                draftComments: {},
+                betas: [CONST.BETAS.ALL],
+                loginList,
+                policyCollection: allPolicies,
+                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
+                currentUserEmail: CURRENT_USER_EMAIL,
+                sortedActions: undefined,
+                conciergeReportID: undefined,
+            });
+
+            expect(results.recentReports.length).toBe(1);
+            expect(results.recentReports.at(0)?.lastIOUCreationDate).toBeUndefined();
+        });
+
+        it('should use sortedActions for unread computation with shouldUnreadBeBold on IOU reports', async () => {
+            const reportID = 'search-sorted-3';
+
+            const report: Report = {
+                ...createRegularChat(Number(reportID), [1]),
+                reportID,
+                reportName: 'Search IOU Test',
+                lastVisibleActionCreated: '2025-06-15 10:00:00.000',
+                lastActorAccountID: 1,
+                lastMessageText: 'Test',
+                type: CONST.REPORT.TYPE.IOU,
+            };
+
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, report);
+            await waitForBatchedUpdates();
+
+            const iouAction: ReportAction = {
+                ...createRandomReportAction(1),
+                actionName: CONST.REPORT.ACTIONS.TYPE.IOU,
+            } as ReportAction;
+
+            const inputOption: SearchOption<Report> = {
+                item: report,
+                reportID,
+                text: 'Search IOU Test',
+                isUnread: true,
+                participantsList: [],
+                keyForList: reportID,
+                isChatRoom: false,
+                policyID: '123',
+                lastMessageText: 'Test',
+                lastVisibleActionCreated: report.lastVisibleActionCreated,
+                notificationPreference: 'always',
+                accountID: 0,
+                login: '',
+                alternateText: '',
+                subtitle: '',
+                firstName: '',
+                lastName: '',
+                icons: [],
+                isSelected: false,
+                isDisabled: false,
+                brickRoadIndicator: null,
+                isBold: false,
+            };
+
+            const sortedActions = {
+                [reportID]: [iouAction],
+            };
+
+            const {options: results} = getSearchOptions({
+                options: {reports: [inputOption], personalDetails: []},
+                draftComments: {},
+                betas: [CONST.BETAS.ALL],
+                loginList,
+                policyCollection: allPolicies,
+                currentUserAccountID: CURRENT_USER_ACCOUNT_ID,
+                currentUserEmail: CURRENT_USER_EMAIL,
+                shouldUnreadBeBold: true,
+                sortedActions,
+                conciergeReportID: undefined,
+            });
+
+            expect(results.recentReports.length).toBe(1);
         });
     });
 });

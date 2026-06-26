@@ -1,7 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import ScrollView from '@components/ScrollView';
 import useScrollEventEmitter from '@hooks/useScrollEventEmitter';
-// eslint-disable-next-line no-restricted-imports
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import CONST from '@src/CONST';
@@ -22,11 +21,12 @@ function TabSelectorBase({
     tabs,
     activeTabKey,
     onTabPress = () => {},
+    onLongTabPress,
+    onActiveTabPress = () => {},
     position,
     shouldShowLabelWhenInactive = true,
     equalWidth = false,
-    shouldShowProductTrainingTooltip = false,
-    renderProductTrainingTooltip,
+    contentContainerStyles,
 }: TabSelectorBaseProps) {
     const theme = useTheme();
     const styles = useThemeStyles();
@@ -62,7 +62,11 @@ function TabSelectorBase({
             }}
             ref={containerRef}
             style={styles.scrollableTabSelector}
-            contentContainerStyle={styles.tabSelectorContentContainer}
+            // On iOS a horizontal ScrollView lays out its content along an unbounded main axis, so flex-1 tabs
+            // (equalWidth) divide their intrinsic content width instead of the viewport. Giving the content
+            // container a definite width lets the flex children split it evenly. Scoped to equalWidth so normal
+            // overflowing/scrollable tab rows are not constrained.
+            contentContainerStyle={[styles.tabSelectorContentContainer, equalWidth && styles.w100, contentContainerStyles]}
             horizontal
             showsHorizontalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -96,9 +100,9 @@ function TabSelectorBase({
 
                 const handlePress = () => {
                     if (isActive) {
+                        onActiveTabPress(tab.key);
                         return;
                     }
-
                     setAffectedAnimatedTabs([activeIndex, index]);
                     onTabPress(tab.key);
                 };
@@ -110,6 +114,7 @@ function TabSelectorBase({
                         icon={tab.icon}
                         title={tab.title}
                         onPress={handlePress}
+                        onLongPress={onLongTabPress ? () => onLongTabPress(tab.key) : undefined}
                         activeOpacity={activeOpacity}
                         inactiveOpacity={inactiveOpacity}
                         backgroundColor={backgroundColor}
@@ -117,9 +122,12 @@ function TabSelectorBase({
                         testID={tab.testID}
                         sentryLabel={tab.sentryLabel}
                         shouldShowLabelWhenInactive={shouldShowLabelWhenInactive}
-                        shouldShowProductTrainingTooltip={shouldShowProductTrainingTooltip}
-                        renderProductTrainingTooltip={renderProductTrainingTooltip}
                         equalWidth={equalWidth}
+                        badgeText={tab.badgeText}
+                        isBadgeCondensed={tab.isBadgeCondensed}
+                        badgeStyles={tab.badgeStyles}
+                        pendingAction={tab.pendingAction}
+                        isDisabled={tab.isDisabled}
                     />
                 );
             })}

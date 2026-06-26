@@ -10,6 +10,7 @@ import type {
     PersonalDetailsList,
     PolicyTagLists,
     Report,
+    ReportAction,
     ReportActions,
     ReportAttributesDerivedValue,
     TransactionViolation,
@@ -132,15 +133,6 @@ type PayeePersonalDetails = {
     isInteractive: boolean;
 };
 
-type SectionBase = {
-    title: string | undefined;
-    shouldShow: boolean;
-};
-
-type Section = SectionBase & {
-    data: Option[];
-};
-
 type GetValidOptionsSharedConfig = {
     includeP2P?: boolean;
     transactionViolations?: OnyxCollection<TransactionViolation[]>;
@@ -201,6 +193,7 @@ type IsValidReportsConfig = Pick<
     | 'isTimeRequest'
 > & {
     currentUserAccountID: number;
+    currentUserLogin: string;
 };
 
 type GetOptionsConfig = {
@@ -210,8 +203,7 @@ type GetOptionsConfig = {
     includeRecentReports?: boolean;
     includeSelectedOptions?: boolean;
     recentAttendees?: Option[];
-    excludeHiddenThreads?: boolean;
-    canShowManagerMcTest?: boolean;
+    excludeHidden?: boolean;
     searchString?: string;
     searchInputValue?: string;
     maxElements?: number;
@@ -221,6 +213,8 @@ type GetOptionsConfig = {
     countryCode?: number;
     visibleReportActionsData?: VisibleReportActionsDerivedValue;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
+    sortedActions?: Record<string, ReportAction[]>;
+    isTrackIntentUser?: boolean;
 } & GetValidReportsConfig;
 
 type GetUserToInviteConfig = {
@@ -239,7 +233,6 @@ type GetUserToInviteConfig = {
     countryCode?: number;
     loginList: OnyxEntry<Login>;
     currentUserEmail: string;
-    currentUserAccountID: number;
 } & Pick<GetOptionsConfig, 'selectedOptions' | 'showChatPreviewLine'>;
 
 type MemberForList = {
@@ -304,11 +297,15 @@ type OrderReportOptionsConfig = {
 
 type ReportAndPersonalDetailOptions = Pick<Options, 'recentReports' | 'personalDetails' | 'workspaceChats'>;
 
+type OptionsResult = {
+    options: Options;
+    hasMore?: boolean;
+};
+
 export type {
     FilterUserToInviteConfig,
     GetOptionsConfig,
     GetUserToInviteConfig,
-    GetValidOptionsSharedConfig,
     GetValidReportsConfig,
     MemberForList,
     Option,
@@ -323,9 +320,8 @@ export type {
     ReportAndPersonalDetailOptions,
     SearchOption,
     SearchOptionData,
-    Section,
-    SectionBase,
     SelectionListSections,
     SectionForSearchTerm,
     IsValidReportsConfig,
+    OptionsResult,
 };

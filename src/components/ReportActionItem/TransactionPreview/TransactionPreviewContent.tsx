@@ -7,11 +7,12 @@ import Icon from '@components/Icon';
 import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import ReportActionAvatars from '@components/ReportActionAvatars';
 import ReportActionItemImages from '@components/ReportActionItem/ReportActionItemImages';
-import UserInfoCellsWithArrow from '@components/SelectionListWithSections/Search/UserInfoCellsWithArrow';
+import UserInfoCellsWithArrow from '@components/Search/SearchList/ListItem/UserInfoCellsWithArrow';
 import Text from '@components/Text';
 import TransactionPreviewSkeletonView from '@components/TransactionPreviewSkeletonView';
 import useAnimatedHighlightStyle from '@hooks/useAnimatedHighlightStyle';
 import useCardFeedErrors from '@hooks/useCardFeedErrors';
+import {useCurrencyListActions} from '@hooks/useCurrencyList';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useEnvironment from '@hooks/useEnvironment';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
@@ -21,8 +22,7 @@ import useReportIsArchived from '@hooks/useReportIsArchived';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {getBrokenConnectionUrlToFixPersonalCard} from '@libs/CardUtils';
-import {getDecodedCategoryName} from '@libs/CategoryUtils';
-import {convertToDisplayString} from '@libs/CurrencyUtils';
+import {getDecodedLeafCategoryName} from '@libs/CategoryUtils';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {calculateAmount} from '@libs/IOUUtils';
 import Parser from '@libs/Parser';
@@ -68,12 +68,12 @@ function TransactionPreviewContent({
     isReviewDuplicateTransactionPage = false,
     shouldHighlight = false,
 }: TransactionPreviewContentProps) {
-    const icons = useMemoizedLazyExpensifyIcons(['DotIndicator', 'Folder', 'Tag'] as const);
+    const icons = useMemoizedLazyExpensifyIcons(['DotIndicator', 'Folder', 'Tag']);
     const theme = useTheme();
     const styles = useThemeStyles();
     const {translate} = useLocalize();
+    const {convertToDisplayString} = useCurrencyListActions();
     const {environmentURL} = useEnvironment();
-    const [reportViolations] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_VIOLATIONS}${getNonEmptyStringOnyxID(report?.reportID)}`);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${report?.policyID}`);
     const isParentPolicyExpenseChat = isPolicyExpenseChat(chatReport);
     const transactionDetails = useMemo<Partial<TransactionDetails>>(
@@ -86,7 +86,6 @@ function TransactionPreviewContent({
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.parentReportID}`);
     const managerID = report?.managerID ?? reportPreviewAction?.childManagerAccountID ?? CONST.DEFAULT_NUMBER_ID;
     const ownerAccountID = report?.ownerAccountID ?? reportPreviewAction?.childOwnerAccountID ?? CONST.DEFAULT_NUMBER_ID;
-    const isReportAPolicyExpenseChat = isPolicyExpenseChat(chatReport);
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(report?.reportID)}`);
     const isChatReportArchived = useReportIsArchived(chatReport?.reportID);
     const currentUserDetails = useCurrentUserPersonalDetails();
@@ -111,13 +110,12 @@ function TransactionPreviewContent({
             createTransactionPreviewConditionals({
                 ...transactionPreviewCommonArguments,
                 areThereDuplicates,
-                isReportAPolicyExpenseChat,
+                isReportAPolicyExpenseChat: isParentPolicyExpenseChat,
                 currentUserEmail,
                 currentUserAccountID,
                 reportActions,
-                reportViolations,
             }),
-        [areThereDuplicates, transactionPreviewCommonArguments, isReportAPolicyExpenseChat, currentUserEmail, currentUserAccountID, reportActions, reportViolations],
+        [areThereDuplicates, transactionPreviewCommonArguments, isParentPolicyExpenseChat, currentUserEmail, currentUserAccountID, reportActions],
     );
 
     const {shouldShowRBR, shouldShowMerchant, shouldShowSplitShare, shouldShowTag, shouldShowCategory, shouldShowSkeleton, shouldShowDescription} = conditionals;
@@ -125,7 +123,7 @@ function TransactionPreviewContent({
     const filteredViolations = filterReceiptViolations(violations);
     const firstViolation = filteredViolations.at(0);
     const isIOUActionType = isMoneyRequestAction(action);
-    const canEdit = isIOUActionType && canEditMoneyRequest(action, isChatReportArchived, report, policy, transaction);
+    const canEdit = isIOUActionType && canEditMoneyRequest(action, transaction, isChatReportArchived, report, policy);
     const companyCardPageURL = `${environmentURL}/${ROUTES.WORKSPACE_COMPANY_CARDS.getRoute(report?.policyID)}`;
     const {personalCardsWithBrokenConnection} = useCardFeedErrors();
     const connectionLink = getBrokenConnectionUrlToFixPersonalCard(personalCardsWithBrokenConnection, environmentURL);
@@ -134,7 +132,18 @@ function TransactionPreviewContent({
     const isMarkAsCash = parentReport && currentUserLogin ? isMarkAsCashActionForTransaction(currentUserLogin, parentReport, violations, policy) : false;
 
     const violationMessage = firstViolation
-        ? ViolationsUtils.getViolationTranslation(firstViolation, translate, canEdit, undefined, companyCardPageURL, connectionLink, card, isMarkAsCash)
+        ? ViolationsUtils.getViolationTranslation({
+              violation: firstViolation,
+              translate,
+              convertToDisplayString,
+              canEdit,
+              companyCardPageURL,
+              connectionLink,
+              card,
+              isMarkAsCash,
+              routeDistanceMeters: transaction?.comment?.customUnit?.routeDistanceMeters,
+              distanceUnit: transaction?.comment?.customUnit?.distanceUnit,
+          })
         : undefined;
 
     const previewText = useMemo(
@@ -147,8 +156,9 @@ function TransactionPreviewContent({
                 currentUserEmail,
                 currentUserAccountID,
                 originalTransaction,
+                convertToDisplayString,
             }),
-        [transactionPreviewCommonArguments, shouldShowRBR, violationMessage, reportActions, currentUserEmail, currentUserAccountID, originalTransaction],
+        [transactionPreviewCommonArguments, shouldShowRBR, violationMessage, reportActions, currentUserEmail, currentUserAccountID, originalTransaction, convertToDisplayString],
     );
     const getTranslatedText = (item: TranslationPathOrText) => (item.translationPath ? translate(item.translationPath) : (item.text ?? ''));
 
@@ -221,10 +231,10 @@ function TransactionPreviewContent({
             }
         }
 
-        return calculateAmount(isReportAPolicyExpenseChat ? 1 : originalParticipantCount - 1, amount ?? 0, requestCurrency ?? '', actorAccountID === sessionAccountID);
+        return calculateAmount(isParentPolicyExpenseChat ? 1 : originalParticipantCount - 1, amount ?? 0, requestCurrency ?? '', actorAccountID === sessionAccountID);
     }, [
         shouldShowSplitShare,
-        isReportAPolicyExpenseChat,
+        isParentPolicyExpenseChat,
         participantAccountIDs.length,
         transaction?.comment?.splits,
         amount,
@@ -381,7 +391,7 @@ function TransactionPreviewContent({
                                                         numberOfLines={1}
                                                         style={[isDeleted && styles.lineThrough, styles.textMicroSupporting, styles.pre, styles.flexShrink1]}
                                                     >
-                                                        {getDecodedCategoryName(category ?? '')}
+                                                        {getDecodedLeafCategoryName(category ?? '')}
                                                     </Text>
                                                 </View>
                                             )}

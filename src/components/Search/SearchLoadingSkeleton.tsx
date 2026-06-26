@@ -4,6 +4,7 @@ import Animated, {FadeIn, FadeOut} from 'react-native-reanimated';
 import SearchRowSkeleton from '@components/Skeletons/SearchRowSkeleton';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {endSpanWithAttributes} from '@libs/telemetry/activeSpans';
+import {endNavigateToReportsFirstPaint} from '@libs/telemetry/navigateToReportsSpans';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import CONST from '@src/CONST';
 
@@ -14,6 +15,7 @@ type SearchLoadingSkeletonProps = {
 
 function SearchLoadingSkeleton({containerStyle, reasonAttributes}: SearchLoadingSkeletonProps) {
     const styles = useThemeStyles();
+    const skeletonReasonAttributes = reasonAttributes ?? {context: 'SearchLoadingSkeleton'};
 
     return (
         <Animated.View
@@ -22,12 +24,13 @@ function SearchLoadingSkeleton({containerStyle, reasonAttributes}: SearchLoading
             style={[styles.flex1]}
             onLayout={() => {
                 endSpanWithAttributes(CONST.TELEMETRY.SPAN_NAVIGATE_TO_REPORTS, {[CONST.TELEMETRY.ATTRIBUTE_IS_WARM]: false});
+                endNavigateToReportsFirstPaint(CONST.TELEMETRY.NAVIGATE_TO_REPORTS_START_TYPE.COLD);
             }}
         >
             <SearchRowSkeleton
                 shouldAnimate
                 containerStyle={containerStyle}
-                reasonAttributes={reasonAttributes}
+                reasonAttributes={skeletonReasonAttributes}
             />
         </Animated.View>
     );

@@ -12,11 +12,10 @@ function TabSelector({
     state,
     navigation,
     onTabPress = () => {},
+    onLongTabPress,
     position,
     onFocusTrapContainerElementChanged,
     shouldShowLabelWhenInactive = true,
-    shouldShowProductTrainingTooltip = false,
-    renderProductTrainingTooltip,
     equalWidth = false,
 }: TabSelectorProps) {
     const icons = useMemoizedLazyExpensifyIcons(MEMOIZED_LAZY_TAB_SELECTOR_ICONS);
@@ -66,10 +65,9 @@ function TabSelector({
                     tabs={tabs}
                     activeTabKey={activeRouteName}
                     onTabPress={handleTabPress}
+                    onLongTabPress={onLongTabPress}
                     position={position}
                     shouldShowLabelWhenInactive={shouldShowLabelWhenInactive}
-                    shouldShowProductTrainingTooltip={shouldShowProductTrainingTooltip}
-                    renderProductTrainingTooltip={renderProductTrainingTooltip}
                     equalWidth={equalWidth}
                 />
             </ScrollableTabSelectorContextProvider>

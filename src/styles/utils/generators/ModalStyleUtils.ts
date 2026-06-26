@@ -1,6 +1,6 @@
 import type {ViewStyle} from 'react-native';
 import type ReanimatedModalProps from '@components/Modal/ReanimatedModal/types';
-import {isMobileSafari} from '@libs/Browser';
+import {isMobile} from '@libs/Browser';
 import type {ThemeStyles} from '@styles/index';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
@@ -36,24 +36,27 @@ type GetModalStyles = {
     shouldAddTopSafeAreaPadding: boolean;
 };
 
+type GetModalStylesOptions = {
+    type: ModalType | undefined;
+    windowDimensions: WindowDimensions;
+    popoverAnchorPosition?: ViewStyle;
+    innerContainerStyle?: ViewStyle;
+    outerStyle?: ViewStyle;
+    shouldUseModalPaddingStyle?: boolean;
+    safeAreaOptions?: {
+        shouldDisableBottomSafeAreaPadding?: boolean;
+        modalOverlapsWithTopSafeArea?: boolean;
+    };
+    enableEdgeToEdgeBottomSafeAreaPadding?: boolean;
+    shouldDisplayBelowModals?: boolean;
+};
+
 type GetModalStylesStyleUtil = {
-    getModalStyles: (
-        type: ModalType | undefined,
-        windowDimensions: WindowDimensions,
-        popoverAnchorPosition?: ViewStyle,
-        innerContainerStyle?: ViewStyle,
-        outerStyle?: ViewStyle,
-        shouldUseModalPaddingStyle?: boolean,
-        safeAreaOptions?: {
-            shouldDisableBottomSafeAreaPadding?: boolean;
-            modalOverlapsWithTopSafeArea?: boolean;
-        },
-        shouldDisplayBelowModals?: boolean,
-    ) => GetModalStyles;
+    getModalStyles: (options: GetModalStylesOptions) => GetModalStyles;
 };
 
 const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({theme, styles}) => ({
-    getModalStyles: (
+    getModalStyles: ({
         type,
         windowDimensions,
         popoverAnchorPosition = {},
@@ -61,8 +64,9 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
         outerStyle = {},
         shouldUseModalPaddingStyle = true,
         safeAreaOptions = {modalOverlapsWithTopSafeArea: false, shouldDisableBottomSafeAreaPadding: false},
+        enableEdgeToEdgeBottomSafeAreaPadding = false,
         shouldDisplayBelowModals = false,
-    ): GetModalStyles => {
+    }): GetModalStyles => {
         const {windowWidth, isSmallScreenWidth} = windowDimensions;
 
         let modalStyle: GetModalStyles['modalStyle'] = {
@@ -236,15 +240,18 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                     // Workaround for Safari not supporting interactive-widget=resizes-content, sets max height of a container modal.
                     // This allows better scrolling experience after keyboard shows for modals with input, that are larger than remaining screen height.
                     // More info https://github.com/Expensify/App/pull/62799#issuecomment-2943136220.
-                    ...(isMobileSafari() ? {maxHeight: `${windowDimensions.windowHeight}px`} : {}),
+                    ...(isMobile() ? {maxHeight: `${windowDimensions.windowHeight}px`, height: 'fit-content'} : {}),
                 };
 
                 if (shouldUseModalPaddingStyle) {
                     modalContainerStyle.paddingTop = variables.componentBorderRadiusLarge;
-                    modalContainerStyle.paddingBottom = variables.componentBorderRadiusLarge;
+
+                    if (!enableEdgeToEdgeBottomSafeAreaPadding) {
+                        modalContainerStyle.paddingBottom = variables.componentBorderRadiusLarge;
+                    }
                 }
 
-                shouldAddBottomSafeAreaPadding = !safeAreaOptions?.shouldDisableBottomSafeAreaPadding;
+                shouldAddBottomSafeAreaPadding = !enableEdgeToEdgeBottomSafeAreaPadding && !safeAreaOptions?.shouldDisableBottomSafeAreaPadding;
                 shouldAddTopSafeAreaMargin = !!safeAreaOptions?.modalOverlapsWithTopSafeArea;
                 swipeDirection = undefined;
                 animationIn = 'slideInUp';
@@ -293,7 +300,7 @@ const createModalStyleUtils: StyleUtilGenerator<GetModalStylesStyleUtil> = ({the
                 animationOut = 'slideOutRight';
 
                 swipeDirection = undefined;
-                shouldAddBottomSafeAreaPadding = true;
+                shouldAddBottomSafeAreaPadding = !enableEdgeToEdgeBottomSafeAreaPadding;
                 shouldAddTopSafeAreaPadding = true;
                 break;
             default:

@@ -1,4 +1,4 @@
-import type {TransactionListItemType} from '@components/SelectionListWithSections/types';
+import type {TransactionListItemType} from '@components/Search/SearchList/ListItem/types';
 import {getReportIDForTransaction, hasNonReimbursableTransactions, isBillableEnabledOnPolicy} from '@libs/MoneyRequestReportUtils';
 import CONST from '@src/CONST';
 import type {Policy, Report, ReportAction, Transaction} from '@src/types/onyx';
@@ -44,7 +44,6 @@ const reportActionBaseMock: ReportAction = {
     originalMessage: {
         type: CONST.IOU.REPORT_ACTION_TYPE.CREATE,
         IOUTransactionID: '555',
-        IOUReportID: reportBaseMock.reportID,
     },
     reportID: reportBaseMock.reportID,
 };
@@ -52,6 +51,10 @@ const reportActionBaseMock: ReportAction = {
 const transactionItemBaseMock: TransactionListItemType = {
     action: 'submit',
     allActions: ['submit'],
+    canPay: false,
+    canApprove: false,
+    canSubmit: true,
+    canChangeApprover: false,
     amount: -5000,
     report: reportBaseMock,
     policy: policyBaseMock,

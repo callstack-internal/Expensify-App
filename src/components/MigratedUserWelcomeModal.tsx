@@ -1,5 +1,6 @@
 import React, {useMemo} from 'react';
 import {View} from 'react-native';
+import useBeforeRemove from '@hooks/useBeforeRemove';
 import useIsPaidPolicyAdmin from '@hooks/useIsPaidPolicyAdmin';
 import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
@@ -11,13 +12,15 @@ import {openExternalLink} from '@libs/actions/Link';
 import {dismissProductTraining} from '@libs/actions/Welcome';
 import convertToLTR from '@libs/convertToLTR';
 import Log from '@libs/Log';
+import Navigation from '@libs/Navigation/Navigation';
+import {buildCannedSearchQuery} from '@libs/SearchQueryUtils';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
+import ROUTES from '@src/ROUTES';
+import CenteredModalLayout from './CenteredModalLayout';
 import type {FeatureListItem} from './FeatureList';
-import FeatureTrainingModal from './FeatureTrainingModal';
+import FeatureTrainingContent from './FeatureTrainingContent';
 import Icon from './Icon';
-// eslint-disable-next-line no-restricted-imports
-import * as Illustrations from './Icon/Illustrations';
 import LottieAnimations from './LottieAnimations';
 import RenderHTML from './RenderHTML';
 
@@ -27,17 +30,17 @@ function MigratedUserWelcomeModal() {
     const StyleUtils = useStyleUtils();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
     const isReduceMotionEnabled = Accessibility.useReducedMotion();
-    const illustrations = useMemoizedLazyIllustrations(['ChatBubbles', 'PlanetWithMobileApp']);
+    const illustrations = useMemoizedLazyIllustrations(['ChatBubbles', 'ConciergeBot', 'PlanetWithMobileApp', 'MagnifyingGlassReceipt']);
     const isCurrentUserPolicyAdmin = useIsPaidPolicyAdmin();
 
     const ExpensifyFeatures = useMemo<FeatureListItem[]>(
         () => [
             {
-                icon: Illustrations.MagnifyingGlassReceipt,
+                icon: illustrations.MagnifyingGlassReceipt,
                 translationKey: 'migratedUserWelcomeModal.features.search',
             },
             {
-                icon: Illustrations.ConciergeBot,
+                icon: illustrations.ConciergeBot,
                 translationKey: 'migratedUserWelcomeModal.features.concierge',
             },
             {
@@ -45,8 +48,26 @@ function MigratedUserWelcomeModal() {
                 translationKey: 'migratedUserWelcomeModal.features.chat',
             },
         ],
-        [illustrations.ChatBubbles],
+        [illustrations.ChatBubbles, illustrations.ConciergeBot, illustrations.MagnifyingGlassReceipt],
     );
+
+    const handleDismiss = () => {
+        Log.hmmm('[MigratedUserWelcomeModal] dismissing product training');
+        dismissProductTraining(CONST.MIGRATED_USER_WELCOME_MODAL);
+        Navigation.navigate(ROUTES.SEARCH_ROOT.getRoute({query: buildCannedSearchQuery({type: CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT})}));
+    };
+
+    useBeforeRemove(handleDismiss);
+
+    const handleClose = () => Navigation.goBack();
+
+    const illustrationProps = isReduceMotionEnabled
+        ? {image: illustrations.PlanetWithMobileApp}
+        : {
+              videoURL: '',
+              animation: LottieAnimations.WorkspacePlanet,
+              animationStyle: [styles.emptyWorkspaceIllustrationStyle],
+          };
 
     const onHelp = () => {
         Log.info('[MigratedUserWelcomeModal] onHelp called, opening help URL based on admin status and device type');
@@ -57,77 +78,47 @@ function MigratedUserWelcomeModal() {
         dismissProductTraining(CONST.MIGRATED_USER_WELCOME_MODAL);
     };
 
-    const onClose = () => {
-        Log.hmmm('[MigratedUserWelcomeModal] onClose called, dismissing product training');
-        dismissProductTraining(CONST.MIGRATED_USER_WELCOME_MODAL);
-    };
-
-    const featureListContent = (
-        <View
-            style={[styles.gap3, styles.pt1, styles.pl1]}
-            fsClass={CONST.FULLSTORY.CLASS.UNMASK}
+    return (
+        <CenteredModalLayout
+            onBackdropPress={handleClose}
+            contentStyle={[styles.pt0, styles.pb0]}
         >
-            {ExpensifyFeatures.map(({translationKey, icon}) => (
-                <View
-                    key={translationKey}
-                    style={[styles.flexRow, styles.alignItemsCenter, styles.wAuto]}
-                >
-                    <Icon
-                        src={icon}
-                        height={variables.menuIconSize}
-                        width={variables.menuIconSize}
-                    />
-                    <View style={[styles.flexRow, styles.alignItemsCenter, styles.wAuto, styles.flex1, styles.ml6]}>
-                        <RenderHTML html={`<comment>${convertToLTR(translate(translationKey))}</comment>`} />
-                    </View>
-                </View>
-            ))}
-        </View>
-    );
-
-    if (isReduceMotionEnabled) {
-        return (
-            <FeatureTrainingModal
-                image={illustrations.PlanetWithMobileApp}
+            <FeatureTrainingContent
+                {...illustrationProps}
                 title={translate('migratedUserWelcomeModal.title')}
                 description={translate('migratedUserWelcomeModal.subtitle')}
                 confirmText={translate('migratedUserWelcomeModal.confirmText')}
                 helpText={translate('migratedUserWelcomeModal.helpText')}
                 onHelp={onHelp}
-                onClose={onClose}
+                onClose={handleClose}
                 illustrationInnerContainerStyle={[StyleUtils.getBackgroundColorStyle(LottieAnimations.WorkspacePlanet.backgroundColor), styles.cardSectionIllustration]}
                 illustrationOuterContainerStyle={styles.p0}
                 contentInnerContainerStyles={[styles.mb5, styles.gap2]}
                 contentOuterContainerStyles={!shouldUseNarrowLayout && [styles.mt8, styles.mh8]}
-                modalInnerContainerStyle={{...styles.pt0, ...(shouldUseNarrowLayout ? {} : styles.pb8)}}
                 shouldUseScrollView
             >
-                {featureListContent}
-            </FeatureTrainingModal>
-        );
-    }
-
-    return (
-        <FeatureTrainingModal
-            // We would like to show the Lottie animation instead of a video
-            videoURL=""
-            animation={LottieAnimations.WorkspacePlanet}
-            animationStyle={[styles.emptyWorkspaceIllustrationStyle]}
-            title={translate('migratedUserWelcomeModal.title')}
-            description={translate('migratedUserWelcomeModal.subtitle')}
-            confirmText={translate('migratedUserWelcomeModal.confirmText')}
-            helpText={translate('migratedUserWelcomeModal.helpText')}
-            onHelp={onHelp}
-            onClose={onClose}
-            illustrationInnerContainerStyle={[StyleUtils.getBackgroundColorStyle(LottieAnimations.WorkspacePlanet.backgroundColor), styles.cardSectionIllustration]}
-            illustrationOuterContainerStyle={styles.p0}
-            contentInnerContainerStyles={[styles.mb5, styles.gap2]}
-            contentOuterContainerStyles={!shouldUseNarrowLayout && [styles.mt8, styles.mh8]}
-            modalInnerContainerStyle={{...styles.pt0, ...(shouldUseNarrowLayout ? {} : styles.pb8)}}
-            shouldUseScrollView
-        >
-            {featureListContent}
-        </FeatureTrainingModal>
+                <View
+                    style={[styles.gap3, styles.pt1, styles.pl1]}
+                    fsClass={CONST.FULLSTORY.CLASS.UNMASK}
+                >
+                    {ExpensifyFeatures.map(({translationKey, icon}) => (
+                        <View
+                            key={translationKey}
+                            style={[styles.flexRow, styles.alignItemsCenter, styles.wAuto]}
+                        >
+                            <Icon
+                                src={icon}
+                                height={variables.menuIconSize}
+                                width={variables.menuIconSize}
+                            />
+                            <View style={[styles.flexRow, styles.alignItemsCenter, styles.wAuto, styles.flex1, styles.ml6]}>
+                                <RenderHTML html={`<comment>${convertToLTR(translate(translationKey))}</comment>`} />
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            </FeatureTrainingContent>
+        </CenteredModalLayout>
     );
 }
 

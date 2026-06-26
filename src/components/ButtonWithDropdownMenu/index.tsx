@@ -50,7 +50,7 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
         wrapperStyle,
         useKeyboardShortcuts = false,
         defaultSelectedIndex = 0,
-        shouldShowSelectedItemCheck = false,
+        shouldShowRadioButton = false,
         testID,
         secondLineText = '',
         icon,
@@ -87,6 +87,8 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
     const isButtonSizeExtraSmall = buttonSize === CONST.DROPDOWN_BUTTON_SIZE.EXTRA_SMALL;
     const nullCheckRef = (refParam: RefObject<View | null>) => refParam ?? null;
     const shouldShowButtonRightIcon = !!options.at(0)?.shouldShowButtonRightIcon;
+    const splitButtonIcon = hasError ? icons.DotIndicator : icon;
+    const singleOptionButtonIcon = shouldUseOptionIcon && !shouldShowButtonRightIcon ? options.at(0)?.icon : icon;
 
     useEffect(() => {
         setSelectedItemIndex(defaultSelectedIndex);
@@ -172,11 +174,12 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
                         ref={dropdownButtonRef}
                         onPress={handlePress}
                         text={customText ?? selectedItem?.text ?? ''}
+                        accessibilityState={!isSplitButton ? {expanded: isMenuVisible} : undefined}
                         isDisabled={isDisabled || areAllOptionsDisabled}
                         shouldStayNormalOnDisable={shouldStayNormalOnDisable}
                         isLoading={isLoading}
                         shouldRemoveRightBorderRadius
-                        style={isSplitButton ? [styles.flex1, styles.pr0] : {}}
+                        style={isSplitButton ? [styles.pr0, styles.flexGrow1, styles.flexShrink1] : {}}
                         extraSmall={buttonSize === CONST.DROPDOWN_BUTTON_SIZE.EXTRA_SMALL}
                         large={buttonSize === CONST.DROPDOWN_BUTTON_SIZE.LARGE}
                         medium={buttonSize === CONST.DROPDOWN_BUTTON_SIZE.MEDIUM}
@@ -187,13 +190,16 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
                         iconRightStyles={isMenuVisible ? styles.flipUpsideDown : undefined}
                         shouldShowRightIcon={!isSplitButton && !isLoading && options?.length > 0}
                         testID={testID}
-                        textStyles={[isTextTooLong && shouldUseShortForm ? {...styles.textExtraSmall, ...styles.textBold} : {}]}
+                        textStyles={[
+                            isTextTooLong && shouldUseShortForm ? {...styles.textExtraSmall, ...styles.textBold} : {},
+                            !!secondLineText && !!splitButtonIcon && styles.textAlignLeft,
+                        ]}
                         secondLineText={secondLineText}
-                        icon={hasError ? icons.DotIndicator : icon}
+                        icon={splitButtonIcon}
                         iconFill={hasError ? theme.danger : undefined}
                         iconHoverFill={hasError ? theme.danger : undefined}
-                        iconRightFill={hasError ? theme.icon : undefined}
-                        iconRightHoverFill={hasError ? theme.icon : undefined}
+                        iconRightFill={hasError ? theme.buttonIcon : undefined}
+                        iconRightHoverFill={hasError ? theme.buttonIcon : undefined}
                         sentryLabel={sentryLabel}
                     />
 
@@ -202,6 +208,7 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
                             ref={dropdownAnchor}
                             success={success}
                             isDisabled={isDisabled}
+                            accessibilityState={{expanded: isMenuVisible}}
                             shouldStayNormalOnDisable={shouldStayNormalOnDisable}
                             style={[styles.pl0]}
                             onPress={() => setIsMenuVisible(!isMenuVisible)}
@@ -231,7 +238,7 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
                                         height={shouldUseShortForm ? variables.iconSizeExtraSmall : undefined}
                                         src={icons.DownArrow}
                                         additionalStyles={[...(shouldUseShortForm ? [styles.pRelative, styles.t0] : []), isMenuVisible ? styles.flipUpsideDown : undefined]}
-                                        fill={success ? theme.buttonSuccessText : theme.icon}
+                                        fill={success ? theme.buttonSuccessText : theme.buttonIcon}
                                         testID="dropdown-arrow-icon"
                                     />
                                 </View>
@@ -259,9 +266,10 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
                     iconRightStyles={shouldShowButtonRightIcon && styles.ml2}
                     enterKeyEventListenerPriority={enterKeyEventListenerPriority}
                     secondLineText={secondLineText}
-                    icon={shouldUseOptionIcon && !shouldShowButtonRightIcon ? options.at(0)?.icon : icon}
+                    icon={singleOptionButtonIcon}
                     iconRight={shouldShowButtonRightIcon ? options.at(0)?.icon : undefined}
                     shouldShowRightIcon={shouldShowButtonRightIcon}
+                    textStyles={!!secondLineText && !!singleOptionButtonIcon && styles.textAlignLeft}
                     testID={testID}
                     sentryLabel={sentryLabel}
                 />
@@ -281,7 +289,7 @@ function ButtonWithDropdownMenu<IValueType>({ref, ...props}: ButtonWithDropdownM
                         }
                     }}
                     anchorPosition={popoverAnchorPosition}
-                    shouldShowSelectedItemCheck={shouldShowSelectedItemCheck}
+                    shouldShowRadioButton={shouldShowRadioButton}
                     anchorRef={nullCheckRef(dropdownAnchor)}
                     scrollContainerStyle={!shouldUseModalPaddingStyle && isSmallScreenWidth && {...styles.pt4, paddingBottom}}
                     anchorAlignment={anchorAlignment}

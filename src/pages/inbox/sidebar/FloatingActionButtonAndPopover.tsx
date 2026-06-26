@@ -15,7 +15,6 @@ import NewChatMenuItem from './FABPopoverContent/menuItems/NewChatMenuItem';
 import NewWorkspaceMenuItem from './FABPopoverContent/menuItems/NewWorkspaceMenuItem';
 import OnyxPlaygroundMenuItem from './FABPopoverContent/menuItems/OnyxPlaygroundMenuItem';
 import QuickActionMenuItem from './FABPopoverContent/menuItems/QuickActionMenuItem';
-import TestDriveMenuItem from './FABPopoverContent/menuItems/TestDriveMenuItem';
 import TrackDistanceMenuItem from './FABPopoverContent/menuItems/TrackDistanceMenuItem';
 import TravelMenuItem from './FABPopoverContent/menuItems/TravelMenuItem';
 
@@ -76,7 +75,6 @@ function FloatingActionButtonAndPopover() {
                 <NewChatMenuItem />
                 <InvoiceMenuItem reportID={reportID} />
                 <TravelMenuItem />
-                <TestDriveMenuItem />
                 <NewWorkspaceMenuItem />
                 <QuickActionMenuItem reportID={reportID} />
                 <OnyxPlaygroundMenuItem />

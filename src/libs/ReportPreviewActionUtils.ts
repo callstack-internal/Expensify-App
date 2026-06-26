@@ -2,13 +2,23 @@ import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import CONST from '@src/CONST';
 import type {BankAccountList, Policy, Report, ReportMetadata, Transaction, TransactionViolation} from '@src/types/onyx';
-import {arePaymentsEnabled, getSubmitToAccountID, getValidConnectedIntegration, hasDynamicExternalWorkflow, hasIntegrationAutoSync, isPreferredExporter} from './PolicyUtils';
+import {
+    arePaymentsEnabled,
+    getSubmitToAccountID,
+    getValidConnectedIntegration,
+    hasDynamicExternalWorkflow,
+    hasIntegrationAutoSync,
+    isPreferredExporter,
+    isSubmitterApproveBlockedOnSubmitWorkspace,
+} from './PolicyUtils';
 import {hasPendingDEWApprove} from './ReportActionsUtils';
 import {isAddExpenseAction} from './ReportPrimaryActionUtils';
 import {
     getMoneyRequestSpendBreakdown,
     getParentReport,
     getReportTransactions,
+    hasExportError as hasExportErrorUtil,
+    hasOnlyNonReimbursableTransactions,
     isClosedReport,
     isCurrentUserSubmitter,
     isExpenseReport,
@@ -38,12 +48,6 @@ function canSubmit(
     const isExpense = isExpenseReport(report);
     const isSubmitter = isCurrentUserSubmitter(report);
     const isOpen = isOpenReport(report);
-    const isManager = report.managerID === currentUserAccountID;
-    const isAdmin = policy?.role === CONST.POLICY.ROLE.ADMIN;
-
-    if (!!transactions && transactions?.length > 0 && transactions.every((transaction) => isPending(transaction))) {
-        return false;
-    }
 
     const isAnyReceiptBeingScanned = transactions?.some((transaction) => isScanning(transaction));
 
@@ -61,10 +65,14 @@ function canSubmit(
         return false;
     }
 
-    return isExpense && (isSubmitter || isManager || isAdmin) && isOpen && !isAnyReceiptBeingScanned && !!transactions && transactions.length > 0;
+    return isExpense && isSubmitter && isOpen && !isAnyReceiptBeingScanned && !!transactions && transactions.length > 0;
 }
 
 function canApprove(report: Report, currentUserAccountID: number, reportMetadata: OnyxEntry<ReportMetadata>, policy?: Policy, transactions?: Transaction[]) {
+    if (isSubmitterApproveBlockedOnSubmitWorkspace(policy, report.ownerAccountID, currentUserAccountID)) {
+        return false;
+    }
+
     const isExpense = isExpenseReport(report);
     const isProcessing = isProcessingReport(report);
     const isApprovalEnabled = policy?.approvalMode && policy.approvalMode !== CONST.POLICY.APPROVAL_MODE.OPTIONAL;
@@ -102,6 +110,7 @@ function canPay(
     currentUserAccountID: number,
     currentUserLogin: string,
     bankAccountList: OnyxEntry<BankAccountList>,
+    transactions: Transaction[],
     policy?: Policy,
     invoiceReceiverPolicy?: Policy,
 ) {
@@ -118,14 +127,20 @@ function canPay(
     const isApproved = isReportApproved({report}) || isSubmittedWithoutApprovalsEnabled;
     const isClosed = isClosedReport(report);
     const isReportFinished = (isApproved || isClosed) && !report.isWaitingOnBankAccount;
-    const {reimbursableSpend} = getMoneyRequestSpendBreakdown(report);
+    const {reimbursableSpend, nonReimbursableSpend} = getMoneyRequestSpendBreakdown(report);
     const isReimbursed = isSettled(report);
 
     const isExported = report.isExportedToIntegration ?? false;
-    const hasExportError = report?.hasExportError ?? false;
+    const hasExportError = hasExportErrorUtil(undefined, report);
     const didExportFail = !isExported && hasExportError;
 
-    if (isExpense && isReportPayer && isPaymentsEnabled && isReportFinished && reimbursableSpend !== 0) {
+    if (
+        isExpense &&
+        isReportPayer &&
+        isPaymentsEnabled &&
+        isReportFinished &&
+        (reimbursableSpend !== 0 || (nonReimbursableSpend !== 0 && hasOnlyNonReimbursableTransactions(report?.reportID, transactions)))
+    ) {
         return !didExportFail;
     }
 
@@ -171,7 +186,7 @@ function canExport(report: Report, currentUserLogin: string, policy?: Policy) {
         return false;
     }
 
-    const hasExportError = report.hasExportError ?? false;
+    const hasExportError = hasExportErrorUtil(undefined, report);
     if (syncEnabled && !hasExportError) {
         return false;
     }
@@ -219,7 +234,7 @@ function getReportPreviewAction({
     }
 
     // We want to have action displayed for either paid or approved animations
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
     if (isPaidAnimationRunning || isApprovedAnimationRunning) {
         return CONST.REPORT.REPORT_PREVIEW_ACTIONS.PAY;
     }
@@ -241,7 +256,7 @@ function getReportPreviewAction({
     if (canApprove(report, currentUserAccountID, reportMetadata, policy, transactions)) {
         return CONST.REPORT.REPORT_PREVIEW_ACTIONS.APPROVE;
     }
-    if (canPay(report, isReportArchived, currentUserAccountID, currentUserLogin, bankAccountList, policy, invoiceReceiverPolicy)) {
+    if (canPay(report, isReportArchived, currentUserAccountID, currentUserLogin, bankAccountList, transactions, policy, invoiceReceiverPolicy)) {
         return CONST.REPORT.REPORT_PREVIEW_ACTIONS.PAY;
     }
     if (canExport(report, currentUserLogin, policy)) {

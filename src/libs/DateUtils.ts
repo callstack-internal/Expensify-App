@@ -305,6 +305,18 @@ function getMonthNames(): string[] {
 }
 
 /**
+ * Returns month list items for SelectionList.
+ */
+function getFilteredMonthItems(monthNames: string[], currentMonth: number) {
+    return monthNames.map((month, index) => ({
+        text: month.charAt(0).toUpperCase() + month.slice(1),
+        value: index,
+        keyForList: index.toString(),
+        isSelected: index === currentMonth,
+    }));
+}
+
+/**
  * @returns [Monday, Tuesday, Wednesday, ...]
  */
 function getDaysOfWeek(): string[] {
@@ -363,6 +375,14 @@ function addMillisecondsFromDateTime(dateTime: string, milliseconds: number): st
     const newTimestamp = addMilliseconds(date, milliseconds).valueOf();
 
     return getDBTime(newTimestamp);
+}
+
+/** Whole seconds left in a `windowMs` window that began at epoch-ms `requestedAt`. Clamped to [0, windowMs/1000]. */
+function getRemainingSecondsInWindow(requestedAt: number | undefined, windowMs: number): number {
+    if (!requestedAt) {
+        return 0;
+    }
+    return Math.max(0, Math.ceil((windowMs - (Date.now() - requestedAt)) / CONST.MILLISECONDS_PER_SECOND));
 }
 
 /**
@@ -840,13 +860,13 @@ function getFormattedDuration(translateParam: LocaleContextProps['translate'], d
 const TIME_UNIT_PADDING = 2; // Pad time units to 2 digits (e.g., "09" instead of "9")
 
 /**
- * Formats a countdown timer with hours, minutes, and seconds (e.g., "23h 59m 59s").
+ * Formats a countdown timer with hours, minutes, and seconds (e.g., "23h : 59m : 59s").
  */
 function formatCountdownTimer(translateParam: LocaleContextProps['translate'], hours: number, minutes: number, seconds: number): string {
     const paddedMinutes = minutes.toString().padStart(TIME_UNIT_PADDING, '0');
     const paddedSeconds = seconds.toString().padStart(TIME_UNIT_PADDING, '0');
 
-    return `${hours}${translateParam('common.hourAbbreviation')} ${paddedMinutes}${translateParam('common.minuteAbbreviation')} ${paddedSeconds}${translateParam('common.secondAbbreviation')}`;
+    return `${hours}${translateParam('common.hourAbbreviation')} : ${paddedMinutes}${translateParam('common.minuteAbbreviation')} : ${paddedSeconds}${translateParam('common.secondAbbreviation')}`;
 }
 
 function doesDateBelongToAPastYear(date: string): boolean {
@@ -1017,13 +1037,16 @@ function isDateStringInMonth(dateString: string, year: number, month: number): b
 /**
  * Returns a formatted date range.
  */
-function getFormattedDateRangeForSearch(startDate: string, endDate: string): string {
+function getFormattedDateRangeForSearch(startDate: string, endDate: string, shouldShowFullYear = false, shouldOmitCurrentYear = false): string {
     const start = parse(startDate, 'yyyy-MM-dd', new Date());
     const end = parse(endDate, 'yyyy-MM-dd', new Date());
-    if (isSameYear(new Date(start), new Date(end))) {
-        return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    if (shouldShowFullYear || !isSameYear(new Date(start), new Date(end))) {
+        return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
     }
-    return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
+    if (shouldOmitCurrentYear && isThisYear(start) && isThisYear(end)) {
+        return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+    }
+    return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
 }
 
 function getYearDateRange(year: number): {start: string; end: string} {
@@ -1073,6 +1096,7 @@ const DateUtils = {
     getDBTime,
     subtractMillisecondsFromDateTime,
     addMillisecondsFromDateTime,
+    getRemainingSecondsInWindow,
     getEndOfToday,
     getStartOfToday,
     getDateFromStatusType,
@@ -1090,6 +1114,7 @@ const DateUtils = {
     isTomorrow,
     isYesterday,
     getMonthNames,
+    getFilteredMonthItems,
     getDaysOfWeek,
     formatWithUTCTimeZone,
     getWeekEndsOn,

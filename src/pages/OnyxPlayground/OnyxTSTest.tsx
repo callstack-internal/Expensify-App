@@ -60,42 +60,29 @@ function OnyxTSTest({reportId, prop2 = 0}: OnyxTSTestProps) {
 
     Onyx.connect({
         key: ONYXKEYS.COLLECTION.REPORT,
-        callback: (value) => {
+        callback: (value, key, sourceValues) => {
             if (!value) {
                 return;
             }
 
             console.log(value.report1?.policyID);
             console.log(value.report2?.policyID);
+            console.log(sourceValues?.report1?.policyID);
         },
-        waitForCollectionCallback: true,
     });
 
     Onyx.connect({
-        key: ONYXKEYS.COLLECTION.REPORT,
-        callback: (value, key) => {
-            if (!value) {
-                return;
-            }
-
-            console.log(value.policyID);
-            console.log(value.policyID);
-        },
-        waitForCollectionCallback: false,
-    });
-
-    Onyx.connect({
-        // @ts-expect-error raises an error, collection member key - incorrect
         key: `${ONYXKEYS.COLLECTION.REPORT}${`report1`}`,
-        callback: (value) => {
+        callback: (value, key, sourceValues) => {
             if (!value) {
                 return;
             }
 
-            console.log(value.report1?.policyID);
-            console.log(value.report2?.policyID);
+            console.log(value?.policyID);
+            console.log(value?.policyID);
+            // @ts-expect-error raises an error, sourceValues exist only for collection keys - correct
+            console.log(sourceValues?.policyID);
         },
-        waitForCollectionCallback: true,
     });
 
     Onyx.set(ONYXKEYS.ACCOUNT, {primaryLogin: 'account1'});

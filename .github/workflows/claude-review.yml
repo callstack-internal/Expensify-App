@@ -110,6 +110,15 @@ jobs:
           STRUCTURED_OUTPUT: ${{ steps.code-review.outputs.structured_output }}
         run: postCodeReviewResults.sh "$PR_NUMBER"
 
+      # Monitoring (emit only): print prompt-cache token counts to the log so the
+      # out-of-band collector (.github/workflows/reviewer-cache-monitor.yml) can
+      # track cache health across runs. Counts only - no message content.
+      - name: Emit reviewer cache usage
+        if: always() && steps.code-review.outputs.execution_file != ''
+        env:
+          EXEC_FILE: ${{ steps.code-review.outputs.execution_file }}
+        run: .github/scripts/emit-cache-usage.sh
+
       - name: Run Claude Code (docs)
         if: steps.set-authorized.outputs.IS_AUTHORIZED == 'true' && steps.filter.outputs.docs == 'true'
         uses: anthropics/claude-code-action@4d7e1f0cd85743fdc93b1c8040ab54395da024e2 # v1.0.149

@@ -32,6 +32,8 @@ for id in "${RUNS[@]}"; do
   c=$(sed -n 's/.*creation=\([0-9][0-9]*\).*/\1/p' <<<"$line")
   r=$(sed -n 's/.*read=\([0-9][0-9]*\).*/\1/p' <<<"$line")
   [ -n "$c" ] && [ -n "$r" ] || continue
+  # no cache activity at all = no data, not a warm sample
+  [ "$c" -eq 0 ] && [ "$r" -eq 0 ] && continue
   t=$(( c + r )); ratio=0; [ "$t" -gt 0 ] && ratio=$(( r * 100 / t ))
   scanned=$(( scanned + 1 ))
   [ "$c" -gt "$WARN_TOKENS" ] && cold=$(( cold + 1 ))

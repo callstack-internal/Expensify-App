@@ -1,9 +1,12 @@
 import type {Context, RefObject} from 'react';
 import {createContext, useContext} from 'react';
 import type {OnyxEntry} from 'react-native-onyx';
+import type {ValueOf} from 'type-fest';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
+import type CONST from '@src/CONST';
 import type {PersonalDetails, Policy, Report, ReportAction, Transaction} from '@src/types/onyx';
 import type {PaymentMethodType} from '@src/types/onyx/OriginalMessage';
+import type {ConnectionName} from '@src/types/onyx/Policy';
 import type {MoneyRequestReportPreviewStyleType} from './types';
 import type usePreviewMessageAnimation from './usePreviewMessageAnimation';
 import type useReportPreviewCarousel from './useReportPreviewCarousel';
@@ -45,12 +48,21 @@ type ReportPreviewUIState = {
     carouselReasonAttributes: SkeletonSpanReasonAttributes;
     previewMessageStyle: ReturnType<typeof usePreviewMessageAnimation>['previewMessageStyle'];
     reportPreviewStyles: MoneyRequestReportPreviewStyleType;
+    buttonMaxWidth: {maxWidth?: number};
 };
 
 type ReportPreviewCarouselList = Pick<
     ReturnType<typeof useReportPreviewCarousel>,
     'carouselTransactions' | 'carouselKey' | 'snapOffsets' | 'renderItem' | 'getItemType' | 'renderSeparator' | 'viewabilityConfig' | 'onViewableItemsChanged' | 'adjustScroll'
 >;
+
+type ReportPreviewActionState = {
+    reportPreviewAction: ValueOf<typeof CONST.REPORT.REPORT_PREVIEW_ACTIONS>;
+    canIOUBePaid: boolean;
+    onlyShowPayElsewhere: boolean;
+    shouldShowPayButton: boolean;
+    connectedIntegration: ConnectionName | undefined;
+};
 
 type ReportPreviewActions = {
     openReportFromPreview: () => void;
@@ -80,6 +92,7 @@ const ReportPreviewAnimationStateContext = createContext<ReportPreviewAnimationS
 const ReportPreviewDataContext = createContext<ReportPreviewData | undefined>(undefined);
 const ReportPreviewUIStateContext = createContext<ReportPreviewUIState | undefined>(undefined);
 const ReportPreviewCarouselListContext = createContext<ReportPreviewCarouselList | undefined>(undefined);
+const ReportPreviewActionStateContext = createContext<ReportPreviewActionState | undefined>(undefined);
 const ReportPreviewActionsContext = createContext<ReportPreviewActions | undefined>(undefined);
 const ReportPreviewMetaContext = createContext<ReportPreviewMeta | undefined>(undefined);
 
@@ -96,6 +109,7 @@ const useReportPreviewAnimationState = () => useSliceContext(ReportPreviewAnimat
 const useReportPreviewData = () => useSliceContext(ReportPreviewDataContext, 'useReportPreviewData');
 const useReportPreviewUIState = () => useSliceContext(ReportPreviewUIStateContext, 'useReportPreviewUIState');
 const useReportPreviewCarouselList = () => useSliceContext(ReportPreviewCarouselListContext, 'useReportPreviewCarouselList');
+const useReportPreviewActionState = () => useSliceContext(ReportPreviewActionStateContext, 'useReportPreviewActionState');
 const useReportPreviewActions = () => useSliceContext(ReportPreviewActionsContext, 'useReportPreviewActions');
 const useReportPreviewMeta = () => useSliceContext(ReportPreviewMetaContext, 'useReportPreviewMeta');
 
@@ -105,6 +119,7 @@ export {
     ReportPreviewDataContext,
     ReportPreviewUIStateContext,
     ReportPreviewCarouselListContext,
+    ReportPreviewActionStateContext,
     ReportPreviewActionsContext,
     ReportPreviewMetaContext,
     useReportPreviewCarouselState,
@@ -112,7 +127,8 @@ export {
     useReportPreviewData,
     useReportPreviewUIState,
     useReportPreviewCarouselList,
+    useReportPreviewActionState,
     useReportPreviewActions,
     useReportPreviewMeta,
 };
-export type {ReportPreviewHoldMenuHandle};
+export type {ReportPreviewHoldMenuHandle, ReportPreviewActionState};

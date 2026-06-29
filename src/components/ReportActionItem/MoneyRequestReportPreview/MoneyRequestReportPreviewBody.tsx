@@ -15,7 +15,7 @@ import {canUseTouchScreen} from '@libs/DeviceCapabilities';
 import type {ForwardedFSClassProps} from '@libs/Fullstory/types';
 import variables from '@styles/variables';
 import CONST from '@src/CONST';
-import {useReportPreviewActions, useReportPreviewAnimationState, useReportPreviewData, useReportPreviewMeta, useReportPreviewUIState} from './MoneyRequestReportPreviewContext';
+import {useReportPreviewData, useReportPreviewMeta, useReportPreviewUIState} from './MoneyRequestReportPreviewContext';
 import ReportPreviewActionButton from './ReportPreviewActionButton';
 import ReportPreviewHeader from './ReportPreviewHeader';
 import ReportPreviewHoldMenu from './ReportPreviewHoldMenu';
@@ -68,11 +68,8 @@ function MoneyRequestReportPreviewBody({
     const {anchor: contextMenuAnchorRef, shouldDisplayContextMenu = true, originalReportID} = useShowContextMenuState();
     const {checkIfContextMenuActive} = useShowContextMenuActions();
 
-    const {iouReportID, chatReportID, action, iouReport, chatReport} = useReportPreviewData();
+    const {action, iouReport, chatReportID} = useReportPreviewData();
     const {isTransitionPending, isScanning, reportPreviewStyles} = useReportPreviewUIState();
-    const {isPaidAnimationRunning, isApprovedAnimationRunning, isSubmittingAnimationRunning} = useReportPreviewAnimationState();
-    const {openReportFromPreview, onHoldMenuOpen, onPaymentOptionsShow, onPaymentOptionsHide, stopAnimation, startAnimation, startApprovedAnimation, startSubmittingAnimation} =
-        useReportPreviewActions();
     const {holdMenuRef} = useReportPreviewMeta();
 
     const isReportDeleted = action?.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
@@ -132,23 +129,7 @@ function MoneyRequestReportPreviewBody({
                                     <TransactionReportCarousel />
                                     <View style={[styles.expenseAndReportPreviewTextContainer]}>
                                         <View style={[totalAmountStyle, styles.justifyContentBetween, styles.gap4, StyleUtils.getMinimumHeight(variables.h28)]}>
-                                            <ReportPreviewActionButton
-                                                iouReportID={iouReportID}
-                                                chatReportID={chatReportID}
-                                                chatReport={chatReport}
-                                                isPaidAnimationRunning={isPaidAnimationRunning}
-                                                isApprovedAnimationRunning={isApprovedAnimationRunning}
-                                                isSubmittingAnimationRunning={isSubmittingAnimationRunning}
-                                                stopAnimation={stopAnimation}
-                                                startAnimation={startAnimation}
-                                                startApprovedAnimation={startApprovedAnimation}
-                                                startSubmittingAnimation={startSubmittingAnimation}
-                                                onPaymentOptionsShow={onPaymentOptionsShow}
-                                                onPaymentOptionsHide={onPaymentOptionsHide}
-                                                openReportFromPreview={openReportFromPreview}
-                                                onHoldMenuOpen={onHoldMenuOpen}
-                                                transactionPreviewCarouselWidth={reportPreviewStyles.transactionPreviewCarouselStyle.width}
-                                            />
+                                            <ReportPreviewActionButton />
                                             <ReportPreviewTotal />
                                         </View>
                                     </View>

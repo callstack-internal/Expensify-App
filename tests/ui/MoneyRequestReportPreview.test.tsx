@@ -77,11 +77,16 @@ const mockOnHoldMenuOpenHolder: {current?: OnHoldMenuOpen} = {current: undefined
 jest.mock('@components/ReportActionItem/MoneyRequestReportPreview/ReportPreviewActionButton', () => {
     const actualReact = jest.requireActual<typeof React>('react');
     const actualModule = jest.requireActual<{default: typeof ReportPreviewActionButton}>('@components/ReportActionItem/MoneyRequestReportPreview/ReportPreviewActionButton');
+    const {useReportPreviewActions} = jest.requireActual<typeof import('@components/ReportActionItem/MoneyRequestReportPreview/MoneyRequestReportPreviewContext')>(
+        '@components/ReportActionItem/MoneyRequestReportPreview/MoneyRequestReportPreviewContext',
+    );
     return {
         __esModule: true,
-        default: (props: Parameters<typeof actualModule.default>[0]) => {
-            mockOnHoldMenuOpenHolder.current = props.onHoldMenuOpen;
-            return actualReact.createElement(actualModule.default, props);
+        default: () => {
+            // ReportPreviewActionButton is now a propless context consumer; capture onHoldMenuOpen from the context instead of props.
+            const {onHoldMenuOpen} = useReportPreviewActions();
+            mockOnHoldMenuOpenHolder.current = onHoldMenuOpen;
+            return actualReact.createElement(actualModule.default);
         },
     };
 });

@@ -1,10 +1,15 @@
 import {platformAndroid} from '@rock-js/platform-android';
 import {platformIOS} from '@rock-js/platform-ios';
 import {pluginMetro} from '@rock-js/plugin-metro';
+import {pluginRepack} from '@rock-js/plugin-repack';
 import {providerS3} from '@rock-js/provider-s3';
 
 const isHybrid = process.env.IS_HYBRID_APP === 'true';
 const isPublicAccess = !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY;
+
+// Opt into Re.Pack (rspack) for native JS bundling via `USE_REPACK=true`.
+// Defaults to Metro so existing workflows are unaffected. See rspack.config.mjs.
+const useRepack = process.env.USE_REPACK === 'true';
 
 /** @type {import('@rock-js/config').Config} */
 export default {
@@ -16,7 +21,7 @@ export default {
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         publicAccess: isPublicAccess,
     }),
-    bundler: pluginMetro(),
+    bundler: useRepack ? pluginRepack() : pluginMetro(),
     platforms: {
         ios: platformIOS({sourceDir: isHybrid ? './Mobile-Expensify/iOS' : './ios'}),
         android: platformAndroid({sourceDir: isHybrid ? './Mobile-Expensify/Android' : './android'}),

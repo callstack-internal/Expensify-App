@@ -131,6 +131,18 @@ if (process.env.CAPTURE_METRICS === 'true') {
     ]);
 }
 
+/*
+ * Re.Pack (native bundling via rspack) shares Metro's transform pipeline so that
+ * React Compiler, Fullstory, and the worklets plugin all run identically.
+ * Path aliases (`@src`, `@components`, …) are resolved by rspack via tsconfig
+ * (see `rspack.config.mjs`), so the babel `module-resolver` plugin is omitted here
+ * to avoid resolving the same aliases twice.
+ */
+const repack = {
+    ...metro,
+    plugins: metro.plugins.filter((plugin) => !(Array.isArray(plugin) && plugin[0] === 'module-resolver')),
+};
+
 module.exports = (api) => {
     if (!process.env.KNIP) {
         console.debug('babel.config.js');
@@ -141,11 +153,16 @@ module.exports = (api) => {
     }
 
     // For `react-native` (iOS/Android) caller will be "metro"
+    // For `@callstack/repack` (Re.Pack native bundler) caller will be "@callstack/repack"
     // For jest, it will be babel-jest
     // The web build and Storybook (Rsbuild) don't call into this file at all
     const runningIn = api.caller((args = {}) => args.name);
     if (!process.env.KNIP) {
         console.debug('  - running in: ', runningIn);
+    }
+
+    if (runningIn === '@callstack/repack') {
+        return repack;
     }
 
     return ['metro', 'babel-jest'].includes(runningIn) ? metro : {};

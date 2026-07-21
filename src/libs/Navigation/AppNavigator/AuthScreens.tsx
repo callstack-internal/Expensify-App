@@ -8,7 +8,6 @@ import KYCWallContextProvider from '@components/KYCWall/KYCWallContext';
 import LockedAccountModalProvider from '@components/LockedAccountModalProvider';
 import {MultifactorAuthenticationContextProviders} from '@components/MultifactorAuthentication/Context';
 import OpenAppFailureModal from '@components/OpenAppFailureModal';
-import PriorityModeController from '@components/PriorityModeController';
 import {ProductTrainingContextProvider} from '@components/ProductTrainingContext';
 import {SearchContextProvider} from '@components/Search/SearchContextProvider';
 import {SearchRouterContextProvider} from '@components/Search/SearchRouter/SearchRouterContext';
@@ -22,7 +21,7 @@ import WideRHPContextProvider from '@components/WideRHPContextProvider';
 
 import useOnboardingFlowRouter from '@hooks/useOnboardingFlow';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
-import {SidebarOrderedReportsContextProvider} from '@hooks/useSidebarOrderedReports';
+import {SidebarSectionsContextProvider} from '@hooks/useSidebarSections';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 
@@ -180,7 +179,7 @@ function AuthScreens() {
                         WideRHPContextProvider,
                         KeyboardDismissibleFlatListContextProvider,
                         CurrencyListContextProvider,
-                        SidebarOrderedReportsContextProvider,
+                        SidebarSectionsContextProvider,
                         SearchContextProvider,
                         LockedAccountModalProvider,
                         DelegateNoAccessModalProvider,
@@ -389,7 +388,6 @@ function AuthScreens() {
                     <GPSTripStateChecker />
                     <GPSInProgressModal />
                     <OpenAppFailureModal />
-                    <PriorityModeController />
                 </ComposeProviders>
             </DelegatorConnectGuard>
         </>

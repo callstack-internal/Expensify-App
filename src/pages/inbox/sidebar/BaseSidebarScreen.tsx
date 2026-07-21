@@ -20,7 +20,6 @@ import React, {useEffect} from 'react';
 import {View} from 'react-native';
 import Onyx from 'react-native-onyx';
 
-import InboxTabSelector from './InboxTabSelector';
 import SidebarLinksData from './SidebarLinksData';
 
 // Once the app finishes loading for the first time, we never show the skeleton again
@@ -63,14 +62,13 @@ function BaseSidebarScreen() {
             bottomContent={<TabBarBottomContent selectedTab={NAVIGATION_TABS.INBOX} />}
             bottomContentStyle={styles.overflowVisible}
         >
-            {({insets}) => (
+            {() => (
                 <>
                     <TopBarWithLoadingBar
                         breadcrumbLabel={translate('common.inbox')}
                         shouldDisplaySearch={shouldUseNarrowLayout}
                         shouldDisplayHelpButton={shouldUseNarrowLayout}
                     />
-                    {!shouldShowSkeleton && <InboxTabSelector />}
                     <View style={[styles.flex1]}>
                         {shouldShowSkeleton ? (
                             <OptionsListSkeletonView
@@ -78,7 +76,7 @@ function BaseSidebarScreen() {
                                 reasonAttributes={{context: 'BaseSidebarScreen', isLoadingApp, hasEverFinishedLoading} satisfies SkeletonSpanReasonAttributes}
                             />
                         ) : (
-                            <SidebarLinksData insets={insets} />
+                            <SidebarLinksData />
                         )}
                     </View>
                 </>

@@ -1,15 +1,20 @@
-import type {OnyxCollection} from 'react-native-onyx';
 import type {LocaleContextProps} from '@components/LocaleContextProvider';
+
 import type {ReportsToDisplayInLHN} from '@hooks/useSidebarOrderedReports';
+
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportNameValuePairs} from '@src/types/onyx';
 import type {ReportAttributesDerivedValue} from '@src/types/onyx/DerivedValues';
+
+import type {OnyxCollection} from 'react-native-onyx';
+import type {TupleToUnion} from 'type-fest';
+
 import {isArchivedNonExpenseReport} from './ReportUtils';
 
 const SIDEBAR_SECTIONS = ['pinned', 'errors', 'drafts', 'channels', 'dms', 'archived'] as const;
 
-type SidebarSectionKey = (typeof SIDEBAR_SECTIONS)[number];
+type SidebarSectionKey = TupleToUnion<typeof SIDEBAR_SECTIONS>;
 
 type SidebarSection = {
     key: SidebarSectionKey;
@@ -66,7 +71,7 @@ function getSectionMembership(
     return membership;
 }
 
-const NAME_SORTED_SECTIONS: SidebarSectionKey[] = ['pinned', 'errors', 'drafts'];
+const NAME_SORTED_SECTIONS = new Set<SidebarSectionKey>(['pinned', 'errors', 'drafts']);
 
 function sortSectionMembers(
     sectionKey: SidebarSectionKey,
@@ -75,7 +80,7 @@ function sortSectionMembers(
     reportAttributes: ReportAttributesDerivedValue['reports'] | undefined,
     localeCompare: LocaleContextProps['localeCompare'],
 ): string[] {
-    if (NAME_SORTED_SECTIONS.includes(sectionKey)) {
+    if (NAME_SORTED_SECTIONS.has(sectionKey)) {
         return [...memberIDs].sort((a, b) => localeCompare(reportAttributes?.[a]?.reportName ?? '', reportAttributes?.[b]?.reportName ?? ''));
     }
     return [...memberIDs].sort((a, b) => {

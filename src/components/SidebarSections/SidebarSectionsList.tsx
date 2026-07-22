@@ -1,10 +1,14 @@
+import LHNEmptyState from '@components/LHNOptionsList/LHNEmptyState';
+
+import {useSidebarSectionsState} from '@hooks/useSidebarSections';
+import useThemeStyles from '@hooks/useThemeStyles';
+
+import type {SidebarSection} from '@libs/SidebarSectionsUtils';
+
 import {FlashList} from '@shopify/flash-list';
 import React from 'react';
 import {View} from 'react-native';
-import LHNEmptyState from '@components/LHNOptionsList/LHNEmptyState';
-import {useSidebarSectionsState} from '@hooks/useSidebarSections';
-import useThemeStyles from '@hooks/useThemeStyles';
-import type {SidebarSection} from '@libs/SidebarSectionsUtils';
+
 import SectionHeader from './SectionHeader';
 import SlackOptionRow from './SlackOptionRow';
 

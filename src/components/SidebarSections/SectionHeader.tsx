@@ -1,13 +1,17 @@
-import React from 'react';
-import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import Icon from '@components/Icon';
+import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import Text from '@components/Text';
+
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import {useSidebarSectionsActions} from '@hooks/useSidebarSections';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+
 import type {SidebarSection, SidebarSectionKey} from '@libs/SidebarSectionsUtils';
+
 import CONST from '@src/CONST';
+
+import React from 'react';
 
 const SECTION_LABELS: Record<SidebarSectionKey, string> = {
     pinned: 'Pinned & Attention',
@@ -30,6 +34,7 @@ function SectionHeader({section}: SectionHeaderProps) {
 
     return (
         <PressableWithFeedback
+            sentryLabel="SidebarSectionHeader"
             onPress={() => toggleSection(section.key)}
             accessibilityLabel={SECTION_LABELS[section.key]}
             role={CONST.ROLE.BUTTON}

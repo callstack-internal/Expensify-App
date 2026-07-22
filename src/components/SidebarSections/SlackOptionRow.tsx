@@ -1,21 +1,24 @@
-import React from 'react';
-import {View} from 'react-native';
 import Avatar from '@components/Avatar';
 import Icon from '@components/Icon';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
 import Text from '@components/Text';
+
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import {useReportAttributesByID} from '@hooks/useReportAttributes';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+
 import Navigation from '@libs/Navigation/Navigation';
 import {getIcons, isUnread} from '@libs/ReportUtils';
-import type {ReportAttributesDerivedValue} from '@src/types/onyx/DerivedValues';
+
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
+
+import React from 'react';
+import {View} from 'react-native';
 
 type SlackOptionRowProps = {
     reportID: string;
@@ -25,21 +28,22 @@ type SlackOptionRowProps = {
 function SlackOptionRow({reportID, isFocused}: SlackOptionRowProps) {
     const styles = useThemeStyles();
     const theme = useTheme();
-    const {formatPhoneNumber} = useLocalize();
+    const {formatPhoneNumber, translate} = useLocalize();
     const {Pin} = useMemoizedLazyExpensifyIcons(['Pin']);
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
-    const attributes = useReportAttributesByID(reportID) as ReportAttributesDerivedValue['reports'][string] | undefined;
+    const attributes = useReportAttributesByID(reportID);
 
     if (!report) {
         return null;
     }
 
-    const icon = getIcons(report, formatPhoneNumber).at(0);
+    const icon = getIcons(report, formatPhoneNumber, translate).at(0);
     const reportName = attributes?.reportName ?? report.reportName ?? '';
     const brickRoad = attributes?.brickRoadStatus;
 
     return (
         <PressableWithFeedback
+            sentryLabel="SlackOptionRow"
             onPress={() => {
                 if (reportID === Navigation.getTopmostReportId()) {
                     return;

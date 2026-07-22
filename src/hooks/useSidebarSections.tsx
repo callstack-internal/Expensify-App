@@ -1,11 +1,14 @@
-import React, {createContext, useContext, useState} from 'react';
 import {countUnreadReports, getSectionMembership, SIDEBAR_SECTIONS, sortSectionMembers} from '@libs/SidebarSectionsUtils';
 import type {SidebarSection, SidebarSectionKey} from '@libs/SidebarSectionsUtils';
 import SidebarUtils from '@libs/SidebarUtils';
 import type {BrickRoad} from '@libs/WorkspacesSettingsUtils';
 import {getChatTabBrickRoad} from '@libs/WorkspacesSettingsUtils';
+
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
+
+import React, {createContext, useContext, useState} from 'react';
+
 import {useCurrentReportIDState} from './useCurrentReportID';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useLocalize from './useLocalize';
@@ -41,6 +44,7 @@ function SidebarSectionsContextProvider({children}: {children: React.ReactNode})
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
     const [reportsDrafts] = useOnyx(ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT);
     const [betas] = useOnyx(ONYXKEYS.BETAS);
+    const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const reportAttributes = useReportAttributes();
     const {isOffline} = useNetwork();
     const {accountID, login: currentUserLogin} = useCurrentUserPersonalDetails();
@@ -60,6 +64,7 @@ function SidebarSectionsContextProvider({children}: {children: React.ReactNode})
         currentUserAccountID: accountID,
         reportNameValuePairs,
         reportAttributes,
+        conciergeReportID,
     });
 
     const hasDraftByReportID: Record<string, boolean> = {};

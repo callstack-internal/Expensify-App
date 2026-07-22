@@ -1,11 +1,13 @@
+import SidebarSectionsList from '@components/SidebarSections/SidebarSectionsList';
+
+import useInboxTabSpanLifecycle from '@hooks/useInboxTabSpanLifecycle';
+import useLocalize from '@hooks/useLocalize';
+import useThemeStyles from '@hooks/useThemeStyles';
+
 import {useIsFocused} from '@react-navigation/native';
 import * as Sentry from '@sentry/react-native';
 import React from 'react';
 import {View} from 'react-native';
-import SidebarSectionsList from '@components/SidebarSections/SidebarSectionsList';
-import useInboxTabSpanLifecycle from '@hooks/useInboxTabSpanLifecycle';
-import useLocalize from '@hooks/useLocalize';
-import useThemeStyles from '@hooks/useThemeStyles';
 
 function SidebarLinksData() {
     const isFocused = useIsFocused();

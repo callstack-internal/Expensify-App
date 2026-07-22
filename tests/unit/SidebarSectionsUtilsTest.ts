@@ -1,9 +1,13 @@
-import type {OnyxCollection} from 'react-native-onyx';
 import type {ReportsToDisplayInLHN} from '@hooks/useSidebarOrderedReports';
+
 import {countUnreadReports, getSectionMembership, sortSectionMembers} from '@libs/SidebarSectionsUtils';
+
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportNameValuePairs} from '@src/types/onyx';
+import type {ReportAttributesDerivedValue} from '@src/types/onyx/DerivedValues';
+
+import type {OnyxCollection} from 'react-native-onyx';
 
 type DisplayReport = ReportsToDisplayInLHN[string];
 
@@ -37,7 +41,7 @@ describe('getSectionMembership', () => {
             buildReport('6', {chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM}),
             buildReport('7', {type: CONST.REPORT.TYPE.EXPENSE}),
         ]);
-        const membership = getSectionMembership(reports, {4: false}, undefined);
+        const membership = getSectionMembership(reports, Object.fromEntries([['4', false]]), undefined);
 
         expect(membership.pinned.sort()).toEqual(['1', '2']);
         expect(membership.errors).toEqual(['3']);
@@ -49,7 +53,14 @@ describe('getSectionMembership', () => {
 
     it('pinned beats draft, draft beats section type', () => {
         const reports = buildDisplayMap([buildReport('1', {isPinned: true}), buildReport('2')]);
-        const membership = getSectionMembership(reports, {1: true, 2: true}, undefined);
+        const membership = getSectionMembership(
+            reports,
+            Object.fromEntries([
+                ['1', true],
+                ['2', true],
+            ]),
+            undefined,
+        );
 
         expect(membership.pinned).toEqual(['1']);
         expect(membership.drafts).toEqual(['2']);
@@ -70,12 +81,14 @@ describe('getSectionMembership', () => {
 describe('sortSectionMembers', () => {
     it('sorts pinned/errors/drafts by report name from attributes', () => {
         const reports = buildDisplayMap([buildReport('1'), buildReport('2')]);
-        const attributes = {
-            1: {reportName: 'Zulu'},
-            2: {reportName: 'Alpha'},
-        };
+        const attributes: ReportAttributesDerivedValue['reports'] = Object.fromEntries(
+            [
+                ['1', 'Zulu'],
+                ['2', 'Alpha'],
+            ].map(([reportID, reportName]) => [reportID, {reportName, isEmpty: false, brickRoadStatus: undefined, requiresAttention: false, reportErrors: {}}]),
+        );
 
-        expect(sortSectionMembers('pinned', ['1', '2'], reports, attributes as never, localeCompare)).toEqual(['2', '1']);
+        expect(sortSectionMembers('pinned', ['1', '2'], reports, attributes, localeCompare)).toEqual(['2', '1']);
     });
 
     it('sorts channels/dms by lastVisibleActionCreated descending', () => {

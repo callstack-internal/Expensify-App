@@ -67,12 +67,21 @@ async function validateAttachmentFile(file: FileObject, item?: DataTransferItem,
          */
         let updatedFile = normalizedFile;
         const cleanName = cleanFileName(updatedFile.name);
-        if (updatedFile.name !== cleanName) {
+        // Snapshot the bytes into a memory-backed File: a picked File only references its OS file, so if
+        // that file is modified or deleted before the queued request is persisted, the IndexedDB write
+        // fails with "Failed to write blobs" and poisons the request queue. RN's File has no arrayBuffer.
+        if (typeof updatedFile.arrayBuffer === 'function') {
+            try {
+                updatedFile = new File([await updatedFile.arrayBuffer()], cleanName, {type: updatedFile.type, lastModified: updatedFile.lastModified});
+            } catch {
+                // The backing file was already modified or deleted since it was picked.
+                return {isValid: false, error: CONST.FILE_VALIDATION_ERRORS.FILE_INVALID};
+            }
+        } else if (updatedFile.name !== cleanName) {
             updatedFile = new File([updatedFile], cleanName, {type: updatedFile.type});
         }
-        // Read the superseded URI from normalizedFile: when the name needed cleaning, updatedFile was
-        // reassigned to a fresh File that doesn't carry the custom .uri property, so reading it there
-        // would skip the revoke exactly for cleaned filenames (e.g. default macOS screenshot names).
+        // Read the superseded URI from normalizedFile: updatedFile is always a fresh File that
+        // doesn't carry the custom .uri property.
         const previousUri = normalizedFile.uri;
         const inputSource = URL.createObjectURL(updatedFile);
         if (previousUri && previousUri !== inputSource && previousUri.startsWith('blob:')) {

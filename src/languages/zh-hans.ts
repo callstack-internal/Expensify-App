@@ -7358,7 +7358,7 @@ ${reportName}`,
             },
             customRules: {
                 title: '报销政策',
-                cardSubtitle: '这是你们团队的报销政策所在之处，让所有人都清楚哪些内容在报销范围之内。',
+                cardSubtitle: '上传你的报销政策，确保所有人都清楚哪些可以报销、哪些不能报销。',
                 policyDocument: '政策文件',
                 policyText: '政策文本',
             },

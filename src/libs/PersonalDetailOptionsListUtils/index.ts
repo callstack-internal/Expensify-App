@@ -32,6 +32,7 @@ function createOption(
     config?: PreviewConfig,
     reportAttributesDerived?: ReportAttributes,
     isReportArchived?: boolean,
+    translate?: LocaleContextProps['translate'],
 ): OptionData {
     const {selected = false, isSelected = false, isDisabled = false, shouldStoreReportErrors = false, shouldShowBrickRoadIndicator = false} = config ?? {};
     const result: OptionData = {
@@ -77,6 +78,7 @@ function createOption(
             accountID: personalDetail.accountID,
             formatPhoneNumber,
             personalDetailsData: {[personalDetail.accountID]: personalDetail},
+            translate,
         }) || formatPhoneNumber(personalDetail.login ?? '');
     result.icons = [
         {
@@ -442,6 +444,7 @@ function createOptionList(
     reportAttributesDerived: ReportAttributesDerivedValue['reports'] | undefined,
     privateIsArchivedMap: PrivateIsArchivedMap,
     formatPhoneNumber: LocaleContextProps['formatPhoneNumber'],
+    translate: LocaleContextProps['translate'],
     config?: PreviewConfig,
 ) {
     if (isEmptyObject(personalDetails)) {
@@ -463,7 +466,7 @@ function createOptionList(
         const report = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
         const reportAttributes = report?.reportID ? reportAttributesDerived?.[report.reportID] : undefined;
         const isReportArchived = privateIsArchivedMap[reportID];
-        const option = createOption(personalDetail, report, formatPhoneNumber, config, reportAttributes, isReportArchived);
+        const option = createOption(personalDetail, report, formatPhoneNumber, config, reportAttributes, isReportArchived, translate);
         allPersonalDetailsOptions.push(option);
         if (option.accountID === currentUserAccountID) {
             currentUserRef.current = option;

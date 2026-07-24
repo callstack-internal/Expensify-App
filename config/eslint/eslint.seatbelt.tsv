@@ -1245,8 +1245,6 @@
 "../../src/pages/iou/SplitExpensePage.tsx"	"no-restricted-imports"	1
 "../../src/pages/iou/SplitExpensePage.tsx"	"react-hooks/set-state-in-effect"	3
 "../../src/pages/iou/SplitList/index.tsx"	"@typescript-eslint/no-unsafe-type-assertion"	2
-"../../src/pages/iou/request/MoneyRequestAttendeeSelector.tsx"	"@typescript-eslint/no-unsafe-type-assertion"	2
-"../../src/pages/iou/request/MoneyRequestAttendeeSelector.tsx"	"no-restricted-imports"	1
 "../../src/pages/iou/request/ParticipantSearchResults.tsx"	"@typescript-eslint/no-unsafe-type-assertion"	4
 "../../src/pages/iou/request/step/DistanceManualTabContent.tsx"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../src/pages/iou/request/step/DistanceManualTabContent.tsx"	"no-restricted-imports"	1

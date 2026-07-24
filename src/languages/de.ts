@@ -7640,7 +7640,7 @@ Fordern Sie Spesendetails wie Belege und Beschreibungen an, legen Sie Limits und
             },
             customRules: {
                 title: 'Spesenrichtlinie',
-                cardSubtitle: 'Hier ist die Spesenrichtlinie deines Teams hinterlegt, damit alle denselben Stand haben, was abgedeckt ist.',
+                cardSubtitle: 'Laden Sie Ihre Spesenrichtlinie hoch, damit alle wissen, was sie abrechnen dürfen und was nicht.',
                 policyDocument: 'Richtliniendokument',
                 policyText: 'Richtlinientext',
             },

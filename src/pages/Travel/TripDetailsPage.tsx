@@ -29,7 +29,7 @@ import type {PersonalDetailsList} from '@src/types/onyx';
 import type {StackScreenProps} from '@react-navigation/stack';
 import type {OnyxEntry} from 'react-native-onyx';
 
-import React, {useMemo, useState} from 'react';
+import React, {useState} from 'react';
 
 import CarTripDetails from './CarTripDetails';
 import FlightTripDetails from './FlightTripDetails';
@@ -79,8 +79,7 @@ function TripDetailsPage({route}: TripDetailsPageProps) {
     // If pnr is not passed and transaction is present, we want to use transaction to get the trip reservations as the provided sequenceIndex now refers to the position of trip reservation in transaction's reservation list
     const tripReservations = getReservationsFromTripReport(!Number(pnr) && transaction ? undefined : parentReport, transaction ? [transaction] : []);
 
-    const reservationDetails = useMemo(() => getReservationDetailsFromSequence(icons, tripReservations, Number(sequenceIndex)), [icons, tripReservations, sequenceIndex]);
-    const {reservation, prevReservation, reservationType, reservationIcon, isCancelled} = reservationDetails;
+    const {reservation, prevReservation, reservationType, reservationIcon, isCancelled} = getReservationDetailsFromSequence(icons, tripReservations, Number(sequenceIndex));
     const travelerEmail = reservation?.travelerPersonalInfo?.email;
     const [travelerPersonalDetails] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {
         selector: (personalDetails: OnyxEntry<PersonalDetailsList>) => pickTravelerPersonalDetails(personalDetails, travelerEmail),

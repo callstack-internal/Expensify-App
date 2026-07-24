@@ -145,7 +145,12 @@ function CompanyCardsImportedPage({route}: CompanyCardsImportedPageProps) {
 
         // Required columns plus whichever card-identity column is mapped must have a value in every row,
         // otherwise a row can't be matched to a card.
-        const columnsThatMustHaveValues = columnRoles.filter((role) => role.isRequired || (cardIdentityColumns.includes(role.value) && columns.includes(role.value)));
+        const columnsThatMustHaveValues = columnRoles.filter((role) => {
+            if (role.isRequired) {
+                return true;
+            }
+            return cardIdentityColumns.includes(role.value) && columns.includes(role.value);
+        });
         const columnWithEmptyValues = columnsThatMustHaveValues.find((roleColumn) => {
             const columnIndex = columns.findIndex((column) => column === roleColumn.value);
             if (columnIndex === -1) {

@@ -104,7 +104,7 @@ const metro = {
                   [
                       'react-native-worklets/plugin',
                       {
-                          bundleMode: !isTestEnv,
+                          bundleMode: true,
                           // In Bundle Mode, an import that a worklet captures in its closure becomes a "remote function"
                           // and throws when called synchronously on a Worklet Runtime. The `react-native-live-markdown`
                           // ExpensiMark parser runs on the LiveMarkdownRuntime and directly imports `ExpensiMark`,

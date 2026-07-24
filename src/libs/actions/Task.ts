@@ -1155,6 +1155,7 @@ function getShareDestination(
         isMultipleParticipant,
         localeCompare,
         formatPhoneNumber,
+        translate,
     );
 
     let subtitle = '';

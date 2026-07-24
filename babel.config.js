@@ -96,8 +96,8 @@ const metro = {
         '@babel/plugin-transform-export-namespace-from',
         // The worklets babel plugin needs to be last, as stated here: https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/
         // Skipped under Jest (isTestEnv): reanimated and worklets are fully mocked in jest/setup.ts, so the
-        // plugin's worklet transform is wasted work — and it is uncacheable, which re-runs a heavy nested
-        // Babel transform on every test run. See PR #96078 regression.
+        // plugin's worklet transform is wasted work - and it is uncacheable, which re-runs a heavy nested
+        // Babel transform on every test run.
         ...(isTestEnv
             ? []
             : [

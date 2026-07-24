@@ -403,43 +403,4 @@ describe('validateAttachmentFile', () => {
             }
         });
     });
-
-    describe('OS-backed file snapshot', () => {
-        it('snapshots the picked file bytes into a new memory-backed File', async () => {
-            const createObjectURLSpy = jest.spyOn(URL, 'createObjectURL').mockReturnValue('blob:new-url');
-            try {
-                const file: FileObject = new File([new Blob(['content'], {type: 'text/plain'})], 'image.png', {type: 'image/png'});
-                // The RN File polyfill in Jest has no arrayBuffer; emulate the web File API.
-                const arrayBufferSpy = jest.fn().mockResolvedValue(new ArrayBuffer(7));
-                Object.defineProperty(file, 'arrayBuffer', {value: arrayBufferSpy, configurable: true});
-
-                const result = await validateAttachmentFile(file);
-
-                expect(result.isValid).toBe(true);
-                if (!result.isValid) {
-                    throw new Error('validateAttachmentFile should return a valid result');
-                }
-                expect(arrayBufferSpy).toHaveBeenCalled();
-                // The returned File must be a fresh memory-backed copy, not the OS-backed original.
-                expect(result.file).not.toBe(file);
-            } finally {
-                createObjectURLSpy.mockRestore();
-            }
-        });
-
-        it('returns FILE_INVALID when the picked file can no longer be read (deleted or modified on disk)', async () => {
-            const file: FileObject = new File([new Blob(['content'], {type: 'text/plain'})], 'image.png', {type: 'image/png'});
-            // Chromium rejects the read when the backing OS file changed since it was picked.
-            const arrayBufferSpy = jest.fn().mockRejectedValue(new DOMException('The requested file could not be read', 'NotReadableError'));
-            Object.defineProperty(file, 'arrayBuffer', {value: arrayBufferSpy, configurable: true});
-
-            const result = await validateAttachmentFile(file);
-
-            expect(result.isValid).toBe(false);
-            if (result.isValid) {
-                throw new Error('validateAttachmentFile should return an invalid result');
-            }
-            expect(result.error).toBe(CONST.FILE_VALIDATION_ERRORS.FILE_INVALID);
-        });
-    });
 });

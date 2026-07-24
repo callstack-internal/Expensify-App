@@ -4,6 +4,7 @@ import type {FileObject} from '@src/types/utils/Attachment';
 import type {ValueOf} from 'type-fest';
 
 import {cleanFileName, hasHeicOrHeifExtension, isValidReceiptExtension, normalizeFileObject, validateImageForCorruption} from './fileDownload/FileUtils';
+import snapshotPickedFile from './snapshotPickedFile';
 
 type ValidateAttachmentValidResult = {
     isValid: true;
@@ -67,18 +68,13 @@ async function validateAttachmentFile(file: FileObject, item?: DataTransferItem,
          */
         let updatedFile = normalizedFile;
         const cleanName = cleanFileName(updatedFile.name);
-        // Snapshot the bytes into a memory-backed File: a picked File only references its OS file, so if
-        // that file is modified or deleted before the queued request is persisted, the IndexedDB write
-        // fails with "Failed to write blobs" and poisons the request queue. RN's File has no arrayBuffer.
-        if (typeof updatedFile.arrayBuffer === 'function') {
-            try {
-                updatedFile = new File([await updatedFile.arrayBuffer()], cleanName, {type: updatedFile.type, lastModified: updatedFile.lastModified});
-            } catch {
-                // The backing file was already modified or deleted since it was picked.
-                return {isValid: false, error: CONST.FILE_VALIDATION_ERRORS.FILE_INVALID};
-            }
-        } else if (updatedFile.name !== cleanName) {
-            updatedFile = new File([updatedFile], cleanName, {type: updatedFile.type});
+        // On web this snapshots the bytes into a memory-backed File so a later change to the OS file
+        // can't invalidate the queued request (see snapshotPickedFile); on native it only cleans the name.
+        try {
+            updatedFile = await snapshotPickedFile(updatedFile, cleanName);
+        } catch {
+            // The backing file was already modified or deleted since it was picked.
+            return {isValid: false, error: CONST.FILE_VALIDATION_ERRORS.FILE_INVALID};
         }
         // Read the superseded URI from normalizedFile: updatedFile is always a fresh File that
         // doesn't carry the custom .uri property.

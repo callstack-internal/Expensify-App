@@ -1,6 +1,6 @@
 import CONST from '@src/CONST';
 
-//trigg
+// trigger
 type EmptyObject = Record<string, never>;
 
 type EmptyValue = EmptyObject | null | undefined;

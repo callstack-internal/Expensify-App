@@ -19,7 +19,7 @@ function shouldSkipCachingAction(action: ReportAction): boolean {
  * actions. Rebuilding the whole map rather than updating individual entries keeps deletions correct:
  * a removed action is absent from `reportActions`, so it drops out of the result.
  */
-function computeReportVisibility(reportActions: ReportActions, currentUserAccountID?: number): Record<string, boolean> {
+function computeReportVisibility(reportActions: ReportActions, currentUserAccountID: number | undefined): Record<string, boolean> {
     const reportVisibility: Record<string, boolean> = {};
 
     for (const [actionID, action] of Object.entries(reportActions)) {
@@ -47,19 +47,19 @@ export default createOnyxDerivedValueConfig({
     // report collection to the visibility check, avoiding stale data from global connections.
     // SESSION dependency is needed for whisper targeting when user changes.
     dependencies: [ONYXKEYS.COLLECTION.REPORT_ACTIONS, ONYXKEYS.SESSION],
-    compute: ([allReportActions, session], {sourceValues, currentValue}): VisibleReportActionsDerivedValue => {
+    compute: ([allReportActions, session], {sourceValues, currentValue, triggeredKeys}): VisibleReportActionsDerivedValue => {
         if (!allReportActions) {
             return {};
         }
 
         const currentUserAccountID = session?.accountID;
         const reportActionsUpdates = sourceValues?.[ONYXKEYS.COLLECTION.REPORT_ACTIONS];
-        const sessionUpdates = sourceValues?.[ONYXKEYS.SESSION];
 
         // Recompute only the reports whose actions changed when we have a usable delta. Otherwise
         // recompute everything: on first load, when there's no delta, or on a SESSION change (the
-        // user changed, which affects whisper targeting for every report).
-        const isIncremental = !!reportActionsUpdates && !sessionUpdates && !!currentValue;
+        // user changed, which affects whisper targeting for every report). SESSION is checked via
+        // triggeredKeys, not sourceValues, so a session cleared to `undefined` still forces the full recompute.
+        const isIncremental = !!reportActionsUpdates && !triggeredKeys?.has(ONYXKEYS.SESSION) && !!currentValue;
 
         const result: VisibleReportActionsDerivedValue = isIncremental ? {...currentValue} : {};
         const reportActionsKeysToProcess = isIncremental ? Object.keys(reportActionsUpdates) : Object.keys(allReportActions);

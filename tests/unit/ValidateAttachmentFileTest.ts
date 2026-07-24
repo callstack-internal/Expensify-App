@@ -411,7 +411,7 @@ describe('validateAttachmentFile', () => {
                 const file: FileObject = new File([new Blob(['content'], {type: 'text/plain'})], 'image.png', {type: 'image/png'});
                 // The RN File polyfill in Jest has no arrayBuffer; emulate the web File API.
                 const arrayBufferSpy = jest.fn().mockResolvedValue(new ArrayBuffer(7));
-                (file as unknown as {arrayBuffer: () => Promise<ArrayBuffer>}).arrayBuffer = arrayBufferSpy;
+                Object.defineProperty(file, 'arrayBuffer', {value: arrayBufferSpy, configurable: true});
 
                 const result = await validateAttachmentFile(file);
 
@@ -430,9 +430,8 @@ describe('validateAttachmentFile', () => {
         it('returns FILE_INVALID when the picked file can no longer be read (deleted or modified on disk)', async () => {
             const file: FileObject = new File([new Blob(['content'], {type: 'text/plain'})], 'image.png', {type: 'image/png'});
             // Chromium rejects the read when the backing OS file changed since it was picked.
-            (file as unknown as {arrayBuffer: () => Promise<ArrayBuffer>}).arrayBuffer = jest
-                .fn()
-                .mockRejectedValue(new DOMException('The requested file could not be read', 'NotReadableError'));
+            const arrayBufferSpy = jest.fn().mockRejectedValue(new DOMException('The requested file could not be read', 'NotReadableError'));
+            Object.defineProperty(file, 'arrayBuffer', {value: arrayBufferSpy, configurable: true});
 
             const result = await validateAttachmentFile(file);
 

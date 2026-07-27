@@ -1,7 +1,5 @@
 import useHover from '@hooks/useHover';
 import useLocalize from '@hooks/useLocalize';
-import useOnyx from '@hooks/useOnyx';
-import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useRootNavigationState from '@hooks/useRootNavigationState';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -12,7 +10,7 @@ import {isFullScreenName} from '@libs/Navigation/helpers/isNavigatorName';
 import Navigation from '@libs/Navigation/Navigation';
 import type {RightModalNavigatorParamList} from '@libs/Navigation/types';
 import {getReportAction, isReportActionVisible} from '@libs/ReportActionsUtils';
-import {canUserPerformWriteAction as canUserPerformWriteActionReportUtils, isMoneyRequestReport} from '@libs/ReportUtils';
+import {canUserPerformWriteAction as canUserPerformWriteActionReportUtils, isArchivedReport, isMoneyRequestReport} from '@libs/ReportUtils';
 
 import CONST from '@src/CONST';
 import type {ParentNavigationSummaryParams} from '@src/languages/params';
@@ -26,6 +24,7 @@ import type {ColorValue, StyleProp, TextStyle, ViewStyle} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 import React from 'react';
 import {View} from 'react-native';
+import OnyxUtils from 'react-native-onyx/dist/OnyxUtils';
 
 import StatusBadge from './StatusBadge';
 import Text from './Text';
@@ -34,8 +33,8 @@ import TextLink from './TextLink';
 type ParentNavigationSubtitleProps = {
     parentNavigationSubtitleData: ParentNavigationSummaryParams;
 
-    /** Current Report ID (to check hasParentAccess) */
-    reportID?: string;
+    /** Whether the user has access to the parent report */
+    hasParentAccess?: boolean;
 
     /** parent Report ID */
     parentReportID?: string;
@@ -82,7 +81,6 @@ type ParentNavigationSubtitleProps = {
 
 function ParentNavigationSubtitle({
     parentNavigationSubtitleData,
-    reportID = '',
     parentReportActionID,
     parentReportID = '',
     pressableStyles,
@@ -97,6 +95,7 @@ function ParentNavigationSubtitle({
     humanAgentAccountID,
     humanAgentName,
     shouldShowFromPrefix = true,
+    hasParentAccess,
 }: ParentNavigationSubtitleProps) {
     const currentRoute = useRoute();
     // We intentionally use isSmallScreenWidth (real device width), not shouldUseNarrowLayout — the latter is
@@ -113,12 +112,7 @@ function ParentNavigationSubtitle({
 
     const {workspaceName, reportName} = parentNavigationSubtitleData;
     const {translate} = useLocalize();
-    const [currentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${parentReportID}`);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
-    const isReportArchived = useReportIsArchived(report?.reportID);
-    const canUserPerformWriteAction = canUserPerformWriteActionReportUtils(report, isReportArchived);
-    const hasAccessToParentReport = currentReport?.hasParentAccess !== false;
+    const hasAccessToParentReport = hasParentAccess !== false;
     const {currentFullScreenRoute, currentFocusedNavigator} = useRootNavigationState((state) => {
         // Find the tab navigator, which wraps all full-screen navigators
         const tabNavigatorRoute = state?.routes?.findLast((route) => route.name === NAVIGATORS.TAB_NAVIGATOR);
@@ -154,8 +148,11 @@ function ParentNavigationSubtitle({
     }
 
     const onPress = () => {
+        const report = OnyxUtils.get(`${ONYXKEYS.COLLECTION.REPORT}${parentReportID}` as const);
+        const isParentReportArchived = !!isArchivedReport(OnyxUtils.get(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${parentReportID}` as const));
+        const canUserPerformWriteAction = canUserPerformWriteActionReportUtils(report, isParentReportArchived);
         const parentAction = getReportAction(parentReportID, parentReportActionID);
-        const isVisibleAction = isReportActionVisible(parentAction, parentReportID, canUserPerformWriteAction, visibleReportActionsData);
+        const isVisibleAction = isReportActionVisible(parentAction, parentReportID, canUserPerformWriteAction, OnyxUtils.get(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS));
 
         const focusedNavigatorState = currentFocusedNavigator?.state;
         const currentReportIndex = focusedNavigatorState?.index;

@@ -141,6 +141,8 @@ function HeaderView({onNavigationMenuButtonClicked, reportID}: HeaderViewProps) 
     const {translate, localeCompare, formatPhoneNumber} = useLocalize();
     const theme = useTheme();
     const styles = useThemeStyles();
+    const parentStyles = [styles.alignSelfStart, styles.mw100];
+
     const setBackButtonRef = useInitialFocusRef({shouldClaimOnlyForScreenReader: true});
     const isSelfDM = isSelfDMReportUtils(report);
     const isGroupChat = isGroupChatReportUtils(report) || isDeprecatedGroupDM(report, isReportArchived);
@@ -392,10 +394,10 @@ function HeaderView({onNavigationMenuButtonClicked, reportID}: HeaderViewProps) 
                                                 statusTextColor={statusColorForInvoiceReport?.textColor}
                                                 statusTextBackgroundColor={statusColorForInvoiceReport?.backgroundColor}
                                                 parentNavigationSubtitleData={parentNavigationSubtitleData}
-                                                reportID={parentNavigationReport?.reportID}
+                                                hasParentAccess={parentNavigationReport?.hasParentAccess}
                                                 parentReportID={parentNavigationReport?.parentReportID}
                                                 parentReportActionID={isParentOneTransactionThread ? undefined : parentNavigationReport?.parentReportActionID}
-                                                pressableStyles={[styles.alignSelfStart, styles.mw100]}
+                                                pressableStyles={parentStyles}
                                                 openParentReportInCurrentTab={openParentReportInCurrentTab}
                                                 humanAgentAccountID={humanAgentAccountID}
                                                 humanAgentName={humanAgentName}

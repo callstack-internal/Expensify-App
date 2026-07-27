@@ -292,6 +292,7 @@ function AvatarWithDisplayName({
         isAnonymous,
         isMoneyRequestOrReport,
     );
+    const pressableStyles = [styles.alignSelfStart, styles.mw100];
 
     const multipleAvatars = (
         <ReportActionAvatars
@@ -346,10 +347,10 @@ function AvatarWithDisplayName({
                         {Object.keys(parentNavigationSubtitleData).length > 0 && (
                             <ParentNavigationSubtitle
                                 parentNavigationSubtitleData={parentNavigationSubtitleData}
-                                reportID={report?.reportID}
+                                hasParentAccess={report?.hasParentAccess}
                                 parentReportID={report?.parentReportID}
                                 parentReportActionID={report?.parentReportActionID}
-                                pressableStyles={[styles.alignSelfStart, styles.mw100]}
+                                pressableStyles={pressableStyles}
                                 openParentReportInCurrentTab={openParentReportInCurrentTab}
                                 statusText={statusText}
                                 statusTooltipText={statusTooltipText}

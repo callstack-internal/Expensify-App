@@ -878,6 +878,9 @@ function DynamicReportDetailsPage({policy, report, route, reportMetadata, report
 
     const shouldShowEditableTitleField = caseID !== CASES.MONEY_REQUEST && canEditReportTitle(report, policy, currentUserPersonalDetails?.accountID);
 
+    const pressableStyles = [styles.mt1, styles.mw100];
+    const textStyles = [styles.popoverMenuText, styles.flexShrink1, styles.preWrap, styles.mw100];
+
     const nameSectionFurtherDetailsContent = (
         <MenuItemWithTopDescription
             shouldShowRightIcon={false}
@@ -885,11 +888,11 @@ function DynamicReportDetailsPage({policy, report, route, reportMetadata, report
             titleComponent={
                 <ParentNavigationSubtitle
                     parentNavigationSubtitleData={parentNavigationSubtitleData}
-                    reportID={report?.reportID}
+                    hasParentAccess={report?.hasParentAccess}
                     parentReportID={report?.parentReportID}
                     parentReportActionID={report?.parentReportActionID}
-                    pressableStyles={[styles.mt1, styles.mw100]}
-                    textStyles={[styles.popoverMenuText, styles.flexShrink1, styles.preWrap, styles.mw100]}
+                    pressableStyles={pressableStyles}
+                    textStyles={textStyles}
                     subtitleNumberOfLines={2}
                     shouldShowFromPrefix={false}
                     openParentReportInCurrentTab

@@ -27,6 +27,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 
 import {isTrackIntentUserSelector} from '@selectors/Onboarding';
 import React from 'react';
+import OnyxUtils from 'react-native-onyx/dist/OnyxUtils';
 
 type PayActionCellProps = {
     isLoading: boolean;
@@ -47,10 +48,6 @@ function PayActionCell({isLoading, policyID, reportID, hash, amount, shouldDisab
     const [iouReport, transactions] = useReportWithTransactionsAndViolations(reportID);
     const policy = usePolicy(policyID);
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
-    const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
-    const [allReportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS);
-    const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
-    const [isTrackIntentUser] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {selector: isTrackIntentUserSelector});
 
     const invoiceReceiverPolicyID = chatReport?.invoiceReceiver && 'policyID' in chatReport.invoiceReceiver ? chatReport.invoiceReceiver.policyID : undefined;
     const invoiceReceiverPolicy = usePolicy(invoiceReceiverPolicyID);
@@ -94,11 +91,12 @@ function PayActionCell({isLoading, policyID, reportID, hash, amount, shouldDisab
         }
 
         const additionalOnyxData = getSearchPayOnyxData(hash, reportID);
+        const isTrackIntentUser = isTrackIntentUserSelector(OnyxUtils.get(ONYXKEYS.NVP_INTRO_SELECTED));
 
         if (isInvoiceReport(iouReport)) {
             const existingB2BInvoiceReport = getParticipantsInvoiceReport(
-                allReports,
-                reportNameValuePairs,
+                OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.REPORT),
+                OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS),
                 activePolicyID,
                 CONST.REPORT.INVOICE_RECEIVER_TYPE.BUSINESS,
                 invoiceReceiverPolicyID ?? chatReport?.policyID,
@@ -108,8 +106,9 @@ function PayActionCell({isLoading, policyID, reportID, hash, amount, shouldDisab
             // when paying an individual invoice room as a business. `payAsBusiness` is only known at click time, so pick
             // the right report's actions here in the function scope.
             const shouldUseB2BInvoiceReport = !!payAsBusiness && !!existingB2BInvoiceReport && isIndividualInvoiceRoom(chatReport);
-            const chatReportActions =
-                allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(shouldUseB2BInvoiceReport ? existingB2BInvoiceReport?.reportID : chatReport?.reportID)}`];
+            const chatReportActions = OnyxUtils.get(
+                `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(shouldUseB2BInvoiceReport ? existingB2BInvoiceReport?.reportID : chatReport?.reportID)}` as const,
+            );
 
             payInvoice({
                 paymentMethodType: type,
@@ -155,7 +154,7 @@ function PayActionCell({isLoading, policyID, reportID, hash, amount, shouldDisab
             ownerBillingGracePeriodEnd,
             methodID: type === CONST.IOU.PAYMENT_TYPE.VBBA ? methodID : undefined,
             additionalOnyxData,
-            chatReportActions: allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(chatReport?.reportID)}`],
+            chatReportActions: OnyxUtils.get(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(chatReport?.reportID)}` as const),
             delegateAccountID,
             isTrackIntentUser,
         });

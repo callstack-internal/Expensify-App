@@ -2,9 +2,6 @@ import AddPaymentMethodMenu from '@components/AddPaymentMethodMenu';
 
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useLocalize from '@hooks/useLocalize';
-import useOnyx from '@hooks/useOnyx';
-import useParentReportAction from '@hooks/useParentReportAction';
-import useReportTransactions from '@hooks/useReportTransactions';
 
 import {openPersonalBankAccountSetupView, setPersonalBankAccountContinueKYCOnSuccess} from '@libs/actions/BankAccounts';
 import {completePaymentOnboarding, savePreferredPaymentMethod} from '@libs/actions/IOU/PayMoneyRequest';
@@ -12,6 +9,7 @@ import {navigateToBankAccountRoute} from '@libs/actions/ReimbursementAccount';
 import {moveIOUReportToPolicy, moveIOUReportToPolicyAndInviteSubmitter} from '@libs/actions/Report';
 import {doesPolicyHavePartiallySetupBankAccount} from '@libs/BankAccountUtils';
 import getClickedTargetLocation from '@libs/getClickedTargetLocation';
+import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Log from '@libs/Log';
 import setNavigationActionToMicrotaskQueue from '@libs/Navigation/helpers/setNavigationActionToMicrotaskQueue';
 import Navigation from '@libs/Navigation/Navigation';
@@ -28,21 +26,31 @@ import ROUTES from '@src/ROUTES';
 import type {Route} from '@src/ROUTES';
 import {doesPersonalDetailExistSelector, personalDetailsLoginSelector} from '@src/selectors/PersonalDetails';
 import {lastWorkspaceNumberSelector} from '@src/selectors/Policy';
-import type {BankAccountList, PersonalDetailsList, Policy} from '@src/types/onyx';
+import type {BankAccountList, Policy, Transaction} from '@src/types/onyx';
 import {getEmptyObject} from '@src/types/utils/EmptyObject';
 import viewRef from '@src/types/utils/viewRef';
 
 import type {EmitterSubscription, View} from 'react-native';
-import type {OnyxEntry} from 'react-native-onyx';
 
 import {hasSeenTourSelector} from '@selectors/Onboarding';
+import {getParentReportActionSelector} from '@selectors/ReportAction';
 import React, {useCallback, useEffect, useImperativeHandle, useRef, useState} from 'react';
 import {Dimensions} from 'react-native';
+import OnyxUtils from 'react-native-onyx/dist/OnyxUtils';
 
 import type {AnchorPosition, ContinueActionParams, DomRect, KYCWallProps, PaymentMethod} from './types';
 
 // This sets the Horizontal anchor position offset for POPOVER MENU.
 const POPOVER_MENU_ANCHOR_POSITION_HORIZONTAL_OFFSET = 20;
+
+// Sync mirror of useReportTransactions, for reads at handler-invocation time.
+function getReportTransactionsForReport(reportID: string | undefined): Transaction[] {
+    const transactions = OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.TRANSACTION);
+    if (!transactions || !reportID) {
+        return [];
+    }
+    return Object.values(transactions).filter((transaction): transaction is Transaction => !!transaction && transaction.reportID === reportID);
+}
 
 // This component allows us to block various actions by forcing the user to first add a default payment method and successfully make it through our Know Your Customer flow
 // before continuing to take whatever action they originally intended to take. It requires a button as a child and a native event so we can get the coordinates and use it
@@ -67,33 +75,11 @@ function KYCWall({
     shouldShowPersonalBankAccountOption = false,
     ref,
 }: KYCWallProps) {
-    const [userWallet] = useOnyx(ONYXKEYS.USER_WALLET);
-    const [walletTerms] = useOnyx(ONYXKEYS.WALLET_TERMS);
-    const [fundList] = useOnyx(ONYXKEYS.FUND_LIST);
-    const [bankAccountList = getEmptyObject<BankAccountList>()] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
-    const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${chatReportID}`);
-    const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
-    const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
-    const [isSelfTourViewed] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {selector: hasSeenTourSelector});
-    const [betas] = useOnyx(ONYXKEYS.BETAS);
-    const ownerAccountID = iouReport?.ownerAccountID;
-    const employeeLoginSelector = useCallback((personalDetailsList: OnyxEntry<PersonalDetailsList>) => personalDetailsLoginSelector(ownerAccountID)(personalDetailsList), [ownerAccountID]);
-    const [employeeLogin] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {selector: employeeLoginSelector});
-    const doesSubmitterPersonalDetailExistSelector = useCallback(
-        (personalDetailsList: OnyxEntry<PersonalDetailsList>) => doesPersonalDetailExistSelector(ownerAccountID)(personalDetailsList),
-        [ownerAccountID],
-    );
-    const [doesSubmitterPersonalDetailExist] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {selector: doesSubmitterPersonalDetailExistSelector});
-
     const {translate} = useLocalize();
     const currentUserDetails = useCurrentUserPersonalDetails();
     const currentUserAccountID = currentUserDetails.accountID;
     const currentUserEmail = currentUserDetails.email ?? '';
     const localCurrency = currentUserDetails.localCurrencyCode ?? CONST.CURRENCY.USD;
-    const reportPreviewAction = useParentReportAction(iouReport);
-    const reportTransactions = useReportTransactions(iouReport?.reportID);
-    const [allReports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
-    const [allReportActions] = useOnyx(ONYXKEYS.COLLECTION.REPORT_ACTIONS);
     const anchorRef = useRef<HTMLDivElement | View>(null);
     const transferBalanceButtonRef = useRef<HTMLDivElement | View | null>(null);
 
@@ -106,8 +92,6 @@ function KYCWall({
         anchorPositionVertical: 0,
         anchorPositionHorizontal: 0,
     });
-
-    const [lastPaymentMethod] = useOnyx(ONYXKEYS.NVP_LAST_PAYMENT_METHOD);
 
     const getAnchorPosition = useCallback(
         (domRect: DomRect): AnchorPosition => {
@@ -148,6 +132,23 @@ function KYCWall({
 
     const selectPaymentMethod = useCallback(
         (paymentMethod?: PaymentMethod, policy?: Policy, personalBankAccountOnSuccessFallbackRoute?: Route) => {
+            const bankAccountList = OnyxUtils.get(ONYXKEYS.BANK_ACCOUNT_LIST) ?? getEmptyObject<BankAccountList>();
+            const policies = OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.POLICY);
+            const allReports = OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.REPORT);
+            const allReportActions = OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.REPORT_ACTIONS);
+            const chatReport = OnyxUtils.get(`${ONYXKEYS.COLLECTION.REPORT}${chatReportID}` as const);
+            const lastPaymentMethod = OnyxUtils.get(ONYXKEYS.NVP_LAST_PAYMENT_METHOD);
+            const introSelected = OnyxUtils.get(ONYXKEYS.NVP_INTRO_SELECTED);
+            const isSelfTourViewed = hasSeenTourSelector(OnyxUtils.get(ONYXKEYS.NVP_ONBOARDING));
+            const betas = OnyxUtils.get(ONYXKEYS.BETAS);
+            const personalDetailsList = OnyxUtils.get(ONYXKEYS.PERSONAL_DETAILS_LIST);
+            const employeeLogin = personalDetailsLoginSelector(iouReport?.ownerAccountID)(personalDetailsList);
+            const doesSubmitterPersonalDetailExist = doesPersonalDetailExistSelector(iouReport?.ownerAccountID)(personalDetailsList);
+            const reportPreviewAction = getParentReportActionSelector(
+                OnyxUtils.get(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(iouReport?.parentReportID)}` as const),
+                iouReport?.parentReportActionID,
+            );
+            const reportTransactions = getReportTransactionsForReport(iouReport?.reportID);
             const canLinkExistingBusinessBankAccount = getEligibleExistingBusinessBankAccounts(bankAccountList, policy?.outputCurrency, true).length > 0;
 
             if (paymentMethod) {
@@ -252,27 +253,15 @@ function KYCWall({
             }
         },
         [
-            bankAccountList,
             getPersonalBankAccountOnSuccessFallbackRoute,
             onSelectPaymentMethod,
             iouReport,
             addDebitCardRoute,
             addBankAccountRoute,
-            chatReport,
-            policies,
-            reportPreviewAction,
+            chatReportID,
             currentUserAccountID,
             currentUserEmail,
-            employeeLogin,
-            doesSubmitterPersonalDetailExist,
-            introSelected,
             translate,
-            reportTransactions,
-            allReports,
-            allReportActions,
-            lastPaymentMethod,
-            isSelfTourViewed,
-            betas,
             localCurrency,
         ],
     );
@@ -286,6 +275,10 @@ function KYCWall({
     const continueAction = useCallback(
         (params?: ContinueActionParams) => {
             const {event, iouPaymentType, paymentMethod, policy, goBackRoute, personalBankAccountOnSuccessFallbackRoute} = params ?? {};
+            const walletTerms = OnyxUtils.get(ONYXKEYS.WALLET_TERMS);
+            const fundList = OnyxUtils.get(ONYXKEYS.FUND_LIST);
+            const bankAccountList = OnyxUtils.get(ONYXKEYS.BANK_ACCOUNT_LIST) ?? getEmptyObject<BankAccountList>();
+            const userWallet = OnyxUtils.get(ONYXKEYS.USER_WALLET);
             const currentSource = walletTerms?.source ?? source;
 
             /**
@@ -375,21 +368,7 @@ function KYCWall({
 
             onSuccessfulKYC(iouPaymentType, currentSource);
         },
-        [
-            bankAccountList,
-            chatReportID,
-            enablePaymentsRoute,
-            fundList,
-            getAnchorPosition,
-            iouReport,
-            onSuccessfulKYC,
-            selectPaymentMethod,
-            shouldIncludeDebitCard,
-            shouldShowAddPaymentMenu,
-            source,
-            userWallet?.tierName,
-            walletTerms?.source,
-        ],
+        [chatReportID, enablePaymentsRoute, getAnchorPosition, iouReport, onSuccessfulKYC, selectPaymentMethod, shouldIncludeDebitCard, shouldShowAddPaymentMenu, source],
     );
 
     useEffect(() => {

@@ -11,8 +11,7 @@ import RenderHTML from '@components/RenderHTML';
 import useActiveAdminPolicies from '@hooks/useActiveAdminPolicies';
 import useConfirmModal from '@hooks/useConfirmModal';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
-import useDelegateAccountID from '@hooks/useDelegateAccountID';
-import useLastWorkspaceNumber from '@hooks/useLastWorkspaceNumber';
+import {getDelegateAccountIDSync} from '@hooks/useDelegateAccountID';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
@@ -29,7 +28,7 @@ import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/crea
 import Navigation from '@libs/Navigation/Navigation';
 import {isTrackOnboardingChoice} from '@libs/OnboardingUtils';
 import {formatPaymentMethods, getActivePaymentType, getBusinessBankAccountOptions, matchesCurrency} from '@libs/PaymentUtils';
-import {isPaidGroupPolicy, isPolicyAdmin, sortPoliciesByName} from '@libs/PolicyUtils';
+import {getPolicyIDOrDefault, isPaidGroupPolicy, isPolicyAdmin, sortPoliciesByName} from '@libs/PolicyUtils';
 import {hasRequestFromCurrentAccount} from '@libs/ReportActionsUtils';
 import {
     doesReportBelongToWorkspace,
@@ -61,9 +60,12 @@ import type {TupleToUnion} from 'type-fest';
 import {delegateEmailSelector, isUserValidatedSelector} from '@selectors/Account';
 import {hasSeenTourSelector} from '@selectors/Onboarding';
 import {personalDetailsLoginSelector} from '@selectors/PersonalDetails';
+import {lastWorkspaceNumberSelector} from '@selectors/Policy';
+import {emailSelector} from '@selectors/Session';
 import truncate from 'lodash/truncate';
 import React, {useCallback, useContext} from 'react';
 import {View} from 'react-native';
+import OnyxUtils from 'react-native-onyx/dist/OnyxUtils';
 
 import type SettlementButtonProps from './types';
 
@@ -117,19 +119,12 @@ function SettlementButton({
     const {translate, localeCompare} = useLocalize();
     const {isOffline} = useNetwork();
     const policy = usePolicy(policyID);
-    const expenseReportPolicy = usePolicy(iouReport?.policyID);
     const {accountID, email = ''} = useCurrentUserPersonalDetails();
-    const lastWorkspaceNumber = useLastWorkspaceNumber();
 
     // The app would crash due to subscribing to the entire report collection if chatReportID is an empty string. So we should have a fallback ID here.
     // eslint-disable-next-line rulesdir/no-default-id-values
     const [chatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${chatReportID || CONST.DEFAULT_NUMBER_ID}`);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
-    const [conciergeChat] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${conciergeReportID}`);
-    const [iouReportNextStep] = useOnyx(`${ONYXKEYS.COLLECTION.NEXT_STEP}${iouReport?.reportID}`);
-    const [ownerLogin] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {selector: personalDetailsLoginSelector(iouReport?.ownerAccountID)});
-    const [isUserValidated] = useOnyx(ONYXKEYS.ACCOUNT, {selector: isUserValidatedSelector});
-    const [amountOwed] = useOnyx(ONYXKEYS.NVP_PRIVATE_AMOUNT_OWED);
     const reportBelongsToWorkspace = policyID ? doesReportBelongToWorkspace(chatReport, policyID, conciergeReportID) : false;
     const policyIDKey = reportBelongsToWorkspace ? policyID : (iouReport?.policyID ?? CONST.POLICY.ID_FAKE);
     const [userWallet] = useOnyx(ONYXKEYS.USER_WALLET);
@@ -137,9 +132,6 @@ function SettlementButton({
     const paymentMethods = useSettlementButtonPaymentMethods(hasActivatedWallet, translate);
     const [lastPaymentMethods] = useOnyx(ONYXKEYS.NVP_LAST_PAYMENT_METHOD);
     const [personalPolicyID] = useOnyx(ONYXKEYS.PERSONAL_POLICY_ID);
-    const [betas] = useOnyx(ONYXKEYS.BETAS);
-    const [userBillingGracePeriodEnds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END);
-    const [ownerBillingGracePeriodEnd] = useOnyx(ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END);
 
     const lastPaymentMethod = iouReport?.type
         ? getLastPolicyPaymentMethod(policyIDKey, personalPolicyID, lastPaymentMethods, iouReport?.type as keyof LastPaymentMethodType, isIOUReport(iouReport))
@@ -172,17 +164,10 @@ function SettlementButton({
             policy?.achAccount?.state === CONST.BANK_ACCOUNT.STATE.LOCKED) &&
         !lastPaymentMethod;
     const {isBetaEnabled} = usePermissions();
-    const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
-    const [isSelfTourViewed] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {selector: hasSeenTourSelector});
 
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
-    const [transactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
-    const [delegateEmail] = useOnyx(ONYXKEYS.ACCOUNT, {selector: delegateEmailSelector});
-    const isTrackIntentUser = isTrackOnboardingChoice(introSelected?.choice);
-    const delegateAccountID = useDelegateAccountID();
     const isASAPSubmitBetaEnabled = isBetaEnabled(CONST.BETAS.ASAP_SUBMIT);
     const isPayInvoiceViaExpensifyBetaEnabled = isBetaEnabled(CONST.BETAS.PAY_INVOICE_VIA_EXPENSIFY);
-    const hasViolations = hasViolationsReportUtils(iouReport?.reportID, transactionViolations, accountID, email);
 
     const isInvoiceReport = (!isEmptyObject(iouReport) && isInvoiceReportUtil(iouReport)) || false;
 
@@ -212,6 +197,7 @@ function SettlementButton({
                 return true;
             }
 
+            const isUserValidated = isUserValidatedSelector(OnyxUtils.get(ONYXKEYS.ACCOUNT));
             if (!isUserValidated && paymentMethodType !== CONST.IOU.PAYMENT_TYPE.ELSEWHERE) {
                 Navigation.navigate(createDynamicRoute(DYNAMIC_ROUTES.VERIFY_ACCOUNT.path));
                 return true;
@@ -234,13 +220,28 @@ function SettlementButton({
                     if (policy?.achAccount?.bankAccountID === undefined) {
                         return;
                     }
-                    pressLockedBankAccount(policy?.achAccount?.bankAccountID, translate, conciergeReportID, delegateAccountID);
-                    navigateToConciergeChat(conciergeReportID, introSelected, currentUserAccountID, isSelfTourViewed, betas);
+                    pressLockedBankAccount(policy?.achAccount?.bankAccountID, translate, conciergeReportID, getDelegateAccountIDSync());
+                    navigateToConciergeChat(
+                        conciergeReportID,
+                        OnyxUtils.get(ONYXKEYS.NVP_INTRO_SELECTED),
+                        currentUserAccountID,
+                        hasSeenTourSelector(OnyxUtils.get(ONYXKEYS.NVP_ONBOARDING)),
+                        OnyxUtils.get(ONYXKEYS.BETAS),
+                    );
                 });
                 return true;
             }
 
-            if (policy && shouldRestrictUserBillableActions(policy, ownerBillingGracePeriodEnd, userBillingGracePeriodEnds, amountOwed, currentUserAccountID)) {
+            if (
+                policy &&
+                shouldRestrictUserBillableActions(
+                    policy,
+                    OnyxUtils.get(ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END),
+                    OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END),
+                    OnyxUtils.get(ONYXKEYS.NVP_PRIVATE_AMOUNT_OWED),
+                    currentUserAccountID,
+                )
+            ) {
                 Navigation.navigate(ROUTES.RESTRICTED_ACTION.getRoute(policy.id));
                 return true;
             }
@@ -250,11 +251,8 @@ function SettlementButton({
         [
             isDelegateAccessRestricted,
             isAccountLocked,
-            isUserValidated,
             isBankAccountLocked,
             policy,
-            userBillingGracePeriodEnds,
-            ownerBillingGracePeriodEnd,
             showDelegateNoAccessModal,
             showLockedAccountModal,
             showConfirmModal,
@@ -262,12 +260,7 @@ function SettlementButton({
             styles.renderHTML,
             styles.flexRow,
             conciergeReportID,
-            introSelected,
             currentUserAccountID,
-            isSelfTourViewed,
-            betas,
-            amountOwed,
-            delegateAccountID,
         ],
     );
 
@@ -430,15 +423,17 @@ function SettlementButton({
                     return activePolicy.id;
                 }
 
+                const conciergeReportIDForWorkspace = OnyxUtils.get(ONYXKEYS.CONCIERGE_REPORT_ID);
+                const lastWorkspaceNumber = lastWorkspaceNumberSelector(OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.POLICY), emailSelector(OnyxUtils.get(ONYXKEYS.SESSION)) ?? '');
                 return createWorkspace({
-                    introSelected,
+                    introSelected: OnyxUtils.get(ONYXKEYS.NVP_INTRO_SELECTED),
                     activePolicy,
-                    conciergeChat,
+                    conciergeChat: OnyxUtils.get(`${ONYXKEYS.COLLECTION.REPORT}${conciergeReportIDForWorkspace}` as const),
                     currentUserAccountIDParam: currentUserPersonalDetails.accountID,
                     currentUserEmailParam: email,
                     currency: currentUserPersonalDetails.localCurrencyCode ?? CONST.CURRENCY.USD,
-                    betas,
-                    isSelfTourViewed,
+                    betas: OnyxUtils.get(ONYXKEYS.BETAS),
+                    isSelfTourViewed: hasSeenTourSelector(OnyxUtils.get(ONYXKEYS.NVP_ONBOARDING)),
                     hasActiveAdminPolicies: !!activeAdminPolicies.length,
                     policyName: generateDefaultWorkspaceName(email, lastWorkspaceNumber, translate),
                 }).policyID;
@@ -516,22 +511,23 @@ function SettlementButton({
             if (confirmApproval) {
                 confirmApproval();
             } else {
+                const hasViolations = hasViolationsReportUtils(iouReport?.reportID, OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS), accountID, email);
                 approveMoneyRequest({
                     expenseReport: iouReport,
-                    expenseReportPolicy,
+                    expenseReportPolicy: OnyxUtils.get(`${ONYXKEYS.COLLECTION.POLICY}${getPolicyIDOrDefault(iouReport?.policyID)}` as const),
                     currentUserAccountIDParam: accountID,
                     currentUserEmailParam: email ?? '',
                     hasViolations,
                     isASAPSubmitBetaEnabled,
-                    expenseReportCurrentNextStepDeprecated: iouReportNextStep,
-                    betas,
-                    userBillingGracePeriodEnds,
-                    amountOwed,
-                    ownerBillingGracePeriodEnd,
-                    ownerLogin,
+                    expenseReportCurrentNextStepDeprecated: OnyxUtils.get(`${ONYXKEYS.COLLECTION.NEXT_STEP}${iouReport?.reportID}` as const),
+                    betas: OnyxUtils.get(ONYXKEYS.BETAS),
+                    userBillingGracePeriodEnds: OnyxUtils.getCachedCollection(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END),
+                    amountOwed: OnyxUtils.get(ONYXKEYS.NVP_PRIVATE_AMOUNT_OWED),
+                    ownerBillingGracePeriodEnd: OnyxUtils.get(ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END),
+                    ownerLogin: personalDetailsLoginSelector(iouReport?.ownerAccountID)(OnyxUtils.get(ONYXKEYS.PERSONAL_DETAILS_LIST)),
                     full: false,
-                    delegateEmail,
-                    isTrackIntentUser,
+                    delegateEmail: delegateEmailSelector(OnyxUtils.get(ONYXKEYS.ACCOUNT)),
+                    isTrackIntentUser: isTrackOnboardingChoice(OnyxUtils.get(ONYXKEYS.NVP_INTRO_SELECTED)?.choice),
                 });
             }
             return;

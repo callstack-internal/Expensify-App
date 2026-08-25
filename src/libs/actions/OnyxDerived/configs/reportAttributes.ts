@@ -244,7 +244,7 @@ export default createOnyxDerivedValueConfig({
             introSelected,
             reportMetadata,
         ],
-        {currentValue, sourceValues, triggeredKeys},
+        {currentValue, sourceValues, triggeredKeys, shouldFullRecompute},
     ) => {
         // Read the in-memory offline state directly (NETWORK is a dependency so recompute still fires when it changes).
         const isOffline = getIsOffline();
@@ -282,7 +282,8 @@ export default createOnyxDerivedValueConfig({
             (hasKeyTriggeredCompute(ONYXKEYS.NVP_PREFERRED_LOCALE, triggeredKeys) && preferredLocale !== currentValue?.locale) ||
             displayNameChanges === RECOMPUTE_ALL ||
             hasKeyTriggeredCompute(ONYXKEYS.CONCIERGE_REPORT_ID, triggeredKeys) ||
-            hasKeyTriggeredCompute(ONYXKEYS.NVP_INTRO_SELECTED, triggeredKeys);
+            hasKeyTriggeredCompute(ONYXKEYS.NVP_INTRO_SELECTED, triggeredKeys) ||
+            !!shouldFullRecompute;
 
         const policyChangedReportKeys: string[] = [];
         // Reports whose policy change touched only fields that don't feed the report name (type, approvalMode,
@@ -746,6 +747,7 @@ export default createOnyxDerivedValueConfig({
         previousPersonalDetails = undefined;
         previousPolicies = undefined;
     },
+    shouldFullRecomputeAfterRestore: true,
 });
 
 export {hasPolicyRelevantFieldChanged, getOldestPreviewActionID};

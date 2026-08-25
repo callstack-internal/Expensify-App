@@ -28,12 +28,17 @@ import type {DerivedValueContext} from './types';
 import ONYX_DERIVED_VALUES from './ONYX_DERIVED_VALUES';
 import {setDerivedValue} from './utils';
 
+// How long after the first flush the post-restore full recompute runs (see `shouldFullRecomputeAfterRestore`).
+// It is deliberately not inline: a full `reportAttributes` pass costs hundreds of milliseconds on large
+// accounts, so it waits for the startup burst to settle rather than competing with the path to first paint.
+const FULL_RECOMPUTE_AFTER_RESTORE_DELAY_MS = 3000;
+
 /**
  * Initialize all Onyx derived values, store them in Onyx, and setup listeners to update them when dependencies change.
  * Using connectWithoutView in this function since this is only executed once while initializing the App.
  */
 function init() {
-    for (const [key, {compute, dependencies, onReset}] of ObjectUtils.typedEntries(ONYX_DERIVED_VALUES)) {
+    for (const [key, {compute, dependencies, onReset, shouldFullRecomputeAfterRestore}] of ObjectUtils.typedEntries(ONYX_DERIVED_VALUES)) {
         let areAllConnectionsSet = false;
         let connectionsEstablishedCount = 0;
         const totalConnections = dependencies.length;
@@ -45,6 +50,7 @@ function init() {
 
         OnyxUtils.get(key).then((storedDerivedValue) => {
             let derivedValue = storedDerivedValue;
+            const wasRestoredFromDisk = !!derivedValue;
             if (derivedValue) {
                 Log.info(`Derived value for ${key} restored from disk`);
             }
@@ -85,6 +91,11 @@ function init() {
             // Guard so the clear reset runs once per clear window (see recomputeDerivedValue), not on every recompute.
             let clearHandled = false;
 
+            // The post-restore full recompute runs at most once per JS context, and the flag below tells the
+            // compute that this is that pass.
+            let hasScheduledFullRecompute = false;
+            let isFullRecomputePass = false;
+
             // Called when Onyx is cleared. Coalescing collapses the clear (deps ->
             // undefined) and rehydrate (deps -> populated) into one flush, so the engine never observes the empty
             // intermediate state and would otherwise keep diffing rehydrated data against pre-clear state. Drop the
@@ -101,6 +112,7 @@ function init() {
                 context.currentValue = derivedValue;
                 context.sourceValues = sourceValues as typeof context.sourceValues;
                 context.triggeredKeys = triggeredKeys;
+                context.shouldFullRecompute = isFullRecomputePass;
 
                 const spanId = `${CONST.TELEMETRY.SPAN_ONYX_DERIVED_COMPUTE}_${key}`;
                 // No-splash flows end ManualAppStartup before the startup response lands, so without this fallback onlyIfParent drops every recompute it triggers.
@@ -130,7 +142,36 @@ function init() {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
             const readCollectionDependency = (index: number) => dependencyValues[index] as OnyxCollection<unknown>;
 
+            // Dependencies keep changing while this key isn't computing (the app is closed while push
+            // notifications apply data headlessly, or the compute is gated on something that isn't ready yet),
+            // and those changes leave no delta behind: the first flush baselines them as already-processed. A
+            // config that skips work when there are no deltas would then serve the restored value for the whole
+            // session, so it gets one full recompute here. See `shouldFullRecomputeAfterRestore`.
+            const scheduleFullRecomputeAfterRestore = () => {
+                if (!shouldFullRecomputeAfterRestore || !wasRestoredFromDisk || hasScheduledFullRecompute) {
+                    return;
+                }
+
+                hasScheduledFullRecompute = true;
+                setTimeout(() => {
+                    // A clear (e.g. logout) tears the value down and recomputes from scratch anyway.
+                    if (!areAllConnectionsSet || OnyxCache.hasPendingTask(TASK.CLEAR)) {
+                        return;
+                    }
+
+                    Log.info(`[OnyxDerived] running the full recompute scheduled after ${key} was restored from disk`);
+                    isFullRecomputePass = true;
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                        flushRecompute();
+                    } finally {
+                        isFullRecomputePass = false;
+                    }
+                }, FULL_RECOMPUTE_AFTER_RESTORE_DELAY_MS);
+            };
+
             const flushRecompute = () => {
+                const isFirstFlush = !hasFlushedOnce;
                 flushScheduled = false;
 
                 // Reconstruct the source values at flush time by diffing each dependency that fired since the
@@ -197,6 +238,10 @@ function init() {
                 }
                 hasFlushedOnce = true;
                 pendingDependencyIndexes.clear();
+
+                if (isFirstFlush) {
+                    scheduleFullRecomputeAfterRestore();
+                }
             };
 
             const recomputeDerivedValue = (triggeredByIndex: number) => {

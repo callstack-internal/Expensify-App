@@ -112,7 +112,7 @@ describe('useSwitchToDelegator', () => {
         await seedOnyx();
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(DELEGATOR_EMAIL);
+        await result.current(DELEGATOR_EMAIL);
 
         expect(connect).toHaveBeenCalledWith({
             email: DELEGATOR_EMAIL,
@@ -130,7 +130,7 @@ describe('useSwitchToDelegator', () => {
         mockIsOffline = true;
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(DELEGATOR_EMAIL);
+        await result.current(DELEGATOR_EMAIL);
 
         expect(mockShowConfirmModal).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -148,7 +148,7 @@ describe('useSwitchToDelegator', () => {
         mockIsActingAsDelegate = true;
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(ORIGINAL_EMAIL);
+        await result.current(ORIGINAL_EMAIL);
 
         expect(disconnect).toHaveBeenCalledWith({stashedCredentials: STASHED_CREDENTIALS, stashedSession: STASHED_SESSION});
         expect(connect).not.toHaveBeenCalled();
@@ -160,7 +160,7 @@ describe('useSwitchToDelegator', () => {
         mockIsActingAsDelegate = true;
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(ORIGINAL_EMAIL);
+        await result.current(ORIGINAL_EMAIL);
 
         expect(disconnect).toHaveBeenCalledWith({stashedCredentials: {}, stashedSession: STASHED_SESSION});
     });
@@ -170,7 +170,7 @@ describe('useSwitchToDelegator', () => {
         mockIsActingAsDelegate = true;
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current('someone.else@example.com');
+        await result.current('someone.else@example.com');
 
         expect(mockShowDelegateNoAccessModal).toHaveBeenCalledTimes(1);
         expect(connect).not.toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe('useSwitchToDelegator', () => {
         await seedOnyx({isTracking: true});
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(DELEGATOR_EMAIL);
+        await result.current(DELEGATOR_EMAIL);
         await waitForBatchedUpdates();
 
         expect(mockShowConfirmModal).toHaveBeenCalledWith(
@@ -199,7 +199,7 @@ describe('useSwitchToDelegator', () => {
         mockConfirmAction = 'CLOSE';
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(DELEGATOR_EMAIL);
+        await result.current(DELEGATOR_EMAIL);
         await waitForBatchedUpdates();
 
         expect(mockShowConfirmModal).toHaveBeenCalledTimes(1);
@@ -208,13 +208,29 @@ describe('useSwitchToDelegator', () => {
         expect(disconnect).not.toHaveBeenCalled();
     });
 
+    it('does not re-render when a key it reads changes', async () => {
+        let renderCount = 0;
+        renderHook(() => {
+            renderCount += 1;
+            return useSwitchToDelegator();
+        });
+        const rendersAfterMount = renderCount;
+
+        await Onyx.merge(ONYXKEYS.ACCOUNT, {delegatedAccess: DELEGATED_ACCESS});
+        await Onyx.merge(ONYXKEYS.SESSION, SESSION);
+        await Onyx.merge(ONYXKEYS.GPS_DRAFT_DETAILS, GPS_DRAFT_DETAILS);
+        await waitForBatchedUpdates();
+
+        expect(renderCount).toBe(rendersAfterMount);
+    });
+
     it('ignores the trip warning entirely when nothing is being tracked', async () => {
         await seedOnyx();
         await Onyx.merge(ONYXKEYS.GPS_DRAFT_DETAILS, {...GPS_DRAFT_DETAILS, isTracking: false});
         await waitForBatchedUpdates();
 
         const {result} = renderHook(() => useSwitchToDelegator());
-        result.current(DELEGATOR_EMAIL);
+        await result.current(DELEGATOR_EMAIL);
 
         expect(mockShowConfirmModal).not.toHaveBeenCalled();
         expect(stopGpsTrip).not.toHaveBeenCalled();

@@ -9,8 +9,6 @@ import OnyxUtils from '@libs/OnyxUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import {isTrackingSelector} from '@src/selectors/GPSDraftDetails';
-import type {GpsDraftDetails} from '@src/types/onyx';
-import type {DelegatedAccess} from '@src/types/onyx/Account';
 import type {GPSPoint} from '@src/types/onyx/GpsDraftDetails';
 
 import useConfirmModal from './useConfirmModal';
@@ -66,7 +64,7 @@ function useSwitchToDelegator() {
         // a single render snapshot, so every branch below saw a mutually consistent set of values, and reads
         // spread across the confirmation modal would not be. And every read sits before the first write, so
         // nothing here can observe a value that a write later in this handler has already invalidated.
-        const [account, credentials, stashedCredentials, session, stashedSession, activePolicyID, gpsDraft] = await Promise.all([
+        const [account, credentials, stashedCredentials, session, stashedSession, activePolicyID, gpsDraftDetails] = await Promise.all([
             OnyxUtils.get(ONYXKEYS.ACCOUNT),
             OnyxUtils.get(ONYXKEYS.CREDENTIALS),
             OnyxUtils.get(ONYXKEYS.STASHED_CREDENTIALS),
@@ -75,15 +73,7 @@ function useSwitchToDelegator() {
             OnyxUtils.get(ONYXKEYS.NVP_ACTIVE_POLICY_ID),
             OnyxUtils.get(ONYXKEYS.GPS_DRAFT_DETAILS),
         ]);
-        // OnyxUtils.get resolves the cached object itself, so it is typed ReadonlyDeep, and the two consumers
-        // below declare mutable parameters: Delegate.connect takes DelegatedAccess, and the GPS helpers take
-        // GpsDraftDetails. Neither writes to what it is given, but neither says so in its signature, and
-        // widening them means widening GPSPoint[][] through calculateTrimmedEndPoint and every other caller.
-        // Both casts are read-only by inspection, so they are asserted here until those signatures are widened.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- consumer signature is mutable, this read is not written to
-        const delegatedAccess = account?.delegatedAccess as DelegatedAccess | undefined;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- consumer signature is mutable, this read is not written to
-        const gpsDraftDetails = gpsDraft as GpsDraftDetails | undefined;
+        const delegatedAccess = account?.delegatedAccess;
 
         const isReturningToOriginalUser = isActingAsDelegate && email === stashedSession?.email;
         // Chained delegation isn't supported by the backend — if we're already acting as a delegate,

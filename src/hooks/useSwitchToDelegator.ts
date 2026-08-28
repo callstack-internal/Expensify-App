@@ -60,10 +60,7 @@ function useSwitchToDelegator() {
             modalClose(() => showOfflineModal());
             return;
         }
-        // Read everything up front, in one block, for two reasons. The subscriptions this replaced all came from
-        // a single render snapshot, so every branch below saw a mutually consistent set of values, and reads
-        // spread across the confirmation modal would not be. And every read sits before the first write, so
-        // nothing here can observe a value that a write later in this handler has already invalidated.
+
         const [account, credentials, stashedCredentials, session, stashedSession, activePolicyID, gpsDraftDetails] = await Promise.all([
             OnyxUtils.get(ONYXKEYS.ACCOUNT),
             OnyxUtils.get(ONYXKEYS.CREDENTIALS),

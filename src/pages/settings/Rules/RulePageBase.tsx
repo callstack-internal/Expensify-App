@@ -16,6 +16,7 @@ import {clearDraftRule, saveExpenseRule, updateDraftRule} from '@libs/actions/Us
 import {getAvailableNonPersonalPolicyCategories, getDecodedCategoryName} from '@libs/CategoryUtils';
 import {extractRuleFromForm, getKeyForRule} from '@libs/ExpenseRuleUtils';
 import Navigation from '@libs/Navigation/Navigation';
+import Onyx from '@libs/OnyxReadonly';
 import {hasEnabledOptions} from '@libs/OptionsListUtils';
 import Parser from '@libs/Parser';
 import {getAllTaxRatesNamesAndValues, getCleanedTagName, getTagLists} from '@libs/PolicyUtils';
@@ -29,7 +30,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
 import type {ExpenseRuleForm, ExpenseRuleFormFieldID} from '@src/types/form/ExpenseRuleForm';
 import EXPENSE_RULE_INPUT_IDS from '@src/types/form/ExpenseRuleForm';
-import type {ExpenseRule, PolicyCategories, PolicyTagLists} from '@src/types/onyx';
+import type {PolicyCategories, PolicyTagLists} from '@src/types/onyx';
 import getEmptyArray from '@src/types/utils/getEmptyArray';
 
 import type {OnyxCollection} from 'react-native-onyx';
@@ -96,7 +97,6 @@ const getErrorMessage = (translate: LocalizedTranslate, form?: ExpenseRuleForm) 
 
 function RulePageBase({titleKey, testID, hash}: RulePageBaseProps) {
     const {translate} = useLocalize();
-    const [expenseRules = getEmptyArray<ExpenseRule>()] = useOnyx(ONYXKEYS.NVP_EXPENSE_RULES);
     const [form] = useOnyx(ONYXKEYS.FORMS.EXPENSE_RULE_FORM);
     // Cannot use useRef because react compiler fails
     const [isSaving, setIsSaving] = useState(false);
@@ -136,7 +136,7 @@ function RulePageBase({titleKey, testID, hash}: RulePageBaseProps) {
 
     const errorMessage = getErrorMessage(translate, form);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (errorMessage) {
             setShouldShowError(true);
             return;
@@ -144,6 +144,10 @@ function RulePageBase({titleKey, testID, hash}: RulePageBaseProps) {
         if (!form) {
             return;
         }
+
+        // The rule list is only ever handed to saveExpenseRule(), so it is read on submit rather than
+        // subscribed to. Read before the spinner starts, so the work after the paint stays synchronous.
+        const expenseRules = (await Onyx.get(ONYXKEYS.NVP_EXPENSE_RULES)) ?? [];
 
         startWithLoading(() => {
             setIsSaving(true);
@@ -286,7 +290,9 @@ function RulePageBase({titleKey, testID, hash}: RulePageBaseProps) {
                     containerStyles={[styles.m4, styles.mb5]}
                     isAlertVisible={shouldShowError && !!errorMessage}
                     message={errorMessage}
-                    onSubmit={handleSubmit}
+                    onSubmit={() => {
+                        handleSubmit();
+                    }}
                     isLoading={isLoading}
                     shouldShowLoadingImmediatelyOnPress={false}
                     enabledWhenOffline

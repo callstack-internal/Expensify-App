@@ -9,6 +9,7 @@ import type {GPSPoint} from '@src/types/onyx/GpsDraftDetails';
 
 import type {LocationObject} from 'expo-location';
 import type {OnyxEntry} from 'react-native-onyx';
+import type {ReadonlyDeep} from 'type-fest';
 
 import NetInfo from '@react-native-community/netinfo';
 import {defineTask} from 'expo-task-manager';
@@ -19,11 +20,11 @@ type BackgroundLocationTrackingTaskData = {locations: LocationObject[]};
 // This is a headless background task (registered via defineTask) that runs outside React, so useOnyx()
 // isn't available. GPS_DRAFT_DETAILS is read twice (at task start and again after reverse geocoding), so
 // use a short-lived connectWithoutView one-shot read that disconnects as soon as it has the latest value.
-function getGpsDraftDetails(): Promise<OnyxEntry<GpsDraftDetails>> {
+function getGpsDraftDetails(): Promise<ReadonlyDeep<OnyxEntry<GpsDraftDetails>>> {
     return new Promise((resolve) => {
         const connection = Onyx.connectWithoutView({
             key: ONYXKEYS.GPS_DRAFT_DETAILS,
-            callback: (gpsDraftDetails: OnyxEntry<GpsDraftDetails>) => {
+            callback: (gpsDraftDetails: ReadonlyDeep<OnyxEntry<GpsDraftDetails>>) => {
                 Onyx.disconnect(connection);
                 resolve(gpsDraftDetails);
             },
@@ -58,11 +59,11 @@ defineTask<BackgroundLocationTrackingTaskData>(BACKGROUND_LOCATION_TRACKING_TASK
 });
 
 // Checks if latest update added first point to the current segment
-function shouldUpdateStartAddress(gpsPoints: GPSPoint[][], updatedGpsPoints: GPSPoint[][]) {
+function shouldUpdateStartAddress(gpsPoints: ReadonlyDeep<GPSPoint[][]>, updatedGpsPoints: ReadonlyDeep<GPSPoint[][]>) {
     return getTotalGpsTripPointsInLastSegment(gpsPoints) === 0 && getTotalGpsTripPointsInLastSegment(updatedGpsPoints) !== 0;
 }
 
-async function updateStartAddress(gpsPoints: GPSPoint[][], isOffline: boolean) {
+async function updateStartAddress(gpsPoints: ReadonlyDeep<GPSPoint[][]>, isOffline: boolean) {
     const startPoint = gpsPoints.at(-1)?.at(0);
     if (!startPoint) {
         return;

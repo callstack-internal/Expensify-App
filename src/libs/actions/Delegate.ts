@@ -22,6 +22,7 @@ import type Credentials from '@src/types/onyx/Credentials';
 import type Session from '@src/types/onyx/Session';
 
 import type {OnyxEntry, OnyxUpdate} from 'react-native-onyx';
+import type {ReadonlyDeep} from 'type-fest';
 
 import HybridAppModule from '@expensify/react-native-hybrid-app';
 import Onyx from 'react-native-onyx';
@@ -76,7 +77,7 @@ function clearOnyxForDelegateTransition(): Promise<void> {
 
 type WithDelegatedAccess = {
     // Optional keeps call sites clean, but still encourages passing `account?.delegatedAccess`.
-    delegatedAccess: DelegatedAccess | undefined;
+    delegatedAccess: ReadonlyDeep<DelegatedAccess> | undefined;
 };
 
 type WithCredentials = {

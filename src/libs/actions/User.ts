@@ -1801,7 +1801,12 @@ function clearExpenseRuleErrors(expenseRules: ExpenseRule[], selectedRuleKey: st
     Onyx.set(ONYXKEYS.NVP_EXPENSE_RULES, updatedExpenseRules);
 }
 
-function saveExpenseRule(expenseRules: ExpenseRule[], newRule: ExpenseRule, existingRuleKey: string | undefined, getKeyForRule: (rule: ExpenseRule) => string) {
+/**
+ * `expenseRules` is read-only because the caller reads it with `Onyx.get()`, which hands back the cached
+ * array itself. Nothing here needs it mutable: every rule list below is built with `map` or a spread, both
+ * of which produce a fresh array.
+ */
+function saveExpenseRule(expenseRules: readonly ExpenseRule[], newRule: ExpenseRule, existingRuleKey: string | undefined, getKeyForRule: (rule: ExpenseRule) => string) {
     const isEditing = !!existingRuleKey;
     const pendingAction = isEditing ? CONST.RED_BRICK_ROAD_PENDING_ACTION.UPDATE : CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD;
 
@@ -1848,7 +1853,8 @@ function saveExpenseRule(expenseRules: ExpenseRule[], newRule: ExpenseRule, exis
     } else {
         optimisticRules = [...expenseRules, ruleWithPendingAction];
         successRules = [...expenseRules, ruleForSuccess];
-        failureRules = expenseRules;
+        // Copied like the two lists above, because the read-only array cannot be handed to `Onyx.set` as-is.
+        failureRules = [...expenseRules];
     }
 
     const rulesForAPI = successRules

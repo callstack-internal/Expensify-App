@@ -8,7 +8,7 @@ import type {GPSPoint, TrimmedGPSPoint} from '@src/types/onyx/GpsDraftDetails';
 import type {Routes, Waypoint} from '@src/types/onyx/Transaction';
 import geodesicDistance from '@src/utils/geodesicDistance';
 
-import type {SetRequired} from 'type-fest';
+import type {ReadonlyDeep, SetRequired} from 'type-fest';
 
 import {hasStartedLocationUpdatesAsync, reverseGeocodeAsync, stopLocationUpdatesAsync} from 'expo-location';
 
@@ -26,15 +26,15 @@ function getGPSWaypoint(gpsPoint: GPSPoint, waypointIndex: number): GPSWaypointC
     };
 }
 
-function getEffectiveDistance(gpsDraftDetails: GpsDraftDetails | undefined): number {
+function getEffectiveDistance(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): number {
     return gpsDraftDetails?.modifiedDistance ?? gpsDraftDetails?.distanceInMeters ?? 0;
 }
 
-function getEffectiveEndPoint(gpsDraftDetails: GpsDraftDetails | undefined): GPSPoint | undefined {
+function getEffectiveEndPoint(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): GPSPoint | undefined {
     return gpsDraftDetails?.trimmedEndPoint ?? gpsDraftDetails?.gpsPoints?.at(-1)?.at(-1);
 }
 
-function getGPSWaypoints(gpsDraftDetails: GpsDraftDetails | undefined, trimmedEndPoint?: TrimmedGPSPoint): GPSWaypointCollection {
+function getGPSWaypoints(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined, trimmedEndPoint?: TrimmedGPSPoint): GPSWaypointCollection {
     const gpsTrip = getTrimmedGpsTrip(gpsDraftDetails, trimmedEndPoint);
 
     const waypointCollection: GPSWaypointCollection = {};
@@ -65,7 +65,7 @@ function getGPSWaypoints(gpsDraftDetails: GpsDraftDetails | undefined, trimmedEn
     return waypointCollection;
 }
 
-function getGPSRoutes(gpsDraftDetails: GpsDraftDetails | undefined): Routes {
+function getGPSRoutes(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): Routes {
     const distanceInMeters = roundToTwoDecimalPlaces(gpsDraftDetails?.modifiedDistance ?? gpsDraftDetails?.distanceInMeters ?? 0);
     const gpsCoordinates = getTrimmedGpsTrip(gpsDraftDetails);
     const coordinates: Array<Array<[number, number]>> = gpsCoordinates.map((points) => points.map(({lat, long}) => [long, lat]));
@@ -87,7 +87,7 @@ function getGPSRoutes(gpsDraftDetails: GpsDraftDetails | undefined): Routes {
  * If the trimmed end point is set, it is added to the recorded GPS coordinates according to the data
  * saved in trimmedEndPoint - this is a backend requirement to make the receipt generation easier.
  */
-function getStringifiedGPSCoordinates(gpsDraftDetails: GpsDraftDetails | undefined): string | undefined {
+function getStringifiedGPSCoordinates(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): string | undefined {
     const trimmedEndPoint = gpsDraftDetails?.trimmedEndPoint;
     const gpsPoints = gpsDraftDetails?.gpsPoints;
 
@@ -136,7 +136,7 @@ function coordinatesToString(gpsPoint: {lat: number; long: number}): string {
     return `${gpsPoint.lat},${gpsPoint.long}`;
 }
 
-function isLastSegmentEmptyOrHasOnlyOnePoint(lastSegment: GPSPoint[]): boolean {
+function isLastSegmentEmptyOrHasOnlyOnePoint(lastSegment: ReadonlyDeep<GPSPoint[]>): boolean {
     if (lastSegment.length <= 1) {
         return true;
     }
@@ -144,7 +144,7 @@ function isLastSegmentEmptyOrHasOnlyOnePoint(lastSegment: GPSPoint[]): boolean {
     return false;
 }
 
-async function stopGpsTrip(isOffline: boolean, gpsPoints: GPSPoint[][], skipLastPointAddressFetching = false) {
+async function stopGpsTrip(isOffline: boolean, gpsPoints: ReadonlyDeep<GPSPoint[][]>, skipLastPointAddressFetching = false) {
     const isBackgroundTaskRunning = await hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TRACKING_TASK_NAME);
 
     if (isBackgroundTaskRunning) {
@@ -196,27 +196,27 @@ async function stopGpsTrip(isOffline: boolean, gpsPoints: GPSPoint[][], skipLast
     setEndWaypointAddress({value: formattedCoordinates, type: 'coordinates'}, gpsPoints);
 }
 
-function getTotalGpsTripPoints(gpsDraftDetails: GpsDraftDetails | undefined): number {
+function getTotalGpsTripPoints(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): number {
     return gpsDraftDetails?.gpsPoints?.flat().length ?? 0;
 }
 
-function getTotalGpsTripPointsInLastSegment(gpsPoints: GPSPoint[][]): number {
+function getTotalGpsTripPointsInLastSegment(gpsPoints: ReadonlyDeep<GPSPoint[][]>): number {
     return gpsPoints.at(-1)?.length ?? 0;
 }
 
-function isTripStopped(gpsDraftDetails: GpsDraftDetails | undefined): boolean {
+function isTripStopped(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): boolean {
     return !gpsDraftDetails?.isTracking && getTotalGpsTripPoints(gpsDraftDetails) > 0;
 }
 
-function getGpsPoints(gpsDraftDetails: GpsDraftDetails | undefined): GPSPoint[][] {
+function getGpsPoints(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): ReadonlyDeep<GPSPoint[][]> {
     return gpsDraftDetails?.gpsPoints ?? [[]];
 }
 
-function getFirstGpsPoint(gpsDraftDetails: GpsDraftDetails | undefined): GPSPoint | undefined {
+function getFirstGpsPoint(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined): GPSPoint | undefined {
     return gpsDraftDetails?.gpsPoints?.at(0)?.at(0);
 }
 
-function calculateTrimmedEndPoint(gpsPoints: GPSPoint[][], targetDistanceMeters: number): TrimmedGPSPoint | null {
+function calculateTrimmedEndPoint(gpsPoints: ReadonlyDeep<GPSPoint[][]>, targetDistanceMeters: number): TrimmedGPSPoint | null {
     let distanceTraveled = 0;
 
     for (let segmentIndex = 0; segmentIndex < gpsPoints.length; segmentIndex++) {
@@ -252,11 +252,19 @@ function calculateTrimmedEndPoint(gpsPoints: GPSPoint[][], targetDistanceMeters:
     return null;
 }
 
-function getTrimmedGpsTrip(gpsDraftDetails: GpsDraftDetails | undefined, trimmedEndPoint?: TrimmedGPSPoint): GPSPoint[][];
-function getTrimmedGpsTrip(gpsPoints: GPSPoint[][], trimmedEndPoint: TrimmedGPSPoint | undefined): GPSPoint[][];
-function getTrimmedGpsTrip(gpsData: GPSPoint[][] | GpsDraftDetails | undefined, trimmedEndPointProp?: TrimmedGPSPoint | undefined): GPSPoint[][] {
-    const gpsPoints = Array.isArray(gpsData) ? gpsData : getGpsPoints(gpsData);
-    const trimmedEndPoint = trimmedEndPointProp ?? (Array.isArray(gpsData) ? undefined : gpsData?.trimmedEndPoint);
+/**
+ * `Array.isArray()` is typed `(value: any) => value is any[]`, so it does not discriminate a union whose
+ * array member is read-only: the array stays in the type of the false branch. This guard does.
+ */
+function isGpsPointSegments(gpsData: ReadonlyDeep<GPSPoint[][]> | ReadonlyDeep<GpsDraftDetails> | undefined): gpsData is ReadonlyDeep<GPSPoint[][]> {
+    return Array.isArray(gpsData);
+}
+
+function getTrimmedGpsTrip(gpsDraftDetails: ReadonlyDeep<GpsDraftDetails> | undefined, trimmedEndPoint?: TrimmedGPSPoint): ReadonlyDeep<GPSPoint[][]>;
+function getTrimmedGpsTrip(gpsPoints: ReadonlyDeep<GPSPoint[][]>, trimmedEndPoint: TrimmedGPSPoint | undefined): ReadonlyDeep<GPSPoint[][]>;
+function getTrimmedGpsTrip(gpsData: ReadonlyDeep<GPSPoint[][]> | ReadonlyDeep<GpsDraftDetails> | undefined, trimmedEndPointProp?: TrimmedGPSPoint | undefined): ReadonlyDeep<GPSPoint[][]> {
+    const gpsPoints = isGpsPointSegments(gpsData) ? gpsData : getGpsPoints(gpsData);
+    const trimmedEndPoint = trimmedEndPointProp ?? (isGpsPointSegments(gpsData) ? undefined : gpsData?.trimmedEndPoint);
 
     if (!trimmedEndPoint) {
         return gpsPoints;
@@ -276,7 +284,7 @@ function getTrimmedGpsTrip(gpsData: GPSPoint[][] | GpsDraftDetails | undefined, 
     return gpsPoints.slice(0, trimmedEndPointSegment).concat([updatedSegment]);
 }
 
-function gpsPointsToMapboxCoordinates(coordinates: GPSPoint[][]): Coordinate[][] {
+function gpsPointsToMapboxCoordinates(coordinates: ReadonlyDeep<GPSPoint[][]>): Coordinate[][] {
     return coordinates.map((segment): Coordinate[] => segment.map(({lat, long}) => [long, lat]));
 }
 

@@ -21,6 +21,8 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {GPSPoint} from '@src/types/onyx/GpsDraftDetails';
 import type {Unit} from '@src/types/onyx/Policy';
 
+import type {ReadonlyDeep} from 'type-fest';
+
 import {hasServicesEnabledAsync, startLocationUpdatesAsync} from 'expo-location';
 import React, {useState} from 'react';
 import {Linking, View} from 'react-native';
@@ -45,7 +47,7 @@ type ButtonsProps = {
     unit: Unit;
 
     /** Captured GPS points */
-    gpsPoints: GPSPoint[][];
+    gpsPoints: ReadonlyDeep<GPSPoint[][]>;
 };
 
 function GPSButtons({navigateToNextStep, setShouldShowStartError, setShouldShowPermissionsError, reportID, unit, gpsPoints}: ButtonsProps) {

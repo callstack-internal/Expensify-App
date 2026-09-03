@@ -7,9 +7,11 @@ import {addressFromGpsPoint, getGpsPoints} from '@libs/GPSDraftDetailsUtils';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {GPSPoint, TrimmedGPSPoint} from '@src/types/onyx/GpsDraftDetails';
 
+import type {ReadonlyDeep} from 'type-fest';
+
 import {useEffect, useRef} from 'react';
 
-function useUpdateGpsTripOnReconnect({gpsPoints}: {gpsPoints: GPSPoint[][]}) {
+function useUpdateGpsTripOnReconnect({gpsPoints}: {gpsPoints: ReadonlyDeep<GPSPoint[][]>}) {
     const [gpsDraftDetails] = useOnyx(ONYXKEYS.GPS_DRAFT_DETAILS);
     // Mirror the latest gpsDraftDetails into a ref so the async onReconnect handler can read the newest value
     // after awaiting reverse geocoding, instead of the stale value captured when the callback started.

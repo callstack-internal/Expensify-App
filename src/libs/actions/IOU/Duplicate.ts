@@ -53,7 +53,7 @@ import type {WaypointCollection} from '@src/types/onyx/Transaction';
 
 import type {Locale as DateFnsLocale} from 'date-fns';
 import type {NullishDeep, OnyxCollection, OnyxEntry, OnyxUpdate} from 'react-native-onyx';
-import type {PartialDeep} from 'type-fest';
+import type {PartialDeep, ReadonlyDeep} from 'type-fest';
 
 import {format} from 'date-fns';
 import Onyx from 'react-native-onyx';
@@ -790,7 +790,7 @@ type DuplicateExpenseTransactionParams = {
     targetPolicy?: OnyxEntry<OnyxTypes.Policy>;
     targetPolicyCategories?: OnyxEntry<OnyxTypes.PolicyCategories>;
     targetReport?: OnyxTypes.Report;
-    existingTransactionDraft: OnyxEntry<OnyxTypes.Transaction>;
+    existingTransactionDraft: ReadonlyDeep<OnyxEntry<OnyxTypes.Transaction>>;
     betas: OnyxEntry<OnyxTypes.Beta[]>;
     personalDetails: OnyxEntry<OnyxTypes.PersonalDetailsList>;
     recentWaypoints: OnyxEntry<OnyxTypes.RecentWaypoint[]>;
@@ -1182,7 +1182,7 @@ type BulkDuplicateExpensesParams = {
     quickAction: OnyxEntry<OnyxTypes.QuickAction>;
     policyRecentlyUsedCurrencies: string[];
     isSelfTourViewed: boolean;
-    transactionDrafts: Record<string, OnyxTypes.Transaction> | undefined;
+    transactionDrafts: Record<string, ReadonlyDeep<OnyxTypes.Transaction>> | undefined;
     betas: OnyxEntry<OnyxTypes.Beta[]>;
     recentWaypoints: OnyxEntry<OnyxTypes.RecentWaypoint[]>;
     currentUser: CurrentUser;

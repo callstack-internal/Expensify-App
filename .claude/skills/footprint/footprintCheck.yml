@@ -1,0 +1,71 @@
+name: Runtime footprint check
+
+# Capture needs a device, so it happens on a machine that has one; only the comparison runs here.
+# A contributor runs `npm run footprint -- capture <flow> --platform <p>` locally, commits the resulting
+# JSON under footprint/candidates/, and adds the `footprint` label to the pull request.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    branches-ignore: [staging, production]
+
+concurrency:
+  group: ${{ github.ref }}-footprint-check
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    name: Compare against baseline
+    if: contains(github.event.pull_request.labels.*.name, 'footprint')
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: useblacksmith/checkout@1c9394c220d293645707b625ba9d79685f093a8f # v1
+
+      - name: Setup Node
+        uses: ./.github/actions/composite/setupNode
+
+      - name: Compare every committed candidate against its baseline
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+
+          candidates=(footprint/candidates/*.json)
+
+          if [[ ${#candidates[@]} -eq 0 ]]; then
+            echo "The footprint label is set, but footprint/candidates/ has no captures." >&2
+            echo "Run 'npm run footprint -- capture <flow> --platform <platform>' and commit the result." >&2
+            exit 1
+          fi
+
+          flagged=0
+          : > footprint-comment.md
+
+          for candidate in "${candidates[@]}"; do
+            baseline="footprint/baselines/$(basename "$candidate")"
+
+            if [[ ! -f "$baseline" ]]; then
+              echo "No baseline at $baseline for candidate $candidate." >&2
+              printf '**Runtime footprint** · no baseline committed for `%s`.\n\n' "$(basename "$candidate")" >> footprint-comment.md
+              continue
+            fi
+
+            # `compare` exits non-zero on a flag and zero on warnings; both append to the comment.
+            if ! npm run --silent footprint -- compare "$baseline" "$candidate" --markdown >> footprint-comment.md; then
+              flagged=1
+            fi
+            printf '\n\n' >> footprint-comment.md
+          done
+
+          gh pr comment "$PR_NUMBER" --body-file footprint-comment.md
+
+          # Warn-only on purpose. Week one of noise decides the thresholds, not the other way round;
+          # swap this for `exit $flagged` once a week of runs has come back clean.
+          if [[ "$flagged" -eq 1 ]]; then
+            echo "::warning::Runtime footprint flagged a regression. Not blocking the merge yet."
+          fi

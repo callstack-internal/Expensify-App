@@ -20,6 +20,7 @@ import CustomStatusBarAndBackground from './components/CustomStatusBarAndBackgro
 import CustomStatusBarAndBackgroundContextProvider from './components/CustomStatusBarAndBackground/CustomStatusBarAndBackgroundContextProvider';
 import EnvironmentProvider from './components/EnvironmentContextProvider';
 import ErrorBoundary from './components/ErrorBoundary';
+import FootprintAgentTools from './components/FootprintAgentTools';
 import FullScreenBlockingViewContextProvider from './components/FullScreenBlockingViewContextProvider';
 import FullScreenLoaderContextProvider from './components/FullScreenLoaderContext';
 import HTMLEngineProvider from './components/HTMLEngineProvider';
@@ -138,6 +139,7 @@ function App() {
                                         </ColorSchemeWrapper>
                                     </ErrorBoundary>
                                     <NavigationBar />
+                                    <FootprintAgentTools />
                                 </ComposeProviders>
                             </View>
                         </SafeAreaProvider>

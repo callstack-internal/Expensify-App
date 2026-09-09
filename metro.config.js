@@ -5,6 +5,7 @@ const {mergeConfig} = require('@react-native/metro-config');
 const {wrapWithReanimatedMetroConfig} = require('react-native-reanimated/metro-config');
 const {getBundleModeMetroConfig} = require('react-native-worklets/bundleMode');
 const {withSentryConfig} = require('@sentry/react-native/metro');
+const {withRozenite} = require('@rozenite/metro');
 const {createSentryMetroSerializer} = require('@sentry/react-native/dist/js/tools/sentryMetroSerializer');
 
 const path = require('path');
@@ -43,6 +44,10 @@ const noopExpoUpdatesPath = path.resolve(__dirname, 'src/setup/telemetry/noopExp
 
 const isDev = process.env.ENVIRONMENT === undefined || process.env.ENVIRONMENT === 'development';
 
+// Rozenite serves React Native DevTools panels and the agent bridge off the Metro dev server.
+// It is opt-in so that no normal dev server, CI bundle or release build changes shape because of it.
+const withRozeniteEnabled = isDev && process.env.WITH_ROZENITE === 'true';
+
 /**
  * Metro configuration
  * https://reactnative.dev/docs/metro
@@ -59,7 +64,10 @@ const config = {
             ...(expoConfig.resolver.extraNodeModules ?? {}),
             'expo-updates': noopExpoUpdatesPath,
         },
-        sourceExts: [...defaultConfig.resolver.sourceExts, ...defaultConfig.watcher.additionalExts, 'jsx'],
+        // `rozenite.*` extensions come first so that, with Rozenite enabled, a module with a
+        // `.rozenite.tsx` sibling resolves to it. That is how the agent-tool bridge stays out of
+        // every other bundle instead of being imported and then gated at runtime.
+        sourceExts: [...(withRozeniteEnabled ? ['rozenite.ts', 'rozenite.tsx'] : []), ...defaultConfig.resolver.sourceExts, ...defaultConfig.watcher.additionalExts, 'jsx'],
     },
     // We are merging the default config from Expo and React Native and expo one is overriding the React Native one so inlineRequires is set to false so we want to set it to true
     // for fix cycling dependencies and improve performance of app startup
@@ -78,4 +86,8 @@ const config = {
 
 const mergedConfig = getBundleModeMetroConfig(wrapWithReanimatedMetroConfig(mergeConfig(defaultConfig, expoConfig, config)));
 
-module.exports = isDev ? mergedConfig : withSentryConfig(mergedConfig);
+const finalConfig = isDev ? mergedConfig : withSentryConfig(mergedConfig);
+
+// `withRozenite` returns a thunk rather than a config object, so it is applied only when enabled:
+// with Rozenite off, the export stays the plain object every other tool already expects.
+module.exports = withRozeniteEnabled ? withRozenite(finalConfig, {enabled: true}) : finalConfig;

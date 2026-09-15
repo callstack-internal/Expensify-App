@@ -12256,7 +12256,7 @@ type PrepareOnboardingOnyxDataParams = {
     // TODO: should be required field. Refactor issue: https://github.com/Expensify/App/issues/66412
     currentUserEmail?: string;
     /** The concierge chat report, looked up by conciergeReportID */
-    conciergeChat: OnyxEntry<Report>;
+    conciergeChat: ReadonlyOnyxEntry<Report>;
     /** The admins chat report, looked up by adminsChatReportID. Falls back to the deprecated module-level Onyx data while the refactor is in progress. */
     adminsChatReport?: OnyxEntry<Report>;
     /** The self-DM report, looked up by ONYXKEYS.SELF_DM_REPORT_ID. Falls back to the deprecated module-level Onyx data while the refactor is in progress. */

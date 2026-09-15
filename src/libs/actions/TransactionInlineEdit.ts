@@ -29,6 +29,7 @@ import type {
     Policy,
     PolicyCategories,
     PolicyTagLists,
+    ReadonlyOnyxEntry,
     RecentlyUsedCategories,
     RecentlyUsedTags,
     Report,
@@ -130,7 +131,7 @@ type GetIouParamsInput = {
     policyRecentlyUsedTags: OnyxEntry<RecentlyUsedTags>;
     isSelfTourViewed: boolean | undefined;
     hasCompletedGuidedSetupFlow: boolean | undefined;
-    conciergeChat: OnyxEntry<Report>;
+    conciergeChat: ReadonlyOnyxEntry<Report>;
     distanceOriginalPolicy?: OnyxEntry<Policy>;
     personalDetailsList: OnyxEntry<PersonalDetailsList>;
     delegateAccountID: number | undefined;

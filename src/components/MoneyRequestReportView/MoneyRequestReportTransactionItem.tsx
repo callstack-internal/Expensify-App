@@ -162,6 +162,14 @@ function MoneyRequestReportTransactionItemBody({
 
     const handleHoverIn = () => setShouldDisableHoverStyle(false);
 
+    const onButtonPress = async () => {
+        await handleOnPress(transaction.transactionID);
+    };
+
+    const onArrowRightPressCallback = async () => {
+        await onArrowRightPress?.(transaction.transactionID);
+    };
+
     return (
         <OfflineWithFeedback
             pendingAction={pendingAction}
@@ -227,10 +235,8 @@ function MoneyRequestReportTransactionItemBody({
                         columns={columns}
                         isDisabled={isPendingDelete}
                         style={transactionRowStyle}
-                        onButtonPress={() => {
-                            handleOnPress(transaction.transactionID);
-                        }}
-                        onArrowRightPress={() => onArrowRightPress?.(transaction.transactionID)}
+                        onButtonPress={onButtonPress}
+                        onArrowRightPress={onArrowRightPressCallback}
                         isHover={hovered}
                         nonPersonalAndWorkspaceCards={nonPersonalAndWorkspaceCards}
                         shouldRemoveTotalColumnFlex={hasFlexColumn(columns)}

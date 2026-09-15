@@ -242,6 +242,7 @@ import type {
     PolicyEmployeeList,
     PolicyReportField,
     PolicyTagLists,
+    ReadonlyOnyxEntry,
     RecentlyUsedReportFields,
     Report,
     ReportAction,
@@ -386,7 +387,7 @@ type OpenReportActionParams = {
     betas: OnyxEntry<Beta[]>;
 
     /** The Concierge chat report used to build the guided setup onboarding data */
-    conciergeChat: OnyxEntry<Report>;
+    conciergeChat: ReadonlyOnyxEntry<Report>;
 };
 
 type PregeneratedResponseParams = {
@@ -1616,7 +1617,7 @@ function getGuidedSetupDataForOpenReport(
     introSelected: OnyxEntry<IntroSelected>,
     // TODO: undefined will be removed once all openReport callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
     currentUserAccountID: number | undefined,
-    conciergeChat: OnyxEntry<Report>,
+    conciergeChat: ReadonlyOnyxEntry<Report>,
     // TODO: This will be required eventually. Refactor issue: https://github.com/Expensify/App/issues/66424
     isSelfTourViewed?: boolean,
     // TODO: This will be required eventually. Refactor issue: https://github.com/Expensify/App/issues/66424
@@ -2447,7 +2448,7 @@ type CreateTransactionThreadReportParams = {
     // TODO: This will be required eventually. Refactor issue: https://github.com/Expensify/App/issues/66424
     hasCompletedGuidedSetupFlow?: boolean;
 
-    conciergeChat: OnyxEntry<Report>;
+    conciergeChat: ReadonlyOnyxEntry<Report>;
 };
 
 function createTransactionThreadReport(params: CreateTransactionThreadReportParams): OptimisticChatReport | undefined {

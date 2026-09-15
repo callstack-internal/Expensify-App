@@ -30,7 +30,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 import {guidedSetupAndTourStatusSelector, isTrackIntentUserSelector} from '@selectors/Onboarding';
 import {useRef} from 'react';
 // eslint-disable-next-line no-restricted-imports -- Need original useOnyx to avoid reading partial Search snapshot policy data.
-import {useOnyx as useOnyxWithoutSnapshots} from 'react-native-onyx';
+import Onyx, {useOnyx as useOnyxWithoutSnapshots} from 'react-native-onyx';
 
 import {useCurrencyListActions} from './useCurrencyList';
 import useDelegateAccountID from './useDelegateAccountID';
@@ -70,12 +70,12 @@ type UseTransactionInlineEditReturn = {
     canEditAmount: boolean;
     canEditTag: boolean;
     transactionThreadReportID: string | undefined;
-    onEditDate: (newDate: string) => void;
-    onEditMerchant: (newMerchant: string) => void;
-    onEditDescription: (newDescription: string) => void;
-    onEditCategory: (newCategory: string) => void;
-    onEditAmount: (newAmount: number) => void;
-    onEditTag: (newTag: string) => void;
+    onEditDate: (newDate: string) => Promise<void>;
+    onEditMerchant: (newMerchant: string) => Promise<void>;
+    onEditDescription: (newDescription: string) => Promise<void>;
+    onEditCategory: (newCategory: string) => Promise<void>;
+    onEditAmount: (newAmount: number) => Promise<void>;
+    onEditTag: (newTag: string) => Promise<void>;
     /**
      * Ref that should be written in onPressIn and checked in onPress to suppress
      * row navigation when a cell edit is being dismissed.
@@ -141,7 +141,6 @@ function useTransactionInlineEdit({transactionID, hash, linkedReportAction}: Use
     const [policyRecentlyUsedTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_RECENTLY_USED_TAGS}${getNonEmptyStringOnyxID(policyID)}`);
     const [guidedSetupAndTourStatus] = useOnyx(ONYXKEYS.NVP_ONBOARDING, {selector: guidedSetupAndTourStatusSelector});
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
-    const [conciergeChat] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${conciergeReportID}`);
     // Use original Onyx here because the useOnyx wrapper can read partial Search snapshot policy data instead of the full policy object.
     const [completePolicy] = useOnyxWithoutSnapshots(`${ONYXKEYS.COLLECTION.POLICY}${getNonEmptyStringOnyxID(policyID)}`);
 
@@ -195,7 +194,9 @@ function useTransactionInlineEdit({transactionID, hash, linkedReportAction}: Use
 
     const wasEditingOnMouseDownRef = useRef(false);
 
-    const getEditParams = (): TransactionInlineEditParams => {
+    const getEditParams = async (): Promise<TransactionInlineEditParams> => {
+        const conciergeChat = await Onyx.get(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(conciergeReportID)}`);
+
         return {
             hash,
             transactionID,
@@ -231,28 +232,28 @@ function useTransactionInlineEdit({transactionID, hash, linkedReportAction}: Use
         };
     };
 
-    const onEditDate = (newDate: string) => {
-        editTransactionDateInline(getEditParams(), newDate, personalPolicy?.outputCurrency);
+    const onEditDate = async (newDate: string) => {
+        editTransactionDateInline(await getEditParams(), newDate, personalPolicy?.outputCurrency);
     };
 
-    const onEditMerchant = (newMerchant: string) => {
-        editTransactionMerchantInline(getEditParams(), newMerchant);
+    const onEditMerchant = async (newMerchant: string) => {
+        editTransactionMerchantInline(await getEditParams(), newMerchant);
     };
 
-    const onEditDescription = (newDescription: string) => {
-        editTransactionDescriptionInline(getEditParams(), newDescription);
+    const onEditDescription = async (newDescription: string) => {
+        editTransactionDescriptionInline(await getEditParams(), newDescription);
     };
 
-    const onEditCategory = (newCategory: string) => {
-        editTransactionCategoryInline(getEditParams(), newCategory);
+    const onEditCategory = async (newCategory: string) => {
+        editTransactionCategoryInline(await getEditParams(), newCategory);
     };
 
-    const onEditAmount = (newAmount: number) => {
-        editTransactionAmountInline(getEditParams(), newAmount);
+    const onEditAmount = async (newAmount: number) => {
+        editTransactionAmountInline(await getEditParams(), newAmount);
     };
 
-    const onEditTag = (newTag: string) => {
-        editTransactionTagInline(getEditParams(), newTag);
+    const onEditTag = async (newTag: string) => {
+        editTransactionTagInline(await getEditParams(), newTag);
     };
 
     return {

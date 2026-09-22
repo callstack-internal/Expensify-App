@@ -8,7 +8,13 @@ const NEW_PARTNER_USER_ID_PREFIX = 'expensify.cash-';
 /**
  * Determine if the transitioning user is logging in as a new user.
  */
-function isLoggingInAsNewUser(transitionURL?: string, sessionEmail?: string): boolean {
+function isLoggingInAsNewUser(transitionURL?: string, sessionEmail?: string, isCopilotSession?: boolean): boolean {
+    // A copilot session is keyed to the account being worked on, so it never matches the address the transition link
+    // was generated for. The person behind both addresses is the copilot, so this is not a different user signing in.
+    if (isCopilotSession) {
+        return false;
+    }
+
     // The OldDot mobile app does not URL encode the parameters, but OldDot web
     // does. We don't want to deploy OldDot mobile again, so as a work around we
     // compare the session email to both the decoded and raw email from the transition link.

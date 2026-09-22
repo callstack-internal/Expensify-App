@@ -10,7 +10,7 @@ import {isLoggingInAsDelegate as isLoggingInAsDelegateSessionUtils, isLoggingInA
 import Navigation from '@navigation/Navigation';
 import type {AuthScreensParamList} from '@navigation/types';
 
-import {signInWithShortLivedAuthToken, signInWithSupportAuthToken, signOutAndRedirectToSignIn} from '@userActions/Session';
+import {signInWithShortLivedAuthToken, signInWithSupportAuthToken, isDelegateSession, signOutAndRedirectToSignIn} from '@userActions/Session';
 
 import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
@@ -37,7 +37,7 @@ function LogOutPreviousUserPage({route}: LogOutPreviousUserPageProps) {
     useEffect(() => {
         const sessionEmail = session?.email;
         const transitionURL = CONFIG.IS_HYBRID_APP ? `${CONST.DEEPLINK_BASE_URL}${initialURL ?? ''}` : initialURL;
-        const isLoggingInAsNewUser = isLoggingInAsNewUserSessionUtils(transitionURL ?? undefined, sessionEmail);
+        const isLoggingInAsNewUser = isLoggingInAsNewUserSessionUtils(transitionURL ?? undefined, sessionEmail, isDelegateSession(session));
         const isSupportalLogin = authTokenType === CONST.AUTH_TOKEN_TYPES.SUPPORT;
 
         if (isLoggingInAsNewUser) {
@@ -77,7 +77,7 @@ function LogOutPreviousUserPage({route}: LogOutPreviousUserPageProps) {
     useEffect(() => {
         const sessionEmail = session?.email;
         const transitionURL = CONFIG.IS_HYBRID_APP ? `${CONST.DEEPLINK_BASE_URL}${initialURL ?? ''}` : initialURL;
-        const isLoggingInAsNewUser = isLoggingInAsNewUserSessionUtils(transitionURL ?? undefined, sessionEmail);
+        const isLoggingInAsNewUser = isLoggingInAsNewUserSessionUtils(transitionURL ?? undefined, sessionEmail, isDelegateSession(session));
         // We don't want to navigate to the exitTo route when creating a new workspace from a deep link,
         // because we already handle creating the optimistic policy and navigating to it in App.setUpPoliciesAndNavigate,
         // which is already called when AuthScreens mounts.

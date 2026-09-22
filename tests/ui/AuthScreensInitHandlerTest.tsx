@@ -9,6 +9,7 @@ import getCurrentUrl from '@libs/Navigation/currentUrl';
 import Navigation from '@libs/Navigation/Navigation';
 import Pusher from '@libs/Pusher';
 import {didUserLogInDuringSession, isLoggingInAsNewUser} from '@libs/SessionUtils';
+import type * as RealSessionUtils from '@libs/SessionUtils';
 
 import {openApp} from '@userActions/App';
 import {signOutAndRedirectToSignIn} from '@userActions/Session';
@@ -32,6 +33,11 @@ import wrapOnyxWithWaitForBatchedUpdates from '../utils/wrapOnyxWithWaitForBatch
 
 const TEST_ACCOUNT_ID = 1;
 const QA_APP_KEY = 'qa-app-key';
+const ACTOR = 'actor@example.com';
+const DELEGATOR = 'delegator@example.com';
+
+// The transition sign-out is only worth testing against the real predicate, so the mock can be pointed at the real one.
+const realIsLoggingInAsNewUser = jest.requireActual<typeof RealSessionUtils>('@libs/SessionUtils').isLoggingInAsNewUser;
 
 jest.mock('@libs/ApiUtils', () => ({
     ...jest.requireActual<Record<string, unknown>>('@libs/ApiUtils'),
@@ -96,6 +102,7 @@ jest.mock('@userActions/Report', () => ({
 }));
 
 jest.mock('@userActions/Session', () => ({
+    ...jest.requireActual<Record<string, unknown>>('@userActions/Session'),
     signOutAndRedirectToSignIn: jest.fn(),
     cleanupSession: jest.fn(),
 }));
@@ -272,6 +279,26 @@ describe('AuthScreensInitHandler', () => {
         await waitForBatchedUpdatesWithAct();
 
         expect(signOutAndRedirectToSignIn).toHaveBeenCalledWith(false, false, true, undefined, CONST.SIGN_OUT_REASON.LOGIN_AS_NEW_USER);
+    });
+
+    it.each([
+        ['a copilot working inside the delegator account', CONST.AUTH_TOKEN_TYPES.DELEGATE, DELEGATOR, false],
+        ['an ordinary account the link does not name', undefined, 'test@test.com', true],
+    ])('decides the transition sign-out for %s with the real predicate', async (_description, authTokenType, sessionEmail, expectSignOut) => {
+        mockedGetCurrentUrl.mockReturnValue(`https://new.expensify.com/transition?email=${ACTOR}&shortLivedAuthToken=token`);
+        mockedIsLoggingInAsNewUser.mockImplementation(realIsLoggingInAsNewUser);
+
+        await Onyx.merge(ONYXKEYS.SESSION, {accountID: TEST_ACCOUNT_ID, email: sessionEmail, authTokenType});
+        await waitForBatchedUpdates();
+
+        renderAuthScreensInitHandler();
+        await waitForBatchedUpdatesWithAct();
+
+        if (expectSignOut) {
+            expect(signOutAndRedirectToSignIn).toHaveBeenCalledWith(false, false, true, undefined, CONST.SIGN_OUT_REASON.LOGIN_AS_NEW_USER);
+            return;
+        }
+        expect(signOutAndRedirectToSignIn).not.toHaveBeenCalled();
     });
 
     it('calls openApp when didUserLogInDuringSession returns true', async () => {

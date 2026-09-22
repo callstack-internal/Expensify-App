@@ -166,7 +166,7 @@ function AuthScreensInitHandler() {
     }, [session?.accountID, session?.email]);
 
     useEffect(() => {
-        const isLoggingInAsNewUser = !!session?.email && SessionUtils.isLoggingInAsNewUser(currentUrl, session.email);
+        const isLoggingInAsNewUser = !!session?.email && SessionUtils.isLoggingInAsNewUser(currentUrl, session.email, Session.isDelegateSession(session));
         // Sign out the current user if we're transitioning with a different user
         const isTransitioning = currentUrl.includes(ROUTES.TRANSITION_BETWEEN_APPS);
         const isSupportalTransition = currentUrl.includes('authTokenType=support');

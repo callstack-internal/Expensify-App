@@ -377,8 +377,6 @@ describe('DynamicReportDetailsPage', () => {
     });
 
     test('[DynamicReportDetailsPage] should re-render a workspace room when a new message arrives', async () => {
-        // A real incoming message writes the action AND merges lastMessageText/lastVisibleActionCreated into the report,
-        // so the action-only and report-only scenarios above always happen together in production.
         const scenario = async () => {
             await screen.findByText(TestHelper.translateLocal('common.members'));
 

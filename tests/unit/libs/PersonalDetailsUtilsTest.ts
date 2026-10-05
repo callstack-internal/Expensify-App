@@ -15,6 +15,7 @@ import {
 
 import CONST from '@src/CONST';
 import IntlStore from '@src/languages/IntlStore';
+import type {TranslationParameters, TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {InvitedEmailsToAccountIDs, PersonalDetails, PersonalDetailsList} from '@src/types/onyx';
 
@@ -782,6 +783,26 @@ describe('PersonalDetailsUtils', () => {
                     formatPhoneNumber,
                 }),
             ).toBe('Ada Lovelace');
+        });
+
+        test('should not translate when the "you" postfix and "Hidden" fallback are unused', () => {
+            // Given a translate that counts its calls and a person with a displayName, the common case in hot list paths like Search rows
+            let translateCallCount = 0;
+            function countingTranslate<TPath extends TranslationPaths>(path: TPath, ...parameters: TranslationParameters<TPath>) {
+                translateCallCount++;
+                return translate(path, ...parameters);
+            }
+
+            // When resolving the name without the current-user postfix
+            const result = temporaryGetDisplayNameOrDefault({
+                passedPersonalDetails: {accountID: 1, displayName: 'Ada Lovelace', login: 'ada@example.com'},
+                translate: countingTranslate,
+                formatPhoneNumber,
+            });
+
+            // Then translate is never called, since each call costs a memoize lookup and this runs once per name per row
+            expect(result).toBe('Ada Lovelace');
+            expect(translateCallCount).toBe(0);
         });
 
         test('should strip merged-account prefix from displayName', () => {

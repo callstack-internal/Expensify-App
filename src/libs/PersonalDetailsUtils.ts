@@ -48,8 +48,6 @@ function temporaryGetDisplayNameOrDefault({
     translate?: LocalizedTranslate;
     formatPhoneNumber: LocaleContextProps['formatPhoneNumber'];
 }): string {
-    const temporaryHiddenTranslation = hiddenAfterTranslation ?? translate?.('common.hidden') ?? '';
-    const temporaryYouTranslation = translate?.('common.you').toLowerCase();
     let displayName = passedPersonalDetails?.displayName ?? '';
 
     const login = passedPersonalDetails?.login ?? '';
@@ -67,7 +65,7 @@ function temporaryGetDisplayNameOrDefault({
     }
 
     if (shouldAddCurrentUserPostfix && !!displayName) {
-        displayName = `${displayName} (${youAfterTranslation ?? temporaryYouTranslation})`;
+        displayName = `${displayName} (${youAfterTranslation ?? translate?.('common.you').toLowerCase()})`;
     }
 
     if (passedPersonalDetails?.accountID === CONST.ACCOUNT_ID.CONCIERGE) {
@@ -88,7 +86,7 @@ function temporaryGetDisplayNameOrDefault({
         }
         return login;
     }
-    return shouldFallbackToHidden ? temporaryHiddenTranslation : '';
+    return shouldFallbackToHidden ? (hiddenAfterTranslation ?? translate?.('common.hidden') ?? '') : '';
 }
 
 function getPersonalDetailsByID(accountID: number | undefined, personalDetailsList: OnyxEntry<PersonalDetailsList>): PersonalDetails | undefined {

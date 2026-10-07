@@ -31,7 +31,6 @@ function showSuccessAlert(translate: LocalizedTranslate, successMessage?: string
     Alert.alert(
         translate('fileDownload.success.title'),
         // successMessage can be an empty string and we want to default to `Localize.translate('fileDownload.success.message')`
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         successMessage || translate('fileDownload.success.message'),
         [
             {
@@ -734,7 +733,6 @@ const isValidReceiptExtension = (file: FileObject) => {
 };
 
 const hasHeicOrHeifExtension = (file: FileObject) => {
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     return file.name?.toLowerCase().endsWith('.heic') || file.name?.toLowerCase().endsWith('.heif');
 };
 

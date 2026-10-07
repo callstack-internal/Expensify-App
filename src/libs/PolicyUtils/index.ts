@@ -1687,7 +1687,6 @@ function getApprovalWorkflow(policy: OnyxEntry<Policy>): ValueOf<typeof CONST.PO
 }
 
 function getDefaultApprover(policy: OnyxEntry<Policy>): string {
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     return policy?.approver || policy?.owner || '';
 }
 

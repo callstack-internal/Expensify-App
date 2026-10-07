@@ -1070,7 +1070,6 @@ function getCustomOrFormattedFeedName(
 
     // Custom feed name can be empty. Fallback to default feed name
     // Fallback to feed key name for unknown feeds
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     return customFeedName || formattedFeedName || feed;
 }
 

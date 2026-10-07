@@ -218,7 +218,6 @@ function DatePicker({
 
     const getValidDateForCalendar = useMemo(() => {
         if (!selectedDate) {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
             return defaultValue || format(new Date(), CONST.DATE.FNS_FORMAT_STRING);
         }
         return selectedDate;

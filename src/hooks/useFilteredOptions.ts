@@ -107,8 +107,8 @@ function useFilteredOptions(config: UseFilteredOptionsConfig): UseFilteredOption
     const {preferredLocale, dateFnsLocale} = useLocalize();
     const {convertToDisplayString} = useCurrencyListActions();
 
-    // Sorted report actions from the RAM_ONLY_SORTED_REPORT_ACTIONS derived value; a new reference on
-    // every recompute, so it doubles as the report-actions invalidation signal for the option-list cache.
+    // A new reference only when a report's sorted actions changed, so it doubles as the report-actions
+    // invalidation signal for the option-list cache.
     const sortedReportActionsData = useSortedReportActionsData();
     const sortedActions = sortedReportActionsData?.sortedActions;
     const transactionThreadIDs = sortedReportActionsData?.transactionThreadIDs;

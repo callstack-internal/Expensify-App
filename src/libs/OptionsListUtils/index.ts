@@ -1263,7 +1263,7 @@ function createFilteredOptionList(
         // Money-request previews format amounts with this function; the provider memoizes it on the
         // currency list and locale, so a new reference signals the formatting inputs changed.
         options.convertToDisplayString,
-        // The RAM_ONLY_SORTED_REPORT_ACTIONS derived value produces a new object on every recompute,
+        // useSortedReportActionsData returns a new object only when a report's sorted actions changed,
         // so its reference signals that the underlying report actions changed.
         sortedActions,
         transactionThreadIDs,

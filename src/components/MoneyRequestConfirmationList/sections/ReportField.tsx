@@ -3,6 +3,7 @@ import MenuItemFieldHTML from '@components/MenuItem/presets/MenuItemFieldHTML';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useOutstandingReports from '@hooks/useOutstandingReports';
+import {useOutstandingReportsForPolicy} from '@hooks/useOutstandingReportsByPolicyID';
 import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
 
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
@@ -20,7 +21,6 @@ import type {Participant} from '@src/types/onyx/IOU';
 
 import type {OnyxEntry} from 'react-native-onyx';
 
-import {createOutstandingReportsForPolicySelector} from '@selectors/Report';
 import React from 'react';
 
 import ExpenseFieldRow from './ExpenseFieldRow';
@@ -47,7 +47,7 @@ function ReportField({selectedParticipants, iouType, reportID, reportActionID, a
     const {translate, localeCompare} = useLocalize();
 
     const policyID = selectedParticipants?.at(0)?.policyID;
-    const [outstandingReportsForPolicy] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID, {selector: createOutstandingReportsForPolicySelector(policyID)});
+    const outstandingReportsForPolicy = useOutstandingReportsForPolicy(policyID);
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
 

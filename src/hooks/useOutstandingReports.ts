@@ -10,11 +10,12 @@ import type {OnyxEntry} from 'react-native-onyx';
 
 import useMappedPolicies from './useMappedPolicies';
 import useOnyx from './useOnyx';
+import useOutstandingReportsByPolicyID from './useOutstandingReportsByPolicyID';
 
 const policyIdMapper = (policy: OnyxEntry<Policy>) => policy?.id;
 
 export default function useOutstandingReports(selectedReportID: string | undefined, selectedPolicyID: string | undefined, ownerAccountID: number | undefined, isEditing: boolean) {
-    const [outstandingReportsByPolicyID] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID);
+    const outstandingReportsByPolicyID = useOutstandingReportsByPolicyID();
     const [personalPolicyID] = useOnyx(ONYXKEYS.PERSONAL_POLICY_ID);
     const [allPoliciesID] = useMappedPolicies(policyIdMapper);
     const [selectedReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${selectedReportID}`);

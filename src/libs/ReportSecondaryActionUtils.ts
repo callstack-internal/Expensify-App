@@ -1,19 +1,8 @@
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {
-    BankAccountList,
-    CardList,
-    OutstandingReportsByPolicyIDDerivedValue,
-    Policy,
-    Report,
-    ReportAction,
-    ReportMetadata,
-    ReportNameValuePairs,
-    Rule,
-    Transaction,
-    TransactionViolation,
-} from '@src/types/onyx';
+import type {BankAccountList, CardList, Policy, Report, ReportAction, ReportMetadata, ReportNameValuePairs, Rule, Transaction, TransactionViolation} from '@src/types/onyx';
 
+import type {OutstandingReportsByPolicyID} from '@selectors/Report';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 
@@ -1031,7 +1020,7 @@ function getSecondaryReportActions({
     reportActions?: ReportAction[];
     reportMetadata?: OnyxEntry<ReportMetadata>;
     policies?: OnyxCollection<Policy>;
-    outstandingReportsByPolicyID?: OutstandingReportsByPolicyIDDerivedValue;
+    outstandingReportsByPolicyID?: OutstandingReportsByPolicyID;
     canUseNewDotSplits?: boolean;
     isChatReportArchived?: boolean;
     parentReport?: OnyxEntry<Report>;
@@ -1270,7 +1259,7 @@ function getSecondaryTransactionThreadActions({
     originalTransaction: OnyxEntry<Transaction>;
     policy: OnyxEntry<Policy>;
     transactionThreadReport?: OnyxEntry<Report>;
-    outstandingReportsByPolicyID?: OutstandingReportsByPolicyIDDerivedValue;
+    outstandingReportsByPolicyID?: OutstandingReportsByPolicyID;
     reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>;
     isChatReportArchived: boolean;
     grandParentReport?: OnyxEntry<Report>;

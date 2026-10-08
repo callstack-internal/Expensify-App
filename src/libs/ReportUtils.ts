@@ -30,7 +30,6 @@ import type {
     GuideAccountIDsDerivedValue,
     IntroSelected,
     OnyxInputOrEntry,
-    OutstandingReportsByPolicyIDDerivedValue,
     PersonalDetails,
     PersonalDetailsList,
     Policy,
@@ -78,6 +77,7 @@ import type {EmptyObject} from '@src/types/utils/EmptyObject';
 import {isEmptyObject, isEmptyValueObject} from '@src/types/utils/EmptyObject';
 import type IconAsset from '@src/types/utils/IconAsset';
 
+import type {OutstandingReportsByPolicyID} from '@selectors/Report';
 import type {Locale as DateFnsLocale} from 'date-fns';
 import type {ColorValue} from 'react-native';
 import type {NullishDeep, OnyxCollection, OnyxEntry, OnyxInputValue, OnyxUpdate} from 'react-native-onyx';
@@ -5592,7 +5592,7 @@ function canEditFieldOfMoneyRequest({
     fieldToEdit: ValueOf<typeof CONST.EDIT_REQUEST_FIELD>;
     isDeleteAction?: boolean;
     isChatReportArchived?: boolean;
-    outstandingReportsByPolicyID?: OutstandingReportsByPolicyIDDerivedValue;
+    outstandingReportsByPolicyID?: OutstandingReportsByPolicyID;
     transaction: OnyxEntry<Transaction>;
     report?: OnyxInputOrEntry<Report>;
     policy?: OnyxEntry<Policy>;
@@ -12584,7 +12584,7 @@ function getNewestOutstandingReportForUser(
  * Whether the member is the approver of any of the policy's reports that are waiting for their approval.
  * An approver assigned through "Change approver" is only stored in the report's `managerID`, so they are not covered by `isPolicyApprover`.
  * @param accountID - The accountID of the member to check
- * @param outstandingReportsForPolicy - The policy's outstanding reports, from the OUTSTANDING_REPORTS_BY_POLICY_ID derived value
+ * @param outstandingReportsForPolicy - The policy's outstanding reports, from useOutstandingReportsForPolicy
  * @param privateIsArchivedMap - The archived state of every report, from usePrivateIsArchivedMap
  */
 function isApproverOfOutstandingPolicyReports(

@@ -5,9 +5,10 @@ import type {ShiftRangeBatch} from '@libs/shiftRangeSelection';
 import {getOriginalTransactionWithSplitInfo, hasValidModifiedAmount, isExpenseUnreported, isOnHold, isTransactionPendingDelete} from '@libs/TransactionUtils';
 
 import CONST from '@src/CONST';
-import type {OutstandingReportsByPolicyIDDerivedValue, Report, ReportNameValuePairs, Rule, Transaction} from '@src/types/onyx';
+import type {Report, ReportNameValuePairs, Rule, Transaction} from '@src/types/onyx';
 import type {SearchGroupBase, SearchResultDataType} from '@src/types/onyx/SearchResults';
 
+import type {OutstandingReportsByPolicyID} from '@selectors/Report';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 
 import {deepEqual} from 'fast-equals';
@@ -119,8 +120,8 @@ type MapTransactionItemToSelectedEntryParams = {
     /** Report name-value pairs collection, used for the change-report eligibility archived check */
     reportNameValuePairs: OnyxCollection<ReportNameValuePairs>;
 
-    /** Derived outstanding reports per policy, used for the change-report eligibility check */
-    outstandingReportsByPolicyID: OutstandingReportsByPolicyIDDerivedValue | undefined;
+    /** Outstanding reports per policy, used for the change-report eligibility check */
+    outstandingReportsByPolicyID: OutstandingReportsByPolicyID | undefined;
 
     /** The current user's self-DM report, used as the parent for unreported (track) expenses */
     selfDMReport: OnyxEntry<Report>;
@@ -272,8 +273,8 @@ type PrepareTransactionsListParams = {
     /** Report name-value pairs collection, used for the change-report eligibility archived check */
     reportNameValuePairs: OnyxCollection<ReportNameValuePairs>;
 
-    /** Derived outstanding reports per policy, used for the change-report eligibility check */
-    outstandingReportsByPolicyID: OutstandingReportsByPolicyIDDerivedValue | undefined;
+    /** Outstanding reports per policy, used for the change-report eligibility check */
+    outstandingReportsByPolicyID: OutstandingReportsByPolicyID | undefined;
 
     /** The current user's self-DM report, used as the parent for unreported (track) expenses */
     selfDMReport: OnyxEntry<Report>;

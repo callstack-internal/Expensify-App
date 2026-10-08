@@ -1844,7 +1844,6 @@
 "../../tests/ui/UnreadIndicatorsTest.tsx"	"@typescript-eslint/no-restricted-imports"	1
 "../../tests/ui/WorkspaceMoreFeaturesPageTest.tsx"	"no-restricted-imports"	1
 "../../tests/unit/canEditFieldOfMoneyRequestTest.ts"	"@typescript-eslint/no-deprecated/randomReportAction.originalMessage"	3
-"../../tests/unit/canEditFieldOfMoneyRequestTest.ts"	"@typescript-eslint/no-restricted-imports"	1
 "../../tests/unit/components/HTMLEngineProvider/VictoryChartAttributesParsers.test.ts"	"rulesdir/no-raw-typography"	1
 "../../tests/unit/FormulaTest.ts"	"no-restricted-imports"	1
 "../../tests/unit/HomePage/YourSpendSection/useYourSpendDataTest.ts"	"no-restricted-imports"	1

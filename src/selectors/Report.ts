@@ -5,6 +5,7 @@ import {
     isArchivedReport,
     isChatRoom,
     isClosedReport,
+    isExpenseReport,
     isOpenExpenseReport,
     isPolicyExpenseChat,
     isThread,
@@ -12,7 +13,7 @@ import {
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {OutstandingReportsByPolicyIDDerivedValue, PersonalDetailsList, Report, ReportActions, ReportNameValuePairs, Transaction} from '@src/types/onyx';
+import type {PersonalDetailsList, Report, ReportActions, ReportNameValuePairs, Transaction} from '@src/types/onyx';
 
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import type {TupleToUnion, ValueOf} from 'type-fest';
@@ -20,6 +21,8 @@ import type {TupleToUnion, ValueOf} from 'type-fest';
 import {getLastClosedReportAction} from './ReportAction';
 
 type OpenExpenseReportIDMap = Record<string, true>;
+
+type OutstandingReportsByPolicyID = Record<string, OnyxCollection<Report>>;
 
 function getArchiveReason(reportActions: OnyxEntry<ReportActions>): ValueOf<typeof CONST.REPORT.ARCHIVE_REASON> | undefined {
     const lastClosedReportAction = getLastClosedReportAction(reportActions);
@@ -170,17 +173,77 @@ const policyChatRoomsSelector =
         return list;
     };
 
-/** Selects the outstanding reports that belong to the given policy. */
-const createOutstandingReportsForPolicySelector =
-    (policyID: string | undefined) =>
-    (outstandingReportsByPolicyID: OnyxEntry<OutstandingReportsByPolicyIDDerivedValue>): OnyxCollection<Report> =>
-        outstandingReportsByPolicyID?.[policyID ?? CONST.DEFAULT_NUMBER_ID];
+const EMPTY_OUTSTANDING_REPORTS_BY_POLICY_ID: OutstandingReportsByPolicyID = {};
+const outstandingReportsByPolicyIDCache = new WeakMap<NonNullable<OnyxCollection<Report>>, OutstandingReportsByPolicyID>();
+let lastOutstandingReportsByPolicyID: OutstandingReportsByPolicyID = EMPTY_OUTSTANDING_REPORTS_BY_POLICY_ID;
+
+function hasSameReports(reportsForPolicy: NonNullable<OnyxCollection<Report>>, previousReportsForPolicy: OnyxCollection<Report>): boolean {
+    if (!previousReportsForPolicy) {
+        return false;
+    }
+    const reportKeys = Object.keys(reportsForPolicy);
+    if (reportKeys.length !== Object.keys(previousReportsForPolicy).length) {
+        return false;
+    }
+    return reportKeys.every((reportKey) => reportsForPolicy[reportKey] === previousReportsForPolicy[reportKey]);
+}
+
+/**
+ * Groups the open or submitted expense reports by policy, with the same filter as getOutstandingReportsForUser.
+ * Cached on the collection reference so every mounted consumer shares one build per write. A policy whose reports are
+ * all unchanged keeps its previous object, and so does the whole map when no policy changed.
+ */
+function outstandingReportsByPolicyIDSelector(reports: OnyxCollection<Report>): OutstandingReportsByPolicyID {
+    if (!reports) {
+        return EMPTY_OUTSTANDING_REPORTS_BY_POLICY_ID;
+    }
+
+    const cachedOutstandingReportsByPolicyID = outstandingReportsByPolicyIDCache.get(reports);
+    if (cachedOutstandingReportsByPolicyID) {
+        return cachedOutstandingReportsByPolicyID;
+    }
+
+    const outstandingReportsByPolicyID: OutstandingReportsByPolicyID = {};
+    for (const reportKey of Object.keys(reports)) {
+        const report = reports[reportKey];
+        if (
+            !report ||
+            !isExpenseReport(report) ||
+            !report.policyID ||
+            report.pendingFields?.preview === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE ||
+            (report.stateNum ?? CONST.REPORT.STATE_NUM.OPEN) > CONST.REPORT.STATE_NUM.SUBMITTED
+        ) {
+            continue;
+        }
+        const reportsForPolicy = outstandingReportsByPolicyID[report.policyID] ?? {};
+        reportsForPolicy[reportKey] = report;
+        outstandingReportsByPolicyID[report.policyID] = reportsForPolicy;
+    }
+
+    const previousOutstandingReportsByPolicyID = lastOutstandingReportsByPolicyID;
+    const policyIDs = Object.keys(outstandingReportsByPolicyID);
+    let hasChangedPolicy = policyIDs.length !== Object.keys(previousOutstandingReportsByPolicyID).length;
+    for (const policyID of policyIDs) {
+        const reportsForPolicy = outstandingReportsByPolicyID[policyID];
+        const previousReportsForPolicy = previousOutstandingReportsByPolicyID[policyID];
+        if (reportsForPolicy && hasSameReports(reportsForPolicy, previousReportsForPolicy)) {
+            outstandingReportsByPolicyID[policyID] = previousReportsForPolicy;
+        } else {
+            hasChangedPolicy = true;
+        }
+    }
+
+    const result = hasChangedPolicy ? outstandingReportsByPolicyID : previousOutstandingReportsByPolicyID;
+    outstandingReportsByPolicyIDCache.set(reports, result);
+    lastOutstandingReportsByPolicyID = result;
+    return result;
+}
 
 /**
  * Selects archived report NVPs for the current report and possible "Move expense" destination reports.
  * This limits updates to data used to determine whether each destination report is archived.
  */
-const createMoveExpenseReportNVPSelector = (outstandingReportsByPolicyID: OnyxEntry<OutstandingReportsByPolicyIDDerivedValue>, currentReportID: string | undefined) => {
+const createMoveExpenseReportNVPSelector = (outstandingReportsByPolicyID: OnyxEntry<OutstandingReportsByPolicyID>, currentReportID: string | undefined) => {
     const moveExpenseReportIDs = new Set<string>();
     if (currentReportID) {
         moveExpenseReportIDs.add(currentReportID);
@@ -393,11 +456,11 @@ export {
     reportAvatarKindSelector,
     reportPolicyFieldsSelector,
     createMoveExpenseReportNVPSelector,
-    createOutstandingReportsForPolicySelector,
+    outstandingReportsByPolicyIDSelector,
     openExpenseReportIDsSelector,
     getStableReportSelector,
     isDraftReportSelector,
     reportsByIDsSelector,
 };
 
-export type {ReportAvatarFields, StableReport};
+export type {OutstandingReportsByPolicyID, ReportAvatarFields, StableReport};

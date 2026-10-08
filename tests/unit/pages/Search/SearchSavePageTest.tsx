@@ -5,6 +5,7 @@ import useFilterTaxRateValue from '@components/Search/hooks/useFilterTaxRateValu
 
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import usePersonalAndWorkspaceCardList from '@hooks/usePersonalAndWorkspaceCardList';
 
 import * as SearchUIUtils from '@libs/SearchUIUtils';
 
@@ -35,6 +36,7 @@ jest.mock('@hooks/useAutoFocusInput', () => jest.fn(() => ({inputCallbackRef: je
 jest.mock('@hooks/useCurrencyList', () => ({useCurrencyListActions: jest.fn(() => ({convertToDisplayStringWithoutCurrency: jest.fn()}))}));
 jest.mock('@hooks/useLocalize');
 jest.mock('@hooks/useOnyx');
+jest.mock('@hooks/usePersonalAndWorkspaceCardList');
 jest.mock('@hooks/useThemeStyles', () => jest.fn(() => ({})));
 const cards = createMock<CardList>({});
 cards[12] = createMock<Card>({cardID: 12, bank: CONST.COMPANY_CARD.FEED_BANK_NAME.UPLOAD, state: CONST.EXPENSIFY_CARD.STATE.OPEN, nameValuePairs: {cardTitle: 'Selected Alpha'}});
@@ -48,14 +50,13 @@ jest.mocked(useOnyx).mockImplementation((key) => {
     switch (key) {
         case ONYXKEYS.FORMS.SEARCH_ADVANCED_FILTERS_FORM:
             return [form, {status: 'loaded'}];
-        case ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST:
-            return [cards, {status: 'loaded'}];
         default:
             return [undefined, {status: 'loaded'}];
     }
 });
 // Without a loaded locale, translate returns key paths and translated filter values never show the user's text.
 beforeAll(() => IntlStore.load(CONST.LOCALES.EN));
+jest.mocked(usePersonalAndWorkspaceCardList).mockImplementation((selector) => selector(cards));
 beforeEach(() => jest.clearAllMocks());
 it.each([[['12']], [['12', '23']], [['123']]])('renders canonical card selection %j exactly', (cardID) => {
     // Given a saved search form with cards, feeds, tax rates and a Merchant filter that uses the default "contains" match

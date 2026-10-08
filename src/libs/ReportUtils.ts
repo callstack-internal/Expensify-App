@@ -27,7 +27,6 @@ import type {
     BankAccountList,
     Card,
     CardList,
-    GuideAccountIDsDerivedValue,
     IntroSelected,
     OnyxInputOrEntry,
     OutstandingReportsByPolicyIDDerivedValue,
@@ -2500,7 +2499,7 @@ function isHiddenForCurrentUser(reportOrPreference: OnyxEntry<Report> | string |
  * by cross-referencing the accountIDs with personalDetails since guides that are participants
  * of the user's chats should have their personal details in Onyx.
  */
-function hasExpensifyGuidesEmails(accountIDs: number[], guideAccountIDs: GuideAccountIDsDerivedValue | undefined): boolean {
+function hasExpensifyGuidesEmails(accountIDs: number[], guideAccountIDs: number[] | undefined): boolean {
     if (guideAccountIDs) {
         return accountIDs.some((accountID) => guideAccountIDs.includes(accountID));
     }
@@ -2537,7 +2536,7 @@ function toLastAccessedReport(report: OnyxEntry<Report>): LastAccessedReport | u
  */
 function findLastAccessedReport(
     ignoreDomainRooms: boolean,
-    guideAccountIDs: GuideAccountIDsDerivedValue | undefined,
+    guideAccountIDs: number[] | undefined,
     openOnAdminRoom = false,
     excludeReportID?: string,
     reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>,

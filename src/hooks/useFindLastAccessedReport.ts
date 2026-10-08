@@ -4,6 +4,7 @@ import {findLastAccessedReport} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 
+import useGuideAccountIDs from './useGuideAccountIDs';
 import useOnyx from './useOnyx';
 import usePermissions from './usePermissions';
 
@@ -19,7 +20,7 @@ function useFindLastAccessedReport({openOnAdminRoom, enabled = true}: UseFindLas
     const {isBetaEnabled} = usePermissions();
     const ignoreDomainRooms = !isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS);
     const shouldPreferAdminRoom = openOnAdminRoom ?? shouldOpenOnAdminRoom();
-    const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+    const guideAccountIDs = useGuideAccountIDs();
     const [reportNameValuePairs, reportNameValuePairsMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
     const [lastAccessedReportID, reportsMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {
         selector: (reports) => (enabled ? findLastAccessedReport(ignoreDomainRooms, guideAccountIDs, shouldPreferAdminRoom, undefined, reportNameValuePairs, reports)?.reportID : undefined),

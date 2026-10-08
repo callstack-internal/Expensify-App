@@ -2,6 +2,7 @@ import MenuItemAction from '@components/MenuItem/presets/MenuItemAction';
 
 import useAncestors from '@hooks/useAncestors';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import useGuideAccountIDs from '@hooks/useGuideAccountIDs';
 import useHasOutstandingChildTask from '@hooks/useHasOutstandingChildTask';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
@@ -46,7 +47,7 @@ function ReportDetailsTaskDeleteActionContent({report, parentReport, parentRepor
     const expensifyIcons = useMemoizedLazyExpensifyIcons(['Trashcan']);
     const taskDeleteBackTo = Navigation.getTopmostSearchReportRouteParams()?.backTo;
     const hasOutstandingChildTask = useHasOutstandingChildTask(report);
-    const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+    const guideAccountIDs = useGuideAccountIDs();
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [reportActionsForOriginalReportID] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`);
     const [delegateEmail] = useOnyx(ONYXKEYS.ACCOUNT, {selector: delegateEmailSelector});

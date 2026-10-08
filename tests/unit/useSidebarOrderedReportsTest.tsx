@@ -73,7 +73,7 @@ describe('useSidebarOrderedReports', () => {
                 [ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS]: {},
                 [ONYXKEYS.BETAS]: [],
                 [ONYXKEYS.DERIVED.REPORT_ATTRIBUTES]: {reports: {}},
-                [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS]: [],
+                [ONYXKEYS.PERSONAL_DETAILS_LIST]: {},
             } satisfies OnyxMultiSetInput);
         });
 
@@ -356,7 +356,7 @@ describe('useSidebarOrderedReports', () => {
         await act(async () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, displayedReports['1']);
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, domainRoomReport);
-            await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, []);
+            await Onyx.set(ONYXKEYS.PERSONAL_DETAILS_LIST, {});
         });
 
         renderHook(() => useSidebarOrderedReports(), {
@@ -367,10 +367,9 @@ describe('useSidebarOrderedReports', () => {
 
         mockSidebarUtils.updateReportsToDisplayInLHN.mockClear();
 
-        // The guide's personal details arriving is what turns the derived value from empty into a populated list.
-        // Deriving that list from the personal details is covered by tests/unit/OnyxDerived/guideAccountIDsTest.ts.
+        // The guide's personal details arriving is what turns the selected guide accountIDs from empty into a populated list.
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [Number(guideAccountID)]);
+            await Onyx.set(ONYXKEYS.PERSONAL_DETAILS_LIST, {[guideAccountID]: {accountID: Number(guideAccountID), login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`}});
         });
 
         await waitForBatchedUpdatesWithAct();
@@ -382,7 +381,7 @@ describe('useSidebarOrderedReports', () => {
         );
     });
 
-    it('should not recompute all reports when the guide accountIDs are recomputed to the same set', async () => {
+    it('should not recompute all reports when an unrelated personal-details change keeps the same guide accountIDs', async () => {
         const participantAccountID = '8';
         const displayedReports = createMockReports({
             report1: {reportName: 'Chat A'},
@@ -400,7 +399,9 @@ describe('useSidebarOrderedReports', () => {
                     },
                 },
             });
-            await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [Number(participantAccountID)]);
+            // A second report that is not displayed, so a full re-scan would name more than one report key
+            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, {reportID: '2', reportName: 'Chat B', type: CONST.REPORT.TYPE.CHAT} as Report);
+            await Onyx.set(ONYXKEYS.PERSONAL_DETAILS_LIST, {[participantAccountID]: {accountID: Number(participantAccountID), login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`}});
         });
 
         renderHook(() => useSidebarOrderedReports(), {
@@ -411,10 +412,10 @@ describe('useSidebarOrderedReports', () => {
 
         mockSidebarUtils.updateReportsToDisplayInLHN.mockClear();
 
-        // An unrelated personal-details change (a new avatar, a display name edit) recomputes the derived value to a
-        // fresh but shallow-equal array. That must not look like guide hydration and force a full LHN re-scan.
+        // An unrelated personal-details change (a new avatar) selects a fresh but deep-equal array.
+        // That must not look like guide hydration and force a full LHN re-scan.
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [Number(participantAccountID)]);
+            await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[participantAccountID]: {avatar: 'https://example.com/avatar.png'}});
         });
 
         await waitForBatchedUpdatesWithAct();

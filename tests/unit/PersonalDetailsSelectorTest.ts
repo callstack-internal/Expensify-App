@@ -7,6 +7,7 @@ import type {PersonalDetails, PersonalDetailsList} from '@src/types/onyx';
 
 import {
     createDisplayDetailsByAccountIDsSelector,
+    guideAccountIDsSelector,
     multiPersonalDetailsSelector,
     personalDetailsDisplayNameSelector,
     personalDetailsListSelector,
@@ -238,6 +239,64 @@ describe('PersonalDetailsSelector', () => {
         it('should return an empty object when personalDetailsList is undefined', () => {
             const result = createDisplayDetailsByAccountIDsSelector([accountID])(undefined);
             expect(result).toEqual({});
+        });
+    });
+
+    describe('guideAccountIDsSelector', () => {
+        const guideAccountID = 8;
+        const otherGuideAccountID = 3;
+        const memberAccountID = 1;
+        const guideLogin = `guide@${CONST.EMAIL.GUIDES_DOMAIN}`;
+        const otherGuideLogin = `another.guide@${CONST.EMAIL.GUIDES_DOMAIN}`;
+
+        it('should return an empty list when there are no personal details', () => {
+            // Given no personal details, or an empty list
+            // When the guide accountIDs are selected
+            // Then nothing is a guide
+            expect(guideAccountIDsSelector(undefined)).toEqual([]);
+            expect(guideAccountIDsSelector({})).toEqual([]);
+        });
+
+        it('should collect only the accounts whose login is on the guides domain', () => {
+            // Given a member and a guide
+            const list: PersonalDetailsList = {
+                [memberAccountID]: {accountID: memberAccountID, login: 'member@example.com'},
+                [guideAccountID]: {accountID: guideAccountID, login: guideLogin},
+            };
+
+            // When the guide accountIDs are selected
+            // Then only the guide is returned, since guides are identified by their login domain
+            expect(guideAccountIDsSelector(list)).toEqual([guideAccountID]);
+        });
+
+        it('should ignore entries without a login', () => {
+            // Given an entry with no login next to a guide
+            const list: PersonalDetailsList = {
+                [memberAccountID]: {accountID: memberAccountID},
+                [guideAccountID]: {accountID: guideAccountID, login: guideLogin},
+            };
+
+            // When the guide accountIDs are selected
+            // Then the entry without a login is skipped, since its domain is unknown
+            expect(guideAccountIDsSelector(list)).toEqual([guideAccountID]);
+        });
+
+        it('should select a deep-equal sorted array when an unrelated personal detail changes', () => {
+            // Given the same guides in a different key order, plus an avatar change and a new member
+            const guideListedLast: PersonalDetailsList = {
+                [otherGuideAccountID]: {accountID: otherGuideAccountID, login: otherGuideLogin},
+                [guideAccountID]: {accountID: guideAccountID, login: guideLogin},
+            };
+            const sameGuidesPlusAnAvatarChange: PersonalDetailsList = {
+                [guideAccountID]: {accountID: guideAccountID, login: guideLogin, avatar: 'https://example.com/avatar.png'},
+                [memberAccountID]: {accountID: memberAccountID, login: 'member@example.com'},
+                [otherGuideAccountID]: {accountID: otherGuideAccountID, login: otherGuideLogin},
+            };
+
+            // When the guide accountIDs are selected from both
+            // Then both are sorted the same, so useOnyx's deep-equal check skips the re-render
+            expect(guideAccountIDsSelector(guideListedLast)).toEqual([otherGuideAccountID, guideAccountID]);
+            expect(guideAccountIDsSelector(sameGuidesPlusAnAvatarChange)).toEqual([otherGuideAccountID, guideAccountID]);
         });
     });
 });

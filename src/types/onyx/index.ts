@@ -60,7 +60,6 @@ import type CustomStatusDraft from './CustomStatusDraft';
 import type DatabaseSizeMeasurement from './DatabaseSizeMeasurement';
 import type {
     CardFeedErrorsDerivedValue,
-    GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,
     LoginToAccountIDMapDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
@@ -462,7 +461,6 @@ export type {
     PersonalAndWorkspaceCardListDerivedValue,
     CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,
-    GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,
     OneOnOneChatReportIDsDerivedValue,
     ScheduleCallDraft,

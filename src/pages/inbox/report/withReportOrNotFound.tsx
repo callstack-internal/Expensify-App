@@ -1,6 +1,7 @@
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import useGuideAccountIDs from '@hooks/useGuideAccountIDs';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
 import useReportIsArchived from '@hooks/useReportIsArchived';
@@ -91,7 +92,7 @@ export default function (shouldRequireReportID = true): <TProps extends WithRepo
             const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
             const [deleteTransactionNavigateBackUrl] = useOnyx(ONYXKEYS.NVP_DELETE_TRANSACTION_NAVIGATE_BACK_URL);
             const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
-            const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+            const guideAccountIDs = useGuideAccountIDs();
             const hasGuidesEmails = hasExpensifyGuidesEmails(Object.keys(report?.participants ?? {}).map(Number), guideAccountIDs);
             const isFocused = useIsFocused();
             const contentShown = React.useRef(false);

@@ -89,7 +89,7 @@ import type {
     ReportAction,
     ReportAttributesDerivedValue,
     Rule,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {Participant} from '@src/types/onyx/IOU';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
@@ -220,7 +220,7 @@ type GetAlternateTextConfig = {
     // We'll make it required in the next PR. Ref: https://github.com/Expensify/App/issues/66415
     policy?: OnyxEntry<Policy>;
     invoiceReceiverPolicy?: OnyxEntry<Policy>;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     translate?: LocalizedTranslate;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     policyTags?: OnyxEntry<PolicyTagLists>;
@@ -386,7 +386,7 @@ type CreateOptionParams = {
     config?: PreviewConfig;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     policyTags?: OnyxEntry<PolicyTagLists>;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     translate?: LocalizedTranslate;
     convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'];
     convertToDisplayStringWithoutCurrency?: CurrencyListActionsContextType['convertToDisplayStringWithoutCurrency'];
@@ -702,7 +702,7 @@ type GetReportDisplayOptionParams = {
     currentUserAccountID: number;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     policyTags?: OnyxEntry<PolicyTagLists>;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'];
     pendingDeleteMemberAccountIDs: string[] | undefined;
 };
@@ -789,7 +789,7 @@ function getPolicyExpenseReportOption(
     rules: OnyxCollection<Rule>,
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'],
     policyTags?: OnyxEntry<PolicyTagLists>,
-    visibleReportActionsData: VisibleReportActionsDerivedValue = {},
+    visibleReportActionsData: VisibleReportActions = {},
 ): SearchOptionData {
     const {translate, dateFnsLocale, convertToDisplayString} = localize;
     const visibleParticipantAccountIDs = Object.entries(expenseReport?.participants ?? {})
@@ -954,7 +954,7 @@ function processReport(
         convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'];
         reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
         policyTags?: OnyxEntry<PolicyTagLists>;
-        visibleReportActionsData?: VisibleReportActionsDerivedValue;
+        visibleReportActionsData?: VisibleReportActions;
         isTrackIntentUser?: boolean;
         // TODO: Remove optional (?) once all callers pass sortedActions. Refactor issue: https://github.com/Expensify/App/issues/66381
         sortedActions?: Record<string, ReportAction[]>;
@@ -1024,7 +1024,7 @@ const reportSortComparator = (report: Report, privateIsArchivedMap: PrivateIsArc
 
 /** Builds an option list with pre-filtered reports and lazy contact shells. */
 // Stable default used by the cache when no report-action data is provided.
-const EMPTY_VISIBLE_REPORT_ACTIONS: VisibleReportActionsDerivedValue = {};
+const EMPTY_VISIBLE_REPORT_ACTIONS: VisibleReportActions = {};
 
 // Each configuration gets its own entry and is reused while its Onyx inputs are unchanged.
 const filteredOptionListCache = new Map<string, {inputs: unknown[]; result: OptionList}>();
@@ -1212,7 +1212,7 @@ function createFilteredOptionList(
     },
     rules: OnyxCollection<Rule>,
     policyTags?: OnyxCollection<PolicyTagLists>,
-    visibleReportActionsData: VisibleReportActionsDerivedValue = EMPTY_VISIBLE_REPORT_ACTIONS,
+    visibleReportActionsData: VisibleReportActions = EMPTY_VISIBLE_REPORT_ACTIONS,
     isTrackIntentUser?: boolean,
     // TODO: Remove optional (?) once all callers pass sortedActions. Refactor issue: https://github.com/Expensify/App/issues/66381
     sortedActions?: Record<string, ReportAction[]>,
@@ -1430,7 +1430,7 @@ type CreateOptionFromReportParams = {
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     config?: PreviewConfig;
     policyTags?: OnyxEntry<PolicyTagLists>;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     isTrackIntentUser?: boolean;
     convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'];
     convertToDisplayStringWithoutCurrency?: CurrencyListActionsContextType['convertToDisplayStringWithoutCurrency'];
@@ -1815,7 +1815,7 @@ function getUserToInviteOption({
     currentUserAccountID,
     visibleReportActionsData = {},
     rules,
-}: GetUserToInviteConfig & {visibleReportActionsData?: VisibleReportActionsDerivedValue; dateFnsLocale: DateFnsLocale | undefined; rules: OnyxCollection<Rule>}): SearchOptionData | null {
+}: GetUserToInviteConfig & {visibleReportActionsData?: VisibleReportActions; dateFnsLocale: DateFnsLocale | undefined; rules: OnyxCollection<Rule>}): SearchOptionData | null {
     if (!searchValue) {
         return null;
     }
@@ -2135,7 +2135,7 @@ function prepareReportOptionsForDisplay(
     conciergeReportID: string | undefined,
     sortedActions: Record<string, ReportAction[]> | undefined,
     rules: OnyxCollection<Rule>,
-    visibleReportActionsData: VisibleReportActionsDerivedValue = EMPTY_VISIBLE_REPORT_ACTIONS,
+    visibleReportActionsData: VisibleReportActions = EMPTY_VISIBLE_REPORT_ACTIONS,
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'],
     policyTags?: OnyxCollection<PolicyTagLists>,
     isTrackIntentUser?: boolean,
@@ -2711,7 +2711,7 @@ type SearchOptionsConfig = {
     shouldShowGBR?: boolean;
     shouldUnreadBeBold?: boolean;
     loginList: OnyxEntry<Login>;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     policyCollection: OnyxCollection<Policy>;
     currentUserAccountID: number;
     currentUserEmail: string;

@@ -8,6 +8,7 @@ import useGetExpensifyCardFromReportAction from '@hooks/useGetExpensifyCardFromR
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useThemeStyles from '@hooks/useThemeStyles';
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
 
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getLastVisibleActionIncludingTransactionThread, getOriginalMessage, isActionableTrackExpense, isInviteOrRemovedAction} from '@libs/ReportActionsUtils';
@@ -18,14 +19,13 @@ import CONST from '@src/CONST';
 import {getMovedReportID} from '@src/libs/ModifiedExpenseMessage';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportActions as ReportActionsType} from '@src/types/onyx';
-import type {VisibleReportActionsDerivedValue} from '@src/types/onyx/DerivedValues';
 import type {Icon} from '@src/types/onyx/OnyxCommon';
 
 import type {ViewStyle} from 'react-native';
 import type {OnyxCollection} from 'react-native-onyx';
 
 import {isTrackIntentUserSelector} from '@selectors/Onboarding';
-import React, {useCallback, useMemo} from 'react';
+import React, {useMemo} from 'react';
 import {StyleSheet, View} from 'react-native';
 
 import OptionRowLHN from './OptionRowLHN';
@@ -64,28 +64,7 @@ function OptionRowLHNData({
     const [parentReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(fullReport?.parentReportID)}`);
     const [transactionThreadReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(oneTransactionThreadReportID)}`);
 
-    // Scoped VISIBLE_REPORT_ACTIONS selector
-    const visibleActionsSelector = useCallback(
-        (data: VisibleReportActionsDerivedValue | undefined) => {
-            if (!data) {
-                return undefined;
-            }
-            const result: VisibleReportActionsDerivedValue = {};
-            const reportEntry = data[reportID];
-            if (reportEntry) {
-                result[reportID] = reportEntry;
-            }
-            if (oneTransactionThreadReportID) {
-                const txThreadEntry = data[oneTransactionThreadReportID];
-                if (txThreadEntry) {
-                    result[oneTransactionThreadReportID] = txThreadEntry;
-                }
-            }
-            return result;
-        },
-        [reportID, oneTransactionThreadReportID],
-    );
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {selector: visibleActionsSelector});
+    const visibleReportActionsData = useVisibleReportActions(reportID, oneTransactionThreadReportID);
 
     // Per-item NVP subscription instead of collection-level subscription in parent
     const [reportNameValuePairs] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${reportID}`);

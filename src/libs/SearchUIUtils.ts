@@ -626,7 +626,7 @@ type GetSectionsParams = {
     cardList?: OnyxEntry<OnyxTypes.CardList>;
     nonPersonalAndWorkspaceCardList?: OnyxEntry<OnyxTypes.CardList>;
     customCardNames?: Record<number, string>;
-    visibleReportActionsData?: OnyxTypes.VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: OnyxTypes.VisibleReportActions;
     conciergeReportID: string | undefined;
     onyxPersonalDetailsList?: OnyxTypes.PersonalDetailsList;
     isAttendeesEnabledForMovingPolicy?: boolean;
@@ -2551,7 +2551,7 @@ function createAndOpenSearchTransactionThread({
 function getReportActionsSections(
     data: OnyxTypes.SearchResults['data'],
     reportAttributesDerivedValue: OnyxTypes.ReportAttributesDerivedValue['reports'] | undefined,
-    visibleReportActionsData?: OnyxTypes.VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: OnyxTypes.VisibleReportActions,
 ): [ReportActionListItemType[], number] {
     const reportActionItems: ReportActionListItemType[] = [];
 

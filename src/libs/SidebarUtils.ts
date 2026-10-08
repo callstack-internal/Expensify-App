@@ -16,7 +16,7 @@ import type {
     ReportNameValuePairs,
     Transaction,
     TransactionViolation,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {ReportAttributes} from '@src/types/onyx/DerivedValues';
 import type {Errors} from '@src/types/onyx/OnyxCommon';
@@ -748,7 +748,7 @@ function getOptionData({
     movedFromReport?: OnyxEntry<Report>;
     movedToReport?: OnyxEntry<Report>;
     currentUserAccountID: number;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     policyTags?: OnyxEntry<PolicyTagLists>;
     currentUserLogin: string;

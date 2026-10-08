@@ -18,7 +18,7 @@ import type {
     ReportMetadata,
     Rule,
     Transaction,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
     WorkspaceCardsList,
 } from '@src/types/onyx';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
@@ -377,7 +377,7 @@ function getLatestVisibleMoneyRequestAction(
     reportID: string,
     canUserPerformWrite: boolean | undefined,
     sortedReportActions: ReportAction[] = [],
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
 ): OnyxEntry<ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.IOU>> {
     return sortedReportActions.find(
         (reportAction): reportAction is ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.IOU> =>
@@ -421,7 +421,7 @@ type LastActionContext = {
 function resolveLastActionContext(
     report: Report,
     isReportArchived: boolean | undefined,
-    visibleReportActionsData: VisibleReportActionsDerivedValue | undefined,
+    visibleReportActionsData: VisibleReportActions | undefined,
     oneTransactionThreadReportID?: string,
 ): LastActionContext {
     const canUserPerformWrite = canUserPerformWriteAction(report, isReportArchived);
@@ -448,7 +448,7 @@ function getLastActorDisplayNameFromLastVisibleActions(
     personalDetails: OnyxEntry<PersonalDetailsList>,
     privateIsArchived: boolean | undefined,
     translate: LocalizedTranslate,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
     lastAction?: OnyxEntry<ReportAction>,
     oneTransactionThreadReportID?: string,
 ): string {
@@ -516,7 +516,7 @@ function getLastMessageTextForReport({
     isReportArchived?: boolean;
     policyForMovingExpensesID?: string;
     reportMetadata?: OnyxEntry<ReportMetadata>;
-    visibleReportActionsDataParam?: VisibleReportActionsDerivedValue;
+    visibleReportActionsDataParam?: VisibleReportActions;
     lastAction?: OnyxEntry<ReportAction>;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     policyTags?: OnyxEntry<PolicyTagLists>;
@@ -1180,7 +1180,7 @@ type GetReportAlternateTextParams = {
     privateIsArchived: boolean;
     conciergeReportID: string | undefined;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     sortedActions?: Record<string, ReportAction[]>;
     oneTransactionThreadReportID?: string;
     lastOriginalAction?: OnyxEntry<ReportAction>;

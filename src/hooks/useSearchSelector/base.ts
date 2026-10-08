@@ -1,5 +1,6 @@
 import {usePersonalDetails} from '@components/OnyxListItemProvider';
 
+import useAllVisibleReportActions from '@hooks/useAllVisibleReportActions';
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useDebounce from '@hooks/useDebounce';
@@ -198,7 +199,7 @@ function useSearchSelectorBase({
     const [loginList] = useOnyx(ONYXKEYS.LOGINS, {selector: expensifyLoginsSelector});
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [draftComments] = useOnyx(ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
+    const visibleReportActionsData = useAllVisibleReportActions();
     const sortedReportActionsData = useSortedReportActionsData();
     const sortedActions = sortedReportActionsData?.sortedActions;
     const transactionThreadIDs = sortedReportActionsData?.transactionThreadIDs;

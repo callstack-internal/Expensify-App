@@ -52,7 +52,7 @@ import type {
     TransactionViolation,
     TransactionViolations,
     ViolationName,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {ReportTransactionsAndViolations} from '@src/types/onyx/DerivedValues';
 import type {Attendee, Participant} from '@src/types/onyx/IOU';
@@ -10145,12 +10145,7 @@ function isReportNotFound(report: OnyxEntry<Report>): boolean {
 /**
  * Check if the report is the parent report of the currently viewed report or at least one child report has report action
  */
-function shouldHideReport(
-    report: OnyxEntry<Report>,
-    currentReportId: string | undefined,
-    isReportArchived: boolean | undefined,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
-): boolean {
+function shouldHideReport(report: OnyxEntry<Report>, currentReportId: string | undefined, isReportArchived: boolean | undefined, visibleReportActionsData?: VisibleReportActions): boolean {
     const currentReport = getReportOrDraftReport(currentReportId);
     const parentReport = getParentReport(!isEmptyObject(currentReport) ? currentReport : undefined);
     const reportActions = allReportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.reportID}`] ?? {};
@@ -11381,7 +11376,7 @@ function navigateToLinkedReportAction(
     isInNarrowPaneModal: boolean,
     canUserPerformWrite: boolean | undefined,
     isOffline: boolean,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
 ) {
     if (isInNarrowPaneModal) {
         const rootState = navigationRef.current?.getRootState();

@@ -3458,12 +3458,6 @@ describe('SidebarUtils', () => {
                         [linkedCreateAction.reportActionID]: linkedCreateAction,
                         [lastAction.reportActionID]: lastAction,
                     });
-                    await Onyx.set(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
-                        [iouReportR14932.reportID]: {
-                            [linkedCreateAction.reportActionID]: true,
-                            [lastAction.reportActionID]: true,
-                        },
-                    });
                 });
 
                 const result = SidebarUtils.getOptionData({

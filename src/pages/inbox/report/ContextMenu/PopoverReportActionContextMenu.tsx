@@ -17,6 +17,7 @@ import useParentReportAction from '@hooks/useParentReportAction';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
 import useTransactionsAndViolationsForReport from '@hooks/useTransactionsAndViolationsForReport';
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
 
 import {deleteTrackExpense} from '@libs/actions/IOU/TrackExpense';
 import {deleteAppReport, deleteReportComment} from '@libs/actions/Report';
@@ -101,7 +102,6 @@ function PopoverReportActionContextMenu({ref}: PopoverReportActionContextMenuPro
     const [shouldSwitchPositionIfOverflow, setShouldSwitchPositionIfOverflow] = useState(false);
     const [isWithoutOverlay, setIsWithoutOverlay] = useState<boolean>(true);
     const [allTransactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
 
     const contentRef = useRef<ComponentRef<typeof View>>(null);
     const anchorRef = useRef<ComponentRef<typeof View> | HTMLDivElement | null>(null);
@@ -350,6 +350,7 @@ function PopoverReportActionContextMenu({ref}: PopoverReportActionContextMenuPro
     const [iouTransaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionIDs.at(0) ?? ''}`);
     const [iouOriginalTransaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(iouTransaction?.comment?.originalTransactionID)}`);
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDRef.current}`);
+    const visibleReportActionsData = useVisibleReportActions(report?.reportID);
     const [childReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportActionRef.current?.childReportID}`);
     const [childReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${childReport?.reportID}`);
     const [selfDMReportID] = useOnyx(ONYXKEYS.SELF_DM_REPORT_ID);
@@ -440,7 +441,7 @@ function PopoverReportActionContextMenu({ref}: PopoverReportActionContextMenuPro
                     isOriginalReportArchived,
                     email ?? '',
                     isOffline,
-                    visibleReportActionsData ?? undefined,
+                    visibleReportActionsData,
                 );
             };
         }

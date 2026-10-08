@@ -23,7 +23,7 @@ import type {
     PrivatePersonalDetails,
     ReportMetadata,
     ReportNameValuePairs,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {
     DecisionName,
@@ -1404,14 +1404,14 @@ function shouldHideNewMarker(reportAction: OnyxEntry<ReportAction>, isOffline: b
 }
 
 /**
- * Checks if a report action is visible using the pre-computed derived value when available,
+ * Checks if a report action is visible using the cached visibility when available,
  * falling back to runtime calculation if not.
  */
 function isReportActionVisible(
     reportAction: OnyxEntry<ReportAction>,
     reportID: string | undefined,
     canUserPerformWriteAction?: boolean,
-    visibleReportActions?: VisibleReportActionsDerivedValue,
+    visibleReportActions?: VisibleReportActions,
     // TODO: Remove optional (?) once all callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
     currentUserAccountID?: number,
 ): boolean {
@@ -1432,7 +1432,7 @@ function isReportActionVisible(
             return shouldReportActionBeVisible(reportAction, reportAction.reportActionID, canUserPerformWriteAction, currentUserAccountID, reportID);
         }
         const staticVisibility = reportCache[reportAction.reportActionID];
-        // If action is not in derived value cache, fall back to runtime calculation
+        // If action is not in the visibility cache, fall back to runtime calculation
         if (staticVisibility === undefined) {
             return shouldReportActionBeVisible(reportAction, reportAction.reportActionID, canUserPerformWriteAction, currentUserAccountID, reportID);
         }
@@ -1448,13 +1448,13 @@ function isReportActionVisible(
 }
 
 /**
- * Checks if a report action is visible as last action using the pre-computed derived value when available,
+ * Checks if a report action is visible as last action using the cached visibility when available,
  * falling back to runtime calculation if not.
  */
 function isReportActionVisibleAsLastAction(
     reportAction: OnyxInputOrEntry<ReportAction>,
     canUserPerformWriteAction?: boolean,
-    visibleReportActions?: VisibleReportActionsDerivedValue,
+    visibleReportActions?: VisibleReportActions,
     reportID?: string,
     // TODO: Remove optional (?) once all callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
     currentUserAccountID?: number,
@@ -1512,7 +1512,7 @@ function getLastVisibleAction(
     canUserPerformWriteAction?: boolean,
     actionsToMerge: Record<string, NullishDeep<ReportAction> | null> = {},
     reportActionsParam: OnyxCollection<ReportActions> = allReportActions,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
     // TODO: Remove optional (?) once all callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
     currentUserAccountID?: number,
 ): OnyxEntry<ReportAction> {
@@ -1546,7 +1546,7 @@ function getLastVisibleActionIncludingTransactionThread(
     reportID: string | undefined,
     canUserPerformWriteAction?: boolean,
     reportActionsParam: OnyxCollection<ReportActions> = allReportActions,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
     transactionThreadReportID?: string,
     // TODO: Remove optional (?) once all callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
     currentUserAccountID?: number,
@@ -1592,7 +1592,7 @@ function getLastVisibleMessage(
     canUserPerformWriteAction?: boolean,
     actionsToMerge: Record<string, NullishDeep<ReportAction> | null> = {},
     reportAction: OnyxInputOrEntry<ReportAction> | undefined = undefined,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
     // TODO: Remove optional (?) once all callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
     currentUserAccountID?: number,
 ): LastVisibleMessage {
@@ -1700,7 +1700,7 @@ function getSortedReportActionsForDisplay(
     reportActions: OnyxEntry<ReportActions> | ReportAction[],
     canUserPerformWriteAction?: boolean,
     shouldIncludeInvisibleActions = false,
-    visibleReportActionsData?: VisibleReportActionsDerivedValue,
+    visibleReportActionsData?: VisibleReportActions,
     reportID?: string,
 ): ReportAction[] {
     let filteredReportActions: ReportAction[] = [];

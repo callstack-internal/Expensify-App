@@ -95,6 +95,43 @@ const optimisticPersonalDetailsSelector = (personalDetailsList: OnyxEntry<Person
     return optimisticPersonalDetails;
 };
 
+const loginToAccountIDMapCache = new WeakMap<PersonalDetailsList, Record<string, number>>();
+
+/**
+ * Maps each lowercased login to its accountID. When two accounts share a login, a closed or optimistic one loses to the other.
+ * Cached on the list reference, so every Search row that reads it after the same write shares one build.
+ */
+const loginToAccountIDMapSelector = (personalDetailsList: OnyxEntry<PersonalDetailsList>): Record<string, number> => {
+    if (!personalDetailsList) {
+        return {};
+    }
+
+    const cachedLoginToAccountIDMap = loginToAccountIDMapCache.get(personalDetailsList);
+    if (cachedLoginToAccountIDMap) {
+        return cachedLoginToAccountIDMap;
+    }
+
+    const loginToAccountIDMap: Record<string, number> = {};
+    for (const personalDetails of Object.values(personalDetailsList)) {
+        if (!personalDetails?.login) {
+            continue;
+        }
+        const login = personalDetails.login.toLowerCase();
+        const existingAccountID = loginToAccountIDMap[login];
+        const existingDetail = existingAccountID === undefined ? undefined : personalDetailsList[existingAccountID];
+        if (!existingDetail || existingDetail.isClosed || existingDetail.isOptimisticPersonalDetail) {
+            loginToAccountIDMap[login] = personalDetails.accountID;
+        }
+    }
+    loginToAccountIDMapCache.set(personalDetailsList, loginToAccountIDMap);
+    return loginToAccountIDMap;
+};
+
+const accountIDsByLoginsSelector = (logins: Array<string | undefined>) => (personalDetailsList: OnyxEntry<PersonalDetailsList>) => {
+    const loginToAccountIDMap = loginToAccountIDMapSelector(personalDetailsList);
+    return logins.map((login) => loginToAccountIDMap[login ?? ''] ?? CONST.DEFAULT_NUMBER_ID);
+};
+
 const newAccountIDsAndLoginsSelector = (invitedEmailsToAccountIDs: InvitedEmailsToAccountIDs | undefined) => (personalDetailsList: OnyxEntry<PersonalDetailsList>) =>
     getNewAccountIDsAndLogins(invitedEmailsToAccountIDs, personalDetailsList);
 
@@ -125,6 +162,8 @@ export {
     accountIDToLoginSelector,
     isPersonalDetailOptimistic,
     optimisticPersonalDetailsSelector,
+    loginToAccountIDMapSelector,
+    accountIDsByLoginsSelector,
     createDisplayDetailsByAccountIDsSelector,
     newAccountIDsAndLoginsSelector,
     displayNameSelector,

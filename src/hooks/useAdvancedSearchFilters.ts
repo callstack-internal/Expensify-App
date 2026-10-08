@@ -14,6 +14,7 @@ import {emailSelector} from '@selectors/Session';
 
 import useLocalize from './useLocalize';
 import useOnyx from './useOnyx';
+import usePersonalAndWorkspaceCardList from './usePersonalAndWorkspaceCardList';
 import useWorkspaceList from './useWorkspaceList';
 
 /**
@@ -312,7 +313,7 @@ function shouldDisplayCardFilterSelector(cardList: OnyxEntry<CardList>) {
 }
 
 function useAdvancedSearchFilters(type: SearchDataTypes | undefined) {
-    const [shouldDisplayCardFilter] = useOnyx(ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST, {selector: shouldDisplayCardFilterSelector});
+    const shouldDisplayCardFilter = usePersonalAndWorkspaceCardList(shouldDisplayCardFilterSelector);
     const [policies = getEmptyObject<NonNullable<OnyxCollection<Policy>>>()] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {selector: advancedSearchPoliciesSelector});
     const [policyDerived] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {selector: policyDerivedSelector});
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);

@@ -207,11 +207,6 @@ type SortedReportActionsDerivedValue = {
 };
 
 /**
- * The derived value for merged personal and workspace card feeds.
- */
-type PersonalAndWorkspaceCardListDerivedValue = CardList;
-
-/**
  * The derived value mapping each user's login (lowercased) to their accountID.
  *
  * Replaces the imperative `emailToPersonalDetailsCache` login lookup that was built via `Onyx.connect`
@@ -253,7 +248,6 @@ export type {
     VisibleReportActionsDerivedValue,
     SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
-    PersonalAndWorkspaceCardListDerivedValue,
     CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,
     GuideAccountIDsDerivedValue,

@@ -8,16 +8,13 @@
  * non-inverted unified list, newest-first for the shared unread/mark-as-read hooks - so callers never
  * re-derive or re-sort them.
  */
-import useOnyx from '@hooks/useOnyx';
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
 
 import {isActionVisibleOnMoneyRequestReport} from '@libs/MoneyRequestReportUtils';
 import {getFirstVisibleReportActionID, isDeletedParentAction, isIOUActionMatchingTransactionList, isReportActionVisible} from '@libs/ReportActionsUtils';
 
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
 import type * as OnyxTypes from '@src/types/onyx';
-
-import {reportVisibleActionsSelector} from '@selectors/ReportAction';
 
 type UseMoneyRequestReportVisibleActionsParams = {
     /** The report whose actions are being displayed */
@@ -66,7 +63,7 @@ function useMoneyRequestReportVisibleActions({
     shouldShowHarvestCreatedAction,
     isOffline,
 }: UseMoneyRequestReportVisibleActionsParams): UseMoneyRequestReportVisibleActionsResult {
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {selector: reportVisibleActionsSelector(reportID)});
+    const visibleReportActionsData = useVisibleReportActions(reportID);
 
     const visibleReportActionsNewestFirst = reportActions.filter((reportAction) => {
         const isActionVisibleOnMoneyReport = isActionVisibleOnMoneyRequestReport(reportAction, shouldShowHarvestCreatedAction);

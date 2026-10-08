@@ -96,7 +96,6 @@ jest.mock('@hooks/useOnyx', () => ({
         if (key.startsWith('report_')) {
             return [{reportID: '12345', type: 'chat'}, {status: 'loaded'}];
         }
-        // DERIVED.VISIBLE_REPORT_ACTIONS
         return [undefined, {status: 'loaded'}];
     },
 }));

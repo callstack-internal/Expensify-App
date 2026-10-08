@@ -12,6 +12,7 @@ import useHydrateReportsFromSnapshot from '@hooks/useHydrateReportsFromSnapshot'
 import useLoadSearchCardData from '@hooks/useLoadSearchCardData';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
+import useNonPersonalAndWorkspaceCardList from '@hooks/useNonPersonalAndWorkspaceCardList';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
 import usePersonalPolicy from '@hooks/usePersonalPolicy';
@@ -91,7 +92,7 @@ function SearchTransactionsChangeReport() {
     const managedCardTransactionID = transactions.find((transaction) => isUnreportedManagedCardTransaction(transaction))?.transactionID;
     const hasUnreportedManagedCardTransactions = !!managedCardTransactionID;
     const [transactionViolations] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS);
-    const [nonPersonalAndWorkspaceCards] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST);
+    const nonPersonalAndWorkspaceCards = useNonPersonalAndWorkspaceCardList();
     // Asked for here too, so opening this screen retries a fetch that failed earlier.
     const {areCardsLoaded: isSearchCardListComplete} = useLoadSearchCardData();
     const reports = useChangeTransactionsReportReports(transactions, undefined);

@@ -1,6 +1,7 @@
 import useCardFeedsForDisplay from '@hooks/useCardFeedsForDisplay';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useLoadSearchCategoryData from '@hooks/useLoadSearchCategoryData';
+import useNonPersonalAndWorkspaceCardList from '@hooks/useNonPersonalAndWorkspaceCardList';
 import useOnyx from '@hooks/useOnyx';
 import usePreviousDefined from '@hooks/usePreviousDefined';
 import useRootNavigationState from '@hooks/useRootNavigationState';
@@ -59,7 +60,7 @@ function SearchQueryProvider({children}: SearchQueryProviderProps) {
     useLoadSearchCategoryData({shouldLoad: shouldLoadCategoryData});
 
     const {defaultCardFeed, activeExpensifyCardFeedID} = useCardFeedsForDisplay();
-    const [defaultExpensifyCardID] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST, {selector: (card) => defaultExpensifyCardSelector(card)?.id});
+    const defaultExpensifyCardID = useNonPersonalAndWorkspaceCardList((card) => defaultExpensifyCardSelector(card)?.id);
     const {accountID, email} = useCurrentUserPersonalDetails();
     const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const defaultCardFeedID = defaultCardFeed?.id;

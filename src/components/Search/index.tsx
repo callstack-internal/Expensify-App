@@ -11,6 +11,7 @@ import useDelegateAccountID from '@hooks/useDelegateAccountID';
 import type {ActionHandledType} from '@hooks/useHoldMenuSubmit';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
+import useNonPersonalAndWorkspaceCardList from '@hooks/useNonPersonalAndWorkspaceCardList';
 import useOnyx from '@hooks/useOnyx';
 import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
 import usePrevious from '@hooks/usePrevious';
@@ -193,7 +194,7 @@ function Search({
     const {accountID, email} = useCurrentUserPersonalDetails();
     const personalDetails = usePersonalDetails();
     const isActionLoadingSet = useActionLoadingReportIDs();
-    const [nonPersonalAndWorkspaceCards] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST);
+    const nonPersonalAndWorkspaceCards = useNonPersonalAndWorkspaceCardList();
 
     const isExpenseReportType = type === CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT;
 

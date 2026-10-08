@@ -16,6 +16,7 @@ import useCreateEmptyReportConfirmation from './useCreateEmptyReportConfirmation
 import useHasReportAwaitingApproval from './useHasReportAwaitingApproval';
 import useMappedPolicies from './useMappedPolicies';
 import useNetwork from './useNetwork';
+import useNonPersonalAndWorkspaceCardList from './useNonPersonalAndWorkspaceCardList';
 import useOnyx from './useOnyx';
 import usePermissions from './usePermissions';
 
@@ -58,7 +59,7 @@ const currentUserLoginAndAccountIDSelector = (session: OnyxEntry<Session>) => ({
  * reliably, so this hook never depends on a navigation context itself.
  */
 const useSearchTypeMenuSections = (isScreenFocused = true) => {
-    const [defaultExpensifyCard] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST, {selector: defaultExpensifyCardSelector});
+    const defaultExpensifyCard = useNonPersonalAndWorkspaceCardList(defaultExpensifyCardSelector);
 
     const {defaultCardFeed, cardFeedsByPolicy, activeExpensifyCardFeedID} = useCardFeedsForDisplay();
 

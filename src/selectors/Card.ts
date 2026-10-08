@@ -1,12 +1,24 @@
 import {getExpensifyCardFeedsForDisplay} from '@libs/CardFeedUtils';
-import {hasActiveExpensifyCard, hasAssignedCardMatching, isActiveCard, isCard, isCardHiddenFromSearch, isCSVFeedOrExpensifyCard, isExpensifyCard, isPersonalCard} from '@libs/CardUtils';
+import {
+    hasActiveExpensifyCard,
+    hasAssignedCardMatching,
+    isActiveCard,
+    isCard,
+    isCardHiddenFromSearch,
+    isCSVFeedOrExpensifyCard,
+    isExpensifyCard,
+    isPersonalCard,
+    mergeCardListWithWorkspaceFeeds,
+} from '@libs/CardUtils';
 import {filterObject} from '@libs/ObjectUtils';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {CardFeeds, CardList, NonPersonalAndWorkspaceCardListDerivedValue, WorkspaceCardsList} from '@src/types/onyx';
+import type {CardFeeds, CardList, WorkspaceCardsList} from '@src/types/onyx';
 
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
+
+import {deepEqual} from 'fast-equals';
 
 /**
  * Builds a lightweight map of "${domainID}_${feedName}" keys that have card entries.
@@ -77,15 +89,42 @@ const getBankLinkedPersonalCards = (cards: OnyxEntry<CardList>): CardList => {
  * matching a feed's `fundID` against that workspace's candidate fund IDs — its primary feed (`linkedPolicyIDs`), a
  * `preferredPolicy`-linked feed, or the policy's `policyAccountID` — via `getActiveExpensifyCardFeedID`.
  */
-const expensifyCardFeedsForDisplaySelector = (allCards: OnyxEntry<NonPersonalAndWorkspaceCardListDerivedValue>) =>
+const expensifyCardFeedsForDisplaySelector = (allCards: OnyxEntry<CardList>) =>
     Object.values(getExpensifyCardFeedsForDisplay(allCards ?? undefined, undefined)).filter((feed) => feed.country !== CONST.TRAVEL.PROGRAM_TRAVEL_US);
 
 /**
  * Selects the Expensify Card feed from the card list and returns the first regular (non-travel) one.
  */
-const defaultExpensifyCardSelector = (allCards: OnyxEntry<NonPersonalAndWorkspaceCardListDerivedValue>) => {
+const defaultExpensifyCardSelector = (allCards: OnyxEntry<CardList>) => {
     return expensifyCardFeedsForDisplaySelector(allCards).at(0);
 };
+
+/**
+ * Merges the user's card list with every workspace card feed. The last pair of inputs and its result are kept, so
+ * every mounted consumer shares one merge per write. A merge equal to the last one returns the last object, so a
+ * write that leaves the merged list unchanged doesn't make consumers re-run their selectors.
+ */
+const createCardListWithWorkspaceFeedsSelector = (shouldFilterOutPersonalCards: boolean) => {
+    let lastCardList: OnyxEntry<CardList>;
+    let lastWorkspaceCardFeeds: OnyxCollection<WorkspaceCardsList>;
+    let lastResult: CardList | undefined;
+
+    return (cardList: OnyxEntry<CardList>, workspaceCardFeeds: OnyxCollection<WorkspaceCardsList>): CardList => {
+        if (lastResult && cardList === lastCardList && workspaceCardFeeds === lastWorkspaceCardFeeds) {
+            return lastResult;
+        }
+        lastCardList = cardList;
+        lastWorkspaceCardFeeds = workspaceCardFeeds;
+        const result = mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, cardList, shouldFilterOutPersonalCards);
+        if (!lastResult || !deepEqual(result, lastResult)) {
+            lastResult = result;
+        }
+        return lastResult;
+    };
+};
+
+/** The user's non-personal cards plus every workspace feed card. */
+const nonPersonalAndWorkspaceCardListSelector = createCardListWithWorkspaceFeedsSelector(true);
 
 /**
  * Returns a selector that picks a single card from the card list by card ID.
@@ -135,4 +174,5 @@ export {
     companyCardCustomNamesSelector,
     hasIssuedExpensifyCardSelector,
     hasActiveExpensifyCardSelector,
+    nonPersonalAndWorkspaceCardListSelector,
 };

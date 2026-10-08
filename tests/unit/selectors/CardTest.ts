@@ -1,9 +1,10 @@
 import {isCard, isCardPendingActivate, isCardPendingIssue, isCardWithPotentialFraud, isExpensifyCard} from '@libs/CardUtils';
 
 import CONST from '@src/CONST';
+import ONYXKEYS from '@src/ONYXKEYS';
 import type {Card, CardList, WorkspaceCardsList} from '@src/types/onyx';
 
-import type {OnyxEntry} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -14,6 +15,7 @@ import {
     filterOutPersonalCards,
     hasActiveExpensifyCardSelector,
     hasIssuedExpensifyCardSelector,
+    nonPersonalAndWorkspaceCardListSelector,
 } from '@selectors/Card';
 
 import createRandomCard, {createRandomCompanyCard, createRandomExpensifyCard} from '../../utils/collections/card';
@@ -998,5 +1000,104 @@ describe('hasActiveExpensifyCardSelector', () => {
         // When the missing value is reduced
         // Then it stays false rather than throwing, so the surfaces render before the card list arrives
         expect(hasActiveExpensifyCardSelector(undefined)).toBe(false);
+    });
+});
+
+describe('nonPersonalAndWorkspaceCardListSelector', () => {
+    const workspaceFeedKey = `${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}workspace_123`;
+    const otherWorkspaceFeedKey = `${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}workspace_456`;
+
+    it('should return an empty list when neither input is set', () => {
+        // Given no card list and no workspace feeds, as before they are loaded
+        // When the merged list is selected
+        // Then it is an empty list rather than undefined, so consumers can look cards up right away
+        expect(nonPersonalAndWorkspaceCardListSelector(undefined, undefined)).toEqual({});
+    });
+
+    it('should merge the card list with the workspace feed cards', () => {
+        // Given two non-personal cards in the card list and a third card in a workspace feed
+        const cardList: CardList = {
+            '1': createRandomExpensifyCard(1, {fundID: '123'}),
+            '2': createRandomExpensifyCard(2, {fundID: '456'}),
+        };
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'3': createRandomCompanyCard(3, {bank: 'vcf'})}};
+
+        // When the merged list is selected
+        // Then every card from both sources is in it
+        expect(nonPersonalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds)).toMatchObject({
+            '1': expect.objectContaining({cardID: 1}),
+            '2': expect.objectContaining({cardID: 2}),
+            '3': expect.objectContaining({cardID: 3}),
+        });
+    });
+
+    it('should leave out the personal cards of the card list', () => {
+        // Given a non-personal card, a personal card (fundID '0') and a workspace feed card
+        const cardList: CardList = {
+            '1': createRandomExpensifyCard(1, {fundID: '123'}),
+            '2': createRandomExpensifyCard(2, {fundID: '0'}),
+        };
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'3': createRandomCompanyCard(3, {bank: 'vcf'})}};
+
+        // When the merged list is selected
+        const result = nonPersonalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds);
+
+        // Then only the personal card is dropped, since this list is for company and workspace cards
+        expect(result['1']).toMatchObject({cardID: 1});
+        expect(result['2']).toBeUndefined();
+        expect(result['3']).toMatchObject({cardID: 3});
+    });
+
+    it('should keep the workspace feed cards when the card list is empty', () => {
+        // Given an empty card list and one workspace feed card
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'1': createRandomCompanyCard(1, {bank: 'vcf'})}};
+
+        // When the merged list is selected
+        // Then the workspace card is still there, since the two sources are independent
+        expect(nonPersonalAndWorkspaceCardListSelector({}, workspaceCardFeeds)).toMatchObject({'1': expect.objectContaining({cardID: 1})});
+    });
+
+    it('should keep the card list cards when there are no workspace feeds', () => {
+        // Given one non-personal card and no workspace feeds
+        const cardList: CardList = {'1': createRandomExpensifyCard(1, {fundID: '123'})};
+
+        // When the merged list is selected
+        // Then the card is there, since a missing feed collection must not hide the user's own cards
+        expect(nonPersonalAndWorkspaceCardListSelector(cardList, undefined)).toMatchObject({'1': expect.objectContaining({cardID: 1})});
+    });
+
+    it('should include the cards of every workspace feed', () => {
+        // Given two workspace feeds with one card each
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {
+            [workspaceFeedKey]: {'1': createRandomCompanyCard(1, {bank: 'vcf'})},
+            [otherWorkspaceFeedKey]: {'2': createRandomCompanyCard(2, {bank: 'stripe'})},
+        };
+
+        // When the merged list is selected
+        // Then cards from both feeds are in it
+        expect(nonPersonalAndWorkspaceCardListSelector({}, workspaceCardFeeds)).toMatchObject({
+            '1': expect.objectContaining({cardID: 1}),
+            '2': expect.objectContaining({cardID: 2}),
+        });
+    });
+
+    it('should return the same list while the merged content is unchanged and a new one when it changes', () => {
+        // Given a card list and a workspace feed collection
+        const cardList: CardList = {'1': createRandomExpensifyCard(1, {fundID: '123'})};
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'2': createRandomCompanyCard(2, {bank: 'vcf'})}};
+        const first = nonPersonalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds);
+
+        // When the list is selected again from the same inputs, from a new card list that only adds a personal card,
+        // and from a new card list with another non-personal card
+        const fromSameInputs = nonPersonalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds);
+        const afterPersonalCardAdded = nonPersonalAndWorkspaceCardListSelector({...cardList, '3': createRandomExpensifyCard(3, {fundID: '0'})}, workspaceCardFeeds);
+        const afterCardAdded = nonPersonalAndWorkspaceCardListSelector({...cardList, '4': createRandomExpensifyCard(4, {fundID: '123'})}, workspaceCardFeeds);
+
+        // Then the first two reuse the same object, so consumers skip their selectors and re-renders,
+        // and only a real change gives a new list
+        expect(fromSameInputs).toBe(first);
+        expect(afterPersonalCardAdded).toBe(first);
+        expect(afterCardAdded).not.toBe(first);
+        expect(afterCardAdded['4']).toMatchObject({cardID: 4});
     });
 });

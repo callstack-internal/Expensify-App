@@ -150,6 +150,7 @@ import {useMemoizedLazyExpensifyIcons} from './useLazyAsset';
 import useLoadSearchCardData from './useLoadSearchCardData';
 import useLocalize from './useLocalize';
 import useNetwork from './useNetwork';
+import useNonPersonalAndWorkspaceCardList from './useNonPersonalAndWorkspaceCardList';
 import useOnyx from './useOnyx';
 import {getParticipantsInvoiceReport} from './useParticipantsInvoiceReport';
 import usePaymentContext from './usePaymentContext';
@@ -685,7 +686,7 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
     const [isTrackIntentUser] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {selector: isTrackIntentUserSelector});
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
     const [cardList] = useOnyx(ONYXKEYS.CARD_LIST);
-    const [nonPersonalAndWorkspaceCards] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST);
+    const nonPersonalAndWorkspaceCards = useNonPersonalAndWorkspaceCardList();
     // "Auto report" cannot read a card's absence as no access until every card has arrived.
     const {areCardsLoaded: isSearchCardListComplete} = useLoadSearchCardData();
 

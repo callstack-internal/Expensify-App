@@ -16,6 +16,7 @@ import {expensifyCardFeedsForDisplaySelector} from '@selectors/Card';
 import useExpensifyCardFeedsForFeedSelector from './useExpensifyCardFeedsForFeedSelector';
 import useFeedKeysWithAssignedCards from './useFeedKeysWithAssignedCards';
 import useLocalize from './useLocalize';
+import useNonPersonalAndWorkspaceCardList from './useNonPersonalAndWorkspaceCardList';
 import useOnyx from './useOnyx';
 
 const eligiblePoliciesSelector = (policies: OnyxCollection<Policy>): string[] => {
@@ -108,7 +109,7 @@ const useCardFeedsForDisplay = () => {
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const feedKeysWithCards = useFeedKeysWithAssignedCards();
     const [activePolicyID] = useOnyx(ONYXKEYS.NVP_ACTIVE_POLICY_ID);
-    const [expensifyCardFeeds] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST, {selector: expensifyCardFeedsForDisplaySelector});
+    const expensifyCardFeeds = useNonPersonalAndWorkspaceCardList(expensifyCardFeedsForDisplaySelector);
     const eligiblePoliciesIDsArray = eligiblePoliciesSelector(allPolicies);
 
     const cardFeedsByPolicy = getCardFeedsForDisplayPerPolicy(allFeeds, translate, feedKeysWithCards, allPolicies);

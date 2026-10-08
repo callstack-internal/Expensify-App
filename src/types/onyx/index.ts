@@ -59,7 +59,6 @@ import type {CurrencyList} from './Currency';
 import type CustomStatusDraft from './CustomStatusDraft';
 import type DatabaseSizeMeasurement from './DatabaseSizeMeasurement';
 import type {
-    CardFeedErrorsDerivedValue,
     GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,
     LoginToAccountIDMapDerivedValue,
@@ -460,7 +459,6 @@ export type {
     SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,
-    CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,
     GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,

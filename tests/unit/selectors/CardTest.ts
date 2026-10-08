@@ -1,9 +1,10 @@
 import {isCard, isCardPendingActivate, isCardPendingIssue, isCardWithPotentialFraud, isExpensifyCard} from '@libs/CardUtils';
 
 import CONST from '@src/CONST';
+import ONYXKEYS from '@src/ONYXKEYS';
 import type {Card, CardList, WorkspaceCardsList} from '@src/types/onyx';
 
-import type {OnyxEntry} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -14,6 +15,7 @@ import {
     filterOutPersonalCards,
     hasActiveExpensifyCardSelector,
     hasIssuedExpensifyCardSelector,
+    personalAndWorkspaceCardListSelector,
 } from '@selectors/Card';
 
 import createRandomCard, {createRandomCompanyCard, createRandomExpensifyCard} from '../../utils/collections/card';
@@ -998,5 +1000,92 @@ describe('hasActiveExpensifyCardSelector', () => {
         // When the missing value is reduced
         // Then it stays false rather than throwing, so the surfaces render before the card list arrives
         expect(hasActiveExpensifyCardSelector(undefined)).toBe(false);
+    });
+});
+
+describe('personalAndWorkspaceCardListSelector', () => {
+    const workspaceFeedKey = `${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}workspace_123`;
+    const otherWorkspaceFeedKey = `${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}workspace_456`;
+
+    it('should return an empty list when neither input is set', () => {
+        // Given no card list and no workspace feeds, as before they are loaded
+        // When the merged list is selected
+        // Then it is an empty list rather than undefined, so consumers can look cards up right away
+        expect(personalAndWorkspaceCardListSelector(undefined, undefined)).toEqual({});
+    });
+
+    it('should merge every card of the card list, personal ones included, with the workspace feed cards', () => {
+        // Given two non-personal cards, a personal card (fundID '0') and a workspace feed card
+        const cardList: CardList = {
+            '1': createRandomExpensifyCard(1, {fundID: '123'}),
+            '2': createRandomExpensifyCard(2, {fundID: '456'}),
+            '3': createRandomExpensifyCard(3, {fundID: '0'}),
+        };
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'4': createRandomCompanyCard(4, {bank: 'vcf'})}};
+
+        // When the merged list is selected
+        // Then every card is in it, since Search filters on personal cards too
+        expect(personalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds)).toMatchObject({
+            '1': expect.objectContaining({cardID: 1}),
+            '2': expect.objectContaining({cardID: 2}),
+            '3': expect.objectContaining({cardID: 3}),
+            '4': expect.objectContaining({cardID: 4}),
+        });
+    });
+
+    it('should keep the workspace feed cards when the card list is empty', () => {
+        // Given an empty card list and one workspace feed card
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'1': createRandomCompanyCard(1, {bank: 'vcf'})}};
+
+        // When the merged list is selected
+        // Then the workspace card is still there, since the two sources are independent
+        expect(personalAndWorkspaceCardListSelector({}, workspaceCardFeeds)).toMatchObject({'1': expect.objectContaining({cardID: 1})});
+    });
+
+    it('should keep the card list cards when there are no workspace feeds', () => {
+        // Given one card and no workspace feeds
+        const cardList: CardList = {'1': createRandomExpensifyCard(1, {fundID: '123'})};
+
+        // When the merged list is selected
+        // Then the card is there, since a missing feed collection must not hide the user's own cards
+        expect(personalAndWorkspaceCardListSelector(cardList, undefined)).toMatchObject({'1': expect.objectContaining({cardID: 1})});
+    });
+
+    it('should include the cards of every workspace feed', () => {
+        // Given two workspace feeds with one card each
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {
+            [workspaceFeedKey]: {'1': createRandomCompanyCard(1, {bank: 'vcf'})},
+            [otherWorkspaceFeedKey]: {'2': createRandomCompanyCard(2, {bank: 'stripe'})},
+        };
+
+        // When the merged list is selected
+        // Then cards from both feeds are in it
+        expect(personalAndWorkspaceCardListSelector({}, workspaceCardFeeds)).toMatchObject({
+            '1': expect.objectContaining({cardID: 1}),
+            '2': expect.objectContaining({cardID: 2}),
+        });
+    });
+
+    it('should return the same list while the merged content is unchanged and a new one when it changes', () => {
+        // Given a card list and a workspace feed collection
+        const cardList: CardList = {'1': createRandomExpensifyCard(1, {fundID: '0'})};
+        const workspaceCard = createRandomCompanyCard(2, {bank: 'vcf'});
+        const workspaceCardFeeds: OnyxCollection<WorkspaceCardsList> = {[workspaceFeedKey]: {'2': workspaceCard}};
+        const first = personalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds);
+        const feedWithCardsToAssign: WorkspaceCardsList = {'2': workspaceCard};
+        Object.assign(feedWithCardsToAssign, {cardList: {'Visa 1234': 'encrypted'}});
+
+        // When the list is selected again from the same inputs, from new feeds that only add a card still to assign,
+        // and from a new card list with another card
+        const fromSameInputs = personalAndWorkspaceCardListSelector(cardList, workspaceCardFeeds);
+        const afterUnassignedCardAdded = personalAndWorkspaceCardListSelector(cardList, {[workspaceFeedKey]: feedWithCardsToAssign});
+        const afterCardAdded = personalAndWorkspaceCardListSelector({...cardList, '3': createRandomExpensifyCard(3, {fundID: '0'})}, workspaceCardFeeds);
+
+        // Then the first two reuse the same object, so consumers skip their selectors and re-renders,
+        // and only a real change gives a new list
+        expect(fromSameInputs).toBe(first);
+        expect(afterUnassignedCardAdded).toBe(first);
+        expect(afterCardAdded).not.toBe(first);
+        expect(afterCardAdded['3']).toMatchObject({cardID: 3});
     });
 });

@@ -2,6 +2,7 @@
 import {renderHook} from '@testing-library/react-native';
 
 import useAssignCard from '@hooks/useAssignCard';
+import useCardFeedErrors from '@hooks/useCardFeedErrors';
 import useCardFeeds from '@hooks/useCardFeeds';
 import useIsAllowedToIssueCompanyCard from '@hooks/useIsAllowedToIssueCompanyCard';
 import useNetwork from '@hooks/useNetwork';
@@ -68,6 +69,11 @@ jest.mock('@hooks/useOnyx', () => ({
 }));
 
 // Mock all the hooks
+jest.mock('@hooks/useCardFeedErrors', () => ({
+    __esModule: true,
+    default: jest.fn(),
+}));
+
 jest.mock('@hooks/useCardFeeds', () => ({
     __esModule: true,
     default: jest.fn(),
@@ -137,6 +143,7 @@ describe('useAssignCard', () => {
         jest.mocked(useNetwork).mockReturnValue({isOffline: false});
         jest.mocked(useIsAllowedToIssueCompanyCard).mockReturnValue(true);
         jest.mocked(useOnyx).mockReturnValue([undefined, {status: 'loaded'}]);
+        jest.mocked(useCardFeedErrors).mockReturnValue(createMock<CardFeedErrors>({cardFeedErrors: {}}));
     });
 
     afterEach(async () => {
@@ -194,17 +201,12 @@ describe('useAssignCard', () => {
             expect(result.current.isAssigningCardDisabled).toBe(false);
         });
 
-        /** Points the mocked useOnyx at a CARD_FEED_ERRORS value for the custom (commercial) feed. */
+        /** Points the mocked useCardFeedErrors at an error state for the custom (commercial) feed. */
         function mockFeedErrors(feedErrorState: Partial<CardFeedErrorState>) {
-            jest.mocked(useOnyx).mockImplementation((key) =>
-                key === ONYXKEYS.DERIVED.CARD_FEED_ERRORS
-                    ? [
-                          createMock<CardFeedErrors>({
-                              cardFeedErrors: {[mockCustomFeed]: {shouldShowRBR: false, hasFeedErrors: false, hasWorkspaceErrors: false, isFeedConnectionBroken: false, ...feedErrorState}},
-                          }),
-                          {status: 'loaded'},
-                      ]
-                    : [undefined, {status: 'loaded'}],
+            jest.mocked(useCardFeedErrors).mockReturnValue(
+                createMock<CardFeedErrors>({
+                    cardFeedErrors: {[mockCustomFeed]: {shouldShowRBR: false, hasFeedErrors: false, hasWorkspaceErrors: false, isFeedConnectionBroken: false, ...feedErrorState}},
+                }),
             );
         }
 

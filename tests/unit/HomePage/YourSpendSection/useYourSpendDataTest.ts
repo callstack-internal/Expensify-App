@@ -145,6 +145,13 @@ jest.mock('@hooks/useOnyx', () => ({
     default: (key: string, options?: {selector?: (v: unknown) => unknown}) => mockUseOnyx(key, options),
 }));
 
+let mockCardFeedErrors: CardFeedErrors;
+
+jest.mock('@hooks/useCardFeedErrors', () => ({
+    __esModule: true,
+    default: () => mockCardFeedErrors,
+}));
+
 // Helpers
 
 function makeCorporatePolicy(overrides: Partial<Policy> = {}): Policy {
@@ -220,7 +227,7 @@ function setupCardGroups(groups: CardGroupFixture[], searchOverrides: Partial<Se
     onyxData[`${ONYXKEYS.COLLECTION.SNAPSHOT}${hash}`] = {...results, search: {...results.search, ...searchOverrides}, data};
 }
 
-/** Builds a fully-populated `CardFeedErrors` value for `onyxData[ONYXKEYS.DERIVED.CARD_FEED_ERRORS]`. */
+/** Builds a fully-populated `CardFeedErrors` value for the mocked `useCardFeedErrors`. */
 function makeCardFeedErrors(overrides: Partial<CardFeedErrors> = {}): CardFeedErrors {
     const defaultState: CardFeedErrorState = {
         shouldShowRBR: false,
@@ -280,6 +287,7 @@ beforeEach(() => {
     for (const k of Object.keys(onyxData)) {
         delete onyxData[k];
     }
+    mockCardFeedErrors = makeCardFeedErrors();
     mockUseOnyx.mockClear();
     mockedSearch.mockClear();
     mockedUseIsTabFocused.mockReturnValue(true);
@@ -772,20 +780,20 @@ describe('useYourSpendData — third-party cardRows', () => {
         // Start: card is in broken-feed-connection map → row absent.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const brokenCard = makeThirdPartyCards([{cardID: THIRD_PARTY_CARD_ID_1, lastFourPAN: THIRD_PARTY_LAST_FOUR_1}]).at(0)!;
-        onyxData[ONYXKEYS.DERIVED.CARD_FEED_ERRORS] = makeCardFeedErrors({cardsWithBrokenFeedConnection: {[THIRD_PARTY_CARD_ID_1]: brokenCard}});
+        mockCardFeedErrors = makeCardFeedErrors({cardsWithBrokenFeedConnection: {[THIRD_PARTY_CARD_ID_1]: brokenCard}});
         const {result, rerender} = renderHook(() => useYourSpendData());
         expect(result.current.cardRows).toHaveLength(0);
 
-        // Mutate Onyx: remove the broken-feed entry → row should appear on re-render.
+        // Remove the broken-feed entry → row should appear on re-render.
         act(() => {
-            onyxData[ONYXKEYS.DERIVED.CARD_FEED_ERRORS] = makeCardFeedErrors({cardsWithBrokenFeedConnection: {}});
+            mockCardFeedErrors = makeCardFeedErrors({cardsWithBrokenFeedConnection: {}});
         });
         rerender(undefined);
         expect(result.current.cardRows).toHaveLength(1);
 
         // And back: re-add the broken-feed entry → row should disappear.
         act(() => {
-            onyxData[ONYXKEYS.DERIVED.CARD_FEED_ERRORS] = makeCardFeedErrors({cardsWithBrokenFeedConnection: {[THIRD_PARTY_CARD_ID_1]: brokenCard}});
+            mockCardFeedErrors = makeCardFeedErrors({cardsWithBrokenFeedConnection: {[THIRD_PARTY_CARD_ID_1]: brokenCard}});
         });
         rerender(undefined);
         expect(result.current.cardRows).toHaveLength(0);

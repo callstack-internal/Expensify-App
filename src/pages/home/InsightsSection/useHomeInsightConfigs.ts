@@ -1,4 +1,5 @@
 import useCardFeedsForDisplay from '@hooks/useCardFeedsForDisplay';
+import useNonPersonalAndWorkspaceCardList from '@hooks/useNonPersonalAndWorkspaceCardList';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
 
@@ -51,7 +52,7 @@ function buildInsightConfigFromChart(chart: InsightsChartSpec, filters: Insights
 function useHomeInsightConfigs(): {configs: SearchTypeMenuItem[]; isResolved: boolean} {
     const [session] = useOnyx(ONYXKEYS.SESSION);
     const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
-    const [defaultExpensifyCard] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST, {selector: defaultExpensifyCardSelector});
+    const defaultExpensifyCard = useNonPersonalAndWorkspaceCardList(defaultExpensifyCardSelector);
     const [isTrackIntentUser] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {selector: isTrackIntentUserSelector});
     const {defaultCardFeed, cardFeedsByPolicy} = useCardFeedsForDisplay();
     const {isBetaEnabled} = usePermissions();

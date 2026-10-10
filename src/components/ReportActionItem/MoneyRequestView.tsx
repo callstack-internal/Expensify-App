@@ -32,6 +32,7 @@ import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import useOutstandingReportsByPolicyID from '@hooks/useOutstandingReportsByPolicyID';
 import usePermissions from '@hooks/usePermissions';
 import {usePersonalDetail} from '@hooks/usePersonalDetails';
 import usePersonalPolicy from '@hooks/usePersonalPolicy';
@@ -287,7 +288,7 @@ function MoneyRequestView({
     const [transactionBackup] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION_BACKUP}${getNonEmptyStringOnyxID(linkedTransactionID)}`);
     const transactionViolations = useTransactionViolations(transaction?.transactionID, false, distanceOriginalPolicy ?? policy);
     const allTransactionViolations = useAllTransactionViolations(transaction?.transactionID);
-    const [outstandingReportsByPolicyID] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID);
+    const outstandingReportsByPolicyID = useOutstandingReportsByPolicyID();
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const delegateAccountID = useDelegateAccountID();
     const personalDetailsList = usePersonalDetails();

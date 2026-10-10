@@ -1,6 +1,6 @@
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import {createMoveExpenseReportNVPSelector, getStableReportSelector, policyChatRoomsSelector} from '@src/selectors/Report';
+import {createMoveExpenseReportNVPSelector, getStableReportSelector, outstandingReportsByPolicyIDSelector, policyChatRoomsSelector} from '@src/selectors/Report';
 import type {Report} from '@src/types/onyx';
 
 describe('policyChatRoomsSelector', () => {
@@ -125,6 +125,130 @@ describe('createMoveExpenseReportNVPSelector', () => {
             [currentReportNVPKey]: {private_isArchived: archivedAt},
             [outstandingReportNVPKey]: {private_isArchived: archivedAt},
         });
+    });
+});
+
+describe('outstandingReportsByPolicyIDSelector', () => {
+    const REPORT_KEY_PREFIX = ONYXKEYS.COLLECTION.REPORT;
+    const policyID = 'policy1';
+    const otherPolicyID = 'policy2';
+
+    const openReport = {reportID: '1', policyID, type: CONST.REPORT.TYPE.EXPENSE, stateNum: CONST.REPORT.STATE_NUM.OPEN} as Report;
+    const submittedReport = {reportID: '2', policyID, type: CONST.REPORT.TYPE.EXPENSE, stateNum: CONST.REPORT.STATE_NUM.SUBMITTED} as Report;
+    const reportWithoutState = {reportID: '3', policyID, type: CONST.REPORT.TYPE.EXPENSE} as Report;
+    const otherPolicyReport = {reportID: '4', policyID: otherPolicyID, type: CONST.REPORT.TYPE.EXPENSE, stateNum: CONST.REPORT.STATE_NUM.OPEN} as Report;
+    const approvedReport = {reportID: '5', policyID, type: CONST.REPORT.TYPE.EXPENSE, stateNum: CONST.REPORT.STATE_NUM.APPROVED} as Report;
+    const deletingReport = {
+        reportID: '6',
+        policyID,
+        type: CONST.REPORT.TYPE.EXPENSE,
+        stateNum: CONST.REPORT.STATE_NUM.OPEN,
+        pendingFields: {preview: CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE},
+    } as Report;
+    const iouReport = {reportID: '7', policyID, type: CONST.REPORT.TYPE.IOU, stateNum: CONST.REPORT.STATE_NUM.OPEN} as Report;
+    const reportWithoutPolicy = {reportID: '8', type: CONST.REPORT.TYPE.EXPENSE, stateNum: CONST.REPORT.STATE_NUM.OPEN} as Report;
+    const chatReport = {reportID: '9', policyID, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM, reportName: 'Before'} as Report;
+
+    const buildReports = (overrides: Record<string, Report | undefined> = {}) => ({
+        [`${REPORT_KEY_PREFIX}1`]: openReport,
+        [`${REPORT_KEY_PREFIX}2`]: submittedReport,
+        [`${REPORT_KEY_PREFIX}3`]: reportWithoutState,
+        [`${REPORT_KEY_PREFIX}4`]: otherPolicyReport,
+        [`${REPORT_KEY_PREFIX}5`]: approvedReport,
+        [`${REPORT_KEY_PREFIX}6`]: deletingReport,
+        [`${REPORT_KEY_PREFIX}7`]: iouReport,
+        [`${REPORT_KEY_PREFIX}8`]: reportWithoutPolicy,
+        [`${REPORT_KEY_PREFIX}9`]: chatReport,
+        ...overrides,
+    });
+
+    it('should return an empty map when there are no reports', () => {
+        // Given no report collection, or an empty one
+        // When the outstanding reports are selected
+        // Then no policy has outstanding reports
+        expect(outstandingReportsByPolicyIDSelector(undefined)).toEqual({});
+        expect(outstandingReportsByPolicyIDSelector({})).toEqual({});
+    });
+
+    it('should group open and submitted expense reports by policy with the same filter as getOutstandingReportsForUser', () => {
+        // Given expense reports in every state next to reports that are not outstanding for other reasons
+        const reports = buildReports();
+
+        // When the outstanding reports are selected
+        // Then only open or submitted expense reports with a policy that are not being deleted are kept, keyed by their collection key under their policy
+        expect(outstandingReportsByPolicyIDSelector(reports)).toEqual({
+            [policyID]: {
+                [`${REPORT_KEY_PREFIX}1`]: openReport,
+                [`${REPORT_KEY_PREFIX}2`]: submittedReport,
+                [`${REPORT_KEY_PREFIX}3`]: reportWithoutState,
+            },
+            [otherPolicyID]: {[`${REPORT_KEY_PREFIX}4`]: otherPolicyReport},
+        });
+    });
+
+    it('should return the same map for the same report collection', () => {
+        // Given one report collection
+        const reports = buildReports();
+
+        // When the outstanding reports are selected twice, as two mounted consumers do after the same write
+        // Then both get the same object, so the map is built once per collection
+        expect(outstandingReportsByPolicyIDSelector(reports)).toBe(outstandingReportsByPolicyIDSelector(reports));
+    });
+
+    it('should return the previous map when a write leaves every outstanding report unchanged', () => {
+        // Given the map built from a report collection
+        const before = outstandingReportsByPolicyIDSelector(buildReports());
+
+        // When a new collection only renames a chat and replaces the approved report
+        const after = outstandingReportsByPolicyIDSelector(
+            buildReports({
+                [`${REPORT_KEY_PREFIX}9`]: {...chatReport, reportName: 'After'},
+                [`${REPORT_KEY_PREFIX}5`]: {...approvedReport},
+            }),
+        );
+
+        // Then consumers get the same object back, so they skip the re-render without a deep compare
+        expect(after).toBe(before);
+    });
+
+    it('should keep the reports of a policy whose outstanding reports did not change', () => {
+        // Given the map built from a report collection
+        const before = outstandingReportsByPolicyIDSelector(buildReports());
+
+        // When an outstanding report of the other policy changes
+        const changedOtherPolicyReport = {...otherPolicyReport, total: 100};
+        const after = outstandingReportsByPolicyIDSelector(buildReports({[`${REPORT_KEY_PREFIX}4`]: changedOtherPolicyReport}));
+
+        // Then only that policy gets new reports, so a consumer that reads one policy keeps its reference
+        expect(after).not.toBe(before);
+        expect(after[policyID]).toBe(before[policyID]);
+        expect(after[otherPolicyID]).toEqual({[`${REPORT_KEY_PREFIX}4`]: changedOtherPolicyReport});
+    });
+
+    it('should drop a report from its policy once it is approved', () => {
+        // Given the map built from a report collection
+        const before = outstandingReportsByPolicyIDSelector(buildReports());
+
+        // When the submitted report is approved
+        const after = outstandingReportsByPolicyIDSelector(buildReports({[`${REPORT_KEY_PREFIX}2`]: {...submittedReport, stateNum: CONST.REPORT.STATE_NUM.APPROVED}}));
+
+        // Then its policy loses it and the other policy keeps its reports
+        expect(after[policyID]).toEqual({
+            [`${REPORT_KEY_PREFIX}1`]: openReport,
+            [`${REPORT_KEY_PREFIX}3`]: reportWithoutState,
+        });
+        expect(after[otherPolicyID]).toBe(before[otherPolicyID]);
+    });
+
+    it('should remove a policy whose last outstanding report is deleted', () => {
+        // Given the map built from a report collection
+        outstandingReportsByPolicyIDSelector(buildReports());
+
+        // When the only outstanding report of the other policy is removed
+        const after = outstandingReportsByPolicyIDSelector(buildReports({[`${REPORT_KEY_PREFIX}4`]: undefined}));
+
+        // Then that policy is gone from the map
+        expect(after).not.toHaveProperty(otherPolicyID);
     });
 });
 

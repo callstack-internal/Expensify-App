@@ -1,13 +1,11 @@
 import type CONST from '@src/CONST';
 
-import type {OnyxCollection} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 
 import type {Card, ReportAction} from '.';
 import type {CardList} from './Card';
 import type {CardFeedWithDomainID} from './CardFeeds';
 import type {Errors} from './OnyxCommon';
-import type Report from './Report';
 import type Transaction from './Transaction';
 import type TransactionViolations from './TransactionViolation';
 
@@ -77,11 +75,6 @@ type ReportTransactionsAndViolations = {
  * The derived value for report transactions.
  */
 type ReportTransactionsAndViolationsDerivedValue = Record<string, ReportTransactionsAndViolations>;
-
-/**
- * The derived value for report outstanding reports.
- */
-type OutstandingReportsByPolicyIDDerivedValue = Record<string, OnyxCollection<Report>>;
 
 /**
  * The derived value for visible report actions.
@@ -249,7 +242,6 @@ export type {
     ReportAttributesDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,
     ReportTransactionsAndViolations,
-    OutstandingReportsByPolicyIDDerivedValue,
     VisibleReportActionsDerivedValue,
     SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,

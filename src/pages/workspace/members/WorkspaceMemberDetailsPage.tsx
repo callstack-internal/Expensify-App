@@ -22,6 +22,7 @@ import useExpensifyCardFeeds from '@hooks/useExpensifyCardFeeds';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import {useOutstandingReportsForPolicy} from '@hooks/useOutstandingReportsByPolicyID';
 import usePermissions from '@hooks/usePermissions';
 import usePersonalDetailByLogin from '@hooks/usePersonalDetailByLogin';
 import usePrevious from '@hooks/usePrevious';
@@ -78,7 +79,6 @@ import type {CompanyCardFeed, CompanyCardFeedWithDomainID, Card as MemberCard, P
 import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 
-import {createOutstandingReportsForPolicySelector} from '@selectors/Report';
 import {Str} from 'expensify-common';
 import React, {useEffect} from 'react';
 import {View} from 'react-native';
@@ -130,7 +130,7 @@ function WorkspaceMemberDetailsPage({personalDetails, policy, route}: WorkspaceM
     const [cardList] = useOnyx(`${ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST}`);
     const [customCardNames] = useOnyx(ONYXKEYS.NVP_EXPENSIFY_COMPANY_CARDS_CUSTOM_NAMES);
     const [fundList] = useOnyx(ONYXKEYS.FUND_LIST);
-    const [outstandingReportsForPolicy] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID, {selector: createOutstandingReportsForPolicySelector(policyID)});
+    const outstandingReportsForPolicy = useOutstandingReportsForPolicy(policyID);
     const privateIsArchivedMap = usePrivateIsArchivedMap();
     const expensifyCardSettings = useExpensifyCardFeeds(policyID);
     const {showConfirmModal} = useConfirmModal();

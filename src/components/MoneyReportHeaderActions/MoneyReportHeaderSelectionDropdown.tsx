@@ -18,6 +18,7 @@ import useLifecycleActions from '@hooks/useLifecycleActions';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import useOutstandingReportsByPolicyID from '@hooks/useOutstandingReportsByPolicyID';
 import {usePersonalDetail} from '@hooks/usePersonalDetails';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useSelectedTransactionsActions from '@hooks/useSelectedTransactionsActions';
@@ -81,7 +82,7 @@ function MoneyReportHeaderSelectionDropdown({reportID, primaryAction, isReportIn
     const [cardList] = useOnyx(ONYXKEYS.CARD_LIST);
     const [reportMetadata] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${getNonEmptyStringOnyxID(moneyRequestReport?.reportID)}`);
     const [dismissedRejectUseExplanation] = useOnyx(ONYXKEYS.NVP_DISMISSED_REJECT_USE_EXPLANATION);
-    const [outstandingReportsByPolicyID] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID);
+    const outstandingReportsByPolicyID = useOutstandingReportsByPolicyID();
     const [moveExpenseReportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {
         selector: createMoveExpenseReportNVPSelector(outstandingReportsByPolicyID, moneyRequestReport?.reportID),
     });

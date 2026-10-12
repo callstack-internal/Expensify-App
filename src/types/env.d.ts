@@ -7,6 +7,7 @@ declare namespace NodeJS {
         PORT: number | undefined;
         WORKING_DIRECTORY: string | undefined;
         OPENAI_API_KEY: string | undefined;
+        CALLSTACK_API_KEY: string | undefined;
         LANGUAGES_DIR: string | undefined;
         SLACK_RETEST_USER_TOKEN: string | undefined;
         SLACK_RETEST_WEBHOOK: string | undefined;

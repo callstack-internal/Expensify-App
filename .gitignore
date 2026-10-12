@@ -185,3 +185,6 @@ server/victory-chart-renderer/.dev/
 
 # Bun lockfiles (VCR uses npm workspaces + package-lock.json; bun is runtime-only)
 bun.lock
+
+# e2e (tester-army) run output
+.e2e/

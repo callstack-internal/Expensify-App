@@ -19,7 +19,7 @@ import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import useOriginalReportID from '@hooks/useOriginalReportID';
 import {usePersonalDetail} from '@hooks/usePersonalDetails';
-import useReportsParentHierarchy from '@hooks/useReportsParentHierarchy';
+import {useReportAncestorsHierarchy} from '@hooks/useReportsParentHierarchy';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -192,7 +192,7 @@ function ReportActionItem({
     const reportID = report?.reportID ?? action?.reportID;
     const originalReportID = useOriginalReportID(report?.reportID, action);
     const {isOffline} = useNetwork();
-    const reportsParentHierarchy = useReportsParentHierarchy();
+    const reportsParentHierarchy = useReportAncestorsHierarchy(reportID);
     const [iouReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getIOUReportIDFromReportActionPreview(action)}`, {selector: getStableReportSelector});
     const [iouPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${iouReport?.policyID}`);
 

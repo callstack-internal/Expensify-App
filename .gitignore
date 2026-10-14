@@ -188,3 +188,4 @@ bun.lock
 
 # e2e (tester-army) run output
 .e2e/
+tests/e2e/.auth/

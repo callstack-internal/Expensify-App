@@ -236,6 +236,7 @@
     "@aaroon/workbox-rspack-plugin": "^1.0.1",
     "@actions/core": "3.0.1",
     "@actions/github": "9.1.1",
+    "@ai-sdk/openai": "^4.0.84",
     "@ai-sdk/openai-compatible": "^3.0.62",
     "@babel/core": "^7.25.2",
     "@babel/parser": "^7.22.16",

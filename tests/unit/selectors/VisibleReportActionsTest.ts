@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {ReportAction, ReportActions} from '@src/types/onyx';
+import type {Report, ReportAction, ReportActions} from '@src/types/onyx';
 
 import type {OnyxCollection} from 'react-native-onyx';
 
@@ -52,6 +52,21 @@ describe('getVisibleReportActionsForReports', () => {
         // Then mounted LHN rows share one compute per report, while a user switch doesn't reuse a result for the previous user
         expect(second?.['1']).toBe(first?.['1']);
         expect(otherUser?.['1']).not.toBe(first?.['1']);
+    });
+
+    it('should hide a support survey once the ticket has been replaced', () => {
+        // Given a support ticket whose survey was visible before the replacement ticket arrived
+        const survey = createComment(1, {actionName: CONST.REPORT.ACTIONS.TYPE.SUPPORT_SURVEY});
+        const reportActions = toReportActions(survey);
+        const supportTicket: Report = {reportID: '1', type: CONST.REPORT.TYPE.SUPPORT_TICKET};
+        const before = getVisibleReportActionsForReports([['1', reportActions, supportTicket, {}]], CURRENT_USER_ACCOUNT_ID);
+
+        // When the ticket's NVP points to its replacement, while the actions object stays the same
+        const after = getVisibleReportActionsForReports([['1', reportActions, supportTicket, {reopenedAsReportID: '2'}]], CURRENT_USER_ACCOUNT_ID);
+
+        // Then the cached visibility is not reused and the stale survey is hidden
+        expect(after?.['1']).not.toBe(before?.['1']);
+        expect(after?.['1']?.[survey.reportActionID]).toBe(false);
     });
 
     it('should leave out reports without actions', () => {

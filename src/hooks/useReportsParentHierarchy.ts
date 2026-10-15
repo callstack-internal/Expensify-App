@@ -1,7 +1,8 @@
 import type {ReportHierarchyInfo} from '@userActions/ClearReportActionErrors';
 
 import ONYXKEYS from '@src/ONYXKEYS';
-import {reportsParentHierarchySelector} from '@src/selectors/Report';
+import {reportAncestorsHierarchySelector, reportsParentHierarchySelector} from '@src/selectors/Report';
+import type {Report} from '@src/types/onyx';
 
 import type {OnyxCollection} from 'react-native-onyx';
 
@@ -18,4 +19,15 @@ function useReportsParentHierarchy(): OnyxCollection<ReportHierarchyInfo> {
     return reportsParentHierarchy;
 }
 
+/**
+ * Subscribes to the parent hierarchy links of the given report and its ancestors only. Use this instead of
+ * `useReportsParentHierarchy` when the caller only walks up from one known report, e.g. in list rows.
+ */
+function useReportAncestorsHierarchy(reportID: string | undefined): OnyxCollection<ReportHierarchyInfo> {
+    const ancestorsSelector = (reports: OnyxCollection<Report>) => reportAncestorsHierarchySelector(reports, reportID);
+    const [reportAncestorsHierarchy] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {selector: ancestorsSelector});
+    return reportAncestorsHierarchy;
+}
+
 export default useReportsParentHierarchy;
+export {useReportAncestorsHierarchy};

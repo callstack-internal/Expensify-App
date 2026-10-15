@@ -398,6 +398,25 @@ function reportHierarchySelector(report: OnyxEntry<Report>): OnyxEntry<ReportHie
 function reportsParentHierarchySelector(reports: OnyxCollection<Report>): OnyxCollection<ReportHierarchyInfo> {
     return mapOnyxCollectionItems(reports, reportHierarchySelector);
 }
+
+/**
+ * Returns the parent hierarchy links of the given report and its ancestors only, which is all that walking up an
+ * ancestor chain reads, so the output stays the same when unrelated reports are added or removed.
+ */
+function reportAncestorsHierarchySelector(reports: OnyxCollection<Report>, reportID: string | undefined): OnyxCollection<ReportHierarchyInfo> {
+    const result: OnyxCollection<ReportHierarchyInfo> = {};
+    let currentReportID = reportID;
+    while (currentReportID) {
+        const key = `${ONYXKEYS.COLLECTION.REPORT}${currentReportID}` as const;
+        const report = reports?.[key];
+        if (!report || key in result) {
+            break;
+        }
+        result[key] = reportHierarchySelector(report);
+        currentReportID = report.parentReportID;
+    }
+    return result;
+}
 /**
  * Creates a selector returning only the reports for the given IDs, so a consumer that knows the exact
  * reports it needs doesn't re-render when any other report in the account changes.
@@ -414,6 +433,7 @@ const reportsByIDsSelector =
     };
 
 export {
+    reportAncestorsHierarchySelector,
     getArchiveReason,
     getReportChatType,
     groupChatAvatarReportSelector,

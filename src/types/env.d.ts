@@ -8,6 +8,8 @@ declare namespace NodeJS {
         WORKING_DIRECTORY: string | undefined;
         OPENAI_API_KEY: string | undefined;
         CALLSTACK_API_KEY: string | undefined;
+        E2E_IOS_DEVICE: string | undefined;
+        E2E_ANDROID_DEVICE: string | undefined;
         LANGUAGES_DIR: string | undefined;
         SLACK_RETEST_USER_TOKEN: string | undefined;
         SLACK_RETEST_WEBHOOK: string | undefined;

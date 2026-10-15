@@ -2,6 +2,8 @@ import type {LanguageModelMiddleware} from 'ai';
 import type {E2EConfig} from 'e2e';
 
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
+import {mobile} from '@e2e-dev/mobile';
+import {mobileTools} from '@e2e-dev/mobile/tools';
 import {web} from '@e2e-dev/web';
 import {wrapLanguageModel} from 'ai';
 import {chatgpt} from 'e2e/oauth/chatgpt';
@@ -24,6 +26,12 @@ const emptyToolArgs: LanguageModelMiddleware = {
     },
 };
 
+const ios = mobile({platform: 'ios', device: process.env.E2E_IOS_DEVICE});
+const android = mobile({platform: 'android', device: process.env.E2E_ANDROID_DEVICE});
+
+// Debug build that loads its JS from Metro; start it with `npm start` first and sign in once on the device, the app keeps the login between runs.
+const nativeApp = {bundleId: 'com.expensify.chat.dev'};
+
 const system = [
     'You are a QA agent testing New Expensify.',
     'Stay strictly within the goal and the current instruction: once what they ask for is done and verified, stop and finish. Do not visit other tabs, screens, or flows they do not name.',
@@ -37,11 +45,13 @@ export default {
             model: chatgpt('gpt-6-luna'),
             providerOptions: {openai: {reasoningEffort: 'low'}},
             system,
+            tools: mobileTools(ios, android),
         },
         apex: {
             model: wrapLanguageModel({model: callstack('callstack/Apex'), middleware: emptyToolArgs}),
             providerOptions: {openaiCompatible: {reasoningEffort: 'low'}},
             system,
+            tools: mobileTools(ios, android),
         },
     },
     targets: [
@@ -54,6 +64,15 @@ export default {
                 url: 'https://dev.new.expensify.com:8082',
             },
         },
+        {
+            // Deployed staging build, for reproducing deploy blockers against the version QA tested.
+            name: 'staging',
+            engine: web({userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'}),
+            app: {url: 'https://staging.new.expensify.com'},
+        },
+        {name: 'ios', engine: ios, app: nativeApp},
+        {name: 'android', engine: android, app: nativeApp},
     ],
+    workers: 1,
     tests: '**/*.e2e.ts',
 } satisfies E2EConfig;

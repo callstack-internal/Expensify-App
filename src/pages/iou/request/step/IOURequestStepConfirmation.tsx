@@ -1005,7 +1005,7 @@ function IOURequestStepConfirmationContent({
                 <ActivityIndicator size={CONST.ACTIVITY_INDICATOR_SIZE.LARGE} />
             </View>
         ) : (
-            <FullScreenLoadingIndicator shouldUseGoBackButton />
+            <FullScreenLoadingIndicator onGoBack={navigateBack} />
         );
     }
 

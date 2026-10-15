@@ -82,6 +82,33 @@ describe('useOutstandingReportsByPolicyID', () => {
         expect(renderCount).toBe(renderCountBeforeWrite);
     });
 
+    it('should keep the same empty map when an account without outstanding reports gets report writes', async () => {
+        // Given an account whose only report is a chat, so every build finds no outstanding report
+        await act(async () => {
+            await Onyx.set(CHAT_REPORT_KEY, chatReport);
+        });
+        let renderCount = 0;
+        const {result} = renderHook(() => {
+            renderCount++;
+            return useOutstandingReportsByPolicyID();
+        });
+        await waitForBatchedUpdatesWithAct();
+        const mapBeforeWrites = result.current;
+        const renderCountBeforeWrites = renderCount;
+
+        // When the chat is written several times
+        await act(async () => {
+            for (let i = 0; i < 5; i++) {
+                await Onyx.merge(CHAT_REPORT_KEY, {lastMessageText: `message ${i}`});
+            }
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // Then a fresh empty object never reaches the consumer as a new reference or a re-render
+        expect(result.current).toBe(mapBeforeWrites);
+        expect(renderCount).toBe(renderCountBeforeWrites);
+    });
+
     it('should give every mounted consumer the same map', async () => {
         // Given two consumers mounted over the same reports
         await seedReports();

@@ -47,7 +47,7 @@ const PERSONAL_DETAILS: PersonalDetailsList = {
 
 const KEYS_READ_WITHOUT_SELECTOR = [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP] as const;
 
-function renderHookWithoutSelector<TKey extends TupleToUnion<typeof KEYS_READ_WITHOUT_SELECTOR> | typeof ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID>(key: TKey) {
+function renderHookWithoutSelector<TKey extends TupleToUnion<typeof KEYS_READ_WITHOUT_SELECTOR>>(key: TKey) {
     let renderCount = 0;
     const hook = renderHook(() => {
         renderCount++;
@@ -1223,71 +1223,6 @@ describe('OnyxDerived', () => {
             // Then the consumer sees the new login
             expect(hook.result.current[0]).not.toBe(valueBefore);
             expect(hook.result.current[0]?.['new.member@example.com']).toBe(NEW_MEMBER_ACCOUNT_ID);
-        });
-    });
-
-    describe('consumers without a selector on REPORT writes', () => {
-        const CHAT_REPORT_ID = '100';
-        const EXPENSE_REPORT_ID = '200';
-        const POLICY_ID = 'policy1';
-
-        beforeAll(async () => {
-            await IntlStore.load(CONST.LOCALES.EN);
-        });
-
-        beforeEach(async () => {
-            await act(async () => {
-                await Onyx.set(ONYXKEYS.RAM_ONLY_ARE_TRANSLATIONS_LOADING, false);
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${CHAT_REPORT_ID}`, {
-                    ...createRandomReport(Number(CHAT_REPORT_ID)),
-                    type: CONST.REPORT.TYPE.CHAT,
-                    policyID: undefined,
-                });
-            });
-            await waitForBatchedUpdatesWithAct();
-        });
-
-        it('should keep the outstanding reports reference when a report with no outstanding expenses changes', async () => {
-            // Given a component that reads the derived value without a selector, the way 10 App sites do, on an
-            // account with no outstanding expense reports so every compute produces an equal but fresh empty object
-            const {hook, getRenderCount} = renderHookWithoutSelector(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID);
-            await waitForBatchedUpdatesWithAct();
-            const [valueBefore] = hook.result.current;
-            const rendersBefore = getRenderCount();
-
-            // When chat reports are written, which the derived value does not list
-            await act(async () => {
-                for (let i = 0; i < 5; i++) {
-                    await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${CHAT_REPORT_ID}`, {lastMessageText: `message ${i}`});
-                }
-            });
-            await waitForBatchedUpdatesWithAct();
-
-            // Then the engine's fresh but equal result must not reach the consumer as a new reference or a re-render
-            expect(hook.result.current[0]).toBe(valueBefore);
-            expect(getRenderCount()).toBe(rendersBefore);
-        });
-
-        it('should return new outstanding reports when an outstanding expense report arrives', async () => {
-            // Given a consumer of the outstanding reports
-            const {hook} = renderHookWithoutSelector(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID);
-            await waitForBatchedUpdatesWithAct();
-            const [valueBefore] = hook.result.current;
-
-            // When an open expense report on a workspace arrives
-            await act(async () => {
-                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${EXPENSE_REPORT_ID}`, {
-                    reportID: EXPENSE_REPORT_ID,
-                    type: CONST.REPORT.TYPE.EXPENSE,
-                    policyID: POLICY_ID,
-                    stateNum: CONST.REPORT.STATE_NUM.OPEN,
-                });
-            });
-            await waitForBatchedUpdatesWithAct();
-
-            // Then the consumer sees the change, so the stability check above is not passing on a frozen value
-            expect(hook.result.current[0]).not.toBe(valueBefore);
-            expect(hook.result.current[0]?.[POLICY_ID]?.[`${ONYXKEYS.COLLECTION.REPORT}${EXPENSE_REPORT_ID}`]).toBeTruthy();
         });
     });
 });

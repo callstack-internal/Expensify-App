@@ -1,6 +1,7 @@
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
+import useOutstandingReportsByPolicyID from '@hooks/useOutstandingReportsByPolicyID';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSelfDMReport from '@hooks/useSelfDMReport';
 import useShiftRangeSelection from '@hooks/useShiftRangeSelection';
@@ -21,10 +22,11 @@ import {isTransactionPendingDelete} from '@libs/TransactionUtils';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {OutstandingReportsByPolicyIDDerivedValue, Report, ReportNameValuePairs, SearchResults, Transaction} from '@src/types/onyx';
+import type {Report, ReportNameValuePairs, SearchResults, Transaction} from '@src/types/onyx';
 import type {SearchDataTypes} from '@src/types/onyx/SearchResults';
 import {getEmptyObject, isEmptyObject} from '@src/types/utils/EmptyObject';
 
+import type {OutstandingReportsByPolicyID} from '@selectors/Report';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 
 import {useIsFocused} from '@react-navigation/native';
@@ -120,8 +122,8 @@ type ReconcileSelectionParams = {
     /** Report name-value pairs collection, used for the change-report eligibility archived check */
     reportNameValuePairs: OnyxCollection<ReportNameValuePairs>;
 
-    /** Derived outstanding reports per policy, used for the change-report eligibility check */
-    outstandingReportsByPolicyID: OutstandingReportsByPolicyIDDerivedValue | undefined;
+    /** Outstanding reports per policy, used for the change-report eligibility check */
+    outstandingReportsByPolicyID: OutstandingReportsByPolicyID | undefined;
 
     /** Whether the current snapshot is settled and can safely refresh/prune exclusions */
     shouldReconcileExcludedTransactions: boolean;
@@ -535,7 +537,7 @@ function SearchWriteActionsProvider({
     const {accountID, email, login} = useCurrentUserPersonalDetails();
     const selfDMReport = useSelfDMReport();
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
-    const [outstandingReportsByPolicyID] = useOnyx(ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID);
+    const outstandingReportsByPolicyID = useOutstandingReportsByPolicyID();
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
     const {applySelection, getSelectedTransactions, getExcludedTransactions, getAreAllMatchingItemsSelected} = useSearchSelectionActions();
 

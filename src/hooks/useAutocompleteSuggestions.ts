@@ -24,8 +24,8 @@ import {getDatePresets, getHasOptions} from '@libs/SearchUIUtils';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {CardFeeds, CardList, PersonalDetailsList, Policy} from '@src/types/onyx';
-import type {ReportAttributesDerivedValue, VisibleReportActionsDerivedValue} from '@src/types/onyx/DerivedValues';
+import type {CardFeeds, CardList, PersonalDetailsList, Policy, VisibleReportActions} from '@src/types/onyx';
+import type {ReportAttributesDerivedValue} from '@src/types/onyx/DerivedValues';
 import type {Icon} from '@src/types/onyx/OnyxCommon';
 import type {SearchDataTypes} from '@src/types/onyx/SearchResults';
 import getEmptyArray from '@src/types/utils/getEmptyArray';
@@ -64,7 +64,7 @@ type UseAutocompleteSuggestionsParams = {
     countryCode: OnyxEntry<number>;
     loginList: OnyxEntry<Record<string, unknown>>;
     policies: NonNullable<OnyxCollection<Policy>>;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     currentUserAccountID: number;
     currentUserEmail: string;

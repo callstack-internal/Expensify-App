@@ -4,6 +4,7 @@ import SelectionList from '@components/SelectionList';
 import InviteMemberListItem from '@components/SelectionList/ListItem/InviteMemberListItem';
 import Text from '@components/Text';
 
+import useAllVisibleReportActions from '@hooks/useAllVisibleReportActions';
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useDebouncedState from '@hooks/useDebouncedState';
@@ -53,7 +54,7 @@ function ShareTab() {
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const {activePolicyID} = useActivePolicyContext();
     const [draftComments] = useOnyx(ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
+    const visibleReportActionsData = useAllVisibleReportActions();
     const sortedReportActionsData = useSortedReportActionsData();
     const sortedActions = sortedReportActionsData?.sortedActions;
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);

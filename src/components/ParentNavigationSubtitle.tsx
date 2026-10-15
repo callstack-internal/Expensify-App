@@ -7,6 +7,7 @@ import useRootNavigationState from '@hooks/useRootNavigationState';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
 
 import {isFullScreenName} from '@libs/Navigation/helpers/isNavigatorName';
 import Navigation from '@libs/Navigation/Navigation';
@@ -25,7 +26,6 @@ import type {ColorValue, StyleProp, TextStyle, ViewStyle} from 'react-native';
 
 import {useRoute} from '@react-navigation/native';
 import {getReportHasParentAccess} from '@selectors/Report';
-import {reportVisibleActionsSelector} from '@selectors/ReportAction';
 import React from 'react';
 import {View} from 'react-native';
 
@@ -102,7 +102,7 @@ function ParentNavigationSubtitle({
     const {translate} = useLocalize();
     const [hasParentAccess] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: getReportHasParentAccess});
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${parentReportID}`);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {selector: reportVisibleActionsSelector(parentReportID)});
+    const visibleReportActionsData = useVisibleReportActions(parentReportID);
     const isReportArchived = useReportIsArchived(report?.reportID);
     const canUserPerformWriteAction = canUserPerformWriteActionReportUtils(report, isReportArchived);
     const hasAccessToParentReport = hasParentAccess !== false;

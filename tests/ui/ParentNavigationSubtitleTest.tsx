@@ -8,6 +8,8 @@ import type {RouteProp} from '@react-navigation/native';
 import React from 'react';
 import Onyx from 'react-native-onyx';
 
+import type {VisibleReportActions} from '../../src/types/onyx';
+
 import ParentNavigationSubtitle from '../../src/components/ParentNavigationSubtitle';
 import NAVIGATORS from '../../src/NAVIGATORS';
 import ONYXKEYS from '../../src/ONYXKEYS';
@@ -34,6 +36,12 @@ jest.mock('@libs/Navigation/Navigation', () => ({
 jest.mock('@libs/ReportActionsUtils', () => ({
     getReportAction: jest.fn(() => undefined),
     isReportActionVisible: jest.fn(() => false),
+}));
+
+let mockVisibleReportActions: VisibleReportActions = {};
+jest.mock('@hooks/useVisibleReportActions', () => ({
+    __esModule: true,
+    default: (reportID: string | undefined) => (reportID && mockVisibleReportActions[reportID] ? {[reportID]: mockVisibleReportActions[reportID]} : undefined),
 }));
 
 const mockUseRootNavigationState = jest.fn();
@@ -93,6 +101,7 @@ describe('ParentNavigationSubtitle', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.mocked(isReportActionVisible).mockReturnValue(false);
+        mockVisibleReportActions = {};
         Navigation.getTopmostReportId = jest.fn();
         Navigation.dismissModal = jest.fn();
         Navigation.goBack = jest.fn();
@@ -358,10 +367,10 @@ describe('ParentNavigationSubtitle', () => {
 
         it('passes only the parent report visibility to isReportActionVisible', async () => {
             // Given visibility data for the parent report and for an unrelated report
-            await Onyx.set(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
+            mockVisibleReportActions = {
                 [parentReportID]: {[parentReportActionID]: true},
                 [otherReportID]: {[otherReportActionID]: true},
-            });
+            };
             render(
                 <ParentNavigationSubtitle
                     parentNavigationSubtitleData={subtitleData}
@@ -375,17 +384,17 @@ describe('ParentNavigationSubtitle', () => {
             // When the parent link is pressed
             pressSubtitleLink();
 
-            // Then the visibility check receives only the parent report slice, because the component subscribes through
-            // reportVisibleActionsSelector instead of the whole derived map
+            // Then the visibility check receives only the parent report slice, because the component reads it through
+            // useVisibleReportActions for the parent report
             expect(jest.mocked(isReportActionVisible).mock.calls.at(0)?.at(3)).toEqual({[parentReportID]: {[parentReportActionID]: true}});
         });
 
         it('reads the new parent report visibility when parentReportID changes', async () => {
             // Given visibility data for two reports and a subtitle pointing at the first one
-            await Onyx.set(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
+            mockVisibleReportActions = {
                 [parentReportID]: {[parentReportActionID]: true},
                 [otherReportID]: {[parentReportActionID]: false},
-            });
+            };
             const {rerender} = render(
                 <ParentNavigationSubtitle
                     parentNavigationSubtitleData={subtitleData}
@@ -408,7 +417,7 @@ describe('ParentNavigationSubtitle', () => {
             await waitForBatchedUpdates();
             pressSubtitleLink();
 
-            // Then the visibility check uses the new parent's slice, because the selector is rebuilt for the new parentReportID
+            // Then the visibility check uses the new parent's slice, because the hook is called with the new parentReportID
             expect(jest.mocked(isReportActionVisible).mock.calls.at(0)?.at(3)).toEqual({[otherReportID]: {[parentReportActionID]: false}});
         });
     });

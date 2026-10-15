@@ -70,7 +70,6 @@ import type {
     ReportAttributesDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,
     SortedReportActionsDerivedValue,
-    VisibleReportActionsDerivedValue,
 } from './DerivedValues';
 import type DeviceBiometrics from './DeviceBiometrics';
 import type DismissedProductTraining from './DismissedProductTraining';
@@ -182,7 +181,7 @@ import type {RecentSearchItem} from './RecentSearch';
 import type RecentWaypoint from './RecentWaypoint';
 import type ReimbursementAccount from './ReimbursementAccount';
 import type Report from './Report';
-import type {ReportActions} from './ReportAction';
+import type {ReportActions, VisibleReportActions} from './ReportAction';
 import type ReportAction from './ReportAction';
 import type ReportActionReactions from './ReportActionReactions';
 import type ReportActionsDraft from './ReportActionsDraft';
@@ -496,7 +495,7 @@ export type {
     LastSearchParams,
     ReportTransactionsAndViolationsDerivedValue,
     OutstandingReportsByPolicyIDDerivedValue,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
     SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,

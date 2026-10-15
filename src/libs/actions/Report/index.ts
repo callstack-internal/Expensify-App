@@ -255,7 +255,7 @@ import type {
     Transaction,
     TransactionViolation,
     TransactionViolations,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {Decision} from '@src/types/onyx/OriginalMessage';
 import type PersonalDetails from '@src/types/onyx/PersonalDetails';
@@ -3396,7 +3396,7 @@ function deleteReportComment(
     isOriginalReportArchived: boolean | undefined,
     currentEmail: string,
     isOffline: boolean,
-    visibleReportActionsDataParam?: VisibleReportActionsDerivedValue,
+    visibleReportActionsDataParam?: VisibleReportActions,
 ) {
     const reportID = report?.reportID;
     const originalReportID = getOriginalReportID(reportID, reportAction, reportActions, isOffline);

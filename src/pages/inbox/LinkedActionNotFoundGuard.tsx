@@ -1,6 +1,7 @@
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useOnyx from '@hooks/useOnyx';
 import useReportIsArchived from '@hooks/useReportIsArchived';
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
 
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Navigation from '@libs/Navigation/Navigation';
@@ -65,12 +66,12 @@ function LinkedActionNotFoundGate({reportActionIDFromRoute, children}: LinkedAct
     const [linkedAction] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportIDFromRoute}`, {
         selector: (actions: OnyxEntry<ReportActions>) => getReportActionByIDSelector(actions, reportActionIDFromRoute),
     });
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
 
     const isReportArchived = useReportIsArchived(reportIDFromRoute);
 
     // --- Linked action status ---
     const actionReportID = linkedAction?.reportID ?? reportIDFromRoute;
+    const visibleReportActionsData = useVisibleReportActions(actionReportID);
     const hasNoActionReportID = !!linkedAction && !actionReportID;
     const isActionHidden =
         !!linkedAction && !!actionReportID && !isReportActionVisible(linkedAction, actionReportID, canUserPerformWriteAction(report, isReportArchived), visibleReportActionsData);

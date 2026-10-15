@@ -6,8 +6,6 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportAction} from '@src/types/onyx';
 
-import {reportVisibleActionsSelector} from '@selectors/ReportAction';
-
 import useConciergeSidePanelReportActions from './useConciergeSidePanelReportActions';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useIsInSidePanel from './useIsInSidePanel';
@@ -16,6 +14,7 @@ import useNetwork from './useNetwork';
 import useOnyx from './useOnyx';
 import useSidePanelState from './useSidePanelState';
 import useTransactionsAndViolationsForReport from './useTransactionsAndViolationsForReport';
+import useVisibleReportActions from './useVisibleReportActions';
 
 type UseReportActionsVisibilityParams = {
     reportID: string | undefined;
@@ -62,9 +61,7 @@ function useReportActionsVisibility({
 
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
-        selector: reportVisibleActionsSelector(reportID),
-    });
+    const visibleReportActionsData = useVisibleReportActions(reportID);
 
     const isInSidePanel = useIsInSidePanel();
     const isConciergeSidePanel = isInSidePanel && isConciergeChatReport(report, conciergeReportID);

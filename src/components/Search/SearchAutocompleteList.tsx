@@ -7,6 +7,7 @@ import type {ListItem as NewListItem, ListItemProps} from '@components/Selection
 import SelectionListWithSections from '@components/SelectionList/SelectionListWithSections';
 import type {Section, SelectionListWithSectionsHandle} from '@components/SelectionList/SelectionListWithSections/types';
 
+import useAllVisibleReportActions from '@hooks/useAllVisibleReportActions';
 import useAutocompleteSuggestions from '@hooks/useAutocompleteSuggestions';
 import useBottomSafeSafeAreaPaddingStyle from '@hooks/useBottomSafeSafeAreaPaddingStyle';
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
@@ -215,7 +216,7 @@ function SearchAutocompleteList({
     });
     const [policies = getEmptyObject<NonNullable<OnyxCollection<Policy>>>()] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [allPolicyTags] = useOnyx(ONYXKEYS.COLLECTION.POLICY_TAGS);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
+    const visibleReportActionsData = useAllVisibleReportActions();
     const {activePolicyID} = useActivePolicyContext();
     const sortedReportActionsData = useSortedReportActionsData();
     const sortedActions = sortedReportActionsData?.sortedActions;

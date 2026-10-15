@@ -284,6 +284,9 @@ type ReportAction<T extends ReportActionName = ReportActionName> = ReportActionB
 /** Record of report actions, indexed by report action ID */
 type ReportActions = Record<string, ReportAction>;
 
+/** Cached visibility of report actions, indexed by reportID and then by report action ID */
+type VisibleReportActions = Record<string, Record<string, boolean>>;
+
 /** Collection of mock report actions, indexed by reportActions_${reportID} */
 type ReportActionsCollectionDataSet = CollectionDataSet<typeof ONYXKEYS.COLLECTION.REPORT_ACTIONS>;
 
@@ -309,4 +312,4 @@ type PolicyChangeLogCopyReportActionNames =
     | typeof CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.COPY_TRAVEL;
 
 export default ReportAction;
-export type {ReportActions, Message, LinkMetadata, OriginalMessage, ReportActionsCollectionDataSet, OldDotReportAction, PolicyChangeLogCopyReportActionNames};
+export type {ReportActions, VisibleReportActions, Message, LinkMetadata, OriginalMessage, ReportActionsCollectionDataSet, OldDotReportAction, PolicyChangeLogCopyReportActionNames};

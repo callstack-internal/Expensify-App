@@ -1,3 +1,4 @@
+import useAllVisibleReportActions from '@hooks/useAllVisibleReportActions';
 import useFilteredOptions from '@hooks/useFilteredOptions';
 import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
@@ -38,7 +39,7 @@ function SearchRouterOptionsWarmer({onDone}: SearchRouterOptionsWarmerProps) {
     const reportAttributes = useReportAttributes();
     const sortedReportActionsData = useSortedReportActionsData();
     const [allPolicyTags] = useOnyx(ONYXKEYS.COLLECTION.POLICY_TAGS);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);
+    const visibleReportActionsData = useAllVisibleReportActions();
 
     const churnVersionRef = useRef(0);
     useEffect(() => {

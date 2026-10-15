@@ -3,8 +3,6 @@ import {act, renderHook} from '@testing-library/react-native';
 import useMoneyRequestReportVisibleActions from '@components/MoneyRequestReportView/useMoneyRequestReportVisibleActions';
 import OnyxListItemProvider from '@components/OnyxListItemProvider';
 
-import initOnyxDerivedValues from '@userActions/OnyxDerived';
-
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {ReportAction, ReportActions} from '@src/types/onyx';
@@ -63,7 +61,7 @@ function buildParams(reportActions: ReportAction[], overrides: Partial<Params> =
     };
 }
 
-/** Push the same actions into Onyx so the VISIBLE_REPORT_ACTIONS derived value the hook subscribes to is populated. */
+/** Push the same actions into Onyx so the cached visibility the hook reads is populated. */
 function setReportActions(reportActions: ReportAction[]) {
     const actions: ReportActions = Object.fromEntries(reportActions.map((action) => [action.reportActionID, action]));
     return Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${REPORT_ID}`, actions);
@@ -88,7 +86,6 @@ function getVisibleIDs(actions: ReportAction[]) {
 describe('useMoneyRequestReportVisibleActions', () => {
     beforeAll(() => {
         Onyx.init({keys: ONYXKEYS});
-        initOnyxDerivedValues();
     });
 
     beforeEach(async () => {

@@ -14,13 +14,13 @@ import type {
     Report,
     ReportAction,
     ReportActions,
-    ReportAttributesDerivedValue,
     ReportMetadata,
     Rule,
     Transaction,
     VisibleReportActionsDerivedValue,
     WorkspaceCardsList,
 } from '@src/types/onyx';
+import type {ReportNamesDerivedValue} from '@src/types/onyx/DerivedValues';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
 import type {Locale as DateFnsLocale} from 'date-fns';
@@ -48,6 +48,7 @@ import {
     getAddedBudgetMessage,
     getAddedCardFeedMessage,
     getAddedConnectionMessage,
+    getAddedOfficeLocationMessage,
     getApprovalLimitUpdateMessage,
     getAssignedCompanyCardMessage,
     getAutoCategorizeNewExpensesMessage,
@@ -69,6 +70,7 @@ import {
     getDelegateSubmitMessage,
     getDeletedApprovalRuleMessage,
     getDeletedBudgetMessage,
+    getDeletedOfficeLocationMessage,
     getDynamicExternalWorkflowRoutedMessage,
     getExportIntegrationLastMessageText,
     getForeignCurrencyDefaultTaxUpdateMessage,
@@ -136,6 +138,7 @@ import {
     getUpdatedIndividualBudgetNotificationMessage,
     getUpdatedManualApprovalThresholdMessage,
     getUpdatedMemberWorkArrangementMessage,
+    getUpdatedOfficeLocationMessage,
     getUpdatedOwnershipMessage,
     getUpdatedProhibitedExpensesMessage,
     getUpdatedReimbursementChoiceMessage,
@@ -518,15 +521,14 @@ function getLastMessageTextForReport({
     reportMetadata?: OnyxEntry<ReportMetadata>;
     visibleReportActionsDataParam?: VisibleReportActionsDerivedValue;
     lastAction?: OnyxEntry<ReportAction>;
-    reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
+    reportAttributesDerived?: ReportNamesDerivedValue;
     policyTags?: OnyxEntry<PolicyTagLists>;
     currentUserLogin?: string;
     conciergeReportID: string | undefined;
     isTrackIntentUser?: boolean;
     // TODO: Remove optional (?) once all callers pass sortedActions. Refactor issue: https://github.com/Expensify/App/issues/66381
     sortedActions?: Record<string, ReportAction[]>;
-    // TODO: Remove optional (?) once all callers pass currentUserAccountID. Refactor issue: https://github.com/Expensify/App/issues/66408
-    currentUserAccountID?: number;
+    currentUserAccountID: number;
     oneTransactionThreadReportID?: string;
     lastOriginalAction?: OnyxEntry<ReportAction>;
     rules: OnyxCollection<Rule>;
@@ -860,6 +862,15 @@ function getLastMessageTextForReport({
     if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_MEMBER_WORK_ARRANGEMENT)) {
         lastMessageTextFromReport = getUpdatedMemberWorkArrangementMessage(translate, lastReportAction);
     }
+    if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.ADD_OFFICE_LOCATION)) {
+        lastMessageTextFromReport = getAddedOfficeLocationMessage(translate, lastReportAction);
+    }
+    if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_OFFICE_LOCATION)) {
+        lastMessageTextFromReport = getUpdatedOfficeLocationMessage(translate, lastReportAction);
+    }
+    if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.DELETE_OFFICE_LOCATION)) {
+        lastMessageTextFromReport = getDeletedOfficeLocationMessage(translate, lastReportAction);
+    }
     if (isActionOfType(lastReportAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_AUTO_REIMBURSEMENT)) {
         lastMessageTextFromReport = getAutoReimbursementMessage(translate, lastReportAction, convertToDisplayString);
     }
@@ -1180,7 +1191,7 @@ type GetReportAlternateTextParams = {
     isReportArchived: boolean | undefined;
     privateIsArchived: boolean;
     conciergeReportID: string | undefined;
-    reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
+    reportAttributesDerived?: ReportNamesDerivedValue;
     visibleReportActionsData?: VisibleReportActionsDerivedValue;
     sortedActions?: Record<string, ReportAction[]>;
     oneTransactionThreadReportID?: string;

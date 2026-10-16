@@ -1,6 +1,10 @@
+import type {Browser} from '@e2e-dev/web';
+
 import {test} from '@e2e-dev/web';
 import fs from 'node:fs';
 import path from 'node:path';
+
+import createSeededAccount from './seed';
 
 type StoredAuth = {session: string; credentials: string};
 
@@ -57,6 +61,32 @@ function writeOnyxAuth(auth: StoredAuth): Promise<boolean> {
     });
 }
 
+// The URL can't tell signed-in from signed-out (staging shows the login form on /home), so wait for the auth token itself.
+async function waitForAuthToken(browser: Browser): Promise<StoredAuth> {
+    const deadline = Date.now() + SIGN_IN_TIMEOUT_MS;
+    let auth = await browser.evaluate(readOnyxAuth);
+    while (!hasAuthToken(auth.session)) {
+        if (Date.now() > deadline) {
+            throw new Error('Timed out waiting for sign-in');
+        }
+        await new Promise((resolve) => {
+            setTimeout(resolve, 2000);
+        });
+        auth = await browser.evaluate(readOnyxAuth);
+    }
+    return auth;
+}
+
+// A fresh staging account with fixture data (see seed.ts) for every run, so explore spends no steps on setup.
+test.setup('seeded account', {sessions: ['seeded'], requires: ['browser'], timeout: 120_000}, async ({app, browser, session}) => {
+    const account = await createSeededAccount();
+    await app.open('/robots.txt');
+    await browser.evaluate(writeOnyxAuth, {session: JSON.stringify(account), credentials: JSON.stringify({login: account.email})});
+    await app.open('/');
+    await waitForAuthToken(browser);
+    await session.save('seeded');
+});
+
 // The first run is headed and waits for a manual sign-in (email + magic code); later runs restore the cached login.
 test.setup('sign in', {sessions: ['me'], requires: ['browser'], timeout: 300_000}, async ({app, browser, session}) => {
     // One cache per host, so dev and staging logins don't overwrite each other.
@@ -73,18 +103,7 @@ test.setup('sign in', {sessions: ['me'], requires: ['browser'], timeout: 300_000
 
     await app.open('/');
 
-    // The URL can't tell signed-in from signed-out (staging shows the login form on /home), so wait for the auth token itself.
-    const deadline = Date.now() + SIGN_IN_TIMEOUT_MS;
-    let auth = await browser.evaluate(readOnyxAuth);
-    while (!hasAuthToken(auth.session)) {
-        if (Date.now() > deadline) {
-            throw new Error('Timed out waiting for sign-in');
-        }
-        await new Promise((resolve) => {
-            setTimeout(resolve, 2000);
-        });
-        auth = await browser.evaluate(readOnyxAuth);
-    }
+    const auth = await waitForAuthToken(browser);
     fs.mkdirSync(authDir, {recursive: true});
     fs.writeFileSync(sessionFile, auth.session);
     fs.writeFileSync(credentialsFile, auth.credentials);

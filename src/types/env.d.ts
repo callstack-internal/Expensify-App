@@ -7,6 +7,7 @@ declare namespace NodeJS {
         PORT: number | undefined;
         WORKING_DIRECTORY: string | undefined;
         OPENAI_API_KEY: string | undefined;
+        ANTHROPIC_API_KEY: string | undefined;
         CALLSTACK_API_KEY: string | undefined;
         E2E_IOS_DEVICE: string | undefined;
         E2E_ANDROID_DEVICE: string | undefined;

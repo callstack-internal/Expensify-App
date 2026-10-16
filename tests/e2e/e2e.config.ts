@@ -1,6 +1,7 @@
 import type {LanguageModelMiddleware} from 'ai';
 import type {E2EConfig} from 'e2e';
 
+import {anthropic} from '@ai-sdk/anthropic';
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
 import {mobile} from '@e2e-dev/mobile';
 import {mobileTools} from '@e2e-dev/mobile/tools';
@@ -40,8 +41,15 @@ const system = [
 
 export default {
     agents: {
-        // Signed in with `npx e2e login openai`; `npx e2e models openai` lists the ids the plan serves.
+        // Reads ANTHROPIC_API_KEY.
         default: {
+            model: anthropic('claude-sonnet-5-5'),
+            providerOptions: {anthropic: {effort: 'low'}},
+            system,
+            tools: mobileTools(ios, android),
+        },
+        // Signed in with `npx e2e login openai`; `npx e2e models openai` lists the ids the plan serves.
+        luna: {
             model: chatgpt('gpt-6-luna'),
             providerOptions: {openai: {reasoningEffort: 'low'}},
             system,

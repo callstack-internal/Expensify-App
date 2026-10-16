@@ -11,6 +11,7 @@ declare namespace NodeJS {
         CALLSTACK_API_KEY: string | undefined;
         E2E_IOS_DEVICE: string | undefined;
         E2E_ANDROID_DEVICE: string | undefined;
+        E2E_PR_URL: string | undefined;
         LANGUAGES_DIR: string | undefined;
         SLACK_RETEST_USER_TOKEN: string | undefined;
         SLACK_RETEST_WEBHOOK: string | undefined;

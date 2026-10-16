@@ -78,6 +78,12 @@ export default {
             engine: web({userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'}),
             app: {url: 'https://staging.new.expensify.com'},
         },
+        {
+            // A PR's ad-hoc web build (https://<PR>.pr-testing.expensify.com), which talks to the staging backend.
+            name: 'pr',
+            engine: web({userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'}),
+            app: {url: process.env.E2E_PR_URL ?? 'https://staging.new.expensify.com'},
+        },
         {name: 'ios', engine: ios, app: nativeApp},
         {name: 'android', engine: android, app: nativeApp},
     ],

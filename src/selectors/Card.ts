@@ -1,5 +1,15 @@
 import {getExpensifyCardFeedsForDisplay} from '@libs/CardFeedUtils';
-import {hasActiveExpensifyCard, hasAssignedCardMatching, isActiveCard, isCard, isCardHiddenFromSearch, isCSVFeedOrExpensifyCard, isExpensifyCard, isPersonalCard} from '@libs/CardUtils';
+import {
+    hasActiveExpensifyCard,
+    hasAssignedCardMatching,
+    isActiveCard,
+    isCard,
+    isCardHiddenFromSearch,
+    isCSVFeedOrExpensifyCard,
+    isExpensifyCard,
+    isPersonalCard,
+    mergeCardListWithWorkspaceFeeds,
+} from '@libs/CardUtils';
 import {filterObject} from '@libs/ObjectUtils';
 
 import CONST from '@src/CONST';
@@ -7,6 +17,8 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {CardFeeds, CardList, NonPersonalAndWorkspaceCardListDerivedValue, WorkspaceCardsList} from '@src/types/onyx';
 
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
+
+import {deepEqual} from 'fast-equals';
 
 /**
  * Builds a lightweight map of "${domainID}_${feedName}" keys that have card entries.
@@ -88,6 +100,33 @@ const defaultExpensifyCardSelector = (allCards: OnyxEntry<NonPersonalAndWorkspac
 };
 
 /**
+ * Merges the user's card list with every workspace card feed. The last pair of inputs and its result are kept, so
+ * every mounted consumer shares one merge per write. A merge equal to the last one returns the last object, so a
+ * write that leaves the merged list unchanged doesn't make consumers re-run their selectors.
+ */
+const createCardListWithWorkspaceFeedsSelector = (shouldFilterOutPersonalCards: boolean) => {
+    let lastCardList: OnyxEntry<CardList>;
+    let lastWorkspaceCardFeeds: OnyxCollection<WorkspaceCardsList>;
+    let lastResult: CardList | undefined;
+
+    return (cardList: OnyxEntry<CardList>, workspaceCardFeeds: OnyxCollection<WorkspaceCardsList>): CardList => {
+        if (lastResult && cardList === lastCardList && workspaceCardFeeds === lastWorkspaceCardFeeds) {
+            return lastResult;
+        }
+        lastCardList = cardList;
+        lastWorkspaceCardFeeds = workspaceCardFeeds;
+        const result = mergeCardListWithWorkspaceFeeds(workspaceCardFeeds ?? CONST.EMPTY_OBJECT, cardList, shouldFilterOutPersonalCards);
+        if (!lastResult || !deepEqual(result, lastResult)) {
+            lastResult = result;
+        }
+        return lastResult;
+    };
+};
+
+/** The user's cards, personal ones included, plus every workspace feed card. */
+const personalAndWorkspaceCardListSelector = createCardListWithWorkspaceFeedsSelector(false);
+
+/**
  * Returns a selector that picks a single card from the card list by card ID.
  */
 const cardByIdSelector = (cardID: string) => (cardList: OnyxEntry<CardList>) => cardList?.[cardID];
@@ -135,4 +174,5 @@ export {
     companyCardCustomNamesSelector,
     hasIssuedExpensifyCardSelector,
     hasActiveExpensifyCardSelector,
+    personalAndWorkspaceCardListSelector,
 };

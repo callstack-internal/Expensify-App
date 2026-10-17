@@ -190,11 +190,6 @@ type CardFeedErrors = {
 type CardFeedErrorsDerivedValue = CardFeedErrors;
 
 /**
- * The derived value for merged non-personal and workspace card feeds.
- */
-type NonPersonalAndWorkspaceCardListDerivedValue = CardList;
-
-/**
  * The derived value for sorted report actions, last report actions, and cached transaction thread report IDs.
  */
 type SortedReportActionsDerivedValue = {
@@ -252,7 +247,6 @@ export type {
     OutstandingReportsByPolicyIDDerivedValue,
     VisibleReportActionsDerivedValue,
     SortedReportActionsDerivedValue,
-    NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,
     CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,

@@ -10,6 +10,7 @@ import {useCurrencyListActions} from './useCurrencyList';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useFilterPendingDeleteReports from './useFilterPendingDeleteReports';
 import useLocalize from './useLocalize';
+import useNonPersonalAndWorkspaceCardList from './useNonPersonalAndWorkspaceCardList';
 import useOnyx from './useOnyx';
 import useReportAttributes from './useReportAttributes';
 
@@ -29,7 +30,7 @@ function useSearchSections(): UseSearchSectionsResult {
 
     const [cardFeeds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_DOMAIN_MEMBER);
     const [personalAndWorkspaceCards] = useOnyx(ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST);
-    const [nonPersonalAndWorkspaceCards] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST);
+    const nonPersonalAndWorkspaceCards = useNonPersonalAndWorkspaceCardList();
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
 
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);

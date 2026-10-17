@@ -273,7 +273,7 @@ describe('DynamicReportDetailsPage', () => {
                 return {cancel: jest.fn()};
             });
             await act(async () => {
-                await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [taskOwnerAccountID]);
+                await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[taskOwnerAccountID]: {accountID: taskOwnerAccountID, login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`}});
             });
 
             // When another admin opens the task without personal onboarding data
@@ -302,7 +302,7 @@ describe('DynamicReportDetailsPage', () => {
         ])('should protect setup tasks using their parent room: %j', async ({ownerAccountID, chatType, onboarding}) => {
             // Given setup tasks with or without inherited chatType, the viewing admin may have unrelated or missing onboarding data
             await act(async () => {
-                await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [taskOwnerAccountID]);
+                await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[taskOwnerAccountID]: {accountID: taskOwnerAccountID, login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`}});
                 if (onboarding) {
                     await Onyx.merge(ONYXKEYS.NVP_ONBOARDING, onboarding);
                 }
@@ -319,7 +319,7 @@ describe('DynamicReportDetailsPage', () => {
         it.each([undefined, CONST.REPORT.CHAT_TYPE.POLICY_ADMINS])('should not grant admin deletion while the parent is missing, with task chatType %s', async (chatType) => {
             // Given a Guide-owned task whose parent is not loaded, its setup context is not yet known
             await act(async () => {
-                await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [taskOwnerAccountID]);
+                await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[taskOwnerAccountID]: {accountID: taskOwnerAccountID, login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`}});
             });
 
             // When an admin opens the task before its parent arrives
@@ -342,7 +342,7 @@ describe('DynamicReportDetailsPage', () => {
         it('should preserve creator deletion for a Guide-owned task in #admins', async () => {
             // Given a task created by the current Guide, the setup exception must only restrict the additional admin permission
             await act(async () => {
-                await Onyx.set(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, [currentUserAccountID]);
+                await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[currentUserAccountID]: {accountID: currentUserAccountID, login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`}});
             });
 
             // When the creator opens their task without being a workspace admin

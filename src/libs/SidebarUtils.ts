@@ -7,7 +7,6 @@ import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {
     Card,
-    GuideAccountIDsDerivedValue,
     PersonalDetails,
     PersonalDetailsList,
     PolicyTagLists,
@@ -312,7 +311,7 @@ function getReportsToDisplayInLHN({
     currentUserAccountID: number;
     reportNameValuePairs?: OnyxCollection<ReportNameValuePairs>;
     reportAttributes?: ReportAttributesDerivedValue['reports'];
-    guideAccountIDs?: GuideAccountIDsDerivedValue;
+    guideAccountIDs?: number[];
     conciergeReportID: string | undefined;
 }) {
     rememberLHNUnreadStateBeforeFocus(currentReportId);
@@ -374,7 +373,7 @@ type UpdateReportsToDisplayInLHNProps = {
     isOffline: boolean;
     currentUserLogin: string;
     currentUserAccountID: number;
-    guideAccountIDs?: GuideAccountIDsDerivedValue;
+    guideAccountIDs?: number[];
     conciergeReportID: string | undefined;
 };
 

@@ -1,6 +1,7 @@
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import useGuideAccountIDs from '@hooks/useGuideAccountIDs';
 import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
 import usePermissions from '@hooks/usePermissions';
@@ -60,7 +61,7 @@ function WithReportOrNotFoundImpl<TProps extends WithReportAndReportActionOrNotF
     const [reportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${props.route.params.reportID}`);
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
     const {accountID: currentUserAccountID} = useCurrentUserPersonalDetails();
-    const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+    const guideAccountIDs = useGuideAccountIDs();
     const hasGuidesEmails = hasExpensifyGuidesEmails(Object.keys(report?.participants ?? {}).map(Number), guideAccountIDs);
 
     const parentReportAction = useParentReportAction(report);

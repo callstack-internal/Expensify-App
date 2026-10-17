@@ -37,7 +37,6 @@ const onyxDerivedTestSetup = () => {
 
 const GUIDE_ACCOUNT_ID = 8;
 const MEMBER_ACCOUNT_ID = 1;
-const NEW_GUIDE_ACCOUNT_ID = 9;
 const NEW_MEMBER_ACCOUNT_ID = 2;
 
 const PERSONAL_DETAILS: PersonalDetailsList = {
@@ -45,7 +44,7 @@ const PERSONAL_DETAILS: PersonalDetailsList = {
     [MEMBER_ACCOUNT_ID]: {accountID: MEMBER_ACCOUNT_ID, login: 'member@example.com', displayName: 'Member'},
 };
 
-const KEYS_READ_WITHOUT_SELECTOR = [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP] as const;
+const KEYS_READ_WITHOUT_SELECTOR = [ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP] as const;
 
 function renderHookWithoutSelector<TKey extends TupleToUnion<typeof KEYS_READ_WITHOUT_SELECTOR> | typeof ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID>(key: TKey) {
     let renderCount = 0;
@@ -56,8 +55,13 @@ function renderHookWithoutSelector<TKey extends TupleToUnion<typeof KEYS_READ_WI
     return {hook, getRenderCount: () => renderCount};
 }
 
-function getGuideWrites(setDerivedValueSpy: jest.Spied<typeof OnyxDerivedUtils.setDerivedValue>) {
-    return setDerivedValueSpy.mock.calls.filter(([key]) => key === ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+const LOGIN_TO_ACCOUNT_ID_MAP = {
+    [`guide@${CONST.EMAIL.GUIDES_DOMAIN}`]: GUIDE_ACCOUNT_ID,
+    'member@example.com': MEMBER_ACCOUNT_ID,
+};
+
+function getLoginMapWrites(setDerivedValueSpy: jest.Spied<typeof OnyxDerivedUtils.setDerivedValue>) {
+    return setDerivedValueSpy.mock.calls.filter(([key]) => key === ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP);
 }
 
 describe('OnyxDerived', () => {
@@ -1097,16 +1101,16 @@ describe('OnyxDerived', () => {
         });
 
         it('should not write to Onyx when compute returns the current value', async () => {
-            // Given the guide accountIDs have been computed and stored
+            // Given the login to accountID map has been computed and stored
             const setDerivedValueSpy = jest.spyOn(OnyxDerivedUtils, 'setDerivedValue');
 
-            // When a member is renamed, which recomputes the guides to the value already held
+            // When a member is renamed, which recomputes the map to the value already held
             await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[MEMBER_ACCOUNT_ID]: {displayName: 'Renamed member'}});
             await waitForBatchedUpdates();
 
             // Then nothing is written, so subscribers aren't notified and the value isn't rewritten to disk
-            expect(getGuideWrites(setDerivedValueSpy)).toHaveLength(0);
-            expect(await getOnyxValue(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS)).toEqual([GUIDE_ACCOUNT_ID]);
+            expect(getLoginMapWrites(setDerivedValueSpy)).toHaveLength(0);
+            expect(await getOnyxValue(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP)).toEqual(LOGIN_TO_ACCOUNT_ID_MAP);
         });
 
         it('should still end the compute span when the write is skipped', async () => {
@@ -1118,11 +1122,11 @@ describe('OnyxDerived', () => {
             await waitForBatchedUpdates();
 
             // Then the early return still goes through finally, so no compute span is left open
-            expect(endSpanSpy).toHaveBeenCalledWith(`${CONST.TELEMETRY.SPAN_ONYX_DERIVED_COMPUTE}_${ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS}`);
+            expect(endSpanSpy).toHaveBeenCalledWith(`${CONST.TELEMETRY.SPAN_ONYX_DERIVED_COMPUTE}_${ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP}`);
         });
 
         it('should rewrite the value after Onyx.clear', async () => {
-            // Given the guide accountIDs are stored and Onyx is then cleared, as on sign-out
+            // Given the login to accountID map is stored and Onyx is then cleared, as on sign-out
             await Onyx.clear();
             await waitForBatchedUpdates();
             const setDerivedValueSpy = jest.spyOn(OnyxDerivedUtils, 'setDerivedValue');
@@ -1132,8 +1136,8 @@ describe('OnyxDerived', () => {
             await waitForBatchedUpdates();
 
             // Then the engine writes the value again instead of treating the pre-clear value as current
-            expect(getGuideWrites(setDerivedValueSpy).length).toBeGreaterThan(0);
-            expect(await getOnyxValue(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS)).toEqual([GUIDE_ACCOUNT_ID]);
+            expect(getLoginMapWrites(setDerivedValueSpy).length).toBeGreaterThan(0);
+            expect(await getOnyxValue(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP)).toEqual(LOGIN_TO_ACCOUNT_ID_MAP);
         });
 
         it('should restore derived keys after a clear that keeps PERSONAL_DETAILS_LIST', async () => {
@@ -1147,12 +1151,8 @@ describe('OnyxDerived', () => {
             await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[MEMBER_ACCOUNT_ID]: {displayName: 'Renamed member'}});
             await waitForBatchedUpdates();
 
-            // Then both derived keys are written again rather than staying empty until a login set changes
-            expect(await getOnyxValue(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP)).toEqual({
-                [`guide@${CONST.EMAIL.GUIDES_DOMAIN}`]: GUIDE_ACCOUNT_ID,
-                'member@example.com': MEMBER_ACCOUNT_ID,
-            });
-            expect(await getOnyxValue(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS)).toEqual([GUIDE_ACCOUNT_ID]);
+            // Then the derived key is written again rather than staying empty until a login set changes
+            expect(await getOnyxValue(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP)).toEqual(LOGIN_TO_ACCOUNT_ID_MAP);
         });
     });
 
@@ -1185,25 +1185,6 @@ describe('OnyxDerived', () => {
             // Then the engine's fresh but equal result must not reach the consumer as a new reference or a re-render
             expect(hook.result.current[0]).toBe(valueBefore);
             expect(getRenderCount()).toBe(rendersBefore);
-        });
-
-        it('should return new guide accountIDs when a guide is added', async () => {
-            // Given a consumer of the guide accountIDs
-            const {hook} = renderHookWithoutSelector(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
-            await waitForBatchedUpdatesWithAct();
-            const [valueBefore] = hook.result.current;
-
-            // When a second guide's personal details arrive
-            await act(async () => {
-                await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {
-                    [NEW_GUIDE_ACCOUNT_ID]: {accountID: NEW_GUIDE_ACCOUNT_ID, login: `new.guide@${CONST.EMAIL.GUIDES_DOMAIN}`},
-                });
-            });
-            await waitForBatchedUpdatesWithAct();
-
-            // Then the consumer sees the change, so the stability check above is not passing on a frozen value
-            expect(hook.result.current[0]).not.toBe(valueBefore);
-            expect(hook.result.current[0]).toEqual([GUIDE_ACCOUNT_ID, NEW_GUIDE_ACCOUNT_ID]);
         });
 
         it('should return a new login map when a login is added', async () => {

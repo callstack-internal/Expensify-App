@@ -16,6 +16,8 @@ import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
 import type {OnyxEntry} from 'react-native-onyx';
 
+import {Str} from 'expensify-common';
+
 const personalDetailsSelector = (accountID: number | undefined) => (personalDetailsList: OnyxEntry<PersonalDetailsList>) => getPersonalDetailsByID(accountID, personalDetailsList);
 
 const multiPersonalDetailsSelector = (accountIDs: number[] | undefined) => (personalDetails: OnyxEntry<PersonalDetailsList>) => getPersonalDetailsByIDs(accountIDs, personalDetails);
@@ -95,6 +97,21 @@ const optimisticPersonalDetailsSelector = (personalDetailsList: OnyxEntry<Person
     return optimisticPersonalDetails;
 };
 
+/**
+ * Returns the accountIDs of every Expensify Guide (identified by login domain). Sorted so an unrelated
+ * personal-details change selects a deep-equal array and subscribers don't re-render.
+ */
+const guideAccountIDsSelector = (personalDetailsList: OnyxEntry<PersonalDetailsList>): number[] => {
+    const guideAccountIDs: number[] = [];
+    for (const personalDetails of Object.values(personalDetailsList ?? {})) {
+        if (!personalDetails?.login || Str.extractEmailDomain(personalDetails.login) !== CONST.EMAIL.GUIDES_DOMAIN) {
+            continue;
+        }
+        guideAccountIDs.push(personalDetails.accountID);
+    }
+    return guideAccountIDs.sort((a, b) => a - b);
+};
+
 const newAccountIDsAndLoginsSelector = (invitedEmailsToAccountIDs: InvitedEmailsToAccountIDs | undefined) => (personalDetailsList: OnyxEntry<PersonalDetailsList>) =>
     getNewAccountIDsAndLogins(invitedEmailsToAccountIDs, personalDetailsList);
 
@@ -125,6 +142,7 @@ export {
     accountIDToLoginSelector,
     isPersonalDetailOptimistic,
     optimisticPersonalDetailsSelector,
+    guideAccountIDsSelector,
     createDisplayDetailsByAccountIDsSelector,
     newAccountIDsAndLoginsSelector,
     displayNameSelector,

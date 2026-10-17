@@ -1,6 +1,7 @@
 import FullscreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import {getReportOrNotFoundDecision} from '@components/ReportOrNotFoundGuard';
 
+import useGuideAccountIDs from '@hooks/useGuideAccountIDs';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
 import useReportIsArchived from '@hooks/useReportIsArchived';
@@ -86,7 +87,7 @@ export default function (shouldRequireReportID = true): <TProps extends WithRepo
             const [reportLoadingState] = useOnyx(`${ONYXKEYS.COLLECTION.RAM_ONLY_REPORT_LOADING_STATE}${reportID}`);
             const [isLoadingReportData] = useOnyx(ONYXKEYS.IS_LOADING_REPORT_DATA);
             const [deleteTransactionNavigateBackUrl] = useOnyx(ONYXKEYS.NVP_DELETE_TRANSACTION_NAVIGATE_BACK_URL);
-            const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+            const guideAccountIDs = useGuideAccountIDs();
             const hasGuidesEmails = hasExpensifyGuidesEmails(Object.keys(report?.participants ?? {}).map(Number), guideAccountIDs);
             const isFocused = useIsFocused();
             const contentShown = React.useRef(false);

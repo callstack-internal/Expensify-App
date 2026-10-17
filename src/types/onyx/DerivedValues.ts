@@ -220,12 +220,6 @@ type PersonalAndWorkspaceCardListDerivedValue = CardList;
 type LoginToAccountIDMapDerivedValue = Record<string, number>;
 
 /**
- * The accountIDs of every Expensify Guide known to the personal details list, sorted ascending.
- * Lets callers check for a guide participant without re-scanning the whole list (see issue #66413).
- */
-type GuideAccountIDsDerivedValue = number[];
-
-/**
  * Counters that move when spend data changes, used by the Home cards to know a refetch is owed.
  */
 type SpendDataSignatureDerivedValue = {
@@ -256,7 +250,6 @@ export type {
     PersonalAndWorkspaceCardListDerivedValue,
     CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,
-    GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,
     OneOnOneChatReportIDsDerivedValue,
     CardFeedErrorsObject,

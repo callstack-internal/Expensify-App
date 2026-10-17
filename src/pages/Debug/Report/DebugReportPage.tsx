@@ -4,6 +4,7 @@ import ScreenWrapper from '@components/ScreenWrapper';
 import Text from '@components/Text';
 
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
+import useGuideAccountIDs from '@hooks/useGuideAccountIDs';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
@@ -91,7 +92,7 @@ function DebugReportPage({
     const [reportOwnerPersonalDetail] = usePersonalDetail(report?.ownerAccountID);
     const transactionID = DebugUtils.getTransactionID(report, reportActions);
     const isReportArchived = useReportIsArchived(reportID);
-    const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
+    const guideAccountIDs = useGuideAccountIDs();
     const hasGuidesEmails = hasExpensifyGuidesEmails(Object.keys(report?.participants ?? {}).map(Number), guideAccountIDs);
     const derivedIsEmptyReport = useDerivedIsEmptyReport(reportID);
 

@@ -13,7 +13,6 @@ import outstandingReportsByPolicyIDConfig from './configs/outstandingReportsByPo
 import personalAndWorkspaceCardListConfig from './configs/personalAndWorkspaceCardList';
 import reportAttributesConfig from './configs/reportAttributes';
 import reportTransactionsAndViolationsConfig from './configs/reportTransactionsAndViolations';
-import sortedReportActionsConfig from './configs/sortedReportActions';
 import spendDataSignatureConfig from './configs/spendDataSignature';
 import visibleReportActionsConfig from './configs/visibleReportActions';
 
@@ -29,7 +28,6 @@ const ONYX_DERIVED_VALUES = {
     [ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST]: nonPersonalAndWorkspaceCardListConfig,
     [ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST]: personalAndWorkspaceCardListConfig,
     [ONYXKEYS.DERIVED.CARD_FEED_ERRORS]: cardFeedErrorsConfig,
-    [ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS]: sortedReportActionsConfig,
     [ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP]: loginToAccountIDMapConfig,
     [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS]: guideAccountIDsConfig,
     [ONYXKEYS.DERIVED.SPEND_DATA_SIGNATURE]: spendDataSignatureConfig,

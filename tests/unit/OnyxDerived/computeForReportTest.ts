@@ -1,10 +1,10 @@
-import {computeForReport} from '@libs/actions/OnyxDerived/configs/sortedReportActions';
-
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report, ReportAction, ReportActions} from '@src/types/onyx';
 
 import type {OnyxCollection} from 'react-native-onyx';
+
+import {computeForReport} from '@selectors/SortedReportActions';
 
 import {createMockReport} from '../../utils/ReportTestUtils';
 

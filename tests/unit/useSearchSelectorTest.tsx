@@ -11,8 +11,9 @@ import type {OptionData} from '@libs/ReportUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetails, ReportAction} from '@src/types/onyx';
-import type {SortedReportActionsDerivedValue} from '@src/types/onyx/DerivedValues';
+import type {ReportActionsCollectionDataSet} from '@src/types/onyx/ReportAction';
 
+import type {SortedReportActionsData} from '@selectors/SortedReportActions';
 import type {OnyxMultiSetInput} from 'react-native-onyx';
 
 import Onyx from 'react-native-onyx';
@@ -64,23 +65,36 @@ jest.mock('@hooks/useCurrentUserPersonalDetails', () => () => ({
     email: MOCK_EMAIL,
 }));
 
-function buildMockSortedActions(reportIDs: string[]): SortedReportActionsDerivedValue {
+function buildMockAction(reportID: string): ReportAction {
+    return {
+        reportActionID: `action_${reportID}`,
+        created: '2025-01-01 10:00:00.000',
+        actionName: CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT,
+    } as ReportAction;
+}
+
+function buildMockSortedActions(reportIDs: string[]): SortedReportActionsData {
     const sortedActions: Record<string, ReportAction[]> = {};
     const lastActions: Record<string, ReportAction> = {};
     const transactionThreadIDs: Record<string, string | undefined> = {};
 
     for (const id of reportIDs) {
-        const action = {
-            reportActionID: `action_${id}`,
-            created: '2025-01-01 10:00:00.000',
-            actionName: CONST.REPORT.ACTIONS.TYPE.ADD_COMMENT,
-        } as ReportAction;
+        const action = buildMockAction(id);
         sortedActions[id] = [action];
         lastActions[id] = action;
         transactionThreadIDs[id] = undefined;
     }
 
     return {sortedActions, lastActions, transactionThreadIDs};
+}
+
+async function setReportActions(reportIDs: string[]) {
+    const reportActions: ReportActionsCollectionDataSet = {};
+    for (const id of reportIDs) {
+        const action = buildMockAction(id);
+        reportActions[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${id}`] = {[action.reportActionID]: action};
+    }
+    await Onyx.multiSet(reportActions);
 }
 
 describe('useSearchSelector sortedActions integration', () => {
@@ -113,7 +127,9 @@ describe('useSearchSelector sortedActions integration', () => {
         });
     });
 
-    it('passes undefined sortedActions to getValidOptions when RAM_ONLY_SORTED_REPORT_ACTIONS is not set', async () => {
+    it('should pass empty sortedActions to getValidOptions when there are no report actions', async () => {
+        // Given no report actions in Onyx
+        // When the selector mounts
         renderHook(() =>
             useSearchSelectorBase({
                 selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -125,17 +141,19 @@ describe('useSearchSelector sortedActions integration', () => {
         expect(mockGetValidOptions).toHaveBeenCalled();
         const lastCall = mockGetValidOptions.mock.calls.at(-1);
         const config = lastCall?.[7];
-        expect(config?.sortedActions).toBeUndefined();
+        // Then option building gets an empty map, which is what the derived value held after its first compute
+        expect(config?.sortedActions).toEqual({});
     });
 
-    it('passes sortedActions from RAM_ONLY_SORTED_REPORT_ACTIONS to getValidOptions for GENERAL context', async () => {
+    it('should pass sortedActions built from the report actions to getValidOptions for GENERAL context', async () => {
+        // Given report actions in Onyx, the input the sorted actions are built from
         const mockData = buildMockSortedActions(['1', '2']);
-
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS, mockData);
+            await setReportActions(['1', '2']);
         });
         await waitForBatchedUpdatesWithAct();
 
+        // When the selector mounts
         renderHook(() =>
             useSearchSelectorBase({
                 selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -144,20 +162,22 @@ describe('useSearchSelector sortedActions integration', () => {
         );
         await waitForBatchedUpdatesWithAct();
 
+        // Then option building gets the actions sorted per report
         expect(mockGetValidOptions).toHaveBeenCalled();
         const lastCall = mockGetValidOptions.mock.calls.at(-1);
         const config = lastCall?.[7];
         expect(config?.sortedActions).toEqual(mockData.sortedActions);
     });
 
-    it('passes sortedActions to getValidOptions for SHARE_DESTINATION context', async () => {
+    it('should pass sortedActions to getValidOptions for SHARE_DESTINATION context', async () => {
+        // Given report actions in Onyx, the input the sorted actions are built from
         const mockData = buildMockSortedActions(['20', '21']);
-
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS, mockData);
+            await setReportActions(['20', '21']);
         });
         await waitForBatchedUpdatesWithAct();
 
+        // When the selector mounts
         renderHook(() =>
             useSearchSelectorBase({
                 selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -166,20 +186,22 @@ describe('useSearchSelector sortedActions integration', () => {
         );
         await waitForBatchedUpdatesWithAct();
 
+        // Then option building gets the actions sorted per report
         expect(mockGetValidOptions).toHaveBeenCalled();
         const lastCall = mockGetValidOptions.mock.calls.at(-1);
         const config = lastCall?.[7];
         expect(config?.sortedActions).toEqual(mockData.sortedActions);
     });
 
-    it('passes sortedActions to getValidOptions for ATTENDEES context', async () => {
+    it('should pass sortedActions to getValidOptions for ATTENDEES context', async () => {
+        // Given report actions in Onyx, the input the sorted actions are built from
         const mockData = buildMockSortedActions(['30']);
-
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS, mockData);
+            await setReportActions(['30']);
         });
         await waitForBatchedUpdatesWithAct();
 
+        // When the selector mounts
         renderHook(() =>
             useSearchSelectorBase({
                 selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -188,20 +210,22 @@ describe('useSearchSelector sortedActions integration', () => {
         );
         await waitForBatchedUpdatesWithAct();
 
+        // Then option building gets the actions sorted per report
         expect(mockGetValidOptions).toHaveBeenCalled();
         const lastCall = mockGetValidOptions.mock.calls.at(-1);
         const config = lastCall?.[7];
         expect(config?.sortedActions).toEqual(mockData.sortedActions);
     });
 
-    it('updates sortedActions when RAM_ONLY_SORTED_REPORT_ACTIONS changes in Onyx', async () => {
+    it('should update sortedActions when report actions change in Onyx', async () => {
+        // Given report actions in Onyx, the input the sorted actions are built from
         const initialData = buildMockSortedActions(['1']);
-
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS, initialData);
+            await setReportActions(['1']);
         });
         await waitForBatchedUpdatesWithAct();
 
+        // When the selector mounts
         renderHook(() =>
             useSearchSelectorBase({
                 selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -210,27 +234,31 @@ describe('useSearchSelector sortedActions integration', () => {
         );
         await waitForBatchedUpdatesWithAct();
 
+        // Then the first build gets the initial actions
         const firstCallConfig = mockGetValidOptions.mock.calls.at(-1)?.[7];
         expect(firstCallConfig?.sortedActions).toEqual(initialData.sortedActions);
 
+        // When actions arrive for two more reports while the selector is mounted
         const updatedData = buildMockSortedActions(['1', '2', '3']);
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS, updatedData);
+            await setReportActions(['1', '2', '3']);
         });
         await waitForBatchedUpdatesWithAct();
 
+        // Then option building is rerun with the new reports, since the hook reads report actions live
         const latestCallConfig = mockGetValidOptions.mock.calls.at(-1)?.[7];
         expect(latestCallConfig?.sortedActions).toEqual(updatedData.sortedActions);
     });
 
-    it('passes sortedActions to getSearchOptions for SEARCH context (SEARCH_CONTEXT_SEARCH)', async () => {
+    it('should pass sortedActions to getSearchOptions for SEARCH context (SEARCH_CONTEXT_SEARCH)', async () => {
+        // Given report actions in Onyx, the input the sorted actions are built from
         const mockData = buildMockSortedActions(['1']);
-
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS, mockData);
+            await setReportActions(['1']);
         });
         await waitForBatchedUpdatesWithAct();
 
+        // When the selector mounts
         renderHook(() =>
             useSearchSelectorBase({
                 selectionMode: CONST.SEARCH_SELECTOR.SELECTION_MODE_SINGLE,
@@ -239,10 +267,11 @@ describe('useSearchSelector sortedActions integration', () => {
         );
         await waitForBatchedUpdatesWithAct();
 
+        // Then search option building gets the sorted actions too
         expect(mockGetSearchOptions).toHaveBeenCalled();
         const lastSearchCall = mockGetSearchOptions.mock.calls.at(-1);
         const searchConfig = lastSearchCall?.[0];
-        expect(searchConfig).toHaveProperty('sortedActions');
+        expect(searchConfig).toHaveProperty('sortedActions', mockData.sortedActions);
     });
 });
 

@@ -1,5 +1,6 @@
 import Icon from '@components/Icon';
 
+import useCardFeedErrors from '@hooks/useCardFeedErrors';
 import useHasApprovalWorkflowWithNonMemberApprover from '@hooks/useHasApprovalWorkflowWithNonMemberApprover';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useOnyx from '@hooks/useOnyx';
@@ -32,8 +33,7 @@ type WorkspaceRowBrickRoadIndicatorProps = {
     policyID: string;
 };
 
-const createCardFeedErrorsSelector = (workspaceAccountID: number) => (cardFeedErrors: OnyxEntry<CardFeedErrors>) =>
-    !!cardFeedErrors?.shouldShowRbrForWorkspaceAccountID?.[workspaceAccountID];
+const createCardFeedErrorsSelector = (workspaceAccountID: number) => (cardFeedErrors: CardFeedErrors) => !!cardFeedErrors.shouldShowRbrForWorkspaceAccountID[workspaceAccountID];
 
 const createPolicyErrorsSelector = (connectionSyncProgress: OnyxEntry<PolicyConnectionSyncProgress>) => (policy: OnyxEntry<Policy>) =>
     getUberConnectionErrorDirectlyFromPolicy(policy) ||
@@ -51,7 +51,7 @@ function WorkspaceRowBrickRoadIndicator({policyID}: WorkspaceRowBrickRoadIndicat
     const icons = useMemoizedLazyExpensifyIcons(['DotIndicator']);
     const workspaceAccountID = useWorkspaceAccountID(policyID);
     const [hasReimbursementAccountErrors] = useOnyx(ONYXKEYS.REIMBURSEMENT_ACCOUNT, {selector: hasReimbursementAccountErrorsSelector});
-    const [hasCardFeedErrors] = useOnyx(ONYXKEYS.DERIVED.CARD_FEED_ERRORS, {selector: createCardFeedErrorsSelector(workspaceAccountID)});
+    const hasCardFeedErrors = useCardFeedErrors(createCardFeedErrorsSelector(workspaceAccountID));
     const [connectionSyncProgress] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_CONNECTION_SYNC_PROGRESS}${policyID}`);
     const [hasPolicyErrors] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {selector: createPolicyErrorsSelector(connectionSyncProgress)});
     const [isHRCompleteSetupNeeded] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`, {selector: isMergeHRCompleteSetupNeededSelector});

@@ -4,7 +4,6 @@ import type {ValueOf} from 'type-fest';
 
 import type {OnyxDerivedValueConfig} from './types';
 
-import cardFeedErrorsConfig from './configs/cardFeedErrors';
 import guideAccountIDsConfig from './configs/guideAccountIDs';
 import loginToAccountIDMapConfig from './configs/loginToAccountIDMap';
 import nonPersonalAndWorkspaceCardListConfig from './configs/nonPersonalAndWorkspaceCardList';
@@ -28,7 +27,6 @@ const ONYX_DERIVED_VALUES = {
     [ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS]: visibleReportActionsConfig,
     [ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST]: nonPersonalAndWorkspaceCardListConfig,
     [ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST]: personalAndWorkspaceCardListConfig,
-    [ONYXKEYS.DERIVED.CARD_FEED_ERRORS]: cardFeedErrorsConfig,
     [ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS]: sortedReportActionsConfig,
     [ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP]: loginToAccountIDMapConfig,
     [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS]: guideAccountIDsConfig,

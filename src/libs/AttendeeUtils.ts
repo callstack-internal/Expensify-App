@@ -1,7 +1,7 @@
 import type {LocaleContextProps} from '@components/LocaleContextProvider';
 
 import CONST from '@src/CONST';
-import type {LoginToAccountIDMapDerivedValue, PersonalDetailsList, PolicyCategories} from '@src/types/onyx';
+import type {PersonalDetailsList, PolicyCategories} from '@src/types/onyx';
 import type {Attendee} from '@src/types/onyx/IOU';
 import type {CurrentUserPersonalDetails} from '@src/types/onyx/PersonalDetails';
 
@@ -134,7 +134,7 @@ type AttendeeWithAccountID = Attendee & {accountID?: number};
  */
 function enrichAndSortAttendees(
     attendees: Attendee[] | undefined,
-    loginToAccountIDMap: OnyxEntry<LoginToAccountIDMapDerivedValue>,
+    loginToAccountIDMap: OnyxEntry<Record<string, number>>,
     personalDetailsList: OnyxEntry<PersonalDetailsList>,
     localeCompare: LocaleContextProps['localeCompare'],
 ): AttendeeWithAccountID[] | undefined {

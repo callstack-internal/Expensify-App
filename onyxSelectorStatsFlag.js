@@ -22,12 +22,6 @@ setInterval(() => {
     console.log(
         `SELSTATS ${JSON.stringify({ts: Date.now(), allSelMs: t.selectorMs, eqMs: t.deepEqualMs, runs: t.dataRecomputes + t.identityReruns, wMs: w ? w.selectorMs : 0, wRuns: w ? w.dataRecomputes + w.identityReruns : 0, wChg: w ? w.changed : 0})}`,
     );
-    const d = s.dumpDispatch();
-    const dt = d.reduce((acc, e) => ({n: acc.n + e.dispatches, l: acc.l + e.listeners, ms: acc.ms + e.ms}), {n: 0, l: 0, ms: 0});
-    // eslint-disable-next-line no-console
-    console.log(
-        `SELPATH ${JSON.stringify({recomputes: t.dataRecomputes, top: t.skippable, path: t.pathSkippable, pathDeep: t.pathSkippableDeep, pathMs: t.pathSkippableMs, dispatches: dt.n, listeners: dt.l, dispatchMs: Math.round(dt.ms * 10) / 10})}`,
-    );
     // eslint-disable-next-line no-console
     console.log(
         `SELTOP ${JSON.stringify(

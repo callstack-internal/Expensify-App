@@ -1,3 +1,5 @@
+import createOnyxSelector from '@libs/createOnyxSelector';
+
 import CONST from '@src/CONST';
 import type {ReportNameValuePairs} from '@src/types/onyx';
 
@@ -13,7 +15,9 @@ type ReportNameValuePairsArchivedState = Pick<ReportNameValuePairs, 'private_isA
  * archived state (e.g. to feed `markAllMessagesAsRead`) can subscribe through this selector so they don't
  * re-render whenever unrelated NVP fields (agent-zero indicators, calendly calls, etc.) change.
  */
-function reportNameValuePairsArchivedSelector(reportNameValuePairs: OnyxCollection<ReportNameValuePairs>): OnyxCollection<ReportNameValuePairsArchivedState> {
+const reportNameValuePairsArchivedSelector = createOnyxSelector(function reportNameValuePairsArchivedSelector(
+    reportNameValuePairs: OnyxCollection<ReportNameValuePairs>,
+): OnyxCollection<ReportNameValuePairsArchivedState> {
     if (!reportNameValuePairs) {
         return reportNameValuePairs;
     }
@@ -21,7 +25,7 @@ function reportNameValuePairsArchivedSelector(reportNameValuePairs: OnyxCollecti
         acc[key] = value ? {private_isArchived: value.private_isArchived} : value;
         return acc;
     }, {});
-}
+});
 
 function isAgentZeroProcessingIndicatorMap(indicator: AgentZeroProcessingIndicator): indicator is Record<string, string | null> {
     return typeof indicator === 'object' && indicator !== null && !Array.isArray(indicator);

@@ -1,4 +1,5 @@
 import type {ReportHierarchyInfo} from '@libs/actions/ClearReportActionErrors';
+import createOnyxSelector from '@libs/createOnyxSelector';
 import {getOriginalMessage, isClosedAction} from '@libs/ReportActionsUtils';
 import {
     canShowReportRecipientLocalTime,
@@ -399,9 +400,9 @@ function reportHierarchySelector(report: OnyxEntry<Report>): OnyxEntry<ReportHie
     );
 }
 
-function reportsParentHierarchySelector(reports: OnyxCollection<Report>): OnyxCollection<ReportHierarchyInfo> {
+const reportsParentHierarchySelector = createOnyxSelector(function reportsParentHierarchySelector(reports: OnyxCollection<Report>): OnyxCollection<ReportHierarchyInfo> {
     return mapOnyxCollectionItems(reports, reportHierarchySelector);
-}
+});
 /**
  * Creates a selector returning only the reports for the given IDs, so a consumer that knows the exact
  * reports it needs doesn't re-render when any other report in the account changes.

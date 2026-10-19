@@ -5,6 +5,7 @@ import useOnyx from '@hooks/useOnyx';
 import useTabFocusedRefresh from '@hooks/useTabFocusedRefresh';
 
 import {search} from '@libs/actions/Search';
+import createOnyxSelector from '@libs/createOnyxSelector';
 import {getExpenseCreationIOUActionForTransactionID} from '@libs/ReportActionsUtils';
 import {buildQueryStringFromFilterFormValues, buildSearchQueryJSON} from '@libs/SearchQueryUtils';
 import {getAmount, getCreated, getCurrency, getMerchantName, getTransactionPendingAction} from '@libs/TransactionUtils';
@@ -52,7 +53,7 @@ type RecentlyAddedExpense = {
 };
 
 /** Selecting inside the subscription scans the (very large) collection once per update rather than once per render. */
-const pendingTransactionIDsSelector = (transactions: OnyxCollection<Transaction>): {added: string[]; deleted: string[]} => {
+const pendingTransactionIDsSelector = createOnyxSelector(function pendingTransactionIDsSelector(transactions: OnyxCollection<Transaction>): {added: string[]; deleted: string[]} {
     const added: string[] = [];
     const deleted: string[] = [];
     for (const transaction of Object.values(transactions ?? {})) {
@@ -63,7 +64,7 @@ const pendingTransactionIDsSelector = (transactions: OnyxCollection<Transaction>
         }
     }
     return {added, deleted};
-};
+});
 
 const getLocalTransaction = (localTransactions: OnyxCollection<Transaction>, transactionID: string) => localTransactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`];
 

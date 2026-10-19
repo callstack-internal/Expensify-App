@@ -27,8 +27,50 @@ const getDataByPath = (data: SearchResults['data'], path: string) => {
     return data?.[path as keyof typeof data];
 };
 
+// Snapshot data objects are replaced on write, so results keyed by their identity stay valid and are shared across every row.
+const keyDataCache = new WeakMap<NonNullable<SearchResults['data']>, Map<string, unknown>>();
+
+// Results per selector and key data object, so a snapshot write that leaves this key untouched skips the selector.
+const selectorResultCache = new WeakMap<(...args: never[]) => unknown, WeakMap<object, unknown>>();
+
 // Helper function to get key data from snapshot
 const getKeyData = <TKey extends OnyxKey, TReturnValue>(snapshotData: SearchResults, key: TKey): TReturnValue => {
+    const data = snapshotData?.data;
+    if (!data) {
+        return computeKeyData(snapshotData, key);
+    }
+    let byKey = keyDataCache.get(data);
+    if (!byKey) {
+        byKey = new Map();
+        keyDataCache.set(data, byKey);
+    }
+    if (byKey.has(key)) {
+        return byKey.get(key) as TReturnValue;
+    }
+    const keyData = computeKeyData<TKey, TReturnValue>(snapshotData, key);
+    byKey.set(key, keyData);
+    return keyData;
+};
+
+const selectFromKeyData = <TData, TResult>(selector: (data: TData) => TResult, keyData: TData): TResult => {
+    if (keyData === null || typeof keyData !== 'object') {
+        return selector(keyData);
+    }
+    const selectorKey = selector as (...args: never[]) => unknown;
+    let byKeyData = selectorResultCache.get(selectorKey);
+    if (!byKeyData) {
+        byKeyData = new WeakMap();
+        selectorResultCache.set(selectorKey, byKeyData);
+    }
+    if (byKeyData.has(keyData)) {
+        return byKeyData.get(keyData) as TResult;
+    }
+    const result = selector(keyData);
+    byKeyData.set(keyData, result);
+    return result;
+};
+
+const computeKeyData = <TKey extends OnyxKey, TReturnValue>(snapshotData: SearchResults, key: TKey): TReturnValue => {
     if (key.endsWith('_')) {
         // Create object to store matching entries
         const result: OnyxCollection<TKey> = {};
@@ -92,7 +134,7 @@ const useOnyx: UseOnyxWithoutSnapshots = <TKey extends OnyxKey, TReturnValue = O
     const shouldUseSnapshot = isOnSearch && !!currentSearchHash && isSnapshotCompatibleKey && !shouldUseLiveData;
 
     // Create selector function that handles both regular and snapshot data
-    const selector = !selectorProp || !shouldUseSnapshot ? selectorProp : (data: OnyxValue<OnyxKey> | undefined) => selectorProp(getKeyData(data as SearchResults, key));
+    const selector = !selectorProp || !shouldUseSnapshot ? selectorProp : (data: OnyxValue<OnyxKey> | undefined) => selectFromKeyData(selectorProp, getKeyData(data as SearchResults, key));
 
     const onyxOptions: UseOnyxOptions<OnyxKey, OnyxValue<OnyxKey>> = {...optionsWithoutSelector, selector};
     const snapshotKey = shouldUseSnapshot ? (`${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchHash}` as OnyxKey) : key;

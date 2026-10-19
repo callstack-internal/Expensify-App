@@ -1,6 +1,7 @@
 /**
  * @format
  */
+import './onyxSelectorStatsFlag';
 // import of polyfills should always be first
 import './src/polyfills/NitroFetch';
 import './src/polyfills/PromiseWithResolvers';

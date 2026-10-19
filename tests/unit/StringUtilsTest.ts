@@ -249,4 +249,26 @@ second
             expect(StringUtils.sanitizeName(`  Custom rate  `)).toBe('Custom rate');
         });
     });
+
+    describe('getFirstLine', () => {
+        it('returns only the text before the first newline', () => {
+            // Given a merchant name stored with line breaks, which a transaction row has room for only one line of
+            const text = 'First line\nSecond line\nThird line';
+
+            // When the merchant column resolves the name through getMerchantName
+            const result = StringUtils.getFirstLine(text);
+
+            // Then only the first line reaches the row, so the cell keeps a single-line height
+            expect(result).toBe('First line');
+        });
+
+        it('returns an empty string when there is no text', () => {
+            // Given a transaction with no merchant, which must still render an empty cell
+            // When the merchant column resolves the name
+            const result = StringUtils.getFirstLine();
+
+            // Then callers get an empty string instead of undefined, so they can render it without a guard
+            expect(result).toBe('');
+        });
+    });
 });

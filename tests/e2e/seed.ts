@@ -33,7 +33,7 @@ async function callAPI(command: string, params: Record<string, unknown>, account
 }
 
 async function signUp(): Promise<Account> {
-    const email = `e2e+${Date.now()}${crypto.randomInt(1000)}@tmtestdomain.com`;
+    const email = `e2e+${Date.now()}${crypto.randomInt(1000)}@e2etestdomain.com`;
     const response = await callAPI('SignUpUser', {email, preferredLocale: 'en', deviceInfo: '{}'});
     if (!response.authToken || !response.userMetadata) {
         throw new Error('SignUpUser returned no session');

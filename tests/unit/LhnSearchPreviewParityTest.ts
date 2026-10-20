@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import {act} from '@testing-library/react-native';
+import {act, renderHook} from '@testing-library/react-native';
 
 import type {PrivateIsArchivedMap} from '@hooks/usePrivateIsArchivedMap';
+import useSortedReportActionsData from '@hooks/useSortedReportActionsData';
 
 import {getMovedReportID} from '@libs/ModifiedExpenseMessage';
 import {clearFilteredOptionListCache, createFilteredOptionList, getSearchOptions} from '@libs/OptionsListUtils';
@@ -323,7 +324,7 @@ async function computeBothSurfaces({
         await waitForBatchedUpdatesWithAct();
     }
 
-    const sortedData = await getOnyxValue(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS);
+    const sortedData = renderHook(() => useSortedReportActionsData()).result.current;
     const reportAttributesValue = await getOnyxValue(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
     const reportAttributesDerived = reportAttributesValue?.reports;
 

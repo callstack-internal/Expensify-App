@@ -69,7 +69,6 @@ import type {
     PersonalAndWorkspaceCardListDerivedValue,
     ReportAttributesDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,
-    SortedReportActionsDerivedValue,
     VisibleReportActionsDerivedValue,
 } from './DerivedValues';
 import type DeviceBiometrics from './DeviceBiometrics';
@@ -501,7 +500,6 @@ export type {
     ReportTransactionsAndViolationsDerivedValue,
     OutstandingReportsByPolicyIDDerivedValue,
     VisibleReportActionsDerivedValue,
-    SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,
     CardFeedErrorsDerivedValue,

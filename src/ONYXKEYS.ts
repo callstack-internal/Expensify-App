@@ -1446,7 +1446,6 @@ const ONYXKEYS = {
         NON_PERSONAL_AND_WORKSPACE_CARD_LIST: 'nonPersonalAndWorkspaceCardList',
         PERSONAL_AND_WORKSPACE_CARD_LIST: 'personalAndWorkspaceCardList',
         CARD_FEED_ERRORS: 'cardFeedErrors',
-        RAM_ONLY_SORTED_REPORT_ACTIONS: 'sortedReportActions',
         LOGIN_TO_ACCOUNT_ID_MAP: 'loginToAccountIDMap',
         GUIDE_ACCOUNT_IDS: 'guideAccountIDs',
         SPEND_DATA_SIGNATURE: 'spendDataSignature',
@@ -2031,7 +2030,6 @@ type OnyxDerivedValuesMapping = {
     [ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST]: OnyxTypes.NonPersonalAndWorkspaceCardListDerivedValue;
     [ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST]: OnyxTypes.PersonalAndWorkspaceCardListDerivedValue;
     [ONYXKEYS.DERIVED.CARD_FEED_ERRORS]: OnyxTypes.CardFeedErrorsDerivedValue;
-    [ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS]: OnyxTypes.SortedReportActionsDerivedValue;
     [ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP]: OnyxTypes.LoginToAccountIDMapDerivedValue;
     [ONYXKEYS.DERIVED.SPEND_DATA_SIGNATURE]: OnyxTypes.SpendDataSignatureDerivedValue;
     [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS]: OnyxTypes.GuideAccountIDsDerivedValue;

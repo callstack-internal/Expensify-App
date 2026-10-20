@@ -1,7 +1,8 @@
 // Tripwire fixture for unicorn/prefer-at at production's default options. The repo has two real findings for
 // this rule (both `x[x.length - 1]`) but no `x.slice(-1)[0]`, which is the shape
-// INVESTIGATION DOCS/OXLINT_MIGRATION_INVESTIGATION.md records as an open upstream bug: oxlint reports it
-// twice for one violation. This fixture is the instance the repo never had.
+// INVESTIGATION DOCS/OXLINT_MIGRATION_INVESTIGATION.md records as an upstream bug: oxlint used to report it
+// twice for one violation (oxc#27746 item 6). Fixed in oxlint 1.89.0 (oxc#27762); this fixture is the
+// regression tripwire for that shape.
 
 const numbers = [1, 2, 3];
 

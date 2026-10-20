@@ -33,6 +33,6 @@
         "fixture": "fixtures/unicornPreferAt.ts",
         "oxlintRule": "unicorn/prefer-at",
         "expected": 1,
-        "why": "tripwire for the rule oxlint enables and production ESLint does not, at default options: oxlint does emit two identical diagnostics for the single `slice(-1)[0]` in raw --format json (open upstream double-report), but the harness counts unique (file, line, rule) so the row is plain parity at 1 and the doubling is only visible in oxlint's own error total"
+        "why": "tripwire for the rule oxlint enables and production ESLint does not, at default options: the single `slice(-1)[0]` drew two identical diagnostics in raw --format json until oxlint 1.89.0 fixed the double-report (oxc#27746 item 6, oxc#27762); the harness counts unique (file, line, rule), so the row is plain parity at 1 either way"
     }
 }

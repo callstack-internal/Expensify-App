@@ -255,6 +255,14 @@ be cleaned up.
 - A spec early error makes oxlint skip every rule in the file. 1.87/1.88 add stricter early errors
   (oxc#27220 rejects module syntax in script files), so watch for new parse errors after bumps; none
   appeared at this merge.
+- **Watch:** `unicorn/prefer-at` reports `arr.slice(-1)[0]` twice and misses it on the right of an
+  assignment (oxc#27746 item 6; fix in oxc#27762, open on 2026-10-16). Verified on 1.88.0: the fixture's one
+  `slice(-1)[0]` (`oxlint-migration/port-probe/fixtures/unicornPreferAt.ts:12`) gives two diagnostics.
+  No repo impact expected: the 4 production findings are 2 `x[x.length - 1]` and 2
+  `suggestionWord.substring(0, 1)` (`SuggestionMention.tsx:521,527`), and there is no `.slice(-N)[0]`
+  outside that fixture. When the fix ships, drop the double-report notes from the
+  fixture's comment and its `why` in `fragments/unicornNativeBatch.manifest.json`; the entry itself stays
+  at parity, since the harness counts unique (file, line, rule).
 
 ### 4.5 What 1.87.0 / 1.88.0 / oxc 0.153-0.154 changed for us
 
@@ -292,6 +300,7 @@ at the same file:line:col (PR #98027). The push-to-`main` steps (`oxlint.yml:47`
    diff `config/eslint/eslint.config.mjs` for new rules and ignores, and add a
    `eslint-plugin-local-rules/tests/*.test.js` mirror for any new local rule.
 7. Optional: re-measure type-aware leg memory after oxc#27462; the shard formula may allow more shards.
+8. On the oxlint bump that includes oxc#27762, update the `unicorn/prefer-at` fixture notes (section 4.4).
 
 Known stale: `oxlint-migration/compareNativeCtxValues.py` reads `.oxlintrc.json`; rewrite before use.
 

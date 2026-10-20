@@ -212,14 +212,6 @@ type SortedReportActionsDerivedValue = {
 type PersonalAndWorkspaceCardListDerivedValue = CardList;
 
 /**
- * The derived value mapping each user's login (lowercased) to their accountID.
- *
- * Replaces the imperative `emailToPersonalDetailsCache` login lookup that was built via `Onyx.connect`
- * in `PersonalDetailsUtils` (see issue #66391). Keys are lowercased since logins/emails are case-insensitive.
- */
-type LoginToAccountIDMapDerivedValue = Record<string, number>;
-
-/**
  * The accountIDs of every Expensify Guide known to the personal details list, sorted ascending.
  * Lets callers check for a guide participant without re-scanning the whole list (see issue #66413).
  */
@@ -255,7 +247,6 @@ export type {
     NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,
     CardFeedErrorsDerivedValue,
-    LoginToAccountIDMapDerivedValue,
     GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,
     OneOnOneChatReportIDsDerivedValue,

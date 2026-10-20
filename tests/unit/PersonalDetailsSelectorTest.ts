@@ -6,7 +6,9 @@ import CONST from '@src/CONST';
 import type {PersonalDetails, PersonalDetailsList} from '@src/types/onyx';
 
 import {
+    accountIDsByLoginsSelector,
     createDisplayDetailsByAccountIDsSelector,
+    loginToAccountIDMapSelector,
     multiPersonalDetailsSelector,
     personalDetailsDisplayNameSelector,
     personalDetailsListSelector,
@@ -238,6 +240,110 @@ describe('PersonalDetailsSelector', () => {
         it('should return an empty object when personalDetailsList is undefined', () => {
             const result = createDisplayDetailsByAccountIDsSelector([accountID])(undefined);
             expect(result).toEqual({});
+        });
+    });
+
+    describe('loginToAccountIDMapSelector', () => {
+        const accountID1 = 1;
+        const accountID2 = 2;
+        const login = 'user1@example.com';
+
+        it('should return an empty map when there are no personal details', () => {
+            // Given no personal details, or an empty list
+            // When the login map is selected
+            // Then no login resolves to an account
+            expect(loginToAccountIDMapSelector(undefined)).toEqual({});
+            expect(loginToAccountIDMapSelector({})).toEqual({});
+        });
+
+        it('should key the map by the lowercased login and skip entries without one', () => {
+            // Given a login with capitals next to an entry without a login
+            const list: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login: 'User1@Example.com'},
+                [accountID2]: {accountID: accountID2},
+            };
+
+            // When the login map is selected
+            // Then the login is lowercased, since logins are case-insensitive, and the entry without a login is left out
+            expect(loginToAccountIDMapSelector(list)).toEqual({[login]: accountID1});
+        });
+
+        it('should prefer the live account when a closed merged-away account shares the same login, regardless of order', () => {
+            // Given a live and a closed account with the same login, in both key orders
+            const closedHasHigherAccountID: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login},
+                [accountID2]: {accountID: accountID2, login, isClosed: true},
+            };
+            const closedHasLowerAccountID: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login, isClosed: true},
+                [accountID2]: {accountID: accountID2, login},
+            };
+
+            // When the login map is selected
+            // Then the login resolves to the live account, since the closed one was merged away
+            expect(loginToAccountIDMapSelector(closedHasHigherAccountID)).toEqual({[login]: accountID1});
+            expect(loginToAccountIDMapSelector(closedHasLowerAccountID)).toEqual({[login]: accountID2});
+        });
+
+        it('should prefer the real account when an optimistic personal detail shares the same login, regardless of order', () => {
+            // Given a real account and an optimistic one with the same login, in both key orders
+            const optimisticHasHigherAccountID: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login},
+                [accountID2]: {accountID: accountID2, login, isOptimisticPersonalDetail: true},
+            };
+            const optimisticHasLowerAccountID: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login, isOptimisticPersonalDetail: true},
+                [accountID2]: {accountID: accountID2, login},
+            };
+
+            // When the login map is selected
+            // Then the login resolves to the real account, since the optimistic one is a placeholder
+            expect(loginToAccountIDMapSelector(optimisticHasHigherAccountID)).toEqual({[login]: accountID1});
+            expect(loginToAccountIDMapSelector(optimisticHasLowerAccountID)).toEqual({[login]: accountID2});
+        });
+
+        it('should return the same map for the same personal details list', () => {
+            // Given one personal details list
+            const list: PersonalDetailsList = {[accountID1]: {accountID: accountID1, login}};
+
+            // When the login map is selected twice, as two Search rows do after the same write
+            // Then both get the same object, so the map is built once per list
+            expect(loginToAccountIDMapSelector(list)).toBe(loginToAccountIDMapSelector(list));
+        });
+    });
+
+    describe('accountIDsByLoginsSelector', () => {
+        const accountID1 = 1;
+        const accountID2 = 2;
+        const login1 = 'user1@example.com';
+        const login2 = 'user2@example.com';
+
+        it('should return the accountID of each login in order, with the default ID for unknown or missing logins', () => {
+            // Given two known accounts
+            const list: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login: login1},
+                [accountID2]: {accountID: accountID2, login: login2},
+            };
+
+            // When the accountIDs of two known logins, an unknown login and a missing one are selected
+            // Then each position holds its account, and the rest fall back to the default ID like a failed map lookup did
+            expect(accountIDsByLoginsSelector([login2, login1, 'nobody@example.com', undefined])(list)).toEqual([accountID2, accountID1, CONST.DEFAULT_NUMBER_ID, CONST.DEFAULT_NUMBER_ID]);
+        });
+
+        it('should select a deep-equal array when a user who is not in the logins changes', () => {
+            // Given an attendee and an unrelated user, before and after the unrelated user is renamed
+            const before: PersonalDetailsList = {
+                [accountID1]: {accountID: accountID1, login: login1},
+                [accountID2]: {accountID: accountID2, login: login2, displayName: 'Before'},
+            };
+            const after: PersonalDetailsList = {
+                ...before,
+                [accountID2]: {accountID: accountID2, login: login2, displayName: 'After'},
+            };
+
+            // When the attendee's accountID is selected from both
+            // Then both selections are equal, so useOnyx's deep-equal check skips the Search row re-render
+            expect(accountIDsByLoginsSelector([login1])(after)).toEqual(accountIDsByLoginsSelector([login1])(before));
         });
     });
 });

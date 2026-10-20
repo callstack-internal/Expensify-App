@@ -38,14 +38,13 @@ const onyxDerivedTestSetup = () => {
 const GUIDE_ACCOUNT_ID = 8;
 const MEMBER_ACCOUNT_ID = 1;
 const NEW_GUIDE_ACCOUNT_ID = 9;
-const NEW_MEMBER_ACCOUNT_ID = 2;
 
 const PERSONAL_DETAILS: PersonalDetailsList = {
     [GUIDE_ACCOUNT_ID]: {accountID: GUIDE_ACCOUNT_ID, login: `guide@${CONST.EMAIL.GUIDES_DOMAIN}`, displayName: 'Guide'},
     [MEMBER_ACCOUNT_ID]: {accountID: MEMBER_ACCOUNT_ID, login: 'member@example.com', displayName: 'Member'},
 };
 
-const KEYS_READ_WITHOUT_SELECTOR = [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS, ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP] as const;
+const KEYS_READ_WITHOUT_SELECTOR = [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS] as const;
 
 function renderHookWithoutSelector<TKey extends TupleToUnion<typeof KEYS_READ_WITHOUT_SELECTOR> | typeof ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID>(key: TKey) {
     let renderCount = 0;
@@ -1147,11 +1146,7 @@ describe('OnyxDerived', () => {
             await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[MEMBER_ACCOUNT_ID]: {displayName: 'Renamed member'}});
             await waitForBatchedUpdates();
 
-            // Then both derived keys are written again rather than staying empty until a login set changes
-            expect(await getOnyxValue(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP)).toEqual({
-                [`guide@${CONST.EMAIL.GUIDES_DOMAIN}`]: GUIDE_ACCOUNT_ID,
-                'member@example.com': MEMBER_ACCOUNT_ID,
-            });
+            // Then the derived key is written again rather than staying empty until a login set changes
             expect(await getOnyxValue(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS)).toEqual([GUIDE_ACCOUNT_ID]);
         });
     });
@@ -1176,7 +1171,7 @@ describe('OnyxDerived', () => {
             const [valueBefore] = hook.result.current;
             const rendersBefore = getRenderCount();
 
-            // When a member renames themselves, which leaves both derived values with the same content
+            // When a member renames themselves, which leaves the guide accountIDs with the same content
             await act(async () => {
                 await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {[MEMBER_ACCOUNT_ID]: {displayName: 'Renamed member'}});
             });
@@ -1204,25 +1199,6 @@ describe('OnyxDerived', () => {
             // Then the consumer sees the change, so the stability check above is not passing on a frozen value
             expect(hook.result.current[0]).not.toBe(valueBefore);
             expect(hook.result.current[0]).toEqual([GUIDE_ACCOUNT_ID, NEW_GUIDE_ACCOUNT_ID]);
-        });
-
-        it('should return a new login map when a login is added', async () => {
-            // Given a consumer of the login to accountID map
-            const {hook} = renderHookWithoutSelector(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP);
-            await waitForBatchedUpdatesWithAct();
-            const [valueBefore] = hook.result.current;
-
-            // When a new member's personal details arrive
-            await act(async () => {
-                await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {
-                    [NEW_MEMBER_ACCOUNT_ID]: {accountID: NEW_MEMBER_ACCOUNT_ID, login: 'new.member@example.com'},
-                });
-            });
-            await waitForBatchedUpdatesWithAct();
-
-            // Then the consumer sees the new login
-            expect(hook.result.current[0]).not.toBe(valueBefore);
-            expect(hook.result.current[0]?.['new.member@example.com']).toBe(NEW_MEMBER_ACCOUNT_ID);
         });
     });
 

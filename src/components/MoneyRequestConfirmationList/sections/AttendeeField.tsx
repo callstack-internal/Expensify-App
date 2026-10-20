@@ -5,7 +5,7 @@ import UserPills from '@components/UserPills';
 
 import useAttendees from '@hooks/useAttendees';
 import useLocalize from '@hooks/useLocalize';
-import useOnyx from '@hooks/useOnyx';
+import useLoginToAccountIDMap from '@hooks/useLoginToAccountIDMap';
 
 import {enrichAndSortAttendees} from '@libs/AttendeeUtils';
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
@@ -17,7 +17,6 @@ import {callFunctionIfActionIsAllowed} from '@userActions/Session';
 import CONST from '@src/CONST';
 import type {IOUAction, IOUType} from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
-import ONYXKEYS from '@src/ONYXKEYS';
 import {DYNAMIC_ROUTES} from '@src/ROUTES';
 import type * as OnyxTypes from '@src/types/onyx';
 
@@ -44,7 +43,7 @@ function AttendeeField({formattedAmountPerAttendee, isReadOnly, transactionID, a
     const {shouldUseDropdownRows} = useExpenseFormLayout();
     const {translate, localeCompare} = useLocalize();
     const personalDetailsList = usePersonalDetails();
-    const [loginToAccountIDMap] = useOnyx(ONYXKEYS.DERIVED.LOGIN_TO_ACCOUNT_ID_MAP);
+    const loginToAccountIDMap = useLoginToAccountIDMap();
     const shouldDisplayAttendeesError = formError === 'violations.missingAttendees';
 
     const attendeeSlice = useTransactionSelector(transactionID, attendeeSliceSelector);

@@ -8,7 +8,7 @@ alwaysApply: false
 
 Turn a PR into explore goals, run them against `https://<PR>.pr-testing.expensify.com`, and report what the agent found.
 
-**Write goals (blind) → run in parallel → review findings → report → (evaluation only) score.**
+**Write goals (blind) → run in parallel → review findings → (optional) second round → report → (evaluation only) score.**
 
 ## Prerequisites
 
@@ -35,9 +35,11 @@ This PR's comments, reviews, linked issues, revert PR, or any issue that mention
 
 For each changed component, hook or util, follow imports upward until reaching screens (`src/pages/**`), then map them to routes (`src/ROUTES.ts`, `src/SCREENS.ts`). The result is a list of **entry points**: every screen a user can reach the changed code from, and how to get there. Don't stop at the screens the PR description names; regressions mostly land in the ones it doesn't.
 
+When the diff changes a role or permission, also grep for the role's consumers (for example `ROLE.GUEST`, `isPolicyGuest`) and treat each one as an entry point, not only the callers of the changed function.
+
 ### 1b. List data variants from the diff's branches
 
-Every new or changed `if`, ternary, early return or selector condition becomes a variant to check with matching data: single vs many items, workspace vs personal vs self DM, draft vs submitted vs paid, negative vs positive vs zero amounts, foreign currency, empty states, admin vs member.
+Every new or changed `if`, ternary, early return or selector condition becomes a variant to check with matching data: single vs many items, workspace vs personal vs self DM, draft vs submitted vs paid, negative vs positive vs zero amounts, foreign currency, empty states, admin vs member. Offline is a variant for every write or optimistic update.
 
 ### 1c. Apply change-type rules
 
@@ -47,6 +49,7 @@ Every new or changed `if`, ternary, early return or selector condition becomes a
 | Navigation, lists or position ("x of y", arrows, Back) | Round trips (open → link → Back → Back), opening by direct URL, every entry point, state after removing or moving an item. Every link in a changed header (report subtitle, "From", system message links) is its own entry point: go through it, open something there, then Back twice and recheck |
 | Actions or buttons | Before and after each status change (draft → submitted → paid), bulk selection, narrow width |
 | Writes or optimistic updates | The same action from a second entry point, undo, reopening the item afterwards |
+| A role, permission or membership rule | For everything the role controls (room and chat membership, approver or payer eligibility, report and workspace visibility), set the relationship up first, then change the role, then recheck it from the admin side and, when a fixture allows it, from the affected member's side. Include rooms other than #admins and #announce |
 
 Then check history: `git log --format='%H %s' -- <changed files>` for earlier PRs, and look up deploy blockers from those PRs (only issues created before this PR's `mergedAt`). Turn each into a generic flow ("remove from report, then use the arrows") and add the ones relevant to this diff.
 
@@ -57,7 +60,7 @@ The `seeded` session (`tests/e2e/seed.ts`) gives every run a fresh account with:
 - "E2E Submit Workspace" with draft reports in Spend > Reports: "Fixture A" (Fixture A Cafe $12) and "Fixture B" (Fixture B Shop $5, Fixture B Bakery $9)
 - In the same workspace: "Fixture C", submitted (Fixture C Lunch $15, Fixture C Taxi $22, and Fixture C Hotel $80, which was moved in from Fixture D after submitting, so the report has a "moved" system message), and "Fixture D", a draft with Fixture D Parking $6 (Fixture C Hotel moved out of it and Fixture Loose was removed from it)
 - "Fixture Loose" $4, an unreported expense in the self DM
-- "E2E Collect Workspace" with taxes on (Tax exempt 0%, Tax Rate 1 5%), no expenses
+- "E2E Collect Workspace" with taxes on (Tax exempt 0%, Tax Rate 1 5%) and draft report "Fixture Tax": Fixture Tax Pos ($20, Tax Rate 1), Fixture Tax Neg (-$20, Tax Rate 1), Fixture Tax EUR (-€20, Tax Rate 1) and Fixture Tax Exempt (-$10, Tax exempt)
 - A 1:1 chat with a second account holding a paid "Fixture Pay" ($30) and an outstanding "Fixture Request" ($7.25)
 
 Checks should start from this data. If a variant needs data that doesn't exist and the agent can't cheaply create it, output `missing fixture: <what>` instead of a check, so it can be added to `seed.ts`.
@@ -67,7 +70,7 @@ Checks should start from this data. If a variant needs data that doesn't exist a
 Aim for 6–10 goals, each a single entry point or side flow, so no run runs out of budget before reaching it. Each goal is **at most 1900 characters** (explore rejects goals over 2000). Use this template:
 
 ```
-Hunt for regressions this PR introduced. You are signed in with test data ready; dismiss any popup or cookie banner. Create the specific data a check needs only if the test data below lacks it. Report each defect as an issue with evidence while on screen. If you could not confirm a check, retry it first in the next step; if you still cannot, file a warning saying what is unconfirmed. Leave actions that remove data (Delete, Merge, Move, Remove from report) for last, then reopen what they affected.
+Hunt for regressions this PR introduced. You are signed in with test data ready; dismiss any popup or cookie banner. Create the specific data a check needs only if the test data below lacks it. Report each defect as an issue with evidence while on screen. If you could not confirm a check, retry it first in the next step; if you still cannot, file a warning saying what is unconfirmed. Leave actions that remove data (Delete, Merge, Move, Remove from report) for last, then reopen what they affected. To go offline or back online, use Settings > Troubleshoot > Force offline.
 
 PR: <title>
 Changed: <one line from the diff>
@@ -105,11 +108,17 @@ Read every run's `summary.md` in `.e2e/pr-<PR>-<n>/` and merge findings that des
 - **Tool limit or environment:** needs offline, a new tab or a long press; the screenshot contradicts it; or it comes from the account's currency, locale or staging data.
 - **Missing fixture:** the seed data lacks something real records have; consider adding it to `seed.ts`.
 
-## 4. Report
+## 4. Second round (optional)
+
+Run it when most findings are the same defect, or the assessments' lists of what wasn't reached are long. Parallel goals can't adapt to each other, so the first round often spends its budget on one bug.
+
+Give a new blind goal-writer (same read rules as step 1) the first round's entry points, the findings already reported and each run's assessment. It writes 3–5 goals that skip the reported areas and target the unreached entry points and the 1c rules no goal covered. Run and review them as in steps 2 and 3, numbering them after the first round's goals.
+
+## 5. Report
 
 Bugs first, most severe first: title, expected vs observed, steps, screenshot and video, and the runs that found it. Then the other findings grouped by mark, warnings, and per run: steps used, failed steps, time, tokens. End with the areas no run reached.
 
-## 5. Score (evaluation only)
+## 6. Score (evaluation only)
 
 Only when measuring the tool on an already-merged PR, and only after the goals are written and run:
 

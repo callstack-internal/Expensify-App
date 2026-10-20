@@ -108,6 +108,22 @@ Read every run's `summary.md` in `.e2e/pr-<PR>-<n>/` and merge findings that des
 - **Tool limit or environment:** needs offline, a new tab or a long press; the screenshot contradicts it; or it comes from the account's currency, locale or staging data.
 - **Missing fixture:** the seed data lacks something real records have; consider adding it to `seed.ts`.
 
+Tool limits and wrong expectations in a goal are feedback for the skill, not bugs: add tool limits and intended behavior to the `default` agent's `system` in `e2e.config.ts`, and when a goal stated an expected result the code contradicts, tighten the step 1 rule that produced it.
+
+### Replay each bug on staging
+
+Code reading can't reliably tell whether a bug predates the PR. For each **Bug**, write a short goal that replays its steps and checks the observed behavior, and run it on the build without the PR:
+
+```sh
+npx e2e explore --config e2e.config.ts --target staging --session seeded --max-steps 6 --reporter list,markdown --output .e2e/pr-<PR>-replay-<n> --video on "<replay goal>"
+```
+
+- Reproduces on staging: **pre-existing**.
+- Reproduces only on the PR build: **introduced by this PR**.
+- Can't tell (the replay got blocked or the screen differs): **unconfirmed**, say why.
+
+Staging must not contain the PR yet. For an already-merged PR, check whether staging has it or its revert, and mark the bugs unconfirmed if neither baseline is available.
+
 ## 4. Second round (optional)
 
 Run it when most findings are the same defect, or the assessments' lists of what wasn't reached are long. Parallel goals can't adapt to each other, so the first round often spends its budget on one bug.
@@ -116,7 +132,11 @@ Give a new blind goal-writer (same read rules as step 1) the first round's entry
 
 ## 5. Report
 
-Bugs first, most severe first: title, expected vs observed, steps, screenshot and video, and the runs that found it. Then the other findings grouped by mark, warnings, and per run: steps used, failed steps, time, tokens. End with the areas no run reached.
+Three groups. Nothing is filed or posted automatically; a person decides what to open.
+
+1. **Introduced by this PR**, most severe first: title, expected vs observed, steps, screenshot and video, the staging replay, and the runs that found it. Merge findings with one root cause into one bug and list the rest as its symptoms. Unconfirmed bugs go here too, marked unconfirmed, so a possible regression isn't hidden.
+2. **Found along the way, not caused by this PR**: pre-existing bugs with the same evidence, plus a duplicate search to run before filing (`gh issue list -R Expensify/App --search "<keywords>"`). Minor ones get one line each.
+3. **Run details**: rejected findings in one line each with the reason, warnings, per run steps used, failed steps, time and tokens, and the areas no run reached.
 
 ## 6. Score (evaluation only)
 

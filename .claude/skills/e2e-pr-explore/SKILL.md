@@ -13,7 +13,7 @@ Turn a PR into explore goals, run them against `https://<PR>.pr-testing.expensif
 ## Prerequisites
 
 - The PR has an ad-hoc build. Check it loads (not "Update available"): builds older than the backend's minimum version can't be tested.
-- `ANTHROPIC_API_KEY` is set. Runs use the `default` agent in `tests/e2e/e2e.config.ts`.
+- `ANTHROPIC_API_KEY` is set. Runs use the `default` agent in `tests/e2e/e2e.config.ts` (Sonnet). The `haiku` agent is a cheaper option still being validated: Haiku acts and Sonnet plans each step. Use it only when asked.
 - Run everything from `tests/e2e/`.
 
 ## 1. Write goals (blind)
@@ -94,10 +94,10 @@ Each run uses its own seeded account, so all goals run in parallel, five at a ti
 cd tests/e2e
 while IFS='|' read -r n target; do
   printf '%s\0%s\0' "$n" "$target"
-done < /tmp/e2e-pr/charters-<PR>.txt | xargs -0 -n 2 -P 5 sh -c 'E2E_PR_URL=https://<PR>.pr-testing.expensify.com npx e2e explore --config e2e.config.ts --target "$2" --session seeded --max-steps 12 --timeout 900000 --reporter list,markdown --output .e2e/pr-<PR>-$1 --video on --trace on "$(cat /tmp/e2e-pr/goal-<PR>-$1.txt)" < /dev/null > /tmp/e2e-pr/run-<PR>-$1.log 2>&1' _
+done < /tmp/e2e-pr/charters-<PR>.txt | xargs -0 -n 2 -P 5 sh -c 'E2E_PR_URL=https://<PR>.pr-testing.expensify.com npx e2e explore --config e2e.config.ts --agent <agent> --target "$2" --session seeded --max-steps 12 --timeout 900000 --reporter list,markdown --output .e2e/pr-<PR>-$1 --video on --trace on "$(cat /tmp/e2e-pr/goal-<PR>-$1.txt)" < /dev/null > /tmp/e2e-pr/run-<PR>-$1.log 2>&1' _
 ```
 
-Each run ends after 12 steps, after 3 failed steps in a row, or when the agent decides it's done. Exit code 1 means it filed at least one issue. Each log ends with steps used, tokens and duration.
+Replace `<agent>` with `default`, or `haiku` when asked for the cheaper run. Each run ends after 12 steps, after 3 failed steps in a row, or when the agent decides it's done. Exit code 1 means it filed at least one issue. Each log ends with steps used, tokens and duration.
 
 ## 3. Review
 

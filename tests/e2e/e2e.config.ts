@@ -48,6 +48,14 @@ export default {
             system,
             tools: mobileTools(ios, android),
         },
+        // Cheaper explore runs: Haiku acts, Sonnet plans each step and writes the assessment.
+        haiku: {
+            model: anthropic('claude-haiku-5-5'),
+            judge: anthropic('claude-sonnet-5-5'),
+            providerOptions: {anthropic: {effort: 'low'}},
+            system,
+            tools: mobileTools(ios, android),
+        },
         // Signed in with `npx e2e login openai`; `npx e2e models openai` lists the ids the plan serves.
         luna: {
             model: chatgpt('gpt-6-luna'),

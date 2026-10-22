@@ -42,7 +42,8 @@ function ExpenseFlatSearchView({
     columns,
     canSelectMultiple,
     isActionColumnWide,
-    columnSizeOptions,
+    yearIndicators,
+    amountIndicators,
     isAttendeesEnabledForMovingPolicy,
     nonPersonalAndWorkspaceCards,
     policyCategories,
@@ -137,7 +138,8 @@ function ExpenseFlatSearchView({
             columns={columns}
             type={type}
             isActionColumnWide={isActionColumnWide}
-            columnSizeOptions={columnSizeOptions}
+            yearIndicators={yearIndicators}
+            amountIndicators={amountIndicators}
             isHeaderVisible={!!searchTableHeader}
             dataKey={data}
             data={data}

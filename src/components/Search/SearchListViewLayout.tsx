@@ -1,7 +1,8 @@
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 
-import type {GetReportTableColumnStylesParams} from '@styles/utils';
+import type {getWideAmountIndicators, shouldShowYear} from '@libs/SearchUIUtils';
+import {getSearchColumnSizeOptions} from '@libs/SearchUIUtils';
 
 import type {CardList, PolicyCategories, PolicyTagLists} from '@src/types/onyx';
 
@@ -29,8 +30,11 @@ type SearchListViewLayoutProps = {
     /** Whether the action column uses its wider variant. */
     isActionColumnWide: boolean;
 
-    /** Which columns render in their wider variant, decided across the whole search and shared with the column header. */
-    columnSizeOptions: GetReportTableColumnStylesParams;
+    /** Which date columns render in their wider variant, decided across the whole search and shared with the column header. */
+    yearIndicators: ReturnType<typeof shouldShowYear>;
+
+    /** Which amount columns render in their wider variant, decided across the whole search and shared with the column header. */
+    amountIndicators: ReturnType<typeof getWideAmountIndicators>;
 
     /** Whether a column header is present (gates horizontal scroll). */
     isHeaderVisible: boolean;
@@ -71,7 +75,8 @@ function SearchListViewLayout({
     columns,
     type,
     isActionColumnWide,
-    columnSizeOptions,
+    yearIndicators,
+    amountIndicators,
     isHeaderVisible,
     dataKey,
     isKeyboardShown,
@@ -94,9 +99,17 @@ function SearchListViewLayout({
         tableWidth,
         // A header is only rendered in the table layout. Narrow layouts render rows as cards with no columns to size.
         isEnabled: isHeaderVisible && !!data,
-        columnSizeOptions,
-        measurementContext: {nonPersonalAndWorkspaceCards, policyCategories, policyTags},
+        isActionColumnWide,
+        yearIndicators,
+        amountIndicators,
+        nonPersonalAndWorkspaceCards,
+        policyCategories,
+        policyTags,
     });
+
+    // Built after the last hook call: React Compiler can't keep a value cached across one, and this feeds the column
+    // widths context every row reads, so a new object each render re-renders every row.
+    const columnSizeOptions = getSearchColumnSizeOptions(isActionColumnWide, yearIndicators, amountIndicators);
 
     // The scroller decides whether to scroll by summing what each column refuses to shrink below, which it otherwise has
     // to estimate. Every minimum it can be told exactly is resolved here instead: a dynamic column measured its own, and

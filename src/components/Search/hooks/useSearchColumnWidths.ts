@@ -8,7 +8,6 @@ import useLocalize from '@hooks/useLocalize';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 
-import type {SearchColumnMeasurementContext} from '@libs/getSearchColumnContentToMeasure';
 import getSearchColumnContentToMeasure, {
     DYNAMICALLY_SIZED_SEARCH_COLUMNS,
     getSearchColumnEditButtonReserve,
@@ -18,13 +17,16 @@ import getSearchColumnContentToMeasure, {
 } from '@libs/getSearchColumnContentToMeasure';
 import measureTextWidth, {canMeasureText} from '@libs/measureTextWidth';
 import createWidestTextMeasurer from '@libs/measureTextWidth/widestTextMeasurer';
-import {getSearchTableRowInsetWidth} from '@libs/SearchUIUtils';
+import type {getWideAmountIndicators, shouldShowYear} from '@libs/SearchUIUtils';
+import {getSearchColumnSizeOptions, getSearchTableRowInsetWidth} from '@libs/SearchUIUtils';
 
 import {textVariants} from '@styles/typography';
-import type {GetReportTableColumnStylesParams} from '@styles/utils';
 import variables from '@styles/variables';
 
 import CONST from '@src/CONST';
+import type {CardList, PolicyCategories, PolicyTagLists} from '@src/types/onyx';
+
+import type {OnyxCollection} from 'react-native-onyx';
 
 const {MIN_FREE_TEXT_COLUMN_WIDTH, MAX_FREE_TEXT_COLUMN_WIDTH} = CONST.TABLES.DYNAMIC_COLUMNS;
 
@@ -79,10 +81,15 @@ type UseSearchColumnWidthsParams = {
     isEnabled: boolean;
 
     /** Which columns render in their wider variant, so the fixed columns are subtracted at the width they really take. */
-    columnSizeOptions?: GetReportTableColumnStylesParams;
+    isActionColumnWide: boolean;
+    yearIndicators: ReturnType<typeof shouldShowYear>;
+    amountIndicators: ReturnType<typeof getWideAmountIndicators>;
 
-    /** Data some columns need to resolve their text, read once at the list level rather than per row. */
-    measurementContext?: SearchColumnMeasurementContext;
+    /** Data some columns need to resolve their text, read once at the list level rather than per row. Passed as the
+     * Onyx values themselves rather than one wrapping object, which would be new on every render and re-measure every row. */
+    nonPersonalAndWorkspaceCards?: CardList;
+    policyCategories?: OnyxCollection<PolicyCategories>;
+    policyTags?: OnyxCollection<PolicyTagLists>;
 };
 
 /**
@@ -103,8 +110,12 @@ function useSearchColumnWidths({
     data,
     tableWidth,
     isEnabled,
-    columnSizeOptions,
-    measurementContext,
+    isActionColumnWide,
+    yearIndicators,
+    amountIndicators,
+    nonPersonalAndWorkspaceCards,
+    policyCategories,
+    policyTags,
 }: UseSearchColumnWidthsParams): Partial<Record<SearchColumnType, SearchColumnSizing>> {
     const {translate} = useLocalize();
     const styles = useThemeStyles();
@@ -123,6 +134,7 @@ function useSearchColumnWidths({
         return noColumnSizing;
     }
 
+    const columnSizeOptions = getSearchColumnSizeOptions(isActionColumnWide, yearIndicators, amountIndicators);
     let fixedColumnsWidth = 0;
 
     for (const column of columns) {
@@ -130,7 +142,7 @@ function useSearchColumnWidths({
             continue;
         }
 
-        const declaredWidth = StyleUtils.getReportTableColumnStyles(column, columnSizeOptions ?? {}).width;
+        const declaredWidth = StyleUtils.getReportTableColumnStyles(column, columnSizeOptions).width;
 
         // A column styled with flex alone declares no width, so it can't be subtracted from the budget and the whole
         // table keeps its existing layout rather than being sized from a budget that is wrong.
@@ -158,6 +170,7 @@ function useSearchColumnWidths({
 
     // A measurer per column, filled in one pass over the rows rather than one pass per column, so the row array is
     // walked once however many columns the table shows.
+    const measurementContext = {nonPersonalAndWorkspaceCards, policyCategories, policyTags};
     const measurersByColumn = new Map(dynamicColumns.map((column) => [column, createWidestTextMeasurer()]));
 
     for (const item of data) {

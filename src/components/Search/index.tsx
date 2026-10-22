@@ -114,7 +114,6 @@ import ExpenseFlatSearchView from './ExpenseFlatSearchView';
 import ExpenseGroupedSearchView from './ExpenseGroupedSearchView';
 import ExpenseReportSearchView from './ExpenseReportSearchView';
 import useLiveRowLimit from './hooks/useLiveRowLimit';
-import useSearchColumnSizeOptions from './hooks/useSearchColumnSizeOptions';
 import useSearchSnapshot from './hooks/useSearchSnapshot';
 import useShouldShowBulkActionBar from './hooks/useShouldShowBulkActionBar';
 import SearchChartView from './SearchChartView';
@@ -1272,14 +1271,6 @@ function Search({
         [searchResults?.data],
     );
 
-    // The same flags the column header is built from, so a row and its heading can't disagree about how wide a
-    // column is. Read once here because they are decided across the whole search, not from the rows currently loaded.
-    const columnSizeOptions = useSearchColumnSizeOptions({
-        isActionColumnWide: isTask || hasDeletedTransaction,
-        ...yearIndicators,
-        ...amountIndicators,
-    });
-
     const onSortPress = useCallback(
         (column: SearchSortBy, order: SortOrder) => {
             clearSelectedTransactions();
@@ -1539,7 +1530,8 @@ function Search({
         newTransactions,
         hasLoadedAllTransactions,
         isActionColumnWide: isTask || hasDeletedTransaction,
-        columnSizeOptions,
+        yearIndicators,
+        amountIndicators,
     };
 
     let searchListContent: React.JSX.Element;

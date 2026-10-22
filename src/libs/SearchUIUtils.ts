@@ -62,6 +62,7 @@ import type {ListItem} from '@components/SelectionList/types';
 import type {FeedKeysWithAssignedCards} from '@hooks/useFeedKeysWithAssignedCards';
 
 import type {ThemeColors} from '@styles/theme/types';
+import type {GetReportTableColumnStylesParams} from '@styles/utils';
 import variables from '@styles/variables';
 
 import CONST, {HAS_VALUE_TRANSLATION_KEYS} from '@src/CONST';
@@ -1151,6 +1152,25 @@ function buildLastExportedActionByReportIDMap(data: OnyxTypes.SearchResults['dat
         }
     }
     return lastExportedActionByReportID;
+}
+
+/** Which Search table columns take their wider variant, so a row and its heading agree on every column's width. */
+function getSearchColumnSizeOptions(
+    isActionColumnWide: boolean,
+    yearIndicators: ShouldShowYearResult,
+    amountIndicators: ReturnType<typeof getWideAmountIndicators>,
+): GetReportTableColumnStylesParams {
+    return {
+        isActionColumnWide,
+        isDateColumnWide: yearIndicators.shouldShowYearCreated,
+        isSubmittedColumnWide: yearIndicators.shouldShowYearSubmitted,
+        isApprovedColumnWide: yearIndicators.shouldShowYearApproved,
+        isPostedColumnWide: yearIndicators.shouldShowYearPosted,
+        isExportedColumnWide: yearIndicators.shouldShowYearExported,
+        isWithdrawnColumnWide: yearIndicators.shouldShowYearWithdrawn,
+        isAmountColumnWide: amountIndicators.shouldShowAmountInWideColumn,
+        isTaxAmountColumnWide: amountIndicators.shouldShowTaxAmountInWideColumn,
+    };
 }
 
 /**
@@ -7470,6 +7490,7 @@ export {
     isTransactionListItemType,
     isReportActionListItemType,
     shouldShowYear,
+    getSearchColumnSizeOptions,
     getOverflowMenu,
     getLastSearchQuery,
     isCorrectSearchUserName,

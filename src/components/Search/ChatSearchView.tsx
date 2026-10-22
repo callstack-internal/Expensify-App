@@ -37,7 +37,8 @@ function ChatSearchView({
     columns,
     canSelectMultiple,
     isActionColumnWide,
-    columnSizeOptions,
+    yearIndicators,
+    amountIndicators,
     isMobileSelectionModeEnabled,
     SearchTableHeader: searchTableHeader,
     tableHeaderVisible,
@@ -92,7 +93,8 @@ function ChatSearchView({
             columns={columns}
             type={type}
             isActionColumnWide={isActionColumnWide}
-            columnSizeOptions={columnSizeOptions}
+            yearIndicators={yearIndicators}
+            amountIndicators={amountIndicators}
             isHeaderVisible={!!searchTableHeader}
             dataKey={data}
             isKeyboardShown={isKeyboardShown}

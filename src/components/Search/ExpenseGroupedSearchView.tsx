@@ -101,7 +101,8 @@ function ExpenseGroupedSearchView({
     columns,
     canSelectMultiple,
     isActionColumnWide,
-    columnSizeOptions,
+    yearIndicators,
+    amountIndicators,
     isAttendeesEnabledForMovingPolicy,
     nonPersonalAndWorkspaceCards,
     isMobileSelectionModeEnabled,
@@ -330,7 +331,8 @@ function ExpenseGroupedSearchView({
             columns={columns}
             type={type}
             isActionColumnWide={isActionColumnWide}
-            columnSizeOptions={columnSizeOptions}
+            yearIndicators={yearIndicators}
+            amountIndicators={amountIndicators}
             isHeaderVisible={!!searchTableHeader}
             dataKey={data}
             isKeyboardShown={isKeyboardShown}

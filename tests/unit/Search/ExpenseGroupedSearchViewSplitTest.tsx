@@ -171,7 +171,15 @@ function renderView(data: SearchListItem[]) {
                 columns={columns}
                 canSelectMultiple={false}
                 isActionColumnWide={false}
-                columnSizeOptions={{}}
+                yearIndicators={{
+                    shouldShowYearCreated: false,
+                    shouldShowYearSubmitted: false,
+                    shouldShowYearApproved: false,
+                    shouldShowYearPosted: false,
+                    shouldShowYearExported: false,
+                    shouldShowYearWithdrawn: false,
+                }}
+                amountIndicators={{shouldShowAmountInWideColumn: false, shouldShowTaxAmountInWideColumn: false}}
                 isMobileSelectionModeEnabled={false}
                 tableHeaderVisible={false}
                 hasLoadedAllTransactions

@@ -1,7 +1,6 @@
 import type {TransactionPreviewData} from '@libs/actions/Search';
 import type {ModifiedMouseEvent} from '@libs/Navigation/helpers/openInternalRouteInNewTab';
-
-import type {GetReportTableColumnStylesParams} from '@styles/utils';
+import type {getWideAmountIndicators, shouldShowYear} from '@libs/SearchUIUtils';
 
 import type {CardList, PolicyCategories, PolicyTagLists, Transaction} from '@src/types/onyx';
 
@@ -33,11 +32,13 @@ type CommonSearchViewProps = {
     isActionColumnWide: boolean;
 
     /**
-     * Which columns render in their wider variant, decided across the whole search rather than per row: a date carrying
-     * a year, an amount long enough to need the room. The column header already sizes itself from these, so the rows
-     * have to read the same ones or they line up against a header of a different width.
+     * Which date and amount columns render in their wider variant, decided across the whole search rather than per row.
+     * The column header already sizes itself from these, so the rows have to read the same ones or they line up against
+     * a header of a different width. Passed as the router's stable objects so the table can build its column options
+     * without handing every row a new context value.
      */
-    columnSizeOptions: GetReportTableColumnStylesParams;
+    yearIndicators: ReturnType<typeof shouldShowYear>;
+    amountIndicators: ReturnType<typeof getWideAmountIndicators>;
 
     isMobileSelectionModeEnabled: boolean;
 

@@ -182,7 +182,15 @@ function renderView(overrides: RenderOverrides = {}) {
                 columns={columns}
                 canSelectMultiple={overrides.canSelectMultiple ?? false}
                 isActionColumnWide={false}
-                columnSizeOptions={{}}
+                yearIndicators={{
+                    shouldShowYearCreated: false,
+                    shouldShowYearSubmitted: false,
+                    shouldShowYearApproved: false,
+                    shouldShowYearPosted: false,
+                    shouldShowYearExported: false,
+                    shouldShowYearWithdrawn: false,
+                }}
+                amountIndicators={{shouldShowAmountInWideColumn: false, shouldShowTaxAmountInWideColumn: false}}
                 isMobileSelectionModeEnabled={overrides.isMobileSelectionModeEnabled ?? false}
                 tableHeaderVisible={overrides.tableHeaderVisible ?? false}
                 hasLoadedAllTransactions={overrides.hasLoadedAllTransactions ?? true}

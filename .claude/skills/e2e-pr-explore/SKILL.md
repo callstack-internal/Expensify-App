@@ -47,7 +47,7 @@ Every new or changed `if`, ternary, early return or selector condition becomes a
 | --- | --- |
 | A computed or displayed value | Every other place it shows: system messages in the thread, previews, Search columns, report totals, after editing, after reload |
 | Navigation, lists or position ("x of y", arrows, Back) | Round trips (open → link → Back → Back), opening by direct URL, every entry point, state after removing or moving an item. Every link in a changed header (report subtitle, "From", system message links) is its own entry point: go through it, open something there, then Back twice and recheck |
-| Actions or buttons | Before and after each status change (draft → submitted → paid), bulk selection, narrow width |
+| Actions or buttons | Before and after each status change (draft → submitted → paid), bulk selection |
 | Writes or optimistic updates | The same action from a second entry point, undo, reopening the item afterwards |
 | A role, permission or membership rule | For everything the role controls (room and chat membership, approver or payer eligibility, report and workspace visibility), set the relationship up first, then change the role, then recheck it from the admin side and, when a fixture allows it, from the affected member's side. Include rooms other than #admins and #announce |
 
@@ -65,9 +65,9 @@ The `seeded` session (`tests/e2e/seed.ts`) gives every run a fresh account with:
 
 Checks should start from this data. If a variant needs data that doesn't exist and the agent can't cheaply create it, output `missing fixture: <what>` instead of a check, so it can be added to `seed.ts`.
 
-### 1e. Write one goal per entry point
+### 1e. Write one goal per critical path
 
-Aim for 6–10 goals, each a single entry point or side flow, so no run runs out of budget before reaching it. Each goal is **at most 1900 characters** (explore rejects goals over 2000). Use this template:
+From the entry points, variants and rules above, pick the user flows most likely to break and that would hurt most if they did, for example submitting a report, paying, or changing a member's role and using the workspace afterwards. Decide the number from what the change puts at risk, not from the size of the diff: a one-line change to a shared helper can need many goals, and a large change to one screen can need few. Write one goal for each distinct critical flow the change can break and stop there; don't add goals to reach a count or to repeat a flow another goal covers. Write at most 10. Each goal is one such path, end to end, with the variants that matter for it. A path can stay on one screen when that's where the risk is; don't spread a goal across screens just to touch them all. Entry points no goal covers go in the run notes as not tested. Each goal is **at most 1900 characters** (explore rejects goals over 2000). Use this template:
 
 ```
 Hunt for regressions this PR introduced. You are signed in with test data ready; dismiss any popup or cookie banner. Create the specific data a check needs only if the test data below lacks it. Report each defect as an issue with evidence while on screen. If you could not confirm a check, retry it first in the next step; if you still cannot, file a warning saying what is unconfirmed. Leave actions that remove data (Delete, Merge, Move, Remove from report) for last, then reopen what they affected. To go offline or back online, use Settings > Troubleshoot > Force offline.
@@ -77,18 +77,18 @@ Changed: <one line from the diff>
 
 Test data: <only the fixtures this goal uses>
 
-Entry point: <screen and how to reach it>
+Path: <the flow, where it starts and how to reach it>
 1. <check: action + expected result>
 2. ...
 
-After every navigation (open, arrow, link, Back), check the header counter and title match the screen and Back returns where you came from. Use all your steps: when the checks are done, do round trips from this entry point into other screens and back, and repeat the state checks. In the assessment, list what you tried and what worked.
+After every navigation (open, arrow, link, Back), check the header counter and title match the screen and Back returns where you came from. In the assessment, list what you tried and what worked.
 ```
 
 Write the goals to `/tmp/e2e-pr/goal-<PR>-<n>.txt` and a line per goal to `/tmp/e2e-pr/charters-<PR>.txt` as `n|target`.
 
 ## 2. Run
 
-Each run uses its own seeded account, so all goals run in parallel, five at a time. Use `--target pr` for desktop width and `--target pr-mobile` for any goal that needs narrow width.
+Each run uses its own seeded account, so all goals run in parallel, five at a time. Use `--target pr` for every goal. Add one `--target pr-mobile` goal only when the diff changes layout or code that behaves differently at narrow width (`shouldUseNarrowLayout`, `isSmallScreenWidth`, `useResponsiveLayout`, the bottom tab bar, RHP vs full-screen pages); otherwise skip narrow width.
 
 ```sh
 cd tests/e2e

@@ -81,7 +81,6 @@ import type {SearchFullscreenNavigatorParamList} from '@navigation/types';
 
 import EmptySearchView from '@pages/Search/EmptySearchView';
 
-import type {GetReportTableColumnStylesParams} from '@styles/utils';
 import variables from '@styles/variables';
 
 import CONST from '@src/CONST';
@@ -115,6 +114,7 @@ import ExpenseFlatSearchView from './ExpenseFlatSearchView';
 import ExpenseGroupedSearchView from './ExpenseGroupedSearchView';
 import ExpenseReportSearchView from './ExpenseReportSearchView';
 import useLiveRowLimit from './hooks/useLiveRowLimit';
+import useSearchColumnSizeOptions from './hooks/useSearchColumnSizeOptions';
 import useSearchSnapshot from './hooks/useSearchSnapshot';
 import useShouldShowBulkActionBar from './hooks/useShouldShowBulkActionBar';
 import SearchChartView from './SearchChartView';
@@ -1272,6 +1272,14 @@ function Search({
         [searchResults?.data],
     );
 
+    // The same flags the column header is built from, so a row and its heading can't disagree about how wide a
+    // column is. Read once here because they are decided across the whole search, not from the rows currently loaded.
+    const columnSizeOptions = useSearchColumnSizeOptions({
+        isActionColumnWide: isTask || hasDeletedTransaction,
+        ...yearIndicators,
+        ...amountIndicators,
+    });
+
     const onSortPress = useCallback(
         (column: SearchSortBy, order: SortOrder) => {
             clearSelectedTransactions();
@@ -1511,20 +1519,6 @@ function Search({
                 isLoadMore
             />
         ) : undefined;
-
-    // The same flags the column header above is built from, so a row and its heading can't disagree about how wide a
-    // column is. Read once here because they are decided across the whole search, not from the rows currently loaded.
-    const columnSizeOptions: GetReportTableColumnStylesParams = {
-        isActionColumnWide: isTask || hasDeletedTransaction,
-        isDateColumnWide: shouldShowYearCreated,
-        isSubmittedColumnWide: shouldShowYearSubmitted,
-        isApprovedColumnWide: shouldShowYearApproved,
-        isPostedColumnWide: shouldShowYearPosted,
-        isExportedColumnWide: shouldShowYearExported,
-        isWithdrawnColumnWide: shouldShowYearWithdrawn,
-        isAmountColumnWide: shouldShowAmountInWideColumn,
-        isTaxAmountColumnWide: shouldShowTaxAmountInWideColumn,
-    };
 
     const commonViewProps: CommonSearchViewProps = {
         queryJSON,

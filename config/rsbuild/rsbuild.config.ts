@@ -34,7 +34,9 @@ switch (process.env.ENV) {
 
 export default defineConfig(async ({command}) => {
     const isDevServer = command === 'dev';
-    const common: RsbuildConfig = await getCommonConfiguration({file: envFile, platform: 'web', isDevServer});
+    // Local perf measurement only (expensify-issues#3042): PERF_PROD=1 serves a production bundle from the dev server.
+    const isPerfProd = process.env.PERF_PROD === '1';
+    const common: RsbuildConfig = await getCommonConfiguration({file: envFile, platform: 'web', isDevServer: isDevServer && !isPerfProd});
 
     if (!isDevServer) {
         return {
@@ -59,6 +61,8 @@ export default defineConfig(async ({command}) => {
         dev: {
             client: {overlay: false},
             lazyCompilation: false,
+            hmr: !isPerfProd,
+            liveReload: !isPerfProd,
         },
         source: {
             ...common.source,
@@ -101,7 +105,9 @@ export default defineConfig(async ({command}) => {
                 const afterCommon = (typeof commonRspackTool === 'function' ? (commonRspackTool(config, utils) ?? config) : config) as typeof config;
 
                 afterCommon.plugins ??= [];
-                afterCommon.plugins.push(new ReactRefreshRspackPlugin());
+                if (!isPerfProd) {
+                    afterCommon.plugins.push(new ReactRefreshRspackPlugin());
+                }
 
                 return afterCommon;
             },

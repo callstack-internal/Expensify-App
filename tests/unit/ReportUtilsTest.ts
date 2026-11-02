@@ -6316,7 +6316,7 @@ describe('ReportUtils', () => {
                 const connection = Onyx.connect({
                     key: `${ONYXKEYS.COLLECTION.REPORT}${expenseReport.reportID}`,
                     callback: (report) => {
-                        Onyx.disconnect(connection);
+                        connection.unsubscribe();
                         resolve(report);
                     },
                 });
@@ -6325,7 +6325,7 @@ describe('ReportUtils', () => {
                 const connection = Onyx.connect({
                     key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${expenseReport.reportID}`,
                     callback: (reportActions) => {
-                        Onyx.disconnect(connection);
+                        connection.unsubscribe();
                         resolve(reportActions?.[expenseCreatedAction.reportActionID]);
                     },
                 });
@@ -6334,7 +6334,7 @@ describe('ReportUtils', () => {
                 const connection = Onyx.connect({
                     key: `${ONYXKEYS.COLLECTION.TRANSACTION}${expenseTransaction.transactionID}`,
                     callback: (transaction) => {
-                        Onyx.disconnect(connection);
+                        connection.unsubscribe();
                         resolve(transaction);
                     },
                 });
@@ -6669,7 +6669,7 @@ describe('ReportUtils', () => {
                 const connection = Onyx.connectWithoutView({
                     key: `${ONYXKEYS.SESSION}`,
                     callback: () => {
-                        Onyx.disconnect(connection);
+                        connection.unsubscribe();
                         resolve();
                     },
                 });
@@ -6819,7 +6819,7 @@ describe('ReportUtils', () => {
                 const connection = Onyx.connectWithoutView({
                     key: `${ONYXKEYS.SESSION}`,
                     callback: () => {
-                        Onyx.disconnect(connection);
+                        connection.unsubscribe();
                         resolve();
                     },
                 });
@@ -6866,7 +6866,7 @@ describe('ReportUtils', () => {
                 const connection = Onyx.connectWithoutView({
                     key: `${ONYXKEYS.SESSION}`,
                     callback: () => {
-                        Onyx.disconnect(connection);
+                        connection.unsubscribe();
                         resolve();
                     },
                 });

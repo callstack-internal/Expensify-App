@@ -1,20 +1,15 @@
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Report} from '@src/types/onyx';
-
-import type {OnyxCollection} from 'react-native-onyx';
 
 import {getOneOnOneChatReportID} from '@selectors/OneOnOneChatReportID';
-import {accountIDSelector} from '@selectors/Session';
+import {useOnyxState} from 'react-native-onyx';
 
-import useOnyx from './useOnyx';
+const ONE_ON_ONE_CHAT_REPORT_ID_DEPENDENCIES = [ONYXKEYS.COLLECTION.REPORT, ONYXKEYS.SESSION] as const;
 
 /** Returns the reportID of the 1:1 or system chat with exactly these participants. */
 function useOneOnOneChatReportID(participantsChatKey: string | undefined): string | undefined {
-    const [currentUserAccountID] = useOnyx(ONYXKEYS.SESSION, {selector: accountIDSelector});
-    const [reportID] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {
-        selector: (reports: OnyxCollection<Report>) => (participantsChatKey ? getOneOnOneChatReportID(reports, currentUserAccountID, participantsChatKey) : undefined),
+    return useOnyxState((state) => (participantsChatKey ? getOneOnOneChatReportID(state[ONYXKEYS.COLLECTION.REPORT], state[ONYXKEYS.SESSION]?.accountID, participantsChatKey) : undefined), {
+        dependencies: ONE_ON_ONE_CHAT_REPORT_ID_DEPENDENCIES,
     });
-    return reportID;
 }
 
 export default useOneOnOneChatReportID;

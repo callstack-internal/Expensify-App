@@ -429,6 +429,29 @@ function reportParentChainSelector(reportID: string | undefined) {
 }
 
 /**
+ * Returns the report without the fields that change on every read or new message (last read time, last message
+ * preview), so consumers that only need the report's identity and structure keep the same value across those writes.
+ */
+function reportWithoutLastActivitySelector(report: OnyxEntry<Report>): OnyxEntry<Report> {
+    if (!report) {
+        return undefined;
+    }
+    const {
+        lastReadTime,
+        lastReadSequenceNumber,
+        lastMentionedTime,
+        lastVisibleActionCreated,
+        lastVisibleActionLastModified,
+        lastMessageText,
+        lastMessageHtml,
+        lastActorAccountID,
+        lastActionType,
+        ...reportWithoutLastActivity
+    } = report;
+    return reportWithoutLastActivity;
+}
+
+/**
  * Creates a selector returning only the reports for the given IDs, so a consumer that knows the exact
  * reports it needs doesn't re-render when any other report in the account changes.
  */
@@ -444,6 +467,7 @@ const reportsByIDsSelector =
     };
 
 export {
+    reportWithoutLastActivitySelector,
     getArchiveReason,
     getReportChatType,
     getReportType,

@@ -3,14 +3,14 @@ import {getOneTransactionThreadReportID, withDEWRoutedActionsObject} from '@libs
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {OnyxInputOrEntry, ReportAction, ReportActions} from '@src/types/onyx';
-
-import type {OnyxEntry} from 'react-native-onyx';
+import type {OnyxInputOrEntry, ReportAction} from '@src/types/onyx';
 
 import {reportTypeAndParentIDsSelector} from '@selectors/Report';
+import {useOnyxState} from 'react-native-onyx';
 
 import useNetwork from './useNetwork';
 import useOnyx from './useOnyx';
+import useOnyxStateSnapshotKey, {getSnapshotAwareValue} from './useOnyxStateSnapshotKey';
 import useReportTransactionsCollection from './useReportTransactionsCollection';
 
 /**
@@ -30,17 +30,20 @@ function useOriginalReportID(reportID: string | undefined, reportAction: OnyxInp
     const reportActionID = reportAction?.reportActionID;
     const isThreadReportParentAction = reportAction?.childReportID?.toString() === reportID;
 
-    const reportActionBelongsCurrentReportSelector = (actions: OnyxEntry<ReportActions>) => {
-        if (!reportActionID) {
-            return false;
-        }
-        if (Object.keys(actions?.[reportActionID] ?? {}).length > 0) {
-            return true;
-        }
-        return Object.keys(withDEWRoutedActionsObject(actions)?.[reportActionID] ?? {}).length > 0;
-    };
-    const [reportActionBelongsCurrentReport = false] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {selector: reportActionBelongsCurrentReportSelector});
-    const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: reportTypeAndParentIDsSelector});
+    const snapshotKey = useOnyxStateSnapshotKey();
+    const reportKey = `${ONYXKEYS.COLLECTION.REPORT}${reportID}` as const;
+    const reportActionsKey = `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}` as const;
+    const {reportActionBelongsCurrentReport, report} = useOnyxState(
+        (state) => {
+            const actions = getSnapshotAwareValue(state, snapshotKey, reportActionsKey);
+            let belongs = false;
+            if (reportActionID) {
+                belongs = Object.keys(actions?.[reportActionID] ?? {}).length > 0 || Object.keys(withDEWRoutedActionsObject(actions)?.[reportActionID] ?? {}).length > 0;
+            }
+            return {reportActionBelongsCurrentReport: belongs, report: reportTypeAndParentIDsSelector(getSnapshotAwareValue(state, snapshotKey, reportKey))};
+        },
+        {dependencies: snapshotKey ? [snapshotKey] : [reportKey, reportActionsKey]},
+    );
 
     // The full actions, chat report and transactions are only needed to find a merged transaction thread, so rows whose action is in the current report don't subscribe to them
     const lookupReportID = reportID && !reportActionBelongsCurrentReport && !isThreadReportParentAction && reportActionID ? reportID : undefined;

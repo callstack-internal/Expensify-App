@@ -201,7 +201,7 @@
     "react-native-nitro-image": "0.15.2",
     "react-native-nitro-modules": "0.37.1",
     "react-native-nitro-sqlite": "10.2.0",
-    "react-native-onyx": "git+https://github.com/callstack-internal/react-native-onyx.git#d27c55fd2ad276c46a8aa7721368997b8960ef1f",
+    "react-native-onyx": "git+https://github.com/callstack-internal/react-native-onyx.git#ed43f69fc042bb63dbd8649f0bae0a728e0c0b19",
     "react-native-pager-view": "9.0.4",
     "react-native-pdf": "7.0.2",
     "react-native-permissions": "^5.4.0",

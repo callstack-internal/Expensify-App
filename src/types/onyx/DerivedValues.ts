@@ -188,11 +188,6 @@ type CardFeedErrors = {
 };
 
 /**
- * The derived value for card feed errors.
- */
-type CardFeedErrorsDerivedValue = CardFeedErrors;
-
-/**
  * The derived value for merged non-personal and workspace card feeds.
  */
 type NonPersonalAndWorkspaceCardListDerivedValue = CardList;
@@ -258,7 +253,6 @@ export type {
     SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,
-    CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,
     GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,

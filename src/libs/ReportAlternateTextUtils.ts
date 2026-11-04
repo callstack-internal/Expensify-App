@@ -274,13 +274,9 @@ Onyx.connectWithoutView({
     },
 });
 
-/** @deprecated Use sortedReportActionsData from ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS instead. Will be removed once all flows are migrated. */
 const deprecatedLastReportActions: ReportActions = {};
-/** @deprecated Use sortedReportActionsData from ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS instead. Will be removed once all flows are migrated. */
 const deprecatedAllSortedReportActions: Record<string, ReportAction[]> = {};
-/** @deprecated Use sortedReportActionsData from ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS instead. Will be removed once all flows are migrated. */
 const deprecatedCachedOneTransactionThreadReportIDs: Record<string, string | undefined> = {};
-/** @deprecated Use sortedReportActionsData from ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS instead. Will be removed once all flows are migrated. */
 let deprecatedAllReportActions: OnyxCollection<ReportActions>;
 
 // connectWithoutView is justified: this is module-level, non-render preview computation shared by LHN and Search;
@@ -291,11 +287,9 @@ Onyx.connectWithoutView({
         if (!actions) {
             return;
         }
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
         deprecatedAllReportActions = actions ?? {};
 
         // Iterate over the report actions to build the sorted report actions objects
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
         for (const reportActions of Object.entries(deprecatedAllReportActions)) {
             const reportID = reportActions[0].split('_').at(1);
             if (!reportID) {
@@ -304,7 +298,6 @@ Onyx.connectWithoutView({
 
             const reportActionsArray = Object.values(reportActions[1] ?? {});
             let sortedReportActions = getSortedReportActions(withDEWRoutedActionsArray(reportActionsArray), true);
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
             deprecatedAllSortedReportActions[reportID] = sortedReportActions;
             const report = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
             const chatReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${report?.chatReportID}`];
@@ -313,7 +306,6 @@ Onyx.connectWithoutView({
             // to the transaction thread or the report itself.
             // Cache the result for O(1) lookup in renderItem.
             const transactionThreadReportID = getOneTransactionThreadReportID(report, chatReport, actions[reportActions[0]], getIsOffline());
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
             deprecatedCachedOneTransactionThreadReportIDs[reportID] = transactionThreadReportID;
 
             if (transactionThreadReportID) {
@@ -324,10 +316,8 @@ Onyx.connectWithoutView({
 
             const firstReportAction = sortedReportActions.at(0);
             if (!firstReportAction) {
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
                 delete deprecatedLastReportActions[reportID];
             } else {
-                // eslint-disable-next-line @typescript-eslint/no-deprecated
                 deprecatedLastReportActions[reportID] = firstReportAction;
             }
         }
@@ -431,7 +421,6 @@ function resolveLastActionContext(
     oneTransactionThreadReportID?: string,
 ): LastActionContext {
     const canUserPerformWrite = canUserPerformWriteAction(report, isReportArchived);
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const resolvedOneTransactionThreadReportID = oneTransactionThreadReportID ?? deprecatedCachedOneTransactionThreadReportIDs[report.reportID];
     const lastAction = getLastVisibleActionIncludingTransactionThread(report.reportID, canUserPerformWrite, undefined, visibleReportActionsData, resolvedOneTransactionThreadReportID);
     let lastActionReport: OnyxEntry<Report>;
@@ -502,7 +491,6 @@ function getLastMessageTextForReport({
     policyTags,
     currentUserLogin,
     isTrackIntentUser = false,
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     sortedActions = deprecatedAllSortedReportActions,
     currentUserAccountID,
     oneTransactionThreadReportID,
@@ -549,7 +537,6 @@ function getLastMessageTextForReport({
     const canUserPerformWrite = canUserPerformWriteAction(report, isReportArchived);
     let lastReportAction = lastAction ?? getLastVisibleAction(reportID, canUserPerformWrite, {}, undefined, visibleReportActionsDataParam);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const transactionThreadReportID = oneTransactionThreadReportID ?? (reportID ? deprecatedCachedOneTransactionThreadReportIDs[reportID] : undefined);
 
     if (reportID && !lastAction && transactionThreadReportID) {
@@ -580,7 +567,6 @@ function getLastMessageTextForReport({
     }
 
     // some types of actions are filtered out for lastReportAction, in some cases we need to check the actual last action
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const lastOriginalReportAction = lastOriginalAction ?? (reportID ? deprecatedLastReportActions[reportID] : undefined);
     let lastMessageTextFromReport = '';
 
@@ -1303,7 +1289,6 @@ function getReportAlternateText({
     const isAllowedToComment = canUserPerformWriteAction(report, isReportArchived);
     const isExpense = isExpenseReport(report);
     const reportMetadata = reportMetadataParam ?? getReportMetadata(report.reportID);
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const resolvedOneTransactionThreadReportID = oneTransactionThreadReportID ?? deprecatedCachedOneTransactionThreadReportIDs[report.reportID];
     const getParticipantPersonalDetailListExcludeCurrentUser = () => {
         if (participantPersonalDetailListExcludeCurrentUserParam) {

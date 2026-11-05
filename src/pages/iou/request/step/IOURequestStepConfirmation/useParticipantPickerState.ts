@@ -2,7 +2,6 @@ import type useBlockDistanceRequest from '@hooks/useBlockDistanceRequest';
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
 import useCurrentUserPersonalDetails from '@hooks/useCurrentUserPersonalDetails';
 import useDefaultParticipants from '@hooks/useDefaultParticipants';
-import useOnyx from '@hooks/useOnyx';
 import usePersonalPolicy from '@hooks/usePersonalPolicy';
 import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
 import useSelfDMReport from '@hooks/useSelfDMReport';
@@ -26,6 +25,7 @@ import getEmptyArray from '@src/types/utils/getEmptyArray';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 
 import {useEffect, useRef, useState} from 'react';
+import Onyx from 'react-native-onyx';
 
 import type {IOURequestStepConfirmationProps} from './types';
 
@@ -63,7 +63,6 @@ function useParticipantPickerState({
     const personalPolicy = usePersonalPolicy();
     const selfDMReport = useSelfDMReport();
     const {policyForMovingExpenses} = usePolicyForMovingExpenses();
-    const [lastSelectedDistanceRates] = useOnyx(ONYXKEYS.NVP_LAST_SELECTED_DISTANCE_RATES);
 
     const sourceReportID = transaction?.reportID ?? reportID;
     const sourceReport = sourceReportID
@@ -133,7 +132,7 @@ function useParticipantPickerState({
         [navigation, activeTransactionID, hasSelectedParticipants],
     );
 
-    const handleParticipantsAdded = (participantsList: Participant[], selectedPolicy?: OnyxEntry<Policy>) => {
+    const handleParticipantsAdded = async (participantsList: Participant[], selectedPolicy?: OnyxEntry<Policy>) => {
         if (!activeTransactionID) {
             return;
         }
@@ -147,6 +146,7 @@ function useParticipantPickerState({
         if (blockDistanceRequestIfNeeded(selectedPolicyID)) {
             return;
         }
+        const lastSelectedDistanceRates = await Onyx.get(ONYXKEYS.NVP_LAST_SELECTED_DISTANCE_RATES);
         // P2P chats don't support negative amounts. When a negative amount was entered before a participant
         // was selected (e.g. "Submit it to someone" from a self DM), assigning it to a P2P participant would
         // fail at submit, so keep the expense on the self DM (its default) instead of assigning the P2P
@@ -300,7 +300,10 @@ function useParticipantPickerState({
         openParticipantPicker,
         closeParticipantPicker,
         closeParticipantPickerForReferralNavigation,
-        handleParticipantsAdded,
+        // The picker's onParticipantsAdded slot expects a void return, so callers get a sync function
+        handleParticipantsAdded: (participantsList: Participant[], selectedPolicy?: OnyxEntry<Policy>) => {
+            handleParticipantsAdded(participantsList, selectedPolicy);
+        },
     };
 }
 

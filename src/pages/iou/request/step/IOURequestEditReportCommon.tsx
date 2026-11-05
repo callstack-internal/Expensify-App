@@ -41,6 +41,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 
 import {authTokenTypeSelector} from '@selectors/Session';
 import React, {useEffect, useRef} from 'react';
+import Onyx from 'react-native-onyx';
 
 import navigateAwayFromReportPicker from './IOURequestStepReport/navigateAwayFromReportPicker';
 import StepScreenWrapper from './StepScreenWrapper';
@@ -135,9 +136,6 @@ function IOURequestEditReportCommon({
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
     const [allTransactions] = useOnyx(ONYXKEYS.COLLECTION.TRANSACTION);
-    const [userBillingGracePeriodEnds] = useOnyx(ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END);
-    const [ownerBillingGracePeriodEnd] = useOnyx(ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END);
-    const [amountOwed] = useOnyx(ONYXKEYS.NVP_PRIVATE_AMOUNT_OWED);
     const [session] = useOnyx(ONYXKEYS.SESSION, {selector: authTokenTypeSelector});
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const [selectedReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${selectedReportID}`);
@@ -156,8 +154,6 @@ function IOURequestEditReportCommon({
     const {policyForMovingExpenses} = usePolicyForMovingExpenses(isPerDiemRequest, isTimeRequest, transactionPolicyID, isUnreportedManagedCardTransaction);
 
     const [personalPolicyID] = useOnyx(ONYXKEYS.PERSONAL_POLICY_ID);
-    const [hasMoreOutstandingReports] = useOnyx(ONYXKEYS.HAS_MORE_OUTSTANDING_REPORTS_RESULTS);
-    const [isLoadingOutstandingReports] = useOnyx(ONYXKEYS.IS_LOADING_OUTSTANDING_REPORTS);
 
     const outstandingReportsPolicyID = shouldListAllPolicies(selectedPolicyID, personalPolicyID, selectedReport) ? undefined : selectedPolicyID;
     const outstandingReportsOffset = useRef(0);
@@ -177,8 +173,12 @@ function IOURequestEditReportCommon({
     const {showConfirmModal} = useConfirmModal();
     const {isOffline} = useNetwork({onReconnect: loadOutstandingReports});
 
-    const loadMoreOutstandingReports = () => {
-        if (!hasMoreOutstandingReports || isLoadingOutstandingReports || isOffline) {
+    const loadMoreOutstandingReports = async () => {
+        if (isOffline) {
+            return;
+        }
+        const [hasMoreOutstandingReports, isLoadingOutstandingReports] = await Onyx.multiGet([ONYXKEYS.HAS_MORE_OUTSTANDING_REPORTS_RESULTS, ONYXKEYS.IS_LOADING_OUTSTANDING_REPORTS]);
+        if (!hasMoreOutstandingReports || isLoadingOutstandingReports) {
             return;
         }
         outstandingReportsOffset.current += CONST.OUTSTANDING_REPORTS_PAGE_SIZE;
@@ -307,7 +307,7 @@ function IOURequestEditReportCommon({
         return true;
     };
 
-    const handleSelectReport = (item: TransactionGroupListItem) => {
+    const handleSelectReport = async (item: TransactionGroupListItem) => {
         if (item.value === selectedReportID) {
             dismiss();
             return;
@@ -317,6 +317,11 @@ function IOURequestEditReportCommon({
             onNavigateAway?.();
             return;
         }
+        const [userBillingGracePeriodEnds, ownerBillingGracePeriodEnd, amountOwed] = await Onyx.multiGet([
+            ONYXKEYS.COLLECTION.SHARED_NVP_PRIVATE_USER_BILLING_GRACE_PERIOD_END,
+            ONYXKEYS.NVP_PRIVATE_OWNER_BILLING_GRACE_PERIOD_END,
+            ONYXKEYS.NVP_PRIVATE_AMOUNT_OWED,
+        ]);
         const itemPolicy = item.policyID ? allPolicies?.[`${ONYXKEYS.COLLECTION.POLICY}${item.policyID}`] : undefined;
         if (
             item?.policyID &&
@@ -447,7 +452,9 @@ function IOURequestEditReportCommon({
     const list = (
         <SelectionList
             data={reportOptions}
-            onSelectRow={handleSelectReport}
+            onSelectRow={(item) => {
+                handleSelectReport(item);
+            }}
             titleNumberOfLines={2}
             shouldShowTextInput={isSearchable}
             textInputOptions={{
@@ -480,7 +487,9 @@ function IOURequestEditReportCommon({
                 ) : undefined
             }
             listEmptyContent={listHeaderContent}
-            onEndReached={loadMoreOutstandingReports}
+            onEndReached={() => {
+                loadMoreOutstandingReports();
+            }}
             onEndReachedThreshold={0.75}
         />
     );

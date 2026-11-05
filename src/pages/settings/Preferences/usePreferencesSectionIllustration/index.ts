@@ -1,16 +1,13 @@
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import LottieAnimations from '@components/LottieAnimations';
+
+import useSectionIllustrationWithMotion from '@hooks/useSectionIllustrationWithMotion';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import type UsePreferencesSectionIllustration from './types';
 
 const usePreferencesSectionIllustration: UsePreferencesSectionIllustration = () => {
-    const illustrations = useMemoizedLazyIllustrations(['DjBoothReferenceHands']);
     const styles = useThemeStyles();
-
-    return {
-        illustration: illustrations.DjBoothReferenceHands,
-        illustrationStyle: styles.preferencesStaticIllustration,
-    };
+    return useSectionIllustrationWithMotion(LottieAnimations.PreferencesDJ, 'DjBoothReferenceHands', styles.preferencesStaticIllustration);
 };
 
 export default usePreferencesSectionIllustration;

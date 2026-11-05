@@ -1,16 +1,13 @@
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import LottieAnimations from '@components/LottieAnimations';
+
+import useSectionIllustrationWithMotion from '@hooks/useSectionIllustrationWithMotion';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import type UseTroubleshootSectionIllustration from './types';
 
 const useTroubleshootSectionIllustration: UseTroubleshootSectionIllustration = () => {
-    const illustrations = useMemoizedLazyIllustrations(['WorkspaceScene']);
     const styles = useThemeStyles();
-
-    return {
-        illustration: illustrations.WorkspaceScene,
-        illustrationStyle: styles.troubleshootStaticIllustration,
-    };
+    return useSectionIllustrationWithMotion(LottieAnimations.Desk, 'WorkspaceScene', styles.troubleshootStaticIllustration);
 };
 
 export default useTroubleshootSectionIllustration;

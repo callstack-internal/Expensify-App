@@ -4,19 +4,7 @@ import type {CurrencyListActionsContextType} from '@hooks/useCurrencyList';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {
-    PersonalDetails,
-    PersonalDetailsList,
-    Policy,
-    PolicyTagLists,
-    Report,
-    ReportAction,
-    ReportActions,
-    ReportAttributesDerivedValue,
-    ReportNameValuePairs,
-    Rule,
-    Transaction,
-} from '@src/types/onyx';
+import type {PersonalDetails, PersonalDetailsList, Policy, PolicyTagLists, Report, ReportAction, ReportActions, ReportNameValuePairs, Rule, Transaction} from '@src/types/onyx';
 import type {SelectedParticipant} from '@src/types/onyx/NewGroupChatDraft';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
@@ -217,7 +205,8 @@ type ComputeReportName = {
     currentUserLogin: string;
     translate: LocalizedTranslate;
     conciergeReportID: string | undefined;
-    reportAttributes?: ReportAttributesDerivedValue['reports'];
+    /** Returns another report's name, used by moved and unreported transaction threads to name the report the expense came from. */
+    getReportNameByID?: (reportID: string) => string | undefined;
     reportTransactions: Record<string, Transaction[]>;
     isTrackIntentUser: boolean | undefined;
     convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'];
@@ -565,7 +554,7 @@ function computeReportNameBasedOnReportAction({
     reportPolicy,
     parentReport,
     personalDetailsList,
-    reportAttributes,
+    getReportNameByID,
     isTrackIntentUser,
     currentUserAccountID,
     convertToDisplayString,
@@ -580,7 +569,7 @@ function computeReportNameBasedOnReportAction({
     reportPolicy: Policy | undefined;
     parentReport: Report | undefined;
     personalDetailsList: OnyxEntry<PersonalDetailsList>;
-    reportAttributes: ReportAttributesDerivedValue['reports'] | undefined;
+    getReportNameByID: ((reportID: string) => string | undefined) | undefined;
     isTrackIntentUser: boolean | undefined;
     currentUserAccountID: number;
     convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'];
@@ -745,15 +734,13 @@ function computeReportNameBasedOnReportAction({
 
     if (isActionOfType(parentReportAction, CONST.REPORT.ACTIONS.TYPE.UNREPORTED_TRANSACTION)) {
         const {fromReportID} = parseMovedTransactionReportIDs(parentReportAction);
-        const reportName = fromReportID ? reportAttributes?.[fromReportID]?.reportName : undefined;
+        const reportName = fromReportID ? getReportNameByID?.(fromReportID) : undefined;
         return Parser.htmlToText(getUnreportedTransactionMessage({translate, fromReportID, derivedReportName: reportName}));
     }
 
     if (isActionOfType(parentReportAction, CONST.REPORT.ACTIONS.TYPE.MOVED_TRANSACTION)) {
         const {fromReportID, toReportID, displayReportID} = parseMovedTransactionReportIDs(parentReportAction);
-        return Parser.htmlToText(
-            getMovedTransactionMessage({translate, fromReportID, toReportID, derivedReportName: displayReportID ? reportAttributes?.[displayReportID]?.reportName : undefined}),
-        );
+        return Parser.htmlToText(getMovedTransactionMessage({translate, fromReportID, toReportID, derivedReportName: displayReportID ? getReportNameByID?.(displayReportID) : undefined}));
     }
 
     if (isActionOfType(parentReportAction, CONST.REPORT.ACTIONS.TYPE.POLICY_CHANGE_LOG.UPDATE_MAX_EXPENSE_AMOUNT)) {
@@ -1226,7 +1213,7 @@ function computeChatThreadReportName({
 }
 
 /**
- * @internal Use this only for computation in derived report attributes
+ * @internal Use this only for computing the report attributes (ReportAttributesComputeUtils)
  * In all other cases you should use `getReportName`
  */
 function computeReportName({
@@ -1243,7 +1230,7 @@ function computeReportName({
     translate,
     allPolicyTags,
     conciergeReportID,
-    reportAttributes,
+    getReportNameByID,
     reportTransactions,
     isTrackIntentUser,
     convertToDisplayString,
@@ -1270,7 +1257,7 @@ function computeReportName({
         reportPolicy,
         parentReport,
         personalDetailsList,
-        reportAttributes,
+        getReportNameByID,
         isTrackIntentUser,
         currentUserAccountID: currentUserAccountID ?? CONST.DEFAULT_NUMBER_ID,
         convertToDisplayString,
@@ -1302,7 +1289,7 @@ function computeReportName({
             currentUserLogin,
             translate,
             conciergeReportID,
-            reportAttributes,
+            getReportNameByID,
             reportTransactions,
             isTrackIntentUser,
             convertToDisplayString,
@@ -1449,15 +1436,14 @@ function computeReportName({
 }
 
 /**
- * Returns the report name from OnyxDerived `reportAttributes` when available, falling back to the raw report object.
+ * Returns the computed report name when available, falling back to the raw report object.
  *
- * **Always prefer passing `derivedReportName`**, sourced from the derived Onyx key (`ONYXKEYS.DERIVED.REPORT_ATTRIBUTES`)
- * i.e. `reportAttributes?.[reportID]?.reportName`. Prefer the O(1) selectors (`useDerivedReportNameByReportID`) over
- * subscribing to the whole attributes Record just to read one name.
- * The fallback to `report.reportName` exists only for edge-cases where the derived value is not yet populated.
+ * **Always prefer passing `derivedReportName`**, the name from the report attributes, i.e. `reportAttributes?.[reportID]?.reportName`.
+ * Prefer `useReportName` over reading the whole attributes map just to read one name.
+ * The fallback to `report.reportName` exists only for edge-cases where the attributes are not computed yet.
  * Do NOT compute any part of the name here. Adjust `computeReportName` (internal) function if any change to report name are required.
  *
- * @param derivedReportName the cached name for this report from `ONYXKEYS.DERIVED.REPORT_ATTRIBUTES`.
+ * @param derivedReportName the computed name for this report from the report attributes (`useReportName`).
  */
 function getReportName(report?: Report, derivedReportName?: string): string {
     if (!report?.reportID) {

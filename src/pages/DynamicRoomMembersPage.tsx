@@ -23,7 +23,7 @@ import useMobileSelectionMode from '@hooks/useMobileSelectionMode';
 import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
 import {usePersonalDetail} from '@hooks/usePersonalDetails';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSearchBackPress from '@hooks/useSearchBackPress';
@@ -92,7 +92,7 @@ function DynamicRoomMembersPage({report, policy}: DynamicRoomMembersPageProps) {
     const isReportArchived = useReportIsArchived(report.reportID);
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.parentReportID}`);
     const reportForSubtitle = getReportForHeader(report, parentReport);
-    const derivedSubtitleReportName = useDerivedReportNameByReportID(reportForSubtitle?.reportID);
+    const derivedSubtitleReportName = useReportName(reportForSubtitle?.reportID);
     const subtitleReportName = getReportName(reportForSubtitle, derivedSubtitleReportName);
     const accountIDToName = useMentionedAccountIDToNameMap(subtitleReportName);
 

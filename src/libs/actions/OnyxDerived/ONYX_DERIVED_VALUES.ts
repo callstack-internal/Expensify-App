@@ -11,7 +11,6 @@ import nonPersonalAndWorkspaceCardListConfig from './configs/nonPersonalAndWorks
 import oneOnOneChatReportIDsConfig from './configs/oneOnOneChatReportIDs';
 import outstandingReportsByPolicyIDConfig from './configs/outstandingReportsByPolicyID';
 import personalAndWorkspaceCardListConfig from './configs/personalAndWorkspaceCardList';
-import reportAttributesConfig from './configs/reportAttributes';
 import reportTransactionsAndViolationsConfig from './configs/reportTransactionsAndViolations';
 import sortedReportActionsConfig from './configs/sortedReportActions';
 import spendDataSignatureConfig from './configs/spendDataSignature';
@@ -22,7 +21,6 @@ import visibleReportActionsConfig from './configs/visibleReportActions';
  * This object holds our derived value configurations.
  */
 const ONYX_DERIVED_VALUES = {
-    [ONYXKEYS.DERIVED.REPORT_ATTRIBUTES]: reportAttributesConfig,
     [ONYXKEYS.DERIVED.REPORT_TRANSACTIONS_AND_VIOLATIONS]: reportTransactionsAndViolationsConfig,
     [ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID]: outstandingReportsByPolicyIDConfig,
     [ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS]: visibleReportActionsConfig,

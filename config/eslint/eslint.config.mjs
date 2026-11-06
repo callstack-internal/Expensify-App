@@ -737,7 +737,7 @@ const config = defineConfig([
     // here too (flat config is last-wins per rule, not additive).
     {
         files: ['**/*.ts', '**/*.tsx'],
-        ignores: ['src/libs/actions/OnyxDerived/configs/reportAttributes.ts'],
+        ignores: ['src/libs/ReportAttributesComputeUtils.ts'],
         rules: {
             'no-restricted-imports': [
                 'error',

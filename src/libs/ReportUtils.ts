@@ -10663,7 +10663,7 @@ function buildOptimisticMoneyRequestEntities({
 /**
  * Check if the report is empty, meaning it has no visible messages (i.e. only a "created" report action).
  *
- * @param derivedIsEmptyReport Always prefer passing this cached flag for this report from ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, i.e.
+ * @param derivedIsEmptyReport Always prefer passing this flag for this report from the report attributes (`useIsEmptyReport`), i.e.
  *                             `reportAttributes?.[reportID]?.isEmpty`.
  */
 function isEmptyReport(report: OnyxEntry<Report>, isReportArchived: boolean | undefined, derivedIsEmptyReport: boolean | undefined): boolean {
@@ -11337,11 +11337,11 @@ type ShouldReportBeInOptionListParams = {
     isReportArchived: boolean | undefined;
     draftComment: string | undefined;
     conciergeReportID: string | undefined;
-    /** Pre-computed value from reportAttributes derived value. When provided, skips the expensive requiresAttentionFromCurrentUser recomputation. */
+    /** Pre-computed value from the report attributes. When provided, skips the expensive requiresAttentionFromCurrentUser recomputation. */
     requiresAttention?: boolean;
     /** Needed when `requiresAttention` is not pre-computed: the SUBMIT badge is suppressed when every expense was auto-rejected, which is only knowable from the violations. */
     transactionViolations?: OnyxCollection<TransactionViolations>;
-    /** Pre-computed isEmpty flag from reportAttributes derived value. When provided, skips the module-level reportAttributesDerivedValue read inside isEmptyReport. */
+    /** Pre-computed isEmpty flag from the report attributes. When provided, isEmptyReport skips computing it. */
     derivedIsEmptyReport: boolean | undefined;
     hasGuidesEmails: boolean;
 };
@@ -14772,7 +14772,8 @@ function generateReportAttributes({
 }) {
     const reportActionsList = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.reportID}`];
     const parentReportActionsList = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report?.parentReportID}`];
-    const hasViolationsToDisplayInLHN = !!getViolatingReportIDForRBRInLHN(report, transactionViolations);
+    const violatingReportID = getViolatingReportIDForRBRInLHN(report, transactionViolations);
+    const hasViolationsToDisplayInLHN = !!violatingReportID;
     const hasAnyTypeOfViolations = hasViolationsToDisplayInLHN;
     const reportErrors = getAllReportErrors(
         report,
@@ -14802,6 +14803,7 @@ function generateReportAttributes({
         }) ?? {};
 
     return {
+        violatingReportID,
         hasViolationsToDisplayInLHN,
         hasAnyViolations: hasAnyTypeOfViolations,
         reportErrors,

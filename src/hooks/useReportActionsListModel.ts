@@ -19,7 +19,7 @@ import useOnyx from './useOnyx';
 import useParentReportAction from './useParentReportAction';
 import useReportActionsPagination from './useReportActionsPagination';
 import useReportActionsVisibility from './useReportActionsVisibility';
-import {useDerivedIsEmptyReport} from './useReportAttributes';
+import {useIsEmptyReport} from './useReportAttributes';
 import useReportIsArchived from './useReportIsArchived';
 
 /**
@@ -72,7 +72,7 @@ function useReportActionsListModel(reportID: string, isReportLoadPending: boolea
     const shouldBeAlignedToTop = shouldReportAlignToTop(report, parentReportAction);
 
     const isReportArchived = useReportIsArchived(reportID);
-    const derivedIsEmptyReport = useDerivedIsEmptyReport(reportID);
+    const derivedIsEmptyReport = useIsEmptyReport(reportID);
     const canPerformWriteAction = !!canUserPerformWriteAction(report, isReportArchived);
 
     const isAppLoadPending = useIsAppLoadPending();

@@ -8,7 +8,7 @@ import UserPill from '@components/UserPill';
 
 import useConfirmModal from '@hooks/useConfirmModal';
 import useLocalize from '@hooks/useLocalize';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import {getDisplayNameForParticipant, isResolvedSupportTicket} from '@libs/ReportUtils';
@@ -46,7 +46,7 @@ function SupportTicketView({report, action}: SupportTicketViewProps) {
               hiddenTranslation: translate('common.hidden'),
           })
         : '';
-    const derivedSupportTicketName = useDerivedReportNameByReportID(report?.reportID);
+    const derivedSupportTicketName = useReportName(report?.reportID);
     const supportTicketName = derivedSupportTicketName ?? report?.reportName ?? translate('supportTicket.fallbackTitle');
 
     const dismissSupportTicket = () => {

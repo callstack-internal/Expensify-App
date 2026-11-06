@@ -8,6 +8,7 @@ import useFilteredOptions from '@hooks/useFilteredOptions';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useSortedReportActionsData from '@hooks/useSortedReportActionsData';
 
 import type {GetOptionsConfig, Option, OptionList, Options, SearchOption} from '@libs/OptionsListUtils';
@@ -193,7 +194,7 @@ function useSearchSelectorBase({
     const {translate, dateFnsLocale, localeCompare, formatPhoneNumber} = useLocalize();
     const {convertToDisplayString, convertToDisplayStringWithoutCurrency} = useCurrencyListActions();
     const {isBetaEnabled} = usePermissions();
-    const [reportAttributesDerived] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
+    const reportAttributesDerived = useAllReportAttributes();
     const [searchTerm, debouncedSearchTerm, setSearchTerm] = useDebouncedState('');
     const [selectedOptions, setSelectedOptions] = useState<OptionData[]>(initialSelected ?? []);
     const [maxResults, setMaxResults] = useState(maxResultsPerPage);
@@ -310,7 +311,7 @@ function useSearchSelectorBase({
                     currentUserAccountID,
                     currentUserEmail,
                     personalDetails,
-                    reportAttributesDerived: reportAttributesDerived?.reports,
+                    reportAttributesDerived,
                     allPolicyTags,
                     sortedActions,
                     transactionThreadIDs,
@@ -353,7 +354,7 @@ function useSearchSelectorBase({
                         recentAttendees,
                         includeRecentReports: !shouldAllowNameOnlyOptions,
                         countryCode,
-                        reportAttributesDerived: reportAttributesDerived?.reports,
+                        reportAttributesDerived,
                         allPolicyTags,
                         sortedActions,
                         transactionThreadIDs,
@@ -398,7 +399,7 @@ function useSearchSelectorBase({
                         includeUserToInvite,
                         personalDetails,
                         countryCode,
-                        reportAttributesDerived: reportAttributesDerived?.reports,
+                        reportAttributesDerived,
                         allPolicyTags,
                         visibleReportActionsData,
                         sortedActions,
@@ -442,7 +443,7 @@ function useSearchSelectorBase({
                         shouldAcceptName: true,
                         personalDetails,
                         countryCode,
-                        reportAttributesDerived: reportAttributesDerived?.reports,
+                        reportAttributesDerived,
                         allPolicyTags,
                         sortedActions,
                         transactionThreadIDs,

@@ -1,7 +1,7 @@
 import useDefaultAvatars from '@hooks/useDefaultAvatars';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 
 import {getReportName} from '@libs/ReportNameUtils';
 import {getDefaultGroupAvatar, getPolicyName, getWorkspaceIcon, isGroupChat, isThread, isUserCreatedPolicyRoom} from '@libs/ReportUtils';
@@ -25,7 +25,7 @@ function ReportAvatarModalContent({navigation, route}: AttachmentModalScreenProp
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${policyID}`);
     const [isLoadingApp = true] = useOnyx(ONYXKEYS.IS_LOADING_APP);
-    const derivedReportName = useDerivedReportNameByReportID(reportID);
+    const derivedReportName = useReportName(reportID);
 
     let attachment: AttachmentModalBaseContentProps;
     if (isGroupChat(report) && !isThread(report)) {

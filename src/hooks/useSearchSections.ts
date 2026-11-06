@@ -11,7 +11,7 @@ import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useFilterPendingDeleteReports from './useFilterPendingDeleteReports';
 import useLocalize from './useLocalize';
 import useOnyx from './useOnyx';
-import useReportAttributes from './useReportAttributes';
+import {useAllReportAttributes} from './useReportAttributes';
 
 type UseSearchSectionsResult = {
     allReports: Array<string | undefined>;
@@ -35,7 +35,7 @@ function useSearchSections(): UseSearchSectionsResult {
     const [reportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
-    const reportAttributesDerivedValue = useReportAttributes();
+    const reportAttributesDerivedValue = useAllReportAttributes();
 
     const {type, sortBy, sortOrder, groupBy} = lastSearchQuery?.queryJSON ?? {};
     const searchResultsData = currentSearchResults?.data;

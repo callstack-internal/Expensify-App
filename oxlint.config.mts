@@ -1087,9 +1087,9 @@ export default defineConfig({
         {files: ['src/styles/**'], excludeFiles: ['src/styles/typography.ts', 'src/styles/variables.ts'], rules: {'rulesdir/no-raw-typography': ['error', {allowVariablesReferences: true}]}},
         {files: ['**/en.ts', '**/es.ts'], rules: {'rulesdir/use-periods-for-error-messages': 'error'}},
         {files: ['src/libs/ReportNameUtils.ts'], rules: {'report-name-utils/no-function-call-in-get-report-name': 'error'}},
-        // reportAttributes.ts computes report names, so the TypeScript-only bans do not apply.
+        // ReportAttributesComputeUtils.ts computes report names, so the TypeScript-only bans do not apply.
         {
-            files: ['src/libs/actions/OnyxDerived/configs/reportAttributes.ts'],
+            files: ['src/libs/ReportAttributesComputeUtils.ts'],
             rules: {'no-restricted-imports': ['error', {paths: restrictedImportPaths, patterns: restrictedImportPatterns}]},
         },
         {

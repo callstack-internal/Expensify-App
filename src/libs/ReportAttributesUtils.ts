@@ -1,6 +1,6 @@
 import type {OnyxEntry} from 'react-native-onyx';
 
-/** A per-reportID lookup of report names, as produced by `useDerivedReportNamesByReportIDs`. */
+/** A per-reportID lookup of report names, as produced by `useReportNames`. */
 type ReportNamesByID = Record<string, string | undefined>;
 
 /**

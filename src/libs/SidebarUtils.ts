@@ -683,6 +683,8 @@ type GetReasonAndReportActionThatHasRedBrickRoadParams = {
     transactionViolations?: OnyxCollection<TransactionViolation[]>;
     isReportArchived?: boolean;
     reports?: OnyxCollection<Report>;
+    /** The result of `getViolatingReportIDForRBRInLHN` when the caller already has it, so the report's sibling reports are not sorted again. */
+    violatingReportID?: string | null;
 };
 
 function getReasonAndReportActionThatHasRedBrickRoad({
@@ -697,12 +699,13 @@ function getReasonAndReportActionThatHasRedBrickRoad({
     transactionViolations,
     isReportArchived = false,
     reports,
+    violatingReportID: precomputedViolatingReportID,
 }: GetReasonAndReportActionThatHasRedBrickRoadParams): ReasonAndReportActionThatHasRedBrickRoad | null {
     if (isReportArchived) {
         return null;
     }
 
-    const violatingReportID = getViolatingReportIDForRBRInLHN(report, transactionViolations);
+    const violatingReportID = precomputedViolatingReportID !== undefined ? precomputedViolatingReportID : getViolatingReportIDForRBRInLHN(report, transactionViolations);
     if (violatingReportID) {
         const reportPreviewAction = Object.values(reportActions ?? {}).find((action) => getIOUReportIDFromReportActionPreview(action) === violatingReportID);
         return {
@@ -711,11 +714,12 @@ function getReasonAndReportActionThatHasRedBrickRoad({
         };
     }
 
-    const {reportAction} = getAllReportActionsErrorsAndReportActionThatRequiresAttention(report, reportActions, transactions, currentUserAccountID, isReportArchived, reports);
     const errors = reportErrors;
     const hasErrors = Object.keys(errors).length !== 0;
 
     if (hasErrors) {
+        // Scanning the actions for errors is the costly part, and only the errored path needs the action.
+        const {reportAction} = getAllReportActionsErrorsAndReportActionThatRequiresAttention(report, reportActions, transactions, currentUserAccountID, isReportArchived, reports);
         return {
             reason: CONST.RBR_REASONS.HAS_ERRORS,
             reportAction,

@@ -33,11 +33,11 @@ import type ReactNative from 'react-native';
 import React from 'react';
 import {StyleSheet} from 'react-native';
 import Onyx from 'react-native-onyx';
-import OnyxUtils from 'react-native-onyx/dist/OnyxUtils';
 
 import createCollection from '../utils/collections/createCollection';
 import createPersonalDetails from '../utils/collections/personalDetails';
 import {createRandomReport} from '../utils/collections/reports';
+import readReportAttributes from '../utils/readReportAttributes';
 import * as TestHelper from '../utils/TestHelper';
 import {formatPhoneNumber} from '../utils/TestHelper';
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
@@ -474,7 +474,7 @@ describe('SearchAutocompleteList', () => {
         await flushAllUpdates();
 
         // The row label is the derived report name, so the options have to be built from the derived attributes
-        const reportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
+        const reportAttributes = await readReportAttributes();
         expect(reportAttributes?.reports?.[threadReportID]?.reportName).toBeTruthy();
         mockUseFilteredOptions.mockReturnValue({
             options: createFilteredOptionList(
@@ -570,7 +570,7 @@ describe('SearchAutocompleteList', () => {
         await Onyx.set(ONYXKEYS.SESSION, {accountID: CURRENT_USER_ACCOUNT_ID, email: 'test@test.com'});
         await flushAllUpdates();
 
-        const reportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
+        const reportAttributes = await readReportAttributes();
         expect(reportAttributes?.reports?.[threadReportID]?.reportName).toBeTruthy();
         mockUseFilteredOptions.mockReturnValue({
             options: createFilteredOptionList(

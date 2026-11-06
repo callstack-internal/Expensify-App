@@ -712,7 +712,6 @@
 "../../src/libs/actions/OnyxDerived/configs/cardFeedErrors.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	1
 "../../src/libs/actions/OnyxDerived/configs/guideAccountIDs.ts"	"rulesdir/no-direct-personal-details-list"	1
 "../../src/libs/actions/OnyxDerived/configs/loginToAccountIDMap.ts"	"rulesdir/no-direct-personal-details-list"	1
-"../../src/libs/actions/OnyxDerived/configs/reportAttributes.ts"	"rulesdir/no-direct-personal-details-list"	2
 "../../src/libs/actions/OnyxDerived/index.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	2
 "../../src/libs/actions/OnyxDerived/index.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../src/libs/actions/OnyxUpdateManager/index.ts"	"@typescript-eslint/no-unsafe-type-assertion"	3
@@ -824,6 +823,7 @@
 "../../src/libs/ComposerFocusManager.ts"	"@typescript-eslint/no-deprecated/TextInput.State.currentlyFocusedField"	1
 "../../src/libs/ComposerFocusManager.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../src/libs/ComposerUtils/index.ts"	"no-restricted-syntax"	1
+"../../src/libs/computeReportAttributes.ts"	"rulesdir/no-direct-personal-details-list"	2
 "../../src/libs/CountryUtils.ts"	"@typescript-eslint/no-unsafe-type-assertion"	2
 "../../src/libs/CurrencyUtils.ts"	"rulesdir/no-onyx-connect"	1
 "../../src/libs/DateUtils.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	1
@@ -2511,7 +2511,7 @@
 "../../tests/unit/OnyxDerived/visibleReportActionsTest.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	2
 "../../tests/unit/onyxDerivedComputeSpanTest.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	1
 "../../tests/unit/OnyxDerivedSelfHealTest.ts"	"no-restricted-imports"	1
-"../../tests/unit/OnyxDerivedTest.tsx"	"@typescript-eslint/no-unnecessary-type-assertion"	3
+"../../tests/unit/OnyxDerivedTest.tsx"	"@typescript-eslint/no-unnecessary-type-assertion"	1
 "../../tests/unit/OnyxDerivedTest.tsx"	"no-restricted-imports"	1
 "../../tests/unit/OptionsListUtilsTest.tsx"	"@typescript-eslint/no-unnecessary-type-assertion"	14
 "../../tests/unit/pages/DynamicReportDetailsPage/useReportDetailsDeleteModalTest.ts"	"@typescript-eslint/no-deprecated/originalMessage"	1
@@ -2558,7 +2558,6 @@
 "../../tests/unit/SearchActionsTest.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	5
 "../../tests/unit/SearchAutocompleteListTest.tsx"	"@typescript-eslint/no-deprecated/originalMessage"	3
 "../../tests/unit/SearchAutocompleteListTest.tsx"	"import/no-duplicates"	1
-"../../tests/unit/SearchAutocompleteListTest.tsx"	"no-restricted-imports"	1
 "../../tests/unit/SearchEditMultipleUtilsTest.ts"	"@typescript-eslint/no-deprecated/originalMessage"	1
 "../../tests/unit/SequentialQueueTest.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	2
 "../../tests/unit/showReportActionNotificationTest.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	3
@@ -2601,7 +2600,6 @@
 "../../tests/unit/useTwoFactorAuthRouteTests.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	3
 "../../tests/unit/ViolationFixParityTest.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	1
 "../../tests/unit/WhisperContentMentionContextTest.tsx"	"@typescript-eslint/no-unnecessary-type-assertion"	2
-"../../tests/unit/WorkspacesSettingsUtilsTest.ts"	"no-restricted-imports"	1
 "../../tests/utils/collections/card.ts"	"@typescript-eslint/no-unnecessary-type-assertion"	1
 "../../tests/utils/createMock.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../tests/utils/LHNTestUtils.tsx"	"@typescript-eslint/no-unnecessary-type-assertion"	1

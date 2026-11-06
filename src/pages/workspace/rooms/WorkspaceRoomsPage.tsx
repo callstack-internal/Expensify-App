@@ -14,7 +14,7 @@ import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import usePolicy from '@hooks/usePolicy';
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWorkspaceDocumentTitle from '@hooks/useWorkspaceDocumentTitle';
@@ -102,7 +102,7 @@ function WorkspaceRoomsPage({route}: WorkspaceRoomsPageProps) {
         },
     });
     const policyReportIDs = (policyReports ?? []).map((report) => report.reportID);
-    const derivedNames = useDerivedReportNamesByReportIDs(policyReportIDs);
+    const derivedNames = useReportNames(policyReportIDs);
 
     // The newly created room reportID is stored in Onyx right before navigating back here so its row can play the highlight animation.
     // It is cleared by the create page once the navigation transition ends (see WorkspaceNewRoomPage), so the animation doesn't replay on a later visit.

@@ -2,7 +2,7 @@ import RenderHTML from '@components/RenderHTML';
 
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Parser from '@libs/Parser';
@@ -37,7 +37,7 @@ function MovedTransactionAction({action, originalReport}: MovedTransactionAction
 
     const isPendingDelete = fromReport?.pendingFields?.preview === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
 
-    const derivedReportName = useDerivedReportNameByReportID(displayReportID);
+    const derivedReportName = useReportName(displayReportID);
     const message = getMovedTransactionMessage({translate, movedReport: displayReport, fromReportID, toReportID, derivedReportName});
 
     if (hasReasoning(action)) {

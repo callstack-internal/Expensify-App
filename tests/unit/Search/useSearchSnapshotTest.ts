@@ -48,8 +48,7 @@ jest.mock('@hooks/useActionLoadingReportIDs', () => ({
     default: () => mockActionLoadingSet,
 }));
 jest.mock('@hooks/useReportAttributes', () => ({
-    __esModule: true,
-    default: () => undefined,
+    useAllReportAttributes: () => ({}),
 }));
 jest.mock('@hooks/usePolicyForMovingExpenses', () => ({
     __esModule: true,

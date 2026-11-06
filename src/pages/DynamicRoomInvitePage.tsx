@@ -17,7 +17,7 @@ import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails, usePersonalDetailsByIDs} from '@hooks/usePersonalDetails';
 import usePersonalDetailSearchSelector from '@hooks/usePersonalDetailSearchSelector';
 import usePressLoading from '@hooks/usePressLoading';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -65,7 +65,7 @@ type DynamicRoomInvitePageProps = WithReportOrNotFoundProps &
 type MembersSection = SectionListData<OptionData, Section<OptionData>>;
 function DynamicRoomInvitePage({report, policy, didScreenTransitionEnd}: DynamicRoomInvitePageProps) {
     const styles = useThemeStyles();
-    const derivedReportName = useDerivedReportNameByReportID(report?.reportID);
+    const derivedReportName = useReportName(report?.reportID);
     const {translate, formatPhoneNumber} = useLocalize();
     const backPath = useDynamicBackPath(DYNAMIC_ROUTES.ROOM_INVITE.path);
     const [userSearchPhrase] = useOnyx(ONYXKEYS.ROOM_MEMBERS_USER_SEARCH_PHRASE);

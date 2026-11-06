@@ -1,85 +1,93 @@
-import ONYXKEYS from '@src/ONYXKEYS';
+import {getReportAttributes, REPORT_ATTRIBUTES_STATE_DEPENDENCIES} from '@libs/ReportAttributesCache';
+
 import type {ReportAttributesDerivedValue} from '@src/types/onyx';
 
-import type {OnyxEntry} from 'react-native-onyx';
+import reportNamesByIDsSelector from '@selectors/ReportAttributes';
+import {useOnyxState} from 'react-native-onyx';
 
-import {reportIsEmptySelector, reportNameSelector} from '@selectors/ReportAttributes';
-
-import useOnyx from './useOnyx';
-
-/**
- * Returns `reports` from the REPORT_ATTRIBUTES derived value.
- *
- * This hook intentionally avoids using a selector. When a selector is passed to
- * `useOnyx`, it forces a `deepEqual` comparison on every Onyx update cycle. Because
- * `reports` is a large `Record<string, ReportAttributes>`, that deep comparison is
- * O(n) and expensive.
- */
-function useReportAttributes() {
-    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-    return reportAttributes?.reports;
-}
+const isSameReference = <T>(a: T, b: T) => a === b;
 
 /**
- * Returns a single report's attributes using a selector.
- * Deep comparison is cheap (single small object), so re-renders only occur
- * when that specific report's attributes change — not on every global report change.
+ * Returns the attributes of every report, computed from the live Onyx state. The map keeps its reference until a
+ * change touches one of its reports, so it is compared by reference: a deep compare would walk every report.
  */
-function useReportAttributesByID(reportID: string | undefined) {
-    const reportAttributesByIDSelector = (value: OnyxEntry<ReportAttributesDerivedValue>) => (reportID ? value?.reports?.[reportID] : undefined);
-    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-        selector: reportAttributesByIDSelector,
+function useAllReportAttributes(): ReportAttributesDerivedValue['reports'] {
+    return useOnyxState((state) => getReportAttributes(state).reports, {
+        dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES,
+        selectorEquality: isSameReference,
     });
-    return reportAttributes;
 }
 
 /**
- * Returns a single report's name using a selector.
- *
- * Use this when a component only needs one report's name: the selector output is a primitive string, so its
- * comparison is trivial and the component re-renders only when that specific report's name changes — not on
- * every global report attribute change.
+ * Returns what `selector` picks from the report attributes. The output is compared deeply, so keep it small: the
+ * component re-renders only when it changes.
  */
-function useDerivedReportNameByReportID(reportID: string | undefined) {
-    const [reportName] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-        selector: (value: OnyxEntry<ReportAttributesDerivedValue>) => reportNameSelector(value, reportID),
+function useReportAttributesSelector<TOutput>(selector: (attributes: ReportAttributesDerivedValue) => TOutput): TOutput {
+    return useOnyxState((state) => selector(getReportAttributes(state)), {dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES});
+}
+
+/** Returns one report's attributes. The component re-renders only when that report's attributes change. */
+function useReportAttributesEntry(reportID: string | undefined) {
+    return useOnyxState((state) => (reportID ? getReportAttributes(state).reports[reportID] : undefined), {
+        dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES,
     });
-    return reportName;
 }
 
-/**
- * Returns a `{reportID: reportName}` map for the given reportIDs from a single REPORT_ATTRIBUTES subscription.
- *
- * Use this instead of calling `useDerivedReportNameByReportID` multiple times in one component: it subscribes to
- * REPORT_ATTRIBUTES once (not once per report) while still selecting only the needed names (reusing
- * `reportNameSelector`), so the component re-renders only when one of those names changes. The selector output is
- * tiny (one name per requested ID), so its `deepEqual` is cheap.
- */
-function useDerivedReportNamesByReportIDs(reportIDs: Array<string | undefined>) {
-    const [reportNames] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-        selector: (value: OnyxEntry<ReportAttributesDerivedValue>) =>
-            reportIDs.reduce<Record<string, string | undefined>>((acc, reportID) => {
+/** Returns the action badge and RBR/GBR status of one report, re-rendering only when one of them changes. */
+function useReportStatus(reportID: string | undefined) {
+    return useOnyxState(
+        (state) => {
+            const attributes = reportID ? getReportAttributes(state).reports[reportID] : undefined;
+            if (!attributes) {
+                return undefined;
+            }
+            return {
+                actionBadge: attributes.actionBadge,
+                actionTargetReportActionID: attributes.actionTargetReportActionID,
+                brickRoadStatus: attributes.brickRoadStatus,
+            };
+        },
+        {dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES},
+    );
+}
+
+/** Returns one report's name. The component re-renders only when that name changes. */
+function useReportName(reportID: string | undefined) {
+    return useOnyxState((state) => (reportID ? getReportAttributes(state).reports[reportID]?.reportName : undefined), {
+        dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES,
+    });
+}
+
+/** Returns a `{reportID: reportName}` map for the given reportIDs, re-rendering only when one of those names changes. */
+function useReportNames(reportIDs: Array<string | undefined>) {
+    return useOnyxState(
+        (state) => {
+            const {reports} = getReportAttributes(state);
+            const reportNames: Record<string, string | undefined> = {};
+            for (const reportID of reportIDs) {
                 if (reportID) {
-                    acc[reportID] = reportNameSelector(value, reportID);
+                    reportNames[reportID] = reports[reportID]?.reportName;
                 }
-                return acc;
-            }, {}),
-    });
-    return reportNames;
+            }
+            return reportNames;
+        },
+        {dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES},
+    );
 }
 
 /**
- * Returns a single report's cached `isEmpty` flag using a selector.
- *
- * The selector output is a primitive boolean, so its comparison is trivial and the component re-renders only when
- * that specific report's emptiness changes — not on every global report attribute change.
+ * Returns `{reportID: {reportName}}` for the given reportIDs, the shape the LHN option builders take, re-rendering
+ * only when one of those names changes.
  */
-function useDerivedIsEmptyReport(reportID: string | undefined) {
-    const [isEmpty] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-        selector: (value: OnyxEntry<ReportAttributesDerivedValue>) => reportIsEmptySelector(value, reportID),
-    });
-    return isEmpty;
+function useReportNameEntries(reportIDs: Array<string | undefined>) {
+    return useOnyxState((state) => reportNamesByIDsSelector(getReportAttributes(state), reportIDs), {dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES});
 }
 
-export default useReportAttributes;
-export {useReportAttributesByID, useDerivedReportNameByReportID, useDerivedReportNamesByReportIDs, useDerivedIsEmptyReport};
+/** Returns one report's `isEmpty` flag. The component re-renders only when it changes. */
+function useIsEmptyReport(reportID: string | undefined) {
+    return useOnyxState((state) => (reportID ? getReportAttributes(state).reports[reportID]?.isEmpty : undefined), {
+        dependencies: REPORT_ATTRIBUTES_STATE_DEPENDENCIES,
+    });
+}
+
+export {useAllReportAttributes, useReportAttributesSelector, useReportAttributesEntry, useReportStatus, useReportName, useReportNames, useReportNameEntries, useIsEmptyReport};

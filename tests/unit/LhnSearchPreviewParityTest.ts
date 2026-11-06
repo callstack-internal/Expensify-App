@@ -23,6 +23,7 @@ import Onyx from 'react-native-onyx';
 
 import createRandomPolicy from '../utils/collections/policies';
 import getOnyxValue from '../utils/getOnyxValue';
+import readReportAttributes from '../utils/readReportAttributes';
 import {convertToDisplayString, convertToDisplayStringWithoutCurrency, formatPhoneNumber, localeCompare, translateLocal} from '../utils/TestHelper';
 import waitForBatchedUpdatesWithAct from '../utils/waitForBatchedUpdatesWithAct';
 
@@ -324,7 +325,7 @@ async function computeBothSurfaces({
     }
 
     const sortedData = await getOnyxValue(ONYXKEYS.DERIVED.RAM_ONLY_SORTED_REPORT_ACTIONS);
-    const reportAttributesValue = await getOnyxValue(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
+    const reportAttributesValue = await readReportAttributes();
     const reportAttributesDerived = reportAttributesValue?.reports;
 
     const canWrite = canUserPerformWriteAction(report, isReportArchived);

@@ -7,7 +7,7 @@ import TextInput from '@components/TextInput';
 
 import useAutoFocusInput from '@hooks/useAutoFocusInput';
 import useLocalize from '@hooks/useLocalize';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
@@ -39,7 +39,7 @@ function TripChatNameEditPage({report}: TripChatNameEditPageProps) {
     const {inputCallbackRef} = useAutoFocusInput();
 
     const reportID = report?.reportID;
-    const derivedReportName = useDerivedReportNameByReportID(reportID);
+    const derivedReportName = useReportName(reportID);
     const currentChatName = getReportName(report, derivedReportName);
 
     const validate = (values: FormOnyxValues<typeof ONYXKEYS.FORMS.NEW_CHAT_NAME_FORM>): Errors => {

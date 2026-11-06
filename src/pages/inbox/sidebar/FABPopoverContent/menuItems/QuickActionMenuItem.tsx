@@ -6,7 +6,7 @@ import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
 import usePreferredPolicy from '@hooks/usePreferredPolicy';
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -77,7 +77,7 @@ function QuickActionMenuItem({reportID}: QuickActionMenuItemProps) {
     const policyChatForActivePolicy = !isEmptyObject(activePolicy) && isGroupPolicy(activePolicy) && policyChats.length > 0 ? policyChats.at(0) : undefined;
     const isPolicyChatForActivePolicyArchived = useReportIsArchived(policyChatForActivePolicy?.reportID);
 
-    const derivedNames = useDerivedReportNamesByReportIDs([quickActionReport?.reportID, policyChatForActivePolicy?.reportID]);
+    const derivedNames = useReportNames([quickActionReport?.reportID, policyChatForActivePolicy?.reportID]);
     const derivedQuickActionReportName = getReportNameFromNames(derivedNames, quickActionReport?.reportID);
     const derivedPolicyChatReportName = getReportNameFromNames(derivedNames, policyChatForActivePolicy?.reportID);
 

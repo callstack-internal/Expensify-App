@@ -1,6 +1,7 @@
 import type ReportNameUtils = require('@libs/ReportNameUtils');
-import type reportAttributesModuleDefault from '@userActions/OnyxDerived/configs/reportAttributes';
-import {getOldestPreviewActionID, hasPolicyRelevantFieldChanged} from '@userActions/OnyxDerived/configs/reportAttributes';
+import type ComputeReportAttributesModule = require('@libs/computeReportAttributes');
+import {hasPolicyRelevantFieldChanged} from '@libs/computeReportAttributes';
+import {getOldestPreviewActionID} from '@libs/ReportAttributesComputeUtils';
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
@@ -14,7 +15,10 @@ import {createRandomReport} from '../utils/collections/reports';
 import createRandomTransaction from '../utils/collections/transaction';
 import createMock from '../utils/createMock';
 
-type ReportAttributesConfig = typeof reportAttributesModuleDefault;
+type ReportAttributesCompute = ReturnType<typeof ComputeReportAttributesModule.default>;
+
+/** One compute with its own baselines; `reset` swaps in a new one, which is how callers drop the baselines on Onyx clear. */
+type ReportAttributesComputer = {compute: ReportAttributesCompute; reset: () => void};
 
 jest.mock('@libs/ReportUtils', () => ({
     generateReportAttributes: jest.fn(() => ({
@@ -235,7 +239,7 @@ describe('getOldestPreviewActionID', () => {
 });
 
 describe('reportAttributes compute — policy change code flow', () => {
-    let config: ReportAttributesConfig;
+    let computer: ReportAttributesComputer;
 
     const report1 = createMock<Report>({
         reportID: 'r1',
@@ -267,11 +271,18 @@ describe('reportAttributes compute — policy change code flow', () => {
     beforeEach(() => {
         jest.resetModules();
 
-        config = jest.requireActual<{default: ReportAttributesConfig}>('@userActions/OnyxDerived/configs/reportAttributes').default;
+        const {default: createReportAttributesComputer} = jest.requireActual<typeof ComputeReportAttributesModule>('@libs/computeReportAttributes');
+        let compute = createReportAttributesComputer();
+        computer = {
+            compute: (dependencyValues, context) => compute(dependencyValues, context),
+            reset: () => {
+                compute = createReportAttributesComputer();
+            },
+        };
     });
 
     const buildArgs = (overridePolicies?: OnyxCollection<Policy>, overrideReports?: OnyxCollection<Report>, transactionsUpdate?: OnyxCollection<Transaction>) => {
-        const args: Parameters<ReportAttributesConfig['compute']>[0] = [
+        const args: Parameters<ReportAttributesCompute>[0] = [
             overrideReports ?? reports, // reports
             undefined, // preferredLocale
             undefined, // countryCodeByIP
@@ -295,7 +306,7 @@ describe('reportAttributes compute — policy change code flow', () => {
     };
 
     it('computes every report on a cold start (no currentValue) when policies load', () => {
-        const result = config.compute(buildArgs(), {
+        const result = computer.compute(buildArgs(), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -323,7 +334,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             locale: null,
         };
 
-        const result = config.compute(buildArgs(policies, reportsWithUnrelated), {
+        const result = computer.compute(buildArgs(policies, reportsWithUnrelated), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -358,7 +369,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         };
 
         // Seed previousPolicies with just the sender policy, as if it arrived in an earlier batch.
-        config.compute(buildArgs({[`${ONYXKEYS.COLLECTION.POLICY}senderPolicy`]: senderPolicy}, invoiceReports), {
+        computer.compute(buildArgs({[`${ONYXKEYS.COLLECTION.POLICY}senderPolicy`]: senderPolicy}, invoiceReports), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}senderPolicy`]: senderPolicy}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -377,7 +388,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             [`${ONYXKEYS.COLLECTION.POLICY}senderPolicy`]: senderPolicy,
             [`${ONYXKEYS.COLLECTION.POLICY}receiverPolicy`]: receiverPolicy,
         };
-        const result = config.compute(buildArgs(bothPolicies, invoiceReports), {
+        const result = computer.compute(buildArgs(bothPolicies, invoiceReports), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}receiverPolicy`]: receiverPolicy}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -390,7 +401,7 @@ describe('reportAttributes compute — policy change code flow', () => {
 
     it('keeps report names cached when only a policy badge field changes (no name recompute)', () => {
         // Seed previousPolicies by doing an initial compute
-        config.compute(buildArgs(), {
+        computer.compute(buildArgs(), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -414,7 +425,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         const computeReportNameMock = jest.mocked(jest.requireMock<typeof ReportNameUtils>('@libs/ReportNameUtils').computeReportName);
         computeReportNameMock.mockClear();
 
-        const result = config.compute(buildArgs(updatedPolicies), {
+        const result = computer.compute(buildArgs(updatedPolicies), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}policy1`]: policy1Changed}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -430,7 +441,7 @@ describe('reportAttributes compute — policy change code flow', () => {
 
     it('recomputes the name when a policy name changes', () => {
         // Seed previousPolicies by doing an initial compute
-        config.compute(buildArgs(), {
+        computer.compute(buildArgs(), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -454,7 +465,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         const computeReportNameMock = jest.mocked(jest.requireMock<typeof ReportNameUtils>('@libs/ReportNameUtils').computeReportName);
         computeReportNameMock.mockReturnValue('New Name');
 
-        const result = config.compute(buildArgs(updatedPolicies), {
+        const result = computer.compute(buildArgs(updatedPolicies), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}policy1`]: policy1Changed}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -483,7 +494,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         const reportsWithThread: OnyxCollection<Report> = {...reports, [`${ONYXKEYS.COLLECTION.REPORT}thread1`]: thread};
 
         // Seed previousPolicies by doing an initial compute
-        config.compute(buildArgs(undefined, reportsWithThread), {
+        computer.compute(buildArgs(undefined, reportsWithThread), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -504,7 +515,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             locale: null,
         };
 
-        const result = config.compute(buildArgs(updatedPolicies, reportsWithThread), {
+        const result = computer.compute(buildArgs(updatedPolicies, reportsWithThread), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}policy1`]: policy1Changed}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -533,7 +544,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         const reportsWithExpense: OnyxCollection<Report> = {...reports, [`${ONYXKEYS.COLLECTION.REPORT}exp1`]: emptyNameExpense};
 
         // Seed previousPolicies by doing an initial compute (basePolicy has no fieldList → empty).
-        config.compute(buildArgs(undefined, reportsWithExpense), {
+        computer.compute(buildArgs(undefined, reportsWithExpense), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -555,7 +566,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             locale: null,
         };
 
-        const result = config.compute(buildArgs(updatedPolicies, reportsWithExpense), {
+        const result = computer.compute(buildArgs(updatedPolicies, reportsWithExpense), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}policy1`]: policy1Changed}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -591,7 +602,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         };
 
         // Seed previousPolicies with both policies.
-        config.compute(buildArgs(bothPolicies, invoiceReports), {
+        computer.compute(buildArgs(bothPolicies, invoiceReports), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: bothPolicies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -606,7 +617,7 @@ describe('reportAttributes compute — policy change code flow', () => {
 
         // Receiver policy reimbursementChoice changes — a tracked badge field that no name reads.
         const receiverPolicyChanged: Policy = {...receiverPolicy, reimbursementChoice: CONST.POLICY.REIMBURSEMENT_CHOICES.REIMBURSEMENT_NO};
-        const result = config.compute(buildArgs({...bothPolicies, [`${ONYXKEYS.COLLECTION.POLICY}receiverPolicy`]: receiverPolicyChanged}, invoiceReports), {
+        const result = computer.compute(buildArgs({...bothPolicies, [`${ONYXKEYS.COLLECTION.POLICY}receiverPolicy`]: receiverPolicyChanged}, invoiceReports), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}receiverPolicy`]: receiverPolicyChanged}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -623,7 +634,7 @@ describe('reportAttributes compute — policy change code flow', () => {
 
     it('recomputes the name when a badge-only policy change coalesces with a transaction update on the same report', () => {
         // Seed previousPolicies.
-        config.compute(buildArgs(), {
+        computer.compute(buildArgs(), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -647,7 +658,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         };
 
         // One coalesced flush: policy1 badge change + a transaction update whose report is also r1.
-        const result = config.compute(buildArgs(updatedPolicies, undefined, transactionsUpdate), {
+        const result = computer.compute(buildArgs(updatedPolicies, undefined, transactionsUpdate), {
             currentValue: existingValue,
             sourceValues: {
                 [ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}policy1`]: policy1Changed},
@@ -664,7 +675,7 @@ describe('reportAttributes compute — policy change code flow', () => {
 
     it('skips recompute when a non-tracked policy field changes', () => {
         // Seed previousPolicies
-        config.compute(buildArgs(), {
+        computer.compute(buildArgs(), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -684,7 +695,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             locale: null,
         };
 
-        const result = config.compute(buildArgs(updatedPolicies), {
+        const result = computer.compute(buildArgs(updatedPolicies), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: {[`${ONYXKEYS.COLLECTION.POLICY}policy1`]: policy1WithUntrackedChange}},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -694,16 +705,16 @@ describe('reportAttributes compute — policy change code flow', () => {
         expect(result).toEqual(existingValue);
     });
 
-    it('onReset drops the policy baseline so the next compute recomputes referencing reports (cache-clear lifecycle)', () => {
+    it('a reset drops the policy baseline so the next compute recomputes referencing reports (cache-clear lifecycle)', () => {
         // Seed previousPolicies so an unchanged policy would normally narrow to nothing.
-        config.compute(buildArgs(), {
+        computer.compute(buildArgs(), {
             currentValue: undefined,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
         });
 
-        // Simulate the engine's clear reset.
-        config.onReset?.();
+        // Simulate the reset that runs on Onyx clear.
+        computer.reset();
 
         const existingValue: ReportAttributesDerivedValue = {
             reports: {
@@ -713,10 +724,10 @@ describe('reportAttributes compute — policy change code flow', () => {
             locale: null,
         };
 
-        // Same (unchanged) policies as the seed. Without onReset, previousPolicies would match → no recompute →
-        // stale names kept. After onReset the baseline is gone, so hasPolicyRelevantFieldChanged(undefined, policy)
+        // Same (unchanged) policies as the seed. Without the reset, previousPolicies would match → no recompute →
+        // stale names kept. After the reset the baseline is gone, so hasPolicyRelevantFieldChanged(undefined, policy)
         // is true and the referencing reports recompute.
-        const result = config.compute(buildArgs(), {
+        const result = computer.compute(buildArgs(), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -739,7 +750,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         };
 
         // A non-POLICY compute (e.g. reports loading) seeds previousPolicies from the disk-restored policies.
-        config.compute(buildArgs(), {
+        computer.compute(buildArgs(), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.REPORT]: reports},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.REPORT]),
@@ -751,7 +762,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             [`${ONYXKEYS.COLLECTION.POLICY}policy2`]: {...policy2},
         };
 
-        const result = config.compute(buildArgs(samePoliciesNewRefs), {
+        const result = computer.compute(buildArgs(samePoliciesNewRefs), {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: samePoliciesNewRefs},
             triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -784,7 +795,7 @@ describe('reportAttributes compute — policy change code flow', () => {
         };
 
         const args = buildArgs(undefined, reportsWithChat, transactionsUpdate);
-        const result = config.compute(args, {
+        const result = computer.compute(args, {
             currentValue: existingValue,
             sourceValues: {[ONYXKEYS.COLLECTION.TRANSACTION]: transactionsUpdate},
         });
@@ -806,7 +817,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             const args = buildArgs(policies, singleReport);
             args[13] = {[`${ONYXKEYS.COLLECTION.REPORT_METADATA}r1`]: reportMetadata};
 
-            config.compute(args, {
+            computer.compute(args, {
                 currentValue: undefined,
                 sourceValues: {[ONYXKEYS.COLLECTION.POLICY]: policies},
                 triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.POLICY]),
@@ -870,14 +881,14 @@ describe('reportAttributes compute — policy change code flow', () => {
             const liveFraudCardList: CardList = {[CARD_ID]: cardWithFraud};
             const initialArgs = buildArgs(policies, cardReports);
             initialArgs[16] = liveFraudCardList;
-            config.compute(initialArgs, {currentValue: undefined, sourceValues: undefined});
+            computer.compute(initialArgs, {currentValue: undefined, sourceValues: undefined});
             generateReportAttributes.mockClear();
 
             // When the backend clears possibleFraud, which also drops the card's fraudAlertReportID
             const clearedFraudCardList: CardList = {[CARD_ID]: createRandomExpensifyCard(CARD_ID, {state: CONST.EXPENSIFY_CARD.STATE.OPEN})};
             const args = buildArgs(policies, cardReports);
             args[16] = clearedFraudCardList;
-            config.compute(args, {
+            computer.compute(args, {
                 currentValue: seededValue,
                 triggeredKeys: new Set<OnyxKey>([ONYXKEYS.CARD_LIST]),
             });
@@ -893,11 +904,11 @@ describe('reportAttributes compute — policy change code flow', () => {
             // Given a first compute that saw the card's live fraud pointing at the fraud report
             const initialArgs = buildArgs(policies, cardReports);
             initialArgs[16] = {[CARD_ID]: cardWithFraud};
-            config.compute(initialArgs, {currentValue: undefined, sourceValues: undefined});
+            computer.compute(initialArgs, {currentValue: undefined, sourceValues: undefined});
             generateReportAttributes.mockClear();
 
             // When the card list is cleared, a cleared non-collection dependency carries no source value
-            config.compute(buildArgs(policies, cardReports), {
+            computer.compute(buildArgs(policies, cardReports), {
                 currentValue: seededValue,
                 sourceValues: undefined,
                 triggeredKeys: new Set<OnyxKey>([ONYXKEYS.CARD_LIST]),
@@ -922,7 +933,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             args[16] = cardList;
 
             // When the first compute after app start runs without source values
-            const result = config.compute(args, {currentValue: seededValue, sourceValues: undefined});
+            const result = computer.compute(args, {currentValue: seededValue, sourceValues: undefined});
 
             // Then only the fraud report is recomputed, so app start stays cheap for approvers with many green dots
             expect(generateReportAttributes).toHaveBeenCalledTimes(1);
@@ -946,7 +957,7 @@ describe('reportAttributes compute — policy change code flow', () => {
             args[16] = {[CARD_ID]: cardWithFraud};
 
             // When a full recompute runs in the same compute as the card change
-            const result = config.compute(args, {currentValue: seededValue, triggeredKeys: new Set<OnyxKey>([triggeredKey, ONYXKEYS.CARD_LIST])});
+            const result = computer.compute(args, {currentValue: seededValue, triggeredKeys: new Set<OnyxKey>([triggeredKey, ONYXKEYS.CARD_LIST])});
 
             // Then the fraud report gets a fresh name like every other report, since a full recompute can change any name
             expect(computeReportNameMock).toHaveBeenCalledWith(expect.objectContaining({report: fraudChatReport}));
@@ -962,17 +973,56 @@ describe('reportAttributes compute — policy change code flow', () => {
             const reportsWithParent: OnyxCollection<Report> = {...cardReports, [`${ONYXKEYS.COLLECTION.REPORT}${FRAUD_REPORT_ID}`]: childFraudReport};
             const initialArgs = buildArgs(policies, reportsWithParent);
             initialArgs[16] = {[CARD_ID]: cardWithFraud};
-            config.compute(initialArgs, {currentValue: undefined, sourceValues: undefined});
+            computer.compute(initialArgs, {currentValue: undefined, sourceValues: undefined});
             generateReportAttributes.mockClear();
 
             // When the backend clears possibleFraud on the card
             const args = buildArgs(policies, reportsWithParent);
             args[16] = {[CARD_ID]: createRandomExpensifyCard(CARD_ID, {state: CONST.EXPENSIFY_CARD.STATE.OPEN})};
-            config.compute(args, {currentValue: seededValue, triggeredKeys: new Set<OnyxKey>([ONYXKEYS.CARD_LIST])});
+            computer.compute(args, {currentValue: seededValue, triggeredKeys: new Set<OnyxKey>([ONYXKEYS.CARD_LIST])});
 
             // Then only the fraud report is recomputed, since the fraud alert dot doesn't feed the parent chat
             expect(generateReportAttributes).toHaveBeenCalledTimes(1);
             expect(generateReportAttributes).toHaveBeenCalledWith(expect.objectContaining({report: childFraudReport}));
+        });
+    });
+
+    describe('reference reuse', () => {
+        const computeFirst = () => computer.compute(buildArgs(), {currentValue: undefined, sourceValues: undefined});
+
+        const writeReport = (previousValue: ReportAttributesDerivedValue) => {
+            const updatedReport1 = {...report1, lastReadTime: '2026-01-01 00:00:00.000'};
+            return computer.compute(buildArgs(policies, {...reports, [`${ONYXKEYS.COLLECTION.REPORT}r1`]: updatedReport1}), {
+                currentValue: previousValue,
+                sourceValues: {[ONYXKEYS.COLLECTION.REPORT]: {[`${ONYXKEYS.COLLECTION.REPORT}r1`]: updatedReport1}},
+                triggeredKeys: new Set<OnyxKey>([ONYXKEYS.COLLECTION.REPORT]),
+            });
+        };
+
+        it('should return the previous value when a report write leaves every attribute unchanged', () => {
+            // Given attributes computed for both reports
+            const previousValue = computeFirst();
+
+            // When r1 gets a write that doesn't feed any attribute, like a read receipt
+            const result = writeReport(previousValue);
+
+            // Then the previous value comes back, so consumers can skip comparing the whole map
+            expect(result).toBe(previousValue);
+        });
+
+        it('should keep the references of unchanged entries when one entry changes', () => {
+            // Given attributes computed for both reports
+            const previousValue = computeFirst();
+            const computeReportNameMock = jest.mocked(jest.requireMock<typeof ReportNameUtils>('@libs/ReportNameUtils').computeReportName);
+            computeReportNameMock.mockImplementation(({report}) => (report?.reportID === 'r1' ? 'Renamed' : 'Test Report'));
+
+            // When a write to r1 changes its name
+            const result = writeReport(previousValue);
+
+            // Then the map is new because r1 changed, while r2 keeps its entry object so its consumers don't re-render
+            expect(result).not.toBe(previousValue);
+            expect(result.reports.r1?.reportName).toBe('Renamed');
+            expect(result.reports.r2).toBe(previousValue.reports.r2);
         });
     });
 });

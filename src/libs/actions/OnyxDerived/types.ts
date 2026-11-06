@@ -48,4 +48,4 @@ type OnyxDerivedValueConfig<Key extends ValueOf<typeof ONYXKEYS.DERIVED>, Deps e
     onReset?: () => void;
 };
 
-export type {OnyxDerivedValueConfig, DerivedValueContext};
+export type {OnyxDerivedValueConfig, DerivedValueContext, DerivedSourceValues};

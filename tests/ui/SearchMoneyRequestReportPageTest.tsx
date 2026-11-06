@@ -10,7 +10,7 @@ import useIsReportReadyToDisplay from '@hooks/useIsReportReadyToDisplay';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import useParentReportAction from '@hooks/useParentReportAction';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSubmitToDestinationVisible from '@hooks/useSubmitToDestinationVisible';
@@ -55,7 +55,7 @@ jest.mock('@hooks/useReportIsArchived', () => jest.fn());
 jest.mock('@hooks/useIsReportReadyToDisplay', () => jest.fn());
 jest.mock('@hooks/useParentReportAction', () => jest.fn());
 jest.mock('@components/WideRHPContextProvider/useRHPWidth', () => jest.fn());
-jest.mock('@hooks/useReportAttributes', () => ({useDerivedReportNameByReportID: jest.fn()}));
+jest.mock('@hooks/useReportAttributes', () => ({useReportName: jest.fn()}));
 jest.mock('@hooks/useDocumentTitle', () => jest.fn());
 jest.mock('@hooks/useResponsiveLayout', () => jest.fn());
 // useThemeStyles is consumed directly in the JSX (e.g. styles.mtAuto), so it needs to return
@@ -96,7 +96,7 @@ const mockUseSubmitToDestinationVisible = useSubmitToDestinationVisible as jest.
 const mockUseReportIsArchived = useReportIsArchived as jest.MockedFunction<typeof useReportIsArchived>;
 const mockUseIsReportReadyToDisplay = useIsReportReadyToDisplay as jest.MockedFunction<typeof useIsReportReadyToDisplay>;
 const mockUseParentReportAction = useParentReportAction as jest.MockedFunction<typeof useParentReportAction>;
-const mockUseDerivedReportNameByReportID = useDerivedReportNameByReportID as jest.MockedFunction<typeof useDerivedReportNameByReportID>;
+const mockUseReportName = useReportName as jest.MockedFunction<typeof useReportName>;
 const mockUseResponsiveLayout = useResponsiveLayout as jest.MockedFunction<typeof useResponsiveLayout>;
 const mockUseClearReportActionDraftsOnReportChange = useClearReportActionDraftsOnReportChange as jest.MockedFunction<typeof useClearReportActionDraftsOnReportChange>;
 const mockUseTransactionsAndViolationsForReport = useTransactionsAndViolationsForReport as jest.MockedFunction<typeof useTransactionsAndViolationsForReport>;
@@ -235,7 +235,7 @@ describe('SearchMoneyRequestReportPage (legacy transaction self-heal)', () => {
         mockUseReportIsArchived.mockReturnValue(false);
         mockUseIsReportReadyToDisplay.mockReturnValue({isEditingDisabled: false, isCurrentReportLoadedFromOnyx: true});
         mockUseParentReportAction.mockReturnValue(undefined);
-        mockUseDerivedReportNameByReportID.mockReturnValue(undefined);
+        mockUseReportName.mockReturnValue(undefined);
         mockUseResponsiveLayout.mockReturnValue({
             shouldUseNarrowLayout: false,
             isSmallScreenWidth: false,

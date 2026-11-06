@@ -258,11 +258,6 @@ describe('LHNOptionsList', () => {
                     pendingExpenseAction: CONST.EXPENSE_PENDING_ACTION.SUBMIT,
                 });
 
-                await Onyx.merge(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
-                    [reportID]: {
-                        [submittedAction.reportActionID]: true,
-                    },
-                });
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {
                     [submittedAction.reportActionID]: submittedAction,
                 });
@@ -315,11 +310,6 @@ describe('LHNOptionsList', () => {
                     pendingExpenseAction: CONST.EXPENSE_PENDING_ACTION.SUBMIT,
                 });
 
-                await Onyx.merge(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
-                    [reportID]: {
-                        [commentAction.reportActionID]: true,
-                    },
-                });
                 await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`, {
                     [commentAction.reportActionID]: commentAction,
                 });

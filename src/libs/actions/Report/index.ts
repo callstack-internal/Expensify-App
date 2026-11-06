@@ -263,7 +263,7 @@ import type {
     Transaction,
     TransactionViolation,
     TransactionViolations,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {DeferredAttachmentEdit} from '@src/types/onyx/DeferredAttachmentEdits';
 import type {Decision} from '@src/types/onyx/OriginalMessage';
@@ -3526,7 +3526,7 @@ type DeleteReportCommentParams = {
     currentEmail: string;
     isOffline: boolean;
     currentUserAccountID: number;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
 };
 
 /** Deletes a comment from the report, basically sets it as empty string */

@@ -71,7 +71,7 @@ jest.mock('@hooks/useResponsiveLayout', () => ({
 let mockIsReportActionVisible = true;
 
 // The gate only re-renders when its Onyx subscriptions change, so the useOnyx mock notifies subscribers like Onyx does.
-// Each update also replaces DERIVED.VISIBLE_REPORT_ACTIONS, which visibility is derived from.
+// Each update also replaces the visible report actions, which visibility is derived from.
 const mockOnyxListeners = new Set<() => void>();
 let mockOnyxVersion = 0;
 let mockVisibleReportActions: Record<string, unknown> = {};
@@ -86,6 +86,11 @@ function updateOnyx(update: () => void) {
         }
     });
 }
+
+jest.mock('@hooks/useVisibleReportActions', () => ({
+    __esModule: true,
+    default: () => mockVisibleReportActions,
+}));
 
 jest.mock('@libs/ReportActionsUtils', () => ({
     __esModule: true,
@@ -124,8 +129,7 @@ jest.mock('@hooks/useOnyx', () => {
         if (key.startsWith('report_')) {
             return [{reportID: '12345', type: 'chat'}, {status: 'loaded'}];
         }
-        // DERIVED.VISIBLE_REPORT_ACTIONS
-        return [mockVisibleReportActions, {status: 'loaded'}];
+        return [undefined, {status: 'loaded'}];
     }
 
     return {

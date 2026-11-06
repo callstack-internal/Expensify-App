@@ -19,7 +19,7 @@ import type {
     ReportActions,
     ReportAttributesDerivedValue,
     TransactionViolation,
-    VisibleReportActionsDerivedValue,
+    VisibleReportActions,
 } from '@src/types/onyx';
 import type {Icon, PendingAction} from '@src/types/onyx/OnyxCommon';
 
@@ -108,7 +108,7 @@ type LazyHydrationContext = {
     policiesCollection: OnyxCollection<Policy>;
     reportAttributesDerived: ReportAttributesDerivedValue['reports'] | undefined;
     policyTags: OnyxCollection<PolicyTagLists>;
-    visibleReportActionsData: VisibleReportActionsDerivedValue;
+    visibleReportActionsData: VisibleReportActions;
     privateIsArchivedMap: PrivateIsArchivedMap;
     conciergeReportID: string | undefined;
     currentUserAccountID: number;
@@ -292,7 +292,7 @@ type GetOptionsConfig = {
     includeUserToInvite?: boolean;
     shouldAcceptName?: boolean;
     countryCode?: number;
-    visibleReportActionsData?: VisibleReportActionsDerivedValue;
+    visibleReportActionsData?: VisibleReportActions;
     reportAttributesDerived?: ReportAttributesDerivedValue['reports'];
     sortedActions?: Record<string, ReportAction[]>;
     transactionThreadIDs?: Record<string, string | undefined>;

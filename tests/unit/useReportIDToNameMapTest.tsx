@@ -89,6 +89,40 @@ describe('useReportIDToNameMap', () => {
 
         expect(result.current).toBe(firstResult);
     });
+
+    it('should keep the same map when a report write does not change any name', async () => {
+        // Given a mounted map over two reports
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'First'}));
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, createReport('2', {reportName: 'Second'}));
+        const {result} = await renderReportIDToNameMap();
+        const firstResult = result.current;
+
+        // When a report gets a new message, which touches the report but not its name
+        await act(async () => {
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}1`, {lastMessageText: 'hello'});
+            await waitForBatchedUpdates();
+        });
+
+        // Then consumers keep the same map, so sending a message does not re-render the composer through it
+        expect(result.current).toBe(firstResult);
+    });
+
+    it('should drop a report from the map when it is removed', async () => {
+        // Given a mounted map over two reports
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'First'}));
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, createReport('2', {reportName: 'Second'}));
+        const {result} = await renderReportIDToNameMap();
+
+        // When one report is removed, which changes no remaining name
+        await act(async () => {
+            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, null);
+            await waitForBatchedUpdates();
+        });
+
+        // Then the removed report leaves the map, because removals count as a change
+        expect(result.current['2']).toBeUndefined();
+        expect(result.current['1']).toBe('First');
+    });
 });
 
 describe('getReportIDToNameMapForRoomsInMarkdown', () => {

@@ -110,15 +110,19 @@ describe('useFilterFeedData', () => {
     });
 
     it('should include Expensify Card feeds from allCards', async () => {
-        await Onyx.merge(ONYXKEYS.DERIVED.PERSONAL_AND_WORKSPACE_CARD_LIST, {
+        // Given an Expensify Card in the user's card list
+        await Onyx.merge(ONYXKEYS.CARD_LIST, {
             card1: {
+                cardID: 1,
                 bank: 'Expensify Card',
                 fundID: '999',
             },
         });
 
+        // When the feed options are built
         const {result} = renderHook(() => useFilterFeedData(undefined));
 
+        // Then the card's feed is offered, since the merged card list is read live from the card list and workspace feeds
         expect(result.current.feedOptions).toHaveLength(1);
         expect(result.current.feedOptions.at(0)?.value).toBe('999_Expensify Card');
     });

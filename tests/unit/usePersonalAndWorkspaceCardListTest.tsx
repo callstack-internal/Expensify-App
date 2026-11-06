@@ -2,6 +2,7 @@ import {act, renderHook} from '@testing-library/react-native';
 
 import usePersonalAndWorkspaceCardList from '@hooks/usePersonalAndWorkspaceCardList';
 
+import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {CardList, WorkspaceCardsList} from '@src/types/onyx';
 
@@ -133,5 +134,34 @@ describe('usePersonalAndWorkspaceCardList', () => {
 
         // Then the selector ran once for the one new merged list, since a big card list makes every run cost a full scan
         expect(countCards).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not re-render a selector consumer when a change leaves its output equal', async () => {
+        // Given a visible card and a card hidden from Search, read through a selector that drops hidden cards
+        await act(async () => {
+            await Onyx.set(ONYXKEYS.CARD_LIST, {
+                '1': createRandomExpensifyCard(1, {fundID: '123', state: CONST.EXPENSIFY_CARD.STATE.OPEN}),
+                '2': createRandomExpensifyCard(2, {fundID: '123', state: CONST.EXPENSIFY_CARD.STATE.CLOSED}),
+            });
+        });
+        const visibleCards = (cardList: CardList) => Object.fromEntries(Object.entries(cardList).filter(([, card]) => card.state !== CONST.EXPENSIFY_CARD.STATE.CLOSED));
+        let renderCount = 0;
+        const {result} = renderHook(() => {
+            renderCount++;
+            return usePersonalAndWorkspaceCardList(visibleCards);
+        });
+        await waitForBatchedUpdatesWithAct();
+        const outputBeforeWrite = result.current;
+        const renderCountBeforeWrite = renderCount;
+
+        // When the hidden card is renamed, which changes the merged list but not what the selector returns
+        await act(async () => {
+            await Onyx.merge(ONYXKEYS.CARD_LIST, {'2': {nameValuePairs: {cardTitle: 'Renamed'}}});
+        });
+        await waitForBatchedUpdatesWithAct();
+
+        // Then the consumer keeps the same output and does not re-render, though the hook compares outputs by identity
+        expect(result.current).toBe(outputBeforeWrite);
+        expect(renderCount).toBe(renderCountBeforeWrite);
     });
 });

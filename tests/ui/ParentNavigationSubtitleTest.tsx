@@ -1,5 +1,7 @@
 import {fireEvent, render, screen} from '@testing-library/react-native';
 
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
+
 import Navigation from '@libs/Navigation/Navigation';
 import {isReportActionVisible} from '@libs/ReportActionsUtils';
 
@@ -29,6 +31,11 @@ jest.mock('@libs/Navigation/Navigation', () => ({
         navigate: jest.fn(),
         getActiveRoute: jest.fn(() => ''),
     },
+}));
+
+jest.mock('@hooks/useVisibleReportActions', () => ({
+    __esModule: true,
+    default: jest.fn(),
 }));
 
 jest.mock('@libs/ReportActionsUtils', () => ({
@@ -310,7 +317,6 @@ describe('ParentNavigationSubtitle', () => {
         const otherReportID = 'other-report';
         const expenseReportID = 'expense-report';
         const parentReportActionID = 'parent-action';
-        const otherReportActionID = 'other-action';
         const subtitleData = {reportName: 'Parent chat', workspaceName: 'Workspace'};
 
         function pressSubtitleLink() {
@@ -356,12 +362,10 @@ describe('ParentNavigationSubtitle', () => {
             expect(screen.getByText(subtitleData.reportName)).toBeTruthy();
         });
 
-        it('passes only the parent report visibility to isReportActionVisible', async () => {
-            // Given visibility data for the parent report and for an unrelated report
-            await Onyx.set(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
-                [parentReportID]: {[parentReportActionID]: true},
-                [otherReportID]: {[otherReportActionID]: true},
-            });
+        it('passes the parent report visibility to isReportActionVisible', async () => {
+            // Given visibility data for the parent report
+            const visibility = {[parentReportID]: {[parentReportActionID]: true}};
+            jest.mocked(useVisibleReportActions).mockReturnValue(visibility);
             render(
                 <ParentNavigationSubtitle
                     parentNavigationSubtitleData={subtitleData}
@@ -375,17 +379,13 @@ describe('ParentNavigationSubtitle', () => {
             // When the parent link is pressed
             pressSubtitleLink();
 
-            // Then the visibility check receives only the parent report slice, because the component subscribes through
-            // reportVisibleActionsSelector instead of the whole derived map
-            expect(jest.mocked(isReportActionVisible).mock.calls.at(0)?.at(3)).toEqual({[parentReportID]: {[parentReportActionID]: true}});
+            // Then the visibility check receives the parent report visibility, because the component reads it through useVisibleReportActions
+            expect(jest.mocked(useVisibleReportActions)).toHaveBeenCalledWith(parentReportID);
+            expect(jest.mocked(isReportActionVisible).mock.calls.at(0)?.at(3)).toBe(visibility);
         });
 
         it('reads the new parent report visibility when parentReportID changes', async () => {
-            // Given visibility data for two reports and a subtitle pointing at the first one
-            await Onyx.set(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {
-                [parentReportID]: {[parentReportActionID]: true},
-                [otherReportID]: {[parentReportActionID]: false},
-            });
+            // Given a subtitle pointing at the first parent report
             const {rerender} = render(
                 <ParentNavigationSubtitle
                     parentNavigationSubtitleData={subtitleData}
@@ -406,10 +406,9 @@ describe('ParentNavigationSubtitle', () => {
                 />,
             );
             await waitForBatchedUpdates();
-            pressSubtitleLink();
 
-            // Then the visibility check uses the new parent's slice, because the selector is rebuilt for the new parentReportID
-            expect(jest.mocked(isReportActionVisible).mock.calls.at(0)?.at(3)).toEqual({[otherReportID]: {[parentReportActionID]: false}});
+            // Then the visibility hook is read for the new parent report
+            expect(jest.mocked(useVisibleReportActions)).toHaveBeenLastCalledWith(otherReportID);
         });
     });
 });

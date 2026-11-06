@@ -10,6 +10,7 @@ import useOnyx from '@hooks/useOnyx';
 import usePersonalDetailByLogin from '@hooks/usePersonalDetailByLogin';
 import {usePersonalDetailsByIDs} from '@hooks/usePersonalDetails';
 import {useReportAttributesEntry, useReportNameEntries} from '@hooks/useReportAttributes';
+import useVisibleReportActions from '@hooks/useVisibleReportActions';
 
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {
@@ -31,7 +32,6 @@ import CONST from '@src/CONST';
 import {getMovedReportID} from '@src/libs/ModifiedExpenseMessage';
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {PersonalDetailsList, Report, ReportAction, ReportActions as ReportActionsType} from '@src/types/onyx';
-import type {VisibleReportActionsDerivedValue} from '@src/types/onyx/DerivedValues';
 
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 
@@ -137,27 +137,10 @@ function OptionRowLHNData({isOptionFocused = false, viewMode = 'default', report
 
     const isInvoice = fullReport?.type === CONST.REPORT.TYPE.INVOICE;
     const isIOUReport = fullReport?.type === CONST.REPORT.TYPE.IOU;
-    const visibleActionsSelector = (data: VisibleReportActionsDerivedValue | undefined) => {
-        if (!data) {
-            return undefined;
-        }
-        const result: VisibleReportActionsDerivedValue = {};
-        const reportEntry = data[reportID];
-        if (reportEntry) {
-            result[reportID] = reportEntry;
-        }
-        if (reportAttributes?.oneTransactionThreadReportID) {
-            const txThreadEntry = data[reportAttributes.oneTransactionThreadReportID];
-            if (txThreadEntry) {
-                result[reportAttributes.oneTransactionThreadReportID] = txThreadEntry;
-            }
-        }
-        return result;
-    };
 
     const [oneTransactionThreadReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(reportAttributes?.oneTransactionThreadReportID)}`);
     const [transactionThreadReportActions] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${getNonEmptyStringOnyxID(reportAttributes?.oneTransactionThreadReportID)}`);
-    const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS, {selector: visibleActionsSelector});
+    const visibleReportActionsData = useVisibleReportActions(reportID, reportAttributes?.oneTransactionThreadReportID);
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${getNonEmptyStringOnyxID(fullReport?.policyID)}`);
     const [policyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${fullReport?.policyID}`);
     const reimburserAccountID = usePersonalDetailByLogin(policy?.reimburser ?? policy?.achAccount?.reimburser, accountIDSelector);

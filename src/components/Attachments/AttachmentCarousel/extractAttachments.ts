@@ -6,7 +6,7 @@ import {canUserPerformWriteAction} from '@libs/ReportUtils';
 import tryResolveUrlFromApiRoot from '@libs/tryResolveUrlFromApiRoot';
 
 import CONST from '@src/CONST';
-import type {Report, ReportAction, ReportActions, VisibleReportActionsDerivedValue} from '@src/types/onyx';
+import type {Report, ReportAction, ReportActions, VisibleReportActions} from '@src/types/onyx';
 import type {Note} from '@src/types/onyx/Report';
 
 import type {OnyxEntry} from 'react-native-onyx';
@@ -34,7 +34,7 @@ function extractAttachments(
         reportActions?: OnyxEntry<ReportActions>;
         report: OnyxEntry<Report>;
         isReportArchived: boolean | undefined;
-        visibleReportActionsData?: VisibleReportActionsDerivedValue;
+        visibleReportActionsData?: VisibleReportActions;
     },
 ) {
     const targetNote = privateNotes?.[Number(accountID)]?.note ?? '';

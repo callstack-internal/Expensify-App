@@ -288,6 +288,48 @@ function fatal(reason: string, stdout: string, stderr: string, exitCode: number)
     };
 }
 
+// PoC: the leg configs are written as JSON, where `extends` takes file paths, not objects. Merge each extended config
+// in first, in oxlint's order: earlier configs first, overrides concatenated, later root values winning.
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mergeObjects(base: unknown, extra: unknown): unknown {
+    if (!isPlainObject(base) || !isPlainObject(extra)) {
+        return extra ?? base;
+    }
+    const merged: Record<string, unknown> = {...base};
+    for (const [key, value] of Object.entries(extra)) {
+        merged[key] = mergeObjects(merged[key], value);
+    }
+    return merged;
+}
+
+function flattenExtends(config: OxlintConfig): OxlintConfig {
+    const {extends: extended, ...own} = config;
+    const bases = Array.isArray(extended) ? extended.filter(isOxlintConfig).map(flattenExtends) : [];
+    let merged: OxlintConfig = {};
+    for (const next of [...bases, own]) {
+        const plugins = [...new Set([...(Array.isArray(merged.plugins) ? merged.plugins : []), ...(Array.isArray(next.plugins) ? next.plugins : [])])];
+        const jsPlugins = [...(merged.jsPlugins ?? []), ...(next.jsPlugins ?? [])];
+        merged = {
+            ...merged,
+            ...next,
+            plugins,
+            jsPlugins,
+            env: mergeObjects(merged.env, next.env),
+            globals: mergeObjects(merged.globals, next.globals),
+            settings: mergeObjects(merged.settings, next.settings),
+            categories: next.categories ?? merged.categories,
+            options: {...merged.options, ...next.options},
+            ignorePatterns: [...(Array.isArray(merged.ignorePatterns) ? merged.ignorePatterns : []), ...(Array.isArray(next.ignorePatterns) ? next.ignorePatterns : [])],
+            rules: {...merged.rules, ...next.rules},
+            overrides: [...(merged.overrides ?? []), ...(next.overrides ?? [])],
+        };
+    }
+    return merged;
+}
+
 function isOxlintConfig(value: unknown): value is OxlintConfig {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -298,7 +340,7 @@ async function loadOxlintConfig(projectRoot: string): Promise<OxlintConfig> {
     if (!isOxlintConfig(config)) {
         throw new Error(`${OXLINT_CONFIG_FILE} does not default-export a config object`);
     }
-    return config;
+    return flattenExtends(config);
 }
 
 function isOxlintReport(value: unknown): value is OxlintJSONReport {

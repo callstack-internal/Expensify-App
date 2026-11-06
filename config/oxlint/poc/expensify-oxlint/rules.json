@@ -1,0 +1,49 @@
+{
+    "coreRuleNames": ["no-octal", "no-octal-escape", "no-return-await", "no-dupe-args", "no-restricted-syntax", "strict", "no-undef-init", "lines-between-class-members", "dot-notation"],
+    "hostedRuleIDs": [
+        "import/order",
+        "import/no-useless-path-segments",
+        "import/no-import-module-exports",
+        "import/no-relative-packages",
+        "jsdoc/check-param-names",
+        "jsdoc/check-types",
+        "jsdoc/no-types",
+        "react/forbid-prop-types",
+        "react/jsx-no-bind",
+        "react/jsx-uses-react",
+        "react/jsx-uses-vars",
+        "react/no-deprecated",
+        "react/prefer-stateless-function",
+        "react/prop-types",
+        "react/sort-comp",
+        "react/require-default-props",
+        "react/forbid-foreign-prop-types",
+        "react/default-props-match-prop-types",
+        "react/no-unused-state",
+        "react/no-typos",
+        "react/no-access-state-in-setstate",
+        "react/static-property-placement",
+        "react/prefer-exact-props",
+        "react/no-arrow-function-lifecycle",
+        "react/no-invalid-html-attribute",
+        "react/no-unused-class-component-methods",
+        "import/no-extraneous-dependencies",
+        "@typescript-eslint/naming-convention",
+        "import/prefer-default-export",
+        "react/function-component-definition",
+        "react/jsx-no-constructed-context-values",
+        "react-hooks/exhaustive-deps"
+    ],
+    "pluginPackages": {
+        "react": "eslint-plugin-react",
+        "import": "eslint-plugin-import",
+        "jsdoc": "eslint-plugin-jsdoc",
+        "@typescript-eslint": "@typescript-eslint/eslint-plugin",
+        "react-hooks": "eslint-plugin-react-hooks",
+        "storybook": "eslint-plugin-storybook"
+    },
+    "eslintRuleRenames": {
+        "no-new-object": "no-object-constructor",
+        "no-new-symbol": "no-new-native-nonconstructor"
+    }
+}

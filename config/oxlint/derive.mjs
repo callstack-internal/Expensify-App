@@ -496,4 +496,4 @@ function extendOxlintConfig({ignorePatterns = [], env = {}, globals = {}, settin
     };
 }
 
-export {ESLINT_RULE_RENAMES, LOCAL_HOSTED_RULES, STUBBED_PARSER_SERVICES, coreRuleNames, extendOxlintConfig, getPluginRules, hostedRuleIDs, splitRuleID};
+export {APP_HOSTED_RULES, ESLINT_RULE_RENAMES, LOCAL_HOSTED_RULES, STUBBED_PARSER_SERVICES, coreRuleNames, extendOxlintConfig, getPluginRules, hostedRuleIDs, splitRuleID};

@@ -2,7 +2,10 @@
  * oxlint and ESLint name some rules differently. This maps between the two, so oxlint findings show up
  * under ESLint's rule IDs. The lists come from config/oxlint/derive.mjs.
  */
-import {ESLINT_RULE_RENAMES, LOCAL_HOSTED_RULES, hostedRuleIDs, splitRuleID} from './derive.mjs';
+import {APP_HOSTED_RULES, LOCAL_HOSTED_RULES} from './poc/appHostedRules.mjs';
+import {ESLINT_RULE_RENAMES, hostedRuleIDs as presetHostedRuleIDs, splitRuleID} from './poc/expensify-oxlint/rules.mjs';
+
+const hostedRuleIDs = [...presetHostedRuleIDs, ...APP_HOSTED_RULES];
 
 const OXLINT_RULE_RENAMES = Object.fromEntries(Object.entries(ESLINT_RULE_RENAMES).map(([eslintName, oxlintName]) => [oxlintName, eslintName]));
 

@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 /**
  * oxlint config for `npm run lint` (see contributingGuides/LINTING.md). The rules come from the
  * eslint-config-expensify presets (config/oxlint/presets.mjs), converted each time oxlint loads this file by
@@ -5,7 +6,19 @@
  */
 /* eslint-disable @typescript-eslint/naming-convention -- the rule names in this file are quoted object keys */
 /* eslint-disable import/extensions -- Node loads this file as ESM, which needs the extension on relative imports */
-import {extendOxlintConfig} from './config/oxlint/derive.mjs';
+/* eslint-disable import/no-extraneous-dependencies -- oxlint is a devDependency; this file only runs while linting */
+import {defineConfig} from 'oxlint';
+
+// PoC: what `import expensifyOxlint from 'eslint-config-expensify/oxlint'` would give, pre-built at publish time.
+import expensifyOxlint from './config/oxlint/poc/expensify-oxlint/index.mjs';
+
+// The App runs the package's hosted rules through its own `hosted` plugin, which adds the React Compiler gate and the
+// App's own hosted rules. Same plugin name, so every rule keeps its `hosted/<name>` name.
+const APP_HOSTED_PLUGIN = {name: 'hosted', specifier: fileURLToPath(new URL('config/oxlint/poc/app-hosted-rules.mjs', import.meta.url))};
+const expensifyOxlintForApp = {
+    ...expensifyOxlint,
+    jsPlugins: (expensifyOxlint.jsPlugins ?? []).map((jsPlugin) => (typeof jsPlugin !== 'string' && jsPlugin.name === 'hosted' ? APP_HOSTED_PLUGIN : jsPlugin)),
+};
 
 // An oxlint override replaces a rule's options instead of merging them, so every block that sets
 // `no-restricted-imports` restates the full list, built from these.
@@ -109,7 +122,10 @@ const restrictedHeaderImportPatterns = [
 const victoryChartRendererRestrictedImportPaths = restrictedImportPaths.filter((entry) => entry.name !== '@styles/theme');
 const victoryChartRendererRestrictedImportPatterns = typescriptRestrictedImportPatterns.filter((entry) => !entry.group.includes('@styles/theme/themes/**'));
 
-export default extendOxlintConfig({
+export default defineConfig({
+    extends: [expensifyOxlintForApp],
+    // An empty list inherits exactly the extended config's plugins; leaving it out would add oxlint's defaults.
+    plugins: [],
     env: {node: true, browser: true, audioworklet: true, jest: true},
     globals: {__DEV__: 'readonly'},
     jsPlugins: [{name: 'report-name-utils', specifier: './config/oxlint/plugins/report-name-utils.mjs'}],

@@ -90,7 +90,10 @@ jest.mock('@hooks/usePersonalPolicy', () => jest.fn(() => undefined));
 
 jest.mock('@hooks/usePrivateIsArchivedMap', () => jest.fn(() => ({})));
 
-jest.mock('@hooks/useReportAttributes', () => jest.fn(() => ({})));
+jest.mock('@hooks/useReportAttributes', () => ({
+    ...jest.requireActual<Record<string, unknown>>('@hooks/useReportAttributes'),
+    useAllReportAttributes: jest.fn(() => ({})),
+}));
 
 jest.mock('@hooks/useReportIsArchived', () => jest.fn(() => false));
 

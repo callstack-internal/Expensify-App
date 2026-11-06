@@ -212,7 +212,7 @@ describe('AmountSubmission', () => {
                 userBillingGracePeriodEnds: {},
                 duplicateTransactions: {},
                 duplicateTransactionViolations: {},
-                reportAttributesDerivedValue: undefined,
+                reportAttributes: undefined,
                 isASAPSubmitBetaEnabled: false,
                 quickAction: undefined,
                 onboarding: undefined,

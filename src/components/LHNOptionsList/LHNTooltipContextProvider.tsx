@@ -1,5 +1,5 @@
 import useOnyx from '@hooks/useOnyx';
-import useReportAttributes from '@hooks/useReportAttributes';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useRootNavigationState from '@hooks/useRootNavigationState';
 
 import NAVIGATORS from '@src/NAVIGATORS';
@@ -24,7 +24,7 @@ function LHNTooltipContextProvider({data, children}: LHNTooltipContextProviderPr
     const [introSelected] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED);
     const [onboarding] = useOnyx(ONYXKEYS.NVP_ONBOARDING);
     const [isFullscreenVisible] = useOnyx(ONYXKEYS.FULLSCREEN_VISIBILITY);
-    const reportAttributes = useReportAttributes();
+    const reportAttributes = useAllReportAttributes();
 
     const firstReportIDWithGBRorRBR = data.find((reportID) => {
         const attrs = reportAttributes?.[reportID];

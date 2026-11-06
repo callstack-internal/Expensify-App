@@ -13,7 +13,7 @@ import useInitialValue from '@hooks/useInitialValue';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePrivateIsArchivedMap from '@hooks/usePrivateIsArchivedMap';
-import useReportAttributes from '@hooks/useReportAttributes';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useShouldFooterBeInsideList from '@hooks/useShouldFooterBeInsideList';
 import useSortedReportActionsData from '@hooks/useSortedReportActionsData';
 
@@ -85,7 +85,7 @@ function InSelector({value = [], selectionListTextInputStyle, selectionListStyle
     const currentUserEmail = currentUserPersonalDetails.email ?? '';
 
     const [isSearchingForReports] = useOnyx(ONYXKEYS.RAM_ONLY_IS_SEARCHING_FOR_REPORTS);
-    const reportAttributesDerived = useReportAttributes();
+    const reportAttributesDerived = useAllReportAttributes();
     const cleanSearchTerm = searchTerm.trim().toLowerCase();
     const [draftComments] = useOnyx(ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT);
     const privateIsArchivedMap = usePrivateIsArchivedMap();

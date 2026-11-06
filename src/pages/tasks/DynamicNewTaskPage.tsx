@@ -22,7 +22,7 @@ import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
 import usePolicy from '@hooks/usePolicy';
 import usePressLoading from '@hooks/usePressLoading';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useSafeAreaPaddings from '@hooks/useSafeAreaPaddings';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -80,7 +80,7 @@ function DynamicNewTaskPage() {
     const [quickAction] = useOnyx(ONYXKEYS.NVP_QUICK_ACTION_GLOBAL_CREATE);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
-    const derivedSharedDestinationReportName = useDerivedReportNameByReportID(parentReport?.reportID);
+    const derivedSharedDestinationReportName = useReportName(parentReport?.reportID);
     const currentUserPersonalDetails = useCurrentUserPersonalDetails();
     const delegateAccountID = useDelegateAccountID();
     const taskCreatorAndAssigneeDetails = getPersonalDetailsListByIDs([currentUserPersonalDetails.accountID, task?.assigneeAccountID], personalDetails);

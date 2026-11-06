@@ -2,7 +2,6 @@ import {act, renderHook} from '@testing-library/react-native';
 
 import useOnyx from '@hooks/useOnyx';
 
-import reportAttributes from '@libs/actions/OnyxDerived/configs/reportAttributes';
 import {isReportActionVisible} from '@libs/ReportActionsUtils';
 import * as ActiveSpans from '@libs/telemetry/activeSpans';
 
@@ -13,9 +12,9 @@ import * as OnyxDerivedUtils from '@userActions/OnyxDerived/utils';
 import CONST from '@src/CONST';
 import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {PersonalDetailsList, Report, Transaction, TransactionViolation, ReportAction, ReportActions} from '@src/types/onyx';
+import type {PersonalDetailsList, Transaction, TransactionViolation, ReportAction} from '@src/types/onyx';
 
-import type {OnyxCollection, OnyxUpdate} from 'react-native-onyx';
+import type {OnyxUpdate} from 'react-native-onyx';
 import type {TupleToUnion} from 'type-fest';
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -195,633 +194,55 @@ describe('OnyxDerived', () => {
         });
     });
 
-    describe('reportAttributes', () => {
-        beforeAll(async () => {
-            await IntlStore.load(CONST.LOCALES.EN);
+    describe('coalescing', () => {
+        // Each flush writes the derived value exactly once via setDerivedValue, so counting its calls for a key
+        // counts how many times that value was recomputed.
+        const countRecomputes = (spy: jest.SpyInstance, derivedKey: string) => spy.mock.calls.filter(([calledKey]) => calledKey === derivedKey).length;
+
+        it('coalesces the dependency changes from a single Onyx.update batch (without dropping any)', async () => {
+            // Given the derived value is populated and its connections are warm
+            await Onyx.set(`${ONYXKEYS.COLLECTION.TRANSACTION}1`, {...createRandomTransaction(1), transactionID: '1', reportID: 'r1'});
             await waitForBatchedUpdates();
-        });
+            const setDerivedValueSpy = jest.spyOn(OnyxDerivedUtils, 'setDerivedValue');
 
-        beforeEach(async () => {
-            await Onyx.set(ONYXKEYS.RAM_ONLY_ARE_TRANSLATIONS_LOADING, false);
-            await waitForBatchedUpdates();
-        });
-
-        const mockReport: Report = {
-            reportID: `test_1`,
-            reportName: 'Test Report',
-            type: 'chat',
-            chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM,
-            lastVisibleActionCreated: '2023-01-01T00:00:00.000Z',
-            lastMessageText: 'Test message',
-            lastActorAccountID: 1,
-            lastMessageHtml: '<p>Test message</p>',
-            policyID: '123',
-            ownerAccountID: 1,
-            stateNum: CONST.REPORT.STATE_NUM.OPEN,
-            statusNum: CONST.REPORT.STATUS_NUM.OPEN,
-        };
-
-        it('returns empty reports when dependencies are not set', async () => {
-            await waitForBatchedUpdates();
-            const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-            expect(derivedReportAttributes).toMatchObject({
-                reports: {},
-            });
-        });
-
-        it('computes report attributes when reports are set', async () => {
-            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-            await waitForBatchedUpdates();
-
-            const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            expect(derivedReportAttributes).toMatchObject({
-                reports: {
-                    [mockReport.reportID]: {
-                        reportName: mockReport.reportName,
-                    },
-                },
-            });
-        });
-
-        it('should clear the report attributes when the report is cleared', async () => {
-            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-            await waitForBatchedUpdates();
-
-            let derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            expect(derivedReportAttributes).toMatchObject({
-                reports: {
-                    [mockReport.reportID]: {
-                        reportName: mockReport.reportName,
-                    },
-                },
-            });
-
-            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, null);
-
-            derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            expect(derivedReportAttributes).toMatchObject({
-                reports: {},
-            });
-        });
-
-        it('updates when locale changes', async () => {
-            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-            await IntlStore.load(CONST.LOCALES.ES);
-            // Derived recomputes are coalesced onto a microtask; pump it so the locale change is applied.
-            await waitForBatchedUpdates();
-
-            const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            expect(derivedReportAttributes).toMatchObject({
-                locale: 'es',
-            });
-        });
-
-        describe('coalescing', () => {
-            // Each flush/recompute writes the derived value exactly once via setDerivedValue, so counting
-            // its calls for a given derived key = counting how many times that value was recomputed.
-            const countRecomputes = (spy: jest.SpyInstance, derivedKey: string) => spy.mock.calls.filter(([calledKey]) => calledKey === derivedKey).length;
-
-            it('coalesces the dependency changes from a single Onyx.update batch (without dropping any)', async () => {
-                // Prime so the derived value is populated and connections are warm.
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-                await waitForBatchedUpdates();
-
-                const setDerivedValueSpy = jest.spyOn(OnyxDerivedUtils, 'setDerivedValue');
-
-                // One logical update touching 3 different reportAttributes dependencies at once.
-                const updates: Array<OnyxUpdate<typeof ONYXKEYS.COLLECTION.REPORT | typeof ONYXKEYS.COLLECTION.TRANSACTION | typeof ONYXKEYS.COLLECTION.REPORT_METADATA>> = [
-                    {
-                        onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
-                        key: ONYXKEYS.COLLECTION.REPORT,
-                        value: {[`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`]: {reportName: 'Renamed report'}},
-                    },
-                    {onyxMethod: Onyx.METHOD.MERGE_COLLECTION, key: ONYXKEYS.COLLECTION.TRANSACTION, value: {[`${ONYXKEYS.COLLECTION.TRANSACTION}1`]: createRandomTransaction(1)}},
-                    {
-                        onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
-                        key: ONYXKEYS.COLLECTION.REPORT_METADATA,
-                        value: {[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${mockReport.reportID}`]: {isOptimisticReport: false}},
-                    },
-                ];
-                await Onyx.update(updates);
-                await waitForBatchedUpdates();
-
-                // Microtask flushing coalesces the changes delivered within a synchronous broadcast burst, so
-                // this recomputes fewer times than one-per-changed-dependency (3). We assert it's reduced rather
-                // than a brittle exact count, because Onyx.update can span a couple of microtask turns and a
-                // microtask flush does not batch across Onyx's async pipeline.
-                expect(countRecomputes(setDerivedValueSpy, ONYXKEYS.DERIVED.REPORT_ATTRIBUTES)).toBeLessThan(3);
-
-                // And the coalesced compute must not drop any of the batched changes.
-                const derived = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derived?.reports?.[mockReport.reportID]?.reportName).toBe('Renamed report');
-
-                setDerivedValueSpy.mockRestore();
-            });
-
-            it('applies every change from separate merges in the same tick without dropping any', async () => {
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-                await waitForBatchedUpdates();
-
-                // Separate merges to different dependencies, fired synchronously (not awaited between). Microtask
-                // flushing intentionally does NOT batch these into a single recompute — batching across ticks would
-                // require deferring the flush past render, reintroducing stale-frame reads. The invariant that must
-                // hold is that no update is dropped: every change is reflected in the final derived value.
-                Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, {reportName: 'Renamed again'});
-                Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION}1`, createRandomTransaction(1));
-                Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${mockReport.reportID}`, {isOptimisticReport: false});
-                await waitForBatchedUpdates();
-
-                const derived = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derived?.reports?.[mockReport.reportID]?.reportName).toBe('Renamed again');
-            });
-        });
-
-        it('should contain both report attributes update when there are report and transaction updates', async () => {
-            await waitForBatchedUpdates();
-            // Given 2 reports and 1 transaction
-            const reportID1 = '0';
-            const reportID2 = '1';
-            const reports: OnyxCollection<Report> = {
-                [`${ONYXKEYS.COLLECTION.REPORT}${reportID1}`]: createRandomReport(Number(reportID1), undefined),
-                [`${ONYXKEYS.COLLECTION.REPORT}${reportID2}`]: createRandomReport(Number(reportID2), undefined),
-            };
-            const transaction = createRandomTransaction(1);
-
-            // When the report attributes are recomputed with both report and transaction updates
-            reportAttributes.compute(
-                [
-                    reports,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                ],
-                {},
-            );
-            const reportAttributesComputedValue = reportAttributes.compute(
-                [
-                    reports,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                ],
+            // When one logical update touches both of its dependencies at once
+            await Onyx.update([
                 {
-                    sourceValues: {
-                        [ONYXKEYS.COLLECTION.REPORT]: {
-                            [`${ONYXKEYS.COLLECTION.REPORT}${reportID1}`]: reports[`${ONYXKEYS.COLLECTION.REPORT}${reportID1}`],
-                        },
-                        [ONYXKEYS.COLLECTION.TRANSACTION]: {
-                            [`${ONYXKEYS.COLLECTION.TRANSACTION}${transaction.transactionID}`]: transaction,
-                        },
-                    },
+                    onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
+                    key: ONYXKEYS.COLLECTION.TRANSACTION,
+                    value: {[`${ONYXKEYS.COLLECTION.TRANSACTION}2`]: {...createRandomTransaction(2), transactionID: '2', reportID: 'r1'}},
                 },
-            ).reports;
-
-            // Then the computed report attributes should contain both reports
-            expect(Object.keys(reportAttributesComputedValue)).toEqual([reportID1, reportID2]);
-        });
-
-        it('should not recompute reportAttributes when personalDetailsList changes without displayName change', async () => {
-            // Set up initial state with report and personalDetailsList
-            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-            await Onyx.set(ONYXKEYS.PERSONAL_DETAILS_LIST, {
-                '1': {
-                    accountID: 1,
-                    displayName: 'John Doe',
-                    login: 'john.doe@example.com',
-                    firstName: 'John',
-                    lastName: 'Doe',
+                {
+                    onyxMethod: Onyx.METHOD.MERGE_COLLECTION,
+                    key: ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS,
+                    value: {[`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}1`]: [{name: CONST.VIOLATIONS.MISSING_CATEGORY, type: CONST.VIOLATION_TYPES.VIOLATION}]},
                 },
-            });
+            ]);
             await waitForBatchedUpdates();
 
-            // Get initial computed value
-            const initialDerivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
+            // Then it recomputes fewer times than once per changed dependency, without dropping either change.
+            // Onyx.update can span a couple of microtask turns, so the count is bounded rather than exact.
+            expect(countRecomputes(setDerivedValueSpy, ONYXKEYS.DERIVED.REPORT_TRANSACTIONS_AND_VIOLATIONS)).toBeLessThan(2);
+            const derived = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_TRANSACTIONS_AND_VIOLATIONS);
+            expect(Object.keys(derived?.r1?.transactions ?? {})).toHaveLength(2);
+            expect(derived?.r1?.violations?.[`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}1`]).toHaveLength(1);
+            setDerivedValueSpy.mockRestore();
+        });
 
-            // Spy on generateReportAttributes - this function should NOT be called
-            // when the optimization kicks in and skips the computation
-            const generateReportAttributesSpy = jest.spyOn(require('@libs/ReportUtils'), 'generateReportAttributes');
-
-            // Change only the login (not displayName) - this should trigger the optimization
-            await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {
-                '1': {
-                    login: 'john.newemail@example.com',
-                },
-            });
+        it('applies every change from separate merges in the same tick without dropping any', async () => {
+            // Given the derived value is populated
+            await Onyx.set(`${ONYXKEYS.COLLECTION.TRANSACTION}1`, {...createRandomTransaction(1), transactionID: '1', reportID: 'r1'});
             await waitForBatchedUpdates();
 
-            // The generateReportAttributes function should not have been called
-            // because the optimization should have returned early
-            expect(generateReportAttributesSpy).not.toHaveBeenCalled();
-
-            // Get the computed value after login change
-            const derivedReportAttributesAfterLoginChange = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            // And the values should be preserved correctly
-            expect(derivedReportAttributesAfterLoginChange).toEqual(initialDerivedReportAttributes);
-
-            generateReportAttributesSpy.mockRestore();
-        });
-
-        it('should recompute reportAttributes when personalDetailsList displayName changes', async () => {
-            // Set up initial state with report and personalDetailsList
-            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${mockReport.reportID}`, mockReport);
-            await Onyx.set(ONYXKEYS.PERSONAL_DETAILS_LIST, {
-                '1': {
-                    accountID: 1,
-                    displayName: 'John Doe',
-                    login: 'john.doe@example.com',
-                    firstName: 'John',
-                    lastName: 'Doe',
-                },
-            });
+            // When separate merges to both dependencies fire in the same tick, without awaiting in between
+            Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION}2`, {...createRandomTransaction(2), transactionID: '2', reportID: 'r1'});
+            Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}1`, [{name: CONST.VIOLATIONS.MISSING_CATEGORY, type: CONST.VIOLATION_TYPES.VIOLATION}]);
             await waitForBatchedUpdates();
 
-            // Get initial computed value reference
-            const initialDerivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            // Change the displayName - this should trigger full recomputation
-            await Onyx.merge(ONYXKEYS.PERSONAL_DETAILS_LIST, {
-                '1': {
-                    displayName: 'Jane Doe',
-                    firstName: 'Jane',
-                },
-            });
-            await waitForBatchedUpdates();
-
-            // Get the computed value after displayName change
-            const derivedReportAttributesAfterDisplayNameChange = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-            // The computed value should not be the same object (new computation happened)
-            expect(derivedReportAttributesAfterDisplayNameChange).not.toBe(initialDerivedReportAttributes);
-        });
-
-        it('should only recompute reports that reference the changed accountID when a display name changes', () => {
-            // Two reports: one owned by account 2, the other owned by account 3.
-            const reports: OnyxCollection<Report> = {
-                [`${ONYXKEYS.COLLECTION.REPORT}ref_report`]: {...mockReport, reportID: 'ref_report', ownerAccountID: 2},
-                [`${ONYXKEYS.COLLECTION.REPORT}unrelated_report`]: {...mockReport, reportID: 'unrelated_report', policyID: '456', ownerAccountID: 3},
-            };
-            const personalDetails = {
-                '2': {accountID: 2, displayName: 'Alice', login: 'alice@example.com'},
-                '3': {accountID: 3, displayName: 'Bob', login: 'bob@example.com'},
-            };
-            const changedPersonalDetails = {...personalDetails, '2': {accountID: 2, displayName: 'Alice Smith', login: 'alice@example.com'}};
-
-            // PERSONAL_DETAILS_LIST is a valid runtime source key (hasKeyTriggeredCompute reads it), but the
-            // sourceValues type only models collection keys, so there's no representable type for this marker.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- non-collection source keys aren't modeled by DerivedSourceValues
-            const personalDetailsSource = {
-                sourceValues: {[ONYXKEYS.PERSONAL_DETAILS_LIST]: true},
-                triggeredKeys: new Set([ONYXKEYS.PERSONAL_DETAILS_LIST]),
-            } as unknown as Parameters<typeof reportAttributes.compute>[1];
-
-            // Reset the module-level diff baseline (no sourceValues clears it) so the seed below is deterministic.
-            reportAttributes.compute(
-                [
-                    reports,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    personalDetails,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                ],
-                {},
-            );
-            // First personal-details compute computes both reports (no prior currentValue) and seeds the baseline.
-            const initial = reportAttributes.compute(
-                [
-                    reports,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    personalDetails,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                ],
-                personalDetailsSource,
-            );
-            // Changing only account 2's display name should recompute just its report, carrying the other by reference.
-            const afterChange = reportAttributes.compute(
-                [
-                    reports,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    changedPersonalDetails,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                ],
-                {...personalDetailsSource, currentValue: initial},
-            );
-
-            // A recomputed report gets a brand-new object; an untouched report is carried over by reference.
-            expect(afterChange.reports.ref_report).not.toBe(initial.reports.ref_report);
-            expect(afterChange.reports.unrelated_report).toBe(initial.reports.unrelated_report);
-        });
-
-        describe('reportErrors', () => {
-            it('returns empty errors when no errors exist', async () => {
-                const report = createRandomReport(1, undefined);
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
-                await waitForBatchedUpdates();
-
-                const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[report.reportID].reportErrors).toEqual({});
-            });
-
-            it('combines report error fields with report action errors', async () => {
-                const report = {
-                    ...createRandomReport(1, undefined),
-                    errorFields: {
-                        field1: {
-                            '1234567890': 'Error message 1',
-                        },
-                    },
-                };
-
-                const reportActions: ReportActions = {
-                    '1': {
-                        reportActionID: '1',
-                        actionName: 'ADDCOMMENT',
-                        created: '2024-01-01',
-                        message: [{html: 'some content', text: 'some content', type: 'text'}],
-                        errors: {
-                            field2: {
-                                '1234567891': 'Error message 2',
-                            },
-                        },
-                    },
-                };
-
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
-                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, reportActions);
-
-                await waitForBatchedUpdates();
-
-                const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-
-                await waitForBatchedUpdates();
-
-                expect(derivedReportAttributes?.reports[report.reportID].reportErrors).toEqual({
-                    '1234567890': 'Error message 1',
-                    '1234567891': 'Error message 2',
-                });
-            });
-
-            it('handles multiple error sources', async () => {
-                const report = {
-                    ...createRandomReport(1, undefined),
-                    errorFields: {
-                        field1: {
-                            '1234567890': 'Error message 1',
-                        },
-                        field2: {
-                            '1234567891': 'Error message 2',
-                        },
-                    },
-                };
-
-                const reportActions: ReportActions = {
-                    '1': {
-                        reportActionID: '1',
-                        actionName: 'ADDCOMMENT',
-                        created: '2024-01-01',
-                        message: [{html: 'some content', text: 'some content', type: 'text'}],
-                        errors: {
-                            field3: {
-                                '1234567892': 'Error message 3',
-                            },
-                        },
-                    },
-                    '2': {
-                        reportActionID: '2',
-                        actionName: 'ADDCOMMENT',
-                        created: '2024-01-01',
-                        message: [{html: 'some content', text: 'some content', type: 'text'}],
-                        errors: {
-                            field4: {
-                                '1234567893': 'Error message 4',
-                            },
-                        },
-                    },
-                };
-
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
-                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, reportActions);
-                await waitForBatchedUpdates();
-
-                const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[report.reportID].reportErrors).toEqual({
-                    '1234567890': 'Error message 1',
-                    '1234567891': 'Error message 2',
-                    '1234567892': 'Error message 3',
-                    '1234567893': 'Error message 4',
-                });
-            });
-
-            it('handles empty error objects in sources', async () => {
-                const report = {
-                    ...createRandomReport(1, undefined),
-                    errorFields: {
-                        field1: {},
-                        field2: {
-                            '1234567890': 'Error message 1',
-                        },
-                    },
-                };
-
-                const reportActions: ReportActions = {
-                    '1': {
-                        reportActionID: '1',
-                        actionName: 'ADDCOMMENT',
-                        created: '2024-01-01',
-                        message: [{html: 'some content', text: 'some content', type: 'text'}],
-                        errors: {},
-                    },
-                    '2': {
-                        reportActionID: '2',
-                        actionName: 'ADDCOMMENT',
-                        created: '2024-01-01',
-                        message: [{html: 'some content', text: 'some content', type: 'text'}],
-                        errors: {
-                            field3: {
-                                '1234567891': 'Error message 2',
-                            },
-                        },
-                    },
-                };
-
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${report.reportID}`, report);
-                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`, reportActions);
-                await waitForBatchedUpdates();
-
-                const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[report.reportID].reportErrors).toEqual({
-                    '1234567890': 'Error message 1',
-                    '1234567891': 'Error message 2',
-                });
-            });
-        });
-
-        describe('RBR handling for support tickets', () => {
-            it('does not show a Fix badge for a support ticket error', async () => {
-                const supportTicket = {
-                    ...createRandomReport(1, undefined),
-                    type: CONST.REPORT.TYPE.SUPPORT_TICKET,
-                    errorFields: {
-                        createReport: {
-                            '1234567890': 'Support ticket error',
-                        },
-                    },
-                };
-
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${supportTicket.reportID}`, supportTicket);
-                await waitForBatchedUpdates();
-
-                const derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[supportTicket.reportID]).toMatchObject({
-                    reportErrors: {'1234567890': 'Support ticket error'},
-                });
-                expect(derivedReportAttributes?.reports[supportTicket.reportID].brickRoadStatus).toBeUndefined();
-                expect(derivedReportAttributes?.reports[supportTicket.reportID].actionBadge).toBeUndefined();
-            });
-        });
-
-        describe('RBR propagation for IOU reports', () => {
-            it('should correctly propagate and resolve RBR for IOU reports', async () => {
-                const parentReport = createRandomReport(2, undefined);
-                const iouReport = {
-                    ...createRandomReport(2, undefined),
-                    chatReportID: parentReport.reportID,
-                    ownerAccountID: 1,
-                    type: CONST.REPORT.TYPE.IOU,
-                    errorFields: {
-                        generic: {
-                            '1234567890': 'Generic error',
-                        },
-                    },
-                };
-
-                // --- Setup ---
-                // Set the reports in Onyx.
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${parentReport.reportID}`, parentReport);
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${iouReport.reportID}`, iouReport);
-                await waitForBatchedUpdates();
-
-                // --- Assertion 1: Propagation Works ---
-                // The parent report should have an error RBR because the child IOU report has an error.
-                let derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[parentReport.reportID].brickRoadStatus).toBe(CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR);
-
-                // --- Action: Resolve Error ---
-                // Remove the error from the IOU report. This will trigger a partial update.
-                await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}${iouReport.reportID}`, {errorFields: null});
-                await waitForBatchedUpdates();
-
-                // --- Assertion 2: RBR is Cleared ---
-                // The parent report's RBR should be cleared now that the child's error is gone.
-                derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[parentReport.reportID].brickRoadStatus).toBeUndefined();
-            });
-
-            it('should not propagate RBR from an IOU report whose preview action in the chat was deleted', async () => {
-                // Given a chat and an IOU report with an error, whose preview action in the chat was deleted
-                const parentReport = {...createRandomReport(3, undefined), reportID: '700', type: CONST.REPORT.TYPE.CHAT};
-                const previewAction = getFakeReportAction(701, {reportActionID: '701', actionName: CONST.REPORT.ACTIONS.TYPE.REPORT_PREVIEW, childReportID: '702'});
-                const deletedPreviewAction = {...previewAction, message: [{type: 'COMMENT', html: '', text: '', deleted: '2024-01-01 10:00:00'}]};
-                const iouReport = {
-                    ...createRandomReport(4, undefined),
-                    reportID: '702',
-                    chatReportID: parentReport.reportID,
-                    parentReportID: parentReport.reportID,
-                    parentReportActionID: previewAction.reportActionID,
-                    ownerAccountID: 1,
-                    type: CONST.REPORT.TYPE.IOU,
-                    errorFields: {generic: {'1234567890': 'Generic error'}},
-                };
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentReport.reportID}`, {[deletedPreviewAction.reportActionID]: deletedPreviewAction} as ReportActions);
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${parentReport.reportID}`, parentReport);
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${iouReport.reportID}`, iouReport);
-                await waitForBatchedUpdates();
-
-                // Then the chat does not show the error, since it has no surface left to fix it from
-                let derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[parentReport.reportID].brickRoadStatus).toBeUndefined();
-
-                // When the preview action is restored
-                await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${parentReport.reportID}`, {[previewAction.reportActionID]: previewAction} as ReportActions);
-                await waitForBatchedUpdates();
-
-                // Then the chat shows the child's error
-                derivedReportAttributes = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
-                expect(derivedReportAttributes?.reports[parentReport.reportID].brickRoadStatus).toBe(CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR);
-            });
+            // Then the final value reflects both, even if they took separate recomputes
+            const derived = await OnyxUtils.get(ONYXKEYS.DERIVED.REPORT_TRANSACTIONS_AND_VIOLATIONS);
+            expect(Object.keys(derived?.r1?.transactions ?? {})).toHaveLength(2);
+            expect(derived?.r1?.violations?.[`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}1`]).toHaveLength(1);
         });
     });
 

@@ -2,7 +2,7 @@ import RenderHTML from '@components/RenderHTML';
 
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import Parser from '@libs/Parser';
@@ -35,7 +35,7 @@ function UnreportedTransactionAction({action, originalReport}: UnreportedTransac
     const [childReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(action.childReportID)}`);
 
     const isPendingDelete = fromReport?.pendingFields?.preview === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE;
-    const derivedReportName = useDerivedReportNameByReportID(fromReportID);
+    const derivedReportName = useReportName(fromReportID);
     const unreportedTransactionMessage = getUnreportedTransactionMessage({translate, fromReport, fromReportID, derivedReportName});
 
     if (hasReasoning(action)) {

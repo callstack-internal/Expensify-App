@@ -17,6 +17,7 @@ import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import useCurrentUserPersonalDetails from './useCurrentUserPersonalDetails';
 import useLocalize from './useLocalize';
 import useOnyx from './useOnyx';
+import {useReportAttributesSelector} from './useReportAttributes';
 
 type UseFilteredOptionsConfig = {
     /** Whether the hook should be enabled (default: true) */
@@ -98,8 +99,8 @@ type FilteredReportAttributes = Record<string, Pick<ReportAttributes, 'reportErr
 
 const createReportAttributesSelector =
     (shouldStoreReportErrors: boolean, shouldShowBrickRoadIndicator: boolean) =>
-    (reportAttributes: OnyxEntry<ReportAttributesDerivedValue>): FilteredReportAttributes | undefined => {
-        if ((!shouldStoreReportErrors && !shouldShowBrickRoadIndicator) || !reportAttributes?.reports) {
+    (reportAttributes: ReportAttributesDerivedValue): FilteredReportAttributes | undefined => {
+        if (!shouldStoreReportErrors && !shouldShowBrickRoadIndicator) {
             return undefined;
         }
         const map: FilteredReportAttributes = {};
@@ -197,11 +198,11 @@ function usePersonalDetailOptions(config: UseFilteredOptionsConfig = {}): UseFil
     const {accountID} = useCurrentUserPersonalDetails();
     const {formatPhoneNumber, translate} = useLocalize();
     const [reports, reportsMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT, {selector: reportsSelector});
-    const [reportAttributes, reportAttributesMetadata] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: reportAttributesSelector});
+    const reportAttributes = useReportAttributesSelector(reportAttributesSelector);
     const [reportNameValuePairs, reportNameValuePairsMetadata] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {selector: privateIsArchivedSelector});
     const allPersonalDetails = usePersonalDetails();
 
-    const isLoading = !enabled || isLoadingOnyxValue(reportsMetadata, reportAttributesMetadata, reportNameValuePairsMetadata);
+    const isLoading = !enabled || isLoadingOnyxValue(reportsMetadata, reportNameValuePairsMetadata);
 
     // The whole derivation chain is skipped while loading (or disabled), so a consumer that only holds the Onyx
     // subscriptions doesn't rebuild these maps on every collection update.

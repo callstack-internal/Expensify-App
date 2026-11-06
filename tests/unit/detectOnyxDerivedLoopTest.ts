@@ -10,7 +10,7 @@ jest.mock('@sentry/react-native', () => ({captureMessage: jest.fn()}));
 
 const captureMessage = jest.mocked(Sentry.captureMessage);
 
-const DERIVED_KEY = ONYXKEYS.DERIVED.REPORT_ATTRIBUTES;
+const DERIVED_KEY = ONYXKEYS.DERIVED.REPORT_TRANSACTIONS_AND_VIOLATIONS;
 
 function recompute(times: number, triggeredKey: OnyxKey = ONYXKEYS.COLLECTION.REPORT_ACTIONS) {
     for (let i = 0; i < times; i++) {

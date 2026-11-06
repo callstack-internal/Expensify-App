@@ -37,6 +37,31 @@ jest.mock('@libs/ReportUtils', () => ({
     getReportIDFromLink: jest.fn(() => ''),
 }));
 
+// The attributes are an input of the hook under test, so the tests hand them in directly instead of computing them.
+let mockReportAttributes: ReportAttributesDerivedValue['reports'] = {};
+const mockReportAttributesListeners = new Set<() => void>();
+jest.mock('@hooks/useReportAttributes', () => {
+    const {useSyncExternalStore} = jest.requireActual<typeof React>('react');
+    return {
+        ...jest.requireActual<Record<string, unknown>>('@hooks/useReportAttributes'),
+        useAllReportAttributes: () =>
+            useSyncExternalStore(
+                (listener: () => void) => {
+                    mockReportAttributesListeners.add(listener);
+                    return () => mockReportAttributesListeners.delete(listener);
+                },
+                () => mockReportAttributes,
+            ),
+    };
+});
+
+function setReportAttributes(reports: ReportAttributesDerivedValue['reports']) {
+    mockReportAttributes = reports;
+    for (const listener of mockReportAttributesListeners) {
+        listener();
+    }
+}
+
 const mockSidebarUtils = jest.mocked(SidebarUtils);
 
 describe('useSidebarOrderedReports', () => {
@@ -55,6 +80,7 @@ describe('useSidebarOrderedReports', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
+        setReportAttributes({});
         await act(async () => {
             await Onyx.clear();
 
@@ -73,7 +99,6 @@ describe('useSidebarOrderedReports', () => {
                 [ONYXKEYS.COLLECTION.TRANSACTION]: {},
                 [ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS]: {},
                 [ONYXKEYS.BETAS]: [],
-                [ONYXKEYS.DERIVED.REPORT_ATTRIBUTES]: {reports: {}},
                 [ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS]: [],
             } satisfies OnyxMultiSetInput);
         });
@@ -456,7 +481,7 @@ describe('useSidebarOrderedReports', () => {
         await act(async () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, displayedReports['1']);
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, threadReport);
-            await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {reports: {[threadReport.reportID]: createThreadAttributes(true)}, locale: null});
+            setReportAttributes({[threadReport.reportID]: createThreadAttributes(true)});
         });
 
         renderHook(() => useSidebarOrderedReports(), {
@@ -467,10 +492,9 @@ describe('useSidebarOrderedReports', () => {
 
         mockSidebarUtils.updateReportsToDisplayInLHN.mockClear();
 
-        // When the derived attributes land a render after the report change that caused them (e.g. a first reply in the thread),
-        // so the reports collection itself does not change in this render
+        // When the attributes change without the reports collection changing in the same render (e.g. a first reply in the thread)
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {reports: {[threadReport.reportID]: createThreadAttributes(false)}, locale: null});
+            setReportAttributes({[threadReport.reportID]: createThreadAttributes(false)});
         });
 
         await waitForBatchedUpdatesWithAct();
@@ -512,12 +536,9 @@ describe('useSidebarOrderedReports', () => {
         await act(async () => {
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, displayedReports['1']);
             await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, report2);
-            await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-                reports: {
-                    [displayedReports['1'].reportID]: unchangedAttributes,
-                    [report2.reportID]: createReport2Attributes(true),
-                },
-                locale: null,
+            setReportAttributes({
+                [displayedReports['1'].reportID]: unchangedAttributes,
+                [report2.reportID]: createReport2Attributes(true),
             });
         });
 
@@ -529,12 +550,9 @@ describe('useSidebarOrderedReports', () => {
 
         // When only report 2's derived attributes change, while report 1 keeps the same input object reference
         await act(async () => {
-            await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-                reports: {
-                    [displayedReports['1'].reportID]: unchangedAttributes,
-                    [report2.reportID]: createReport2Attributes(false),
-                },
-                locale: null,
+            setReportAttributes({
+                [displayedReports['1'].reportID]: unchangedAttributes,
+                [report2.reportID]: createReport2Attributes(false),
             });
         });
         await waitForBatchedUpdatesWithAct();
@@ -568,7 +586,7 @@ describe('useSidebarOrderedReports', () => {
 
             await act(async () => {
                 await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}${displayedReportID}`, displayedReports[displayedReportID]);
-                await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {reports: {[displayedReportID]: createReportAttributes()}, locale: 'en'});
+                setReportAttributes({[displayedReportID]: createReportAttributes()});
             });
 
             renderHook(() => useSidebarOrderedReports(), {
@@ -591,10 +609,7 @@ describe('useSidebarOrderedReports', () => {
 
             // When the derived attributes later mark the DM as requiring attention, with no change to the report itself
             await act(async () => {
-                await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-                    reports: {[displayedReportID]: createReportAttributes(), [newDMReportID]: createReportAttributes({requiresAttention: true})},
-                    locale: 'en',
-                });
+                setReportAttributes({[displayedReportID]: createReportAttributes(), [newDMReportID]: createReportAttributes({requiresAttention: true})});
             });
             await waitForBatchedUpdatesWithAct();
 

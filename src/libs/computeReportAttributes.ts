@@ -1,53 +1,65 @@
-import type {LocaleContextProps, LocalizedTranslate} from '@components/LocaleContextProvider';
-
-import type {CurrencyListActionsContextType} from '@hooks/useCurrencyList';
-
-import {getReportPreviewReportAction} from '@libs/actions/IOU/MoneyRequestBuilder';
-import {convertToFrontendAmountAsInteger, sanitizeCurrencyCode} from '@libs/CurrencyUtils';
-import {formatPhoneNumberWithCountryCode} from '@libs/LocalePhoneNumber';
-import {translate as translateForLocale} from '@libs/Localize';
-import {getIsOffline} from '@libs/NetworkState';
-import {format, formatToParts} from '@libs/NumberFormatUtils';
-import {getLoginByAccountID} from '@libs/PersonalDetailsUtils';
-import {isPolicyFieldListEmpty} from '@libs/PolicyUtils';
-import {getLinkedTransactionID, isActionableCardFraudAlert, isDeletedAction} from '@libs/ReportActionsUtils';
-import {computeReportName} from '@libs/ReportNameUtils';
-import {
-    generateIsEmptyReport,
-    generateReportAttributes,
-    hasViolations,
-    hasVisibleReportFieldViolations,
-    isArchivedReport,
-    isOpenReport,
-    isPolicyAdmin,
-    isPolicyExpenseChat,
-    isProcessingReport,
-    isSupportTicket,
-    getPendingDeleteMemberAccountIDs,
-    isValidReport,
-} from '@libs/ReportUtils';
-import SidebarUtils from '@libs/SidebarUtils';
-import {buildTransactionsByReportID} from '@libs/TodosUtils';
-
-import createOnyxDerivedValueConfig from '@userActions/OnyxDerived/createOnyxDerivedValueConfig';
-import {hasKeyTriggeredCompute} from '@userActions/OnyxDerived/utils';
+/**
+ * Computes the report attributes map (name, RBR/GBR status and action badge for every report) incrementally:
+ * from the changed collection members it works out which reports need recomputing and reuses the rest of the
+ * previous map.
+ */
 
 import CONST from '@src/CONST';
-import IntlStore from '@src/languages/IntlStore';
+import type {OnyxKey} from '@src/ONYXKEYS';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {CardList, PersonalDetails, PersonalDetailsList, Policy, Report, ReportActions, ReportAttributesDerivedValue, Transaction, TransactionViolation} from '@src/types/onyx';
+import type {CardList, PersonalDetails, PersonalDetailsList, Policy, Report, ReportAttributesDerivedValue, Transaction} from '@src/types/onyx';
+import type {ReportAttributes} from '@src/types/onyx/DerivedValues';
+import type {Errors} from '@src/types/onyx/OnyxCommon';
 
-import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry, OnyxValue} from 'react-native-onyx';
 
-import {isTrackIntentUserSelector} from '@selectors/Onboarding';
+import type {DerivedSourceValues} from './actions/OnyxDerived/types';
+import type {ReportAttributesInputs} from './ReportAttributesComputeUtils';
 
-// The name-related fields we saw for each account last time, so we can spot which accounts changed.
-let previousDisplayNames: Record<string, string> = {};
-let previousPersonalDetails: OnyxEntry<PersonalDetailsList> | undefined;
-let previousPolicies: OnyxCollection<Policy>;
-let previousReportsTransactions: Record<string, Transaction[]> | undefined;
-let previousFraudAlertReportIDs: Set<string> | undefined;
-let previousCardList: OnyxEntry<CardList>;
+import {hasKeyTriggeredCompute} from './actions/OnyxDerived/utils';
+import {getIsOffline} from './NetworkState';
+import {isPolicyFieldListEmpty} from './PolicyUtils';
+import {getLinkedTransactionID, isActionableCardFraudAlert} from './ReportActionsUtils';
+import {getParentChatPropagationUpdates, buildReportAttributesFormatters, computeReportNameEntry, computeReportStatusEntry, createReportNameLookup} from './ReportAttributesComputeUtils';
+import {generateIsEmptyReport, isArchivedReport, isValidReport} from './ReportUtils';
+import {buildTransactionsByReportID} from './TodosUtils';
+
+const REPORT_ATTRIBUTES_DEPENDENCIES = [
+    ONYXKEYS.COLLECTION.REPORT,
+    ONYXKEYS.NVP_PREFERRED_LOCALE,
+    ONYXKEYS.COUNTRY_CODE,
+    ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS,
+    ONYXKEYS.COLLECTION.REPORT_ACTIONS,
+    ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
+    ONYXKEYS.COLLECTION.TRANSACTION,
+    ONYXKEYS.PERSONAL_DETAILS_LIST,
+    ONYXKEYS.SESSION,
+    ONYXKEYS.COLLECTION.POLICY,
+    ONYXKEYS.COLLECTION.POLICY_TAGS,
+    ONYXKEYS.CONCIERGE_REPORT_ID,
+    ONYXKEYS.NVP_INTRO_SELECTED,
+    ONYXKEYS.COLLECTION.REPORT_METADATA,
+    ONYXKEYS.CURRENCY_LIST,
+    ONYXKEYS.COLLECTION.RULE,
+    ONYXKEYS.CARD_LIST,
+    ONYXKEYS.NETWORK,
+] as const;
+
+type ReportAttributesDependencies = typeof REPORT_ATTRIBUTES_DEPENDENCIES;
+
+// Mapping over a type parameter keeps the result a tuple; mapping over the concrete tuple type would not.
+type DependencyValues<Dependencies extends readonly OnyxKey[]> = {
+    -readonly [Index in keyof Dependencies]: OnyxValue<Dependencies[Index]>;
+};
+
+type ReportAttributesDependencyValues = DependencyValues<ReportAttributesDependencies>;
+
+/** What changed since the previous compute: the changed collection members, and every dependency that changed. */
+type ReportAttributesComputeContext = {
+    currentValue?: ReportAttributesDerivedValue;
+    sourceValues?: DerivedSourceValues<ReportAttributesDependencies>;
+    triggeredKeys?: Set<OnyxKey>;
+};
 
 const RECOMPUTE_ALL = 'all' as const;
 
@@ -92,64 +104,6 @@ const snapshotDisplayNames = (personalDetails: PersonalDetailsList): Record<stri
     return snapshot;
 };
 
-// Remembers the personal details we just used, so the next change can be compared against them.
-// Updating both variables together here keeps them from getting out of sync.
-const commitDisplayNamesBaseline = (personalDetails: OnyxEntry<PersonalDetailsList>, snapshot: Record<string, string>) => {
-    previousDisplayNames = snapshot;
-    previousPersonalDetails = personalDetails;
-};
-
-// Records the current names the first time we have them on a pass that wasn't itself a personal-details
-// change. The report names already match these names, so there's nothing to recompute — we just save them
-// so the next personal-details change can be compared and narrowed to the reports it actually affects.
-const seedDisplayNamesBaseline = (personalDetails: OnyxEntry<PersonalDetailsList>) => {
-    if (!personalDetails || previousPersonalDetails === personalDetails || Object.keys(previousDisplayNames).length > 0) {
-        return;
-    }
-    commitDisplayNamesBaseline(personalDetails, snapshotDisplayNames(personalDetails));
-};
-
-// Works out which accounts had a name change since last time. Returns the set of those accountIDs, or null
-// when nothing changed, or 'all' when there's no previous data to compare against yet and every report needs
-// refreshing.
-const getDisplayNameChanges = (personalDetails: OnyxEntry<PersonalDetailsList>): Set<number> | typeof RECOMPUTE_ALL | null => {
-    if (!personalDetails) {
-        return null;
-    }
-
-    if (previousPersonalDetails === personalDetails) {
-        return null;
-    }
-
-    const hadBaseline = Object.keys(previousDisplayNames).length > 0;
-    const nextSnapshot: Record<string, string> = {};
-    const changedAccountIDs = new Set<number>();
-
-    // Build the new snapshot and compare it against the old one in the same loop.
-    for (const key of Object.keys(personalDetails)) {
-        const signature = displayNameSignature(personalDetails[key]);
-        nextSnapshot[key] = signature;
-        if (hadBaseline && signature !== previousDisplayNames[key]) {
-            changedAccountIDs.add(Number(key));
-        }
-    }
-    // An account that existed before but is gone now also affects any report name that used it.
-    if (hadBaseline) {
-        for (const key of Object.keys(previousDisplayNames)) {
-            if (!(key in nextSnapshot)) {
-                changedAccountIDs.add(Number(key));
-            }
-        }
-    }
-
-    commitDisplayNamesBaseline(personalDetails, nextSnapshot);
-
-    if (!hadBaseline) {
-        return Object.keys(nextSnapshot).length > 0 ? RECOMPUTE_ALL : null;
-    }
-    return changedAccountIDs.size > 0 ? changedAccountIDs : null;
-};
-
 // True when the report's name could depend on one of these accounts. We look at the accounts stored on the report itself.
 const reportReferencesAccountIDs = (report: Report, accountIDs: Set<number>): boolean => {
     if (report.ownerAccountID !== undefined && accountIDs.has(report.ownerAccountID)) {
@@ -169,78 +123,96 @@ const reportReferencesAccountIDs = (report: Report, accountIDs: Set<number>): bo
     return false;
 };
 
-// Returns the report-preview action ID of the oldest child in `reportIDs` matching `predicate`
-// (oldest by preview-action creation time), or undefined when none match.
-const getOldestPreviewActionID = (
-    chatReportID: string,
-    reportIDs: string[] | undefined,
-    reports: OnyxCollection<Report>,
-    chatReportActions: OnyxEntry<ReportActions>,
-    predicate?: (childReport: OnyxEntry<Report>) => boolean,
-) => {
-    let oldestCreated: string | undefined;
-    let targetReportActionID: string | undefined;
-    for (const childReportID of reportIDs ?? []) {
-        if (predicate && !predicate(reports?.[`${ONYXKEYS.COLLECTION.REPORT}${childReportID}`])) {
-            continue;
-        }
-        const reportPreviewAction = getReportPreviewReportAction(chatReportID, childReportID, chatReportActions);
-        if (!reportPreviewAction) {
-            continue;
-        }
-        if (oldestCreated === undefined || reportPreviewAction.created < oldestCreated) {
-            oldestCreated = reportPreviewAction.created;
-            targetReportActionID = reportPreviewAction.reportActionID;
-        }
-    }
-    return targetReportActionID;
+// The errors are rebuilt on every compute, but their values are the messages stored on the report and its actions.
+const areReportErrorsEqual = (previous: Errors, next: Errors): boolean => {
+    const previousKeys = Object.keys(previous);
+    return previousKeys.length === Object.keys(next).length && previousKeys.every((key) => key in next && previous[key] === next[key]);
 };
 
-const isActionable = (childReport: OnyxEntry<Report>) => isOpenReport(childReport) || isProcessingReport(childReport);
-
-// Open/processing and the user still needs to fix a violation on it. Violations are read directly from
-// transactionViolations so this works even when owner data is absent (e.g. masked Onyx exports).
-const needsViolationFix = (
-    childReport: OnyxEntry<Report>,
-    childReportOwnerLogin: string | undefined,
-    policies: OnyxCollection<Policy>,
-    transactionViolations: OnyxCollection<TransactionViolation[]>,
-    currentUserAccountID: number,
-    currentUserEmail: string,
-) => {
-    if (!childReport || !isActionable(childReport)) {
-        return false;
-    }
-    const childPolicy = policies?.[`${ONYXKEYS.COLLECTION.POLICY}${childReport.policyID}`];
-    return hasViolations(childReport.reportID, transactionViolations, currentUserAccountID, currentUserEmail, true, undefined, childReport, childReportOwnerLogin, childPolicy);
-};
+// Compares every ReportAttributes field, so a field added to the type has to be added here too.
+const areReportAttributesEqual = (previous: ReportAttributes, next: ReportAttributes): boolean =>
+    previous.reportName === next.reportName &&
+    previous.isEmpty === next.isEmpty &&
+    previous.brickRoadStatus === next.brickRoadStatus &&
+    previous.requiresAttention === next.requiresAttention &&
+    previous.actionBadge === next.actionBadge &&
+    previous.actionTargetReportActionID === next.actionTargetReportActionID &&
+    previous.oneTransactionThreadReportID === next.oneTransactionThreadReportID &&
+    previous.needsParentChatErrorPropagation === next.needsParentChatErrorPropagation &&
+    areReportErrorsEqual(previous.reportErrors, next.reportErrors);
 
 /**
- * This derived value is used to get the report attributes for the report.
+ * Creates a compute function with its own baselines: the personal details, policies, transactions and cards it
+ * saw last time, which tell it which reports a change touched. Each caller keeps its own so their diffs don't mix.
  */
-export default createOnyxDerivedValueConfig({
-    key: ONYXKEYS.DERIVED.REPORT_ATTRIBUTES,
-    dependencies: [
-        ONYXKEYS.COLLECTION.REPORT,
-        ONYXKEYS.NVP_PREFERRED_LOCALE,
-        ONYXKEYS.COUNTRY_CODE,
-        ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS,
-        ONYXKEYS.COLLECTION.REPORT_ACTIONS,
-        ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS,
-        ONYXKEYS.COLLECTION.TRANSACTION,
-        ONYXKEYS.PERSONAL_DETAILS_LIST,
-        ONYXKEYS.SESSION,
-        ONYXKEYS.COLLECTION.POLICY,
-        ONYXKEYS.COLLECTION.POLICY_TAGS,
-        ONYXKEYS.CONCIERGE_REPORT_ID,
-        ONYXKEYS.NVP_INTRO_SELECTED,
-        ONYXKEYS.COLLECTION.REPORT_METADATA,
-        ONYXKEYS.CURRENCY_LIST,
-        ONYXKEYS.COLLECTION.RULE,
-        ONYXKEYS.CARD_LIST,
-        ONYXKEYS.NETWORK,
-    ],
-    compute: (
+function createReportAttributesComputer() {
+    // The name-related fields we saw for each account last time, so we can spot which accounts changed.
+    let previousDisplayNames: Record<string, string> = {};
+    let previousPersonalDetails: OnyxEntry<PersonalDetailsList> | undefined;
+    let previousPolicies: OnyxCollection<Policy>;
+    let previousReportsTransactions: Record<string, Transaction[]> | undefined;
+    let previousFraudAlertReportIDs: Set<string> | undefined;
+    let previousCardList: OnyxEntry<CardList>;
+
+    // Remembers the personal details we just used, so the next change can be compared against them.
+    // Updating both fields together here keeps them from getting out of sync.
+    const commitDisplayNamesBaseline = (personalDetails: OnyxEntry<PersonalDetailsList>, snapshot: Record<string, string>) => {
+        previousDisplayNames = snapshot;
+        previousPersonalDetails = personalDetails;
+    };
+
+    // Records the current names the first time we have them on a pass that wasn't itself a personal-details
+    // change. The report names already match these names, so there's nothing to recompute — we just save them
+    // so the next personal-details change can be compared and narrowed to the reports it actually affects.
+    const seedDisplayNamesBaseline = (personalDetails: OnyxEntry<PersonalDetailsList>) => {
+        if (!personalDetails || previousPersonalDetails === personalDetails || Object.keys(previousDisplayNames).length > 0) {
+            return;
+        }
+        commitDisplayNamesBaseline(personalDetails, snapshotDisplayNames(personalDetails));
+    };
+
+    // Works out which accounts had a name change since last time. Returns the set of those accountIDs, or null
+    // when nothing changed, or 'all' when there's no previous data to compare against yet and every report needs
+    // refreshing.
+    const getDisplayNameChanges = (personalDetails: OnyxEntry<PersonalDetailsList>): Set<number> | typeof RECOMPUTE_ALL | null => {
+        if (!personalDetails) {
+            return null;
+        }
+
+        if (previousPersonalDetails === personalDetails) {
+            return null;
+        }
+
+        const hadBaseline = Object.keys(previousDisplayNames).length > 0;
+        const nextSnapshot: Record<string, string> = {};
+        const changedAccountIDs = new Set<number>();
+
+        // Build the new snapshot and compare it against the old one in the same loop.
+        for (const key of Object.keys(personalDetails)) {
+            const signature = displayNameSignature(personalDetails[key]);
+            nextSnapshot[key] = signature;
+            if (hadBaseline && signature !== previousDisplayNames[key]) {
+                changedAccountIDs.add(Number(key));
+            }
+        }
+        // An account that existed before but is gone now also affects any report name that used it.
+        if (hadBaseline) {
+            for (const key of Object.keys(previousDisplayNames)) {
+                if (!(key in nextSnapshot)) {
+                    changedAccountIDs.add(Number(key));
+                }
+            }
+        }
+
+        commitDisplayNamesBaseline(personalDetails, nextSnapshot);
+
+        if (!hadBaseline) {
+            return Object.keys(nextSnapshot).length > 0 ? RECOMPUTE_ALL : null;
+        }
+        return changedAccountIDs.size > 0 ? changedAccountIDs : null;
+    };
+
+    function computeReportAttributes(
         [
             reports,
             preferredLocale,
@@ -259,48 +231,11 @@ export default createOnyxDerivedValueConfig({
             currencyList,
             rules,
             cardList,
-        ],
-        {currentValue, sourceValues, triggeredKeys},
-    ) => {
+        ]: ReportAttributesDependencyValues,
+        {currentValue, sourceValues, triggeredKeys}: ReportAttributesComputeContext,
+    ): ReportAttributesDerivedValue {
         // Read the in-memory offline state directly (NETWORK is a dependency so recompute still fires when it changes).
         const isOffline = getIsOffline();
-        const dateFnsLocale = IntlStore.getDateFnsLocale(preferredLocale);
-        const translate: LocalizedTranslate = (path, ...parameters) => translateForLocale(preferredLocale, path, ...parameters);
-        const formatPhoneNumber: LocaleContextProps['formatPhoneNumber'] = (phoneNumber) => formatPhoneNumberWithCountryCode(phoneNumber, countryCodeByIP ?? CONST.DEFAULT_COUNTRY_CODE);
-        // Non-React computation: there is no component to inject the currency formatters from CurrencyListContextProvider,
-        // so mirror the provider's implementations here using the CURRENCY_LIST dependency and the preferred locale.
-        const getCurrencyDecimals = (currencyCode: string): number => currencyList?.[currencyCode]?.decimals ?? CONST.DEFAULT_CURRENCY_DECIMALS;
-        const getCurrencySymbol: CurrencyListActionsContextType['getCurrencySymbol'] = (currencyCode) => currencyList?.[currencyCode]?.symbol;
-        const convertToDisplayString: CurrencyListActionsContextType['convertToDisplayString'] = (amountInCents, currencyCode) => {
-            const sanitizedCurrency = sanitizeCurrencyCode(currencyCode);
-            const decimals = getCurrencyDecimals(sanitizedCurrency);
-            const convertedAmount = convertToFrontendAmountAsInteger(amountInCents ?? 0, decimals);
-            return format(preferredLocale, convertedAmount, {
-                style: 'currency',
-                currency: sanitizedCurrency,
-
-                // We are forcing the number of decimals because we override the default number of decimals in the backend for some currencies
-                // See: https://github.com/Expensify/PHP-Libs/pull/834
-                minimumFractionDigits: decimals,
-                // For currencies that have decimal places > 2, floor to 2 instead as we don't support more than 2 decimal places.
-                maximumFractionDigits: 2,
-            });
-        };
-        const convertToDisplayStringWithoutCurrency: CurrencyListActionsContextType['convertToDisplayStringWithoutCurrency'] = (amountInCents, currencyCode = CONST.CURRENCY.USD) => {
-            const sanitizedCurrency = sanitizeCurrencyCode(currencyCode);
-            const decimals = getCurrencyDecimals(sanitizedCurrency);
-            const convertedAmount = convertToFrontendAmountAsInteger(amountInCents, decimals);
-            return formatToParts(preferredLocale, convertedAmount, {
-                style: 'currency',
-                currency: sanitizedCurrency,
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: 2,
-            })
-                .filter((x) => x.type !== 'currency')
-                .filter((x) => x.type !== 'literal' || x.value.trim().length !== 0)
-                .map((x) => x.value)
-                .join('');
-        };
         // Check if display names changed when personal details are updated
         let displayNameChanges: Set<number> | typeof RECOMPUTE_ALL | null = null;
         if (hasKeyTriggeredCompute(ONYXKEYS.PERSONAL_DETAILS_LIST, triggeredKeys)) {
@@ -626,8 +561,28 @@ export default createOnyxDerivedValueConfig({
         if (!previousReportsTransactions || !sourceValues || hasKeyTriggeredCompute(ONYXKEYS.COLLECTION.TRANSACTION, triggeredKeys)) {
             previousReportsTransactions = buildTransactionsByReportID(transactions);
         }
-        const reportsTransactions = previousReportsTransactions;
+        const inputs: ReportAttributesInputs = {
+            reports,
+            reportActions,
+            reportNameValuePairs,
+            reportMetadata,
+            transactions,
+            transactionViolations,
+            personalDetails,
+            session,
+            policies,
+            policyTags,
+            conciergeReportID,
+            introSelected,
+            rules,
+            cardList,
+            isOffline,
+            reportsTransactions: previousReportsTransactions ?? {},
+        };
+        const formatters = buildReportAttributesFormatters(preferredLocale, countryCodeByIP, currencyList);
+        const getReportNameByID = createReportNameLookup(inputs, formatters);
 
+        let hasRemovedEntries = false;
         const reportAttributes = dataToIterate.reduce<ReportAttributesDerivedValue['reports']>(
             (acc, key) => {
                 // source value sends partial data, so we need an entire report object to do computations
@@ -637,223 +592,67 @@ export default createOnyxDerivedValueConfig({
                     const reportID = key.replace(ONYXKEYS.COLLECTION.REPORT, '');
                     if (acc[reportID]) {
                         delete acc[reportID];
+                        hasRemovedEntries = true;
                     }
                     return acc;
                 }
 
-                const chatReport = reports?.[`${ONYXKEYS.COLLECTION.REPORT}${report.chatReportID}`];
-                const reportNameValuePair = reportNameValuePairs?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report.reportID}`];
-                const reportActionsList = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.reportID}`];
-                const isReportArchived = isArchivedReport(reportNameValuePair);
-                const reportReportMetadata = reportMetadata?.[`${ONYXKEYS.COLLECTION.REPORT_METADATA}${report.reportID}`];
-                const {
-                    hasAnyViolations,
-                    requiresAttention,
-                    reportErrors,
-                    oneTransactionThreadReportID,
-                    actionBadge: actionGreenBadge,
-                    actionTargetReportActionID: actionGreenTargetReportActionID,
-                } = generateReportAttributes({
-                    report,
-                    chatReport,
-                    reportActions,
-                    transactionViolations,
-                    isReportArchived,
-                    allTransactions: transactions,
-                    reports,
-                    policies,
-                    reportMetadata: reportReportMetadata,
-                    cardList,
-                    currentUserAccountID: session?.accountID ?? CONST.DEFAULT_NUMBER_ID,
-                    currentUserLogin: session?.email ?? '',
-                });
-
-                const policy = policies?.[`${ONYXKEYS.COLLECTION.POLICY}${report.policyID}`];
-                const hasFieldViolations = hasVisibleReportFieldViolations(report, policy, session?.accountID, rules, reportNameValuePair);
-
-                let brickRoadStatus;
-                let actionBadge;
-                let actionTargetReportActionID;
-                let needsParentChatErrorPropagation = false;
-                const reasonAndReportAction = SidebarUtils.getReasonAndReportActionThatHasRedBrickRoad({
-                    report,
-                    chatReport,
-                    reportActions: reportActionsList,
-                    hasViolations: hasAnyViolations || hasFieldViolations,
-                    reportErrors,
-                    transactions,
-                    isOffline,
-                    currentUserAccountID: session?.accountID ?? CONST.DEFAULT_NUMBER_ID,
-                    transactionViolations,
-                    isReportArchived: !!isReportArchived,
-                    reports,
-                });
-
-                // When the report is ready to submit, always show the green Submit badge
-                // regardless of violations — the user can submit without fix.
-                const willShowGreenSubmit = requiresAttention && actionGreenBadge === CONST.REPORT.ACTION_BADGE.SUBMIT;
-
-                // if report has errors or violations, show red dot
-                // Also skip setting ERROR when we'll show the green Submit badge — let the user submit without fix.
-                if (!isSupportTicket(report) && reasonAndReportAction && !willShowGreenSubmit) {
-                    needsParentChatErrorPropagation = true;
-
-                    // RBR/Fix mirrors GBR's access rule: only show on the child when the user can't already
-                    // see it on the parent workspace chat. The parent still gets ERROR/FIX through the
-                    // propagation loop below, so the actionable indicator surfaces on the workspace chat row
-                    // (which is where C+ wants it). Skips when the chat parent isn't accessible to the user.
-                    const chatPolicy = chatReport?.policyID ? policies?.[`${ONYXKEYS.COLLECTION.POLICY}${chatReport.policyID}`] : undefined;
-                    const isChildOfAccessiblePolicyExpenseChat = !!chatReport && isPolicyExpenseChat(chatReport) && (!!chatReport.isOwnPolicyExpenseChat || isPolicyAdmin(chatPolicy));
-                    if (!isChildOfAccessiblePolicyExpenseChat) {
-                        brickRoadStatus = CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR;
-                        actionBadge = CONST.REPORT.ACTION_BADGE.FIX;
-                        actionTargetReportActionID = reasonAndReportAction.reportAction?.reportActionID;
-                    }
-                }
-                // if report does not have error, check if it should show green dot
-                if (brickRoadStatus !== CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR && requiresAttention) {
-                    brickRoadStatus = CONST.BRICK_ROAD_INDICATOR_STATUS.INFO;
-                    actionBadge = actionGreenBadge;
-                    actionTargetReportActionID = actionGreenTargetReportActionID;
-                }
-
-                const pendingDeleteMemberAccountIDs = getPendingDeleteMemberAccountIDs(reportReportMetadata?.pendingChatMembers);
+                const isReportArchived = isArchivedReport(reportNameValuePairs?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${report.reportID}`]);
+                const status = computeReportStatusEntry(report, inputs);
                 // Skip computeReportName when the name can't have changed (see nameSkipKeys).
                 const cachedName = currentValue?.reports?.[report.reportID]?.reportName;
                 const canReuseCachedName = cachedName !== undefined && nameSkipKeys.has(key);
 
                 acc[report.reportID] = {
-                    reportName: canReuseCachedName
-                        ? cachedName
-                        : computeReportName({
-                              report,
-                              reports,
-                              policies,
-                              transactions,
-                              allReportNameValuePairs: reportNameValuePairs,
-                              personalDetailsList: personalDetails,
-                              reportActions,
-                              currentUserAccountID: session?.accountID ?? CONST.DEFAULT_NUMBER_ID,
-                              currentUserLogin: session?.email ?? '',
-                              translate,
-                              dateFnsLocale,
-                              allPolicyTags: policyTags,
-                              conciergeReportID: conciergeReportID ?? undefined,
-                              reportAttributes: currentValue?.reports,
-                              reportTransactions: reportsTransactions ?? {},
-                              isTrackIntentUser: isTrackIntentUserSelector(introSelected),
-                              convertToDisplayString,
-                              convertToDisplayStringWithoutCurrency,
-                              getCurrencySymbol,
-                              pendingDeleteMemberAccountIDs,
-                              formatPhoneNumber,
-                              rules,
-                          }),
+                    reportName: canReuseCachedName ? cachedName : computeReportNameEntry(report, inputs, formatters, getReportNameByID),
                     isEmpty: generateIsEmptyReport(report, isReportArchived),
-                    brickRoadStatus,
-                    requiresAttention,
-                    actionBadge,
-                    actionTargetReportActionID,
-                    reportErrors,
-                    oneTransactionThreadReportID,
-                    needsParentChatErrorPropagation,
+                    ...status,
                 };
 
                 return acc;
             },
-            currentValue?.reports ? {...currentValue.reports} : {},
+            // A full recompute visits every report, so it starts empty: carrying the previous map over would keep entries
+            // for reports deleted since it was computed.
+            useIncrementalUpdates && currentValue?.reports ? {...currentValue.reports} : {},
         );
 
         // Propagate errors from IOU reports to their parent chat reports.
-        const currentUserAccountID = session?.accountID ?? CONST.DEFAULT_NUMBER_ID;
-        const currentUserEmail = session?.email ?? '';
-        const erroredChildReportIDsByChat = new Map<string, string[]>();
-        const childReportIDsByChat = new Map<string, string[]>();
-        for (const report of Object.values(reports)) {
-            if (!report?.reportID || !report.chatReportID || report.reportID === report.chatReportID) {
-                continue;
-            }
+        const propagationUpdates = getParentChatPropagationUpdates(reportAttributes, inputs);
+        Object.assign(reportAttributes, propagationUpdates);
 
-            const childReportIDs = childReportIDsByChat.get(report.chatReportID) ?? [];
-            childReportIDs.push(report.reportID);
-            childReportIDsByChat.set(report.chatReportID, childReportIDs);
-
-            // If this is an IOU report and its calculated attributes have an error,
-            // then we need to mark its parent chat report.
-            // We read `needsParentChatErrorPropagation` rather than `brickRoadStatus` because the per-report
-            // pass suppresses the child's own brickRoadStatus when the parent workspace chat is accessible —
-            // we still need to propagate the error up so the parent shows the indicator.
-            const attributes = reportAttributes[report.reportID];
-            if (!attributes?.needsParentChatErrorPropagation && attributes?.brickRoadStatus !== CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR) {
-                continue;
-            }
-
-            // When the child IOU's parent action in the chat is deleted (e.g. another user deleted the request
-            // while an optimistic pay was queued offline), the chat has no actionable surface for the error.
-            // Skip propagation so the parent DM row doesn't show a stale "Fix" for a request that no longer exists.
-            // Checked only for children with an error, as it is the costly part of this loop over every report.
-            const parentReportAction = report.parentReportActionID
-                ? reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.parentReportID}`]?.[report.parentReportActionID]
-                : undefined;
-            if (isDeletedAction(parentReportAction)) {
-                continue;
-            }
-
-            const erroredChildReportIDs = erroredChildReportIDsByChat.get(report.chatReportID) ?? [];
-            erroredChildReportIDs.push(report.reportID);
-            erroredChildReportIDsByChat.set(report.chatReportID, erroredChildReportIDs);
+        const locale = preferredLocale ?? null;
+        if (!currentValue?.reports || currentValue.locale !== locale) {
+            return {reports: reportAttributes, locale};
         }
 
-        // Apply the error status to the parent chat reports.
-        for (const [chatReportID, erroredChildReportIDs] of erroredChildReportIDsByChat) {
-            if (!reportAttributes[chatReportID]) {
+        // Most writes (a read receipt, a draft) leave every attribute as it was. Keeping the previous entry objects, and
+        // the previous map when none changed, lets every consumer skip its deep comparison of the whole map.
+        const recomputedReportIDs = useIncrementalUpdates
+            ? new Set([...dataToIterate.map((key) => key.replace(ONYXKEYS.COLLECTION.REPORT, '')), ...Object.keys(propagationUpdates)])
+            : Object.keys(reportAttributes);
+        let hasChanges = hasRemovedEntries || (!useIncrementalUpdates && Object.keys(currentValue.reports).length !== Object.keys(reportAttributes).length);
+        for (const reportID of recomputedReportIDs) {
+            const nextAttributes = reportAttributes[reportID];
+            if (!nextAttributes) {
                 continue;
             }
-
-            const chatAttributes = reportAttributes[chatReportID];
-            let actionTargetReportActionID = chatAttributes.actionTargetReportActionID;
-            const chatReportActions = reportActions?.[`${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${chatReportID}`];
-
-            actionTargetReportActionID =
-                getOldestPreviewActionID(chatReportID, erroredChildReportIDs, reports, chatReportActions, isActionable) ??
-                getOldestPreviewActionID(chatReportID, childReportIDsByChat.get(chatReportID), reports, chatReportActions, (childReport) =>
-                    needsViolationFix(
-                        childReport,
-                        getLoginByAccountID(childReport?.ownerAccountID, personalDetails),
-                        policies,
-                        transactionViolations,
-                        currentUserAccountID,
-                        currentUserEmail,
-                    ),
-                ) ??
-                getOldestPreviewActionID(chatReportID, erroredChildReportIDs, reports, chatReportActions) ??
-                actionTargetReportActionID;
-
-            // Clone the entry before mutating — it may be a reference carried over from
-            // currentValue.reports that wasn't recomputed in this incremental run.
-            reportAttributes[chatReportID] = {
-                ...chatAttributes,
-                brickRoadStatus: CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR,
-                actionBadge: CONST.REPORT.ACTION_BADGE.FIX,
-                actionTargetReportActionID,
-            };
+            const previousAttributes = currentValue.reports[reportID];
+            if (previousAttributes && areReportAttributesEqual(previousAttributes, nextAttributes)) {
+                reportAttributes[reportID] = previousAttributes;
+            } else {
+                hasChanges = true;
+            }
+        }
+        if (!hasChanges) {
+            return currentValue;
         }
 
-        return {
-            reports: reportAttributes,
-            locale: preferredLocale ?? null,
-        };
-    },
-    // On Onyx clear, drop the cross-compute baselines so the first post-clear pass is treated as a full
-    // change (see the engine's resetForClear). Otherwise the rehydrated data is diffed against the stale
-    // pre-clear baseline, "nothing changed" is concluded, and names computed while data was empty stay blank.
-    onReset: () => {
-        previousDisplayNames = {};
-        previousPersonalDetails = undefined;
-        previousPolicies = undefined;
-        previousFraudAlertReportIDs = undefined;
-        previousCardList = undefined;
-    },
-});
+        return {reports: reportAttributes, locale};
+    }
 
-export {hasPolicyRelevantFieldChanged, getOldestPreviewActionID};
+    return computeReportAttributes;
+}
+
+export default createReportAttributesComputer;
+export {hasPolicyRelevantFieldChanged, REPORT_ATTRIBUTES_DEPENDENCIES};
+export type {ReportAttributesComputeContext, ReportAttributesDependencyValues};

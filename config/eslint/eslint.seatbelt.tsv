@@ -631,7 +631,6 @@
 "../../src/libs/actions/OdometerTransactionUtils.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../src/libs/actions/OnyxDerived/configs/guideAccountIDs.ts"	"rulesdir/no-direct-personal-details-list"	1
 "../../src/libs/actions/OnyxDerived/configs/loginToAccountIDMap.ts"	"rulesdir/no-direct-personal-details-list"	1
-"../../src/libs/actions/OnyxDerived/configs/reportAttributes.ts"	"rulesdir/no-direct-personal-details-list"	2
 "../../src/libs/actions/OnyxDerived/index.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../src/libs/actions/OnyxUpdateManager/index.ts"	"@typescript-eslint/no-unsafe-type-assertion"	3
 "../../src/libs/actions/OnyxUpdateManager/utils/__mocks__/applyUpdates.ts"	"no-restricted-syntax"	1
@@ -720,6 +719,7 @@
 "../../src/libs/ComposerFocusManager.ts"	"@typescript-eslint/no-deprecated/TextInput.State.currentlyFocusedField"	1
 "../../src/libs/ComposerFocusManager.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../../src/libs/ComposerUtils/index.ts"	"no-restricted-syntax"	1
+"../../src/libs/computeReportAttributes.ts"	"rulesdir/no-direct-personal-details-list"	2
 "../../src/libs/CountryUtils.ts"	"@typescript-eslint/no-unsafe-type-assertion"	2
 "../../src/libs/CurrencyUtils.ts"	"rulesdir/no-onyx-connect"	1
 "../../src/libs/DateUtils.ts"	"@typescript-eslint/no-unsafe-type-assertion"	3
@@ -2065,10 +2065,8 @@
 "../../tests/unit/ReportSecondaryActionUtilsTest.ts"	"no-restricted-imports"	2
 "../../tests/unit/ReportTitleUtilsTest.ts"	"no-restricted-imports"	1
 "../../tests/unit/ReportUtilsTest.ts"	"no-restricted-imports"	1
-"../../tests/unit/SearchAutocompleteListTest.tsx"	"@typescript-eslint/no-restricted-imports"	1
 "../../tests/unit/SidebarUtilsTest.ts"	"no-restricted-imports"	1
 "../../tests/unit/TransactionTest.ts"	"@typescript-eslint/no-restricted-imports"	1
-"../../tests/unit/WorkspacesSettingsUtilsTest.ts"	"@typescript-eslint/no-restricted-imports"	1
 "../../tests/utils/createMock.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../rsbuild/CustomVersionFilePlugin.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1
 "../rsbuild/ModuleInitTimingPlugin.ts"	"@typescript-eslint/no-unsafe-type-assertion"	1

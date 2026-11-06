@@ -19,13 +19,11 @@ import CONST from '@src/CONST';
 import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
-import type {ReportAttributesDerivedValue} from '@src/types/onyx';
 
 import React from 'react';
 import {View} from 'react-native';
 import Onyx from 'react-native-onyx';
 
-import createMock from '../utils/createMock';
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
 import waitForBatchedUpdatesWithAct from '../utils/waitForBatchedUpdatesWithAct';
 import wrapOnyxWithWaitForBatchedUpdates from '../utils/wrapOnyxWithWaitForBatchedUpdates';
@@ -121,6 +119,7 @@ jest.mock('@components/InitialURLContextProvider', () => ({
 }));
 
 jest.mock('@selectors/Onboarding', () => ({
+    ...jest.requireActual<Record<string, unknown>>('@selectors/Onboarding'),
     hasSeenTourSelector: () => false,
 }));
 
@@ -196,10 +195,15 @@ describe('AuthScreensInitHandler', () => {
     });
 
     it('getter passed to subscribeToUserEvents returns report attributes when available', async () => {
-        const mockReports = createMock<ReportAttributesDerivedValue['reports']>({testReport: {reportName: 'Test Report'}});
-
+        // A policy room is named after its stored reportName
+        await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}testReport`, {
+            reportID: 'testReport',
+            reportName: 'Test Report',
+            type: CONST.REPORT.TYPE.CHAT,
+            chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM,
+        });
         await Onyx.merge(ONYXKEYS.SESSION, {accountID: TEST_ACCOUNT_ID, email: 'test@test.com'});
-        await Onyx.merge(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {reports: mockReports});
+        await Onyx.set(ONYXKEYS.RAM_ONLY_ARE_TRANSLATIONS_LOADING, false);
         await waitForBatchedUpdates();
 
         renderAuthScreensInitHandler();
@@ -213,12 +217,12 @@ describe('AuthScreensInitHandler', () => {
         if (!getter) {
             throw new Error('Expected report attributes getter to be provided');
         }
-        expect(getter()).toEqual(mockReports);
+        expect(getter()?.testReport?.reportName).toBe('Test Report');
     });
 
-    it('getter passed to subscribeToUserEvents returns undefined when report attributes not yet loaded', async () => {
+    it('getter passed to subscribeToUserEvents returns no attributes when no reports are loaded yet', async () => {
         await Onyx.merge(ONYXKEYS.SESSION, {accountID: TEST_ACCOUNT_ID, email: 'test@test.com'});
-        // Intentionally do not set ONYXKEYS.DERIVED.REPORT_ATTRIBUTES
+        // Intentionally do not load any report
         await waitForBatchedUpdates();
 
         renderAuthScreensInitHandler();
@@ -232,7 +236,7 @@ describe('AuthScreensInitHandler', () => {
         if (!getter) {
             throw new Error('Expected report attributes getter to be provided');
         }
-        expect(getter()).toBeUndefined();
+        expect(getter()).toEqual({});
     });
 
     it.each([

@@ -6,7 +6,7 @@ import Text from '@components/Text';
 
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
-import useOnyx from '@hooks/useOnyx';
+import {useReportName} from '@hooks/useReportAttributes';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -17,12 +17,7 @@ import {getReportStatusColorStyle, getReportStatusTooltipTranslation, getReportS
 import variables from '@styles/variables';
 
 import CONST from '@src/CONST';
-import ONYXKEYS from '@src/ONYXKEYS';
-import type {ReportAttributesDerivedValue} from '@src/types/onyx';
 
-import type {OnyxEntry} from 'react-native-onyx';
-
-import {reportNameSelector} from '@selectors/ReportAttributes';
 import React from 'react';
 import {View} from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -45,8 +40,7 @@ function ReportPreviewHeader() {
     const {goToPrevious, goToNext} = useReportPreviewActions();
     const numberOfRequests = transactions.length;
 
-    const selectReportName = (attributes: OnyxEntry<ReportAttributesDerivedValue>) => reportNameSelector(attributes, iouReportID);
-    const [derivedReportName] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {selector: selectReportName});
+    const derivedReportName = useReportName(iouReportID);
     const reportName = derivedReportName ?? iouReport?.reportName ?? '';
     const formattedReportName = Parser.htmlToText(reportName || (action.childReportName ?? ''));
 

@@ -31,7 +31,7 @@ import useParentReportAction from '@hooks/useParentReportAction';
 import usePersonalDetailByLogin from '@hooks/usePersonalDetailByLogin';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
 import usePolicy from '@hooks/usePolicy';
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSubscriptionPlan from '@hooks/useSubscriptionPlan';
@@ -191,7 +191,7 @@ function HeaderView({onNavigationMenuButtonClicked, reportID}: HeaderViewProps) 
         selector: getInvoiceReceiverPolicyID,
     });
     const invoiceReceiverPolicy = usePolicy(invoiceReceiverPolicyID);
-    const derivedNames = useDerivedReportNamesByReportIDs([parentNavigationReport?.parentReportID, reportHeaderData?.reportID]);
+    const derivedNames = useReportNames([parentNavigationReport?.parentReportID, reportHeaderData?.reportID]);
     const derivedParentReportName = getReportNameFromNames(derivedNames, parentNavigationReport?.parentReportID);
     const derivedReportHeaderName = getReportNameFromNames(derivedNames, reportHeaderData?.reportID);
     const isReportHeaderDataArchived = useReportIsArchived(reportHeaderData?.reportID);

@@ -1,7 +1,7 @@
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import {usePersonalDetail, usePersonalDetailsByIDs} from '@hooks/usePersonalDetails';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import {getMemberChangeMessageFragment, getOriginalMessage, isMemberChangeAction} from '@libs/ReportActionsUtils';
@@ -29,7 +29,7 @@ function MemberChangeContent({action}: MemberChangeContentProps) {
     const [actorDetails] = usePersonalDetail(action.actorAccountID);
     const [targetAccountDetailsList] = usePersonalDetailsByIDs(memberChangeLogReportActionMessage?.targetAccountIDs);
     const [memberChangeLogRoomReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${memberChangeLogReportActionMessage?.reportID}`);
-    const derivedMemberChangeLogRoomReportName = useDerivedReportNameByReportID(memberChangeLogRoomReport?.reportID);
+    const derivedMemberChangeLogRoomReportName = useReportName(memberChangeLogRoomReport?.reportID);
     const memberChangeLogRoomReportName = getReportName(memberChangeLogRoomReport, derivedMemberChangeLogRoomReportName) || memberChangeLogReportActionMessage?.roomName;
     const fragment = getMemberChangeMessageFragment(translate, action, actorDetails, targetAccountDetailsList, memberChangeLogRoomReportName);
 

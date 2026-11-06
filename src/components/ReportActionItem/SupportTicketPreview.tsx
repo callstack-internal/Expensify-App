@@ -10,7 +10,7 @@ import useConfirmModal from '@hooks/useConfirmModal';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -49,7 +49,7 @@ function SupportTicketPreview({action, isHovered, style}: SupportTicketPreviewPr
     const [supportTicket] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${getNonEmptyStringOnyxID(action?.childReportID)}`);
     const supportTicketReportID = supportTicket?.reportID ?? action?.childReportID;
     const supportRepAccountID = supportTicket?.managerID ?? CONST.DEFAULT_NUMBER_ID;
-    const derivedSupportTicketName = useDerivedReportNameByReportID(supportTicketReportID);
+    const derivedSupportTicketName = useReportName(supportTicketReportID);
     const isResolved = isResolvedSupportTicket(supportTicket, action);
     const errors = typeof action?.errors === 'object' ? action.errors : undefined;
     const createReportErrors = typeof errors?.createReport === 'object' ? errors.createReport : undefined;

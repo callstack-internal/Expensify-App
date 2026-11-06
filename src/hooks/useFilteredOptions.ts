@@ -17,7 +17,7 @@ import useLocalize from './useLocalize';
 import useOnyx from './useOnyx';
 import {useAllPersonalDetails} from './usePersonalDetails';
 import usePrivateIsArchivedMap from './usePrivateIsArchivedMap';
-import useReportAttributes from './useReportAttributes';
+import {useAllReportAttributes} from './useReportAttributes';
 import useSortedReportActionsData from './useSortedReportActionsData';
 
 type UseFilteredOptionsConfig = {
@@ -102,7 +102,7 @@ function useFilteredOptions(config: UseFilteredOptionsConfig): UseFilteredOption
     const [pendingDeleteMemberAccountIDsByReportID] = useOnyx(ONYXKEYS.COLLECTION.REPORT_METADATA, {selector: pendingDeleteMemberAccountIDsByReportIDSelector});
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
-    const reportAttributesDerived = useReportAttributes();
+    const reportAttributesDerived = useAllReportAttributes();
     const [isTrackIntentUser] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {selector: isTrackIntentUserSelector});
 
     // Option building is locale-dependent, so a consumer that stays mounted through a language switch recomputes.

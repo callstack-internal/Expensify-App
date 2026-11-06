@@ -20,7 +20,7 @@ import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import {useGetPersonalDetailsByLogin} from '@hooks/usePersonalDetailByLogin';
-import useReportAttributes from '@hooks/useReportAttributes';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useReportOrReportDraft from '@hooks/useReportOrReportDraft';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useRootNavigationState from '@hooks/useRootNavigationState';
@@ -136,7 +136,7 @@ function SearchRouter({onRouterClose, shouldHideInputCaret, isSearchRouterDispla
     const [bankAccountList] = useOnyx(ONYXKEYS.BANK_ACCOUNT_LIST);
     const getPersonalDetailsByLogin = useGetPersonalDetailsByLogin();
     const feedKeysWithCards = useFeedKeysWithAssignedCards();
-    const reportAttributes = useReportAttributes();
+    const reportAttributes = useAllReportAttributes();
 
     // Seed the input on open. When the SearchRouter is opened from the search button on the search page
     // and `shouldShowSearchQuery` is true, we build a user-readable query string from the current search

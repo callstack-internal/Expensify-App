@@ -111,7 +111,7 @@ type SubmitAmountArgs = {
     duplicateTransactions: OnyxCollection<OnyxTypes.Transaction>;
     duplicateTransactionViolations: OnyxCollection<OnyxTypes.TransactionViolations>;
     isTrackIntentUser: boolean | undefined;
-    reportAttributesDerivedValue: OnyxEntry<ReportAttributesDerivedValue>;
+    reportAttributes: ReportAttributesDerivedValue['reports'] | undefined;
     isASAPSubmitBetaEnabled: boolean;
     quickAction: OnyxEntry<OnyxTypes.QuickAction>;
     onboarding: OnyxEntry<OnyxTypes.Onboarding>;
@@ -264,7 +264,7 @@ function buildReportParticipants(args: SubmitAmountArgs) {
         report,
         policy,
         currentUserPersonalDetails,
-        reportAttributesDerivedValue,
+        reportAttributes,
         allReportDrafts,
         allReportNVPs,
         allPersonalDetails,
@@ -276,7 +276,7 @@ function buildReportParticipants(args: SubmitAmountArgs) {
         rules,
     } = args;
     const selectedParticipants = getMoneyRequestParticipantsFromReport(report, currentUserPersonalDetails.accountID);
-    const reportAttributesReports = reportAttributesDerivedValue?.reports;
+    const reportAttributesReports = reportAttributes;
     const reportIDToCheck = isMoneyRequestReport(report) ? report?.chatReportID : report?.reportID;
     const reportDraft = allReportDrafts?.[`${ONYXKEYS.COLLECTION.REPORT_DRAFT}${reportIDToCheck}`];
     return selectedParticipants.map((participant) => {

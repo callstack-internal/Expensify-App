@@ -1,7 +1,7 @@
 import useFilteredOptions from '@hooks/useFilteredOptions';
 import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
-import useReportAttributes from '@hooks/useReportAttributes';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useSortedReportActionsData from '@hooks/useSortedReportActionsData';
 
 import {Scheduler} from '@libs/Scheduler';
@@ -35,7 +35,7 @@ function SearchRouterOptionsWarmer({onDone}: SearchRouterOptionsWarmerProps) {
     const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
     const [policies] = useOnyx(ONYXKEYS.COLLECTION.POLICY);
     const [personalDetails] = useAllPersonalDetails();
-    const reportAttributes = useReportAttributes();
+    const reportAttributes = useAllReportAttributes();
     const sortedReportActionsData = useSortedReportActionsData();
     const [allPolicyTags] = useOnyx(ONYXKEYS.COLLECTION.POLICY_TAGS);
     const [visibleReportActionsData] = useOnyx(ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS);

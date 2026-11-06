@@ -63,6 +63,14 @@ type ReportAttributesDerivedValue = {
 };
 
 /**
+ * The report attributes saved for the next app start, with the account they were computed for.
+ */
+type ReportAttributesSnapshot = ReportAttributesDerivedValue & {
+    /** The account the attributes belong to, so another account's snapshot is never used */
+    accountID: number;
+};
+
+/**
  * The transactions and violations of a report.
  */
 type ReportTransactionsAndViolations = {
@@ -250,6 +258,7 @@ type OneOnOneChatReportIDsDerivedValue = {
 export type {
     ReportAttributes,
     ReportAttributesDerivedValue,
+    ReportAttributesSnapshot,
     ReportNamesDerivedValue,
     ReportTransactionsAndViolationsDerivedValue,
     ReportTransactionsAndViolations,

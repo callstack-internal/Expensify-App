@@ -12,6 +12,7 @@ import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import {usePersonalDetailsByIDs} from '@hooks/usePersonalDetails';
 import useReportActionsScroll from '@hooks/useReportActionsScroll';
+import {useReportStatus} from '@hooks/useReportAttributes';
 import useReportScrollManager from '@hooks/useReportScrollManager';
 import useReportsParentHierarchy from '@hooks/useReportsParentHierarchy';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -182,20 +183,7 @@ function ReportActionsListContent({reportID, conciergeChat, onLayout}: ReportAct
     const [policy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${getNonEmptyStringOnyxID(report?.policyID)}`);
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
 
-    const reportAttributesSelector = (value: OnyxEntry<OnyxTypes.ReportAttributesDerivedValue>) => {
-        const attrs = value?.reports?.[reportID];
-        if (!attrs) {
-            return undefined;
-        }
-        return {
-            actionBadge: attrs.actionBadge,
-            actionTargetReportActionID: attrs.actionTargetReportActionID,
-            brickRoadStatus: attrs.brickRoadStatus,
-        };
-    };
-    const [reportAttributes] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {
-        selector: reportAttributesSelector,
-    });
+    const reportAttributes = useReportStatus(reportID);
     const isHarvestCreatedExpenseReportAction = isHarvestCreatedExpenseReport(reportNameValuePairs?.origin, reportNameValuePairs?.originalID);
 
     const [reportStable] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportID}`, {selector: getStableReportSelector});

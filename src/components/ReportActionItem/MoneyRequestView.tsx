@@ -36,7 +36,7 @@ import usePermissions from '@hooks/usePermissions';
 import {usePersonalDetail} from '@hooks/usePersonalDetails';
 import usePersonalPolicy from '@hooks/usePersonalPolicy';
 import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useRestrictedActionPolicyID from '@hooks/useRestrictedActionPolicyID';
@@ -612,7 +612,7 @@ function MoneyRequestView({
     const tripID = tripRoomReportNameValuePairs?.tripData?.tripID;
     const shouldShowViewTripDetails = hasReservationList(transaction) && !!tripID;
 
-    const derivedReportNames = useDerivedReportNamesByReportIDs([tripRoomReportID, parentReport?.reportID]);
+    const derivedReportNames = useReportNames([tripRoomReportID, parentReport?.reportID]);
 
     const tripRoomDerivedName = tripRoomReportID ? derivedReportNames?.[tripRoomReportID] : undefined;
     const tripRoomName = tripRoomReport ? getReportName(tripRoomReport, tripRoomDerivedName) : undefined;

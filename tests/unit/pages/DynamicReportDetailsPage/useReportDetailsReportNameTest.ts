@@ -3,8 +3,9 @@ import {act, renderHook} from '@testing-library/react-native';
 import useReportDetailsReportName from '@pages/DynamicReportDetailsPage/useReportDetailsReportName';
 
 import CONST from '@src/CONST';
+import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
-import type {Report, ReportAction, ReportAttributesDerivedValue} from '@src/types/onyx';
+import type {Report, ReportAction} from '@src/types/onyx';
 
 import Onyx from 'react-native-onyx';
 
@@ -30,22 +31,25 @@ function buildParentReportAction(actionName: ReportAction['actionName']): Report
     } as ReportAction;
 }
 
+// A policy room is named after its stored reportName, so writing rooms gives each report the computed name we want.
 async function setDerivedReportNames(namesByReportID: Record<string, string>) {
-    const reports: ReportAttributesDerivedValue['reports'] = {};
+    const rooms: Record<`${typeof ONYXKEYS.COLLECTION.REPORT}${string}`, Report> = {};
     for (const [reportID, reportName] of Object.entries(namesByReportID)) {
-        reports[reportID] = {reportName, isEmpty: false, brickRoadStatus: undefined, requiresAttention: false, reportErrors: {}};
+        rooms[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`] = {reportID, reportName, type: CONST.REPORT.TYPE.CHAT, chatType: CONST.REPORT.CHAT_TYPE.POLICY_ROOM};
     }
-    await Onyx.set(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES, {reports, locale: 'en'});
+    await Onyx.multiSet(rooms);
     await waitForBatchedUpdates();
 }
 
 describe('useReportDetailsReportName', () => {
-    beforeAll(() => {
+    beforeAll(async () => {
         Onyx.init({keys: ONYXKEYS});
+        await IntlStore.load(CONST.LOCALES.EN);
     });
 
     beforeEach(async () => {
         await Onyx.clear();
+        await Onyx.set(ONYXKEYS.RAM_ONLY_ARE_TRANSLATIONS_LOADING, false);
         await waitForBatchedUpdates();
     });
 
@@ -64,7 +68,7 @@ describe('useReportDetailsReportName', () => {
     });
 
     it('should fall back to the stored report name when no derived name exists', async () => {
-        // Given the derived value has no entry for the report
+        // Given no computed name exists for the report
         await setDerivedReportNames({});
         const report = buildReport();
 
@@ -143,12 +147,12 @@ describe('useReportDetailsReportName', () => {
         const {result} = renderHook(() => useReportDetailsReportName(report, undefined, undefined));
         expect(result.current.reportName).toBe('Old name');
 
-        // When the derived value recomputes with a new name
+        // When the report is renamed
         await act(async () => {
             await setDerivedReportNames({[REPORT_ID]: 'New name'});
         });
 
-        // Then the hook returns the new name, because it owns the REPORT_ATTRIBUTES subscription
+        // Then the hook returns the new name, because it owns the report name subscription
         expect(result.current.reportName).toBe('New name');
     });
 });

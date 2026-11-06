@@ -2,8 +2,6 @@ import type reportTransactionsAndViolationsConfig from '@libs/actions/OnyxDerive
 
 import initOnyxDerivedValues from '@userActions/OnyxDerived';
 
-import CONST from '@src/CONST';
-import IntlStore from '@src/languages/IntlStore';
 import ONYXKEYS from '@src/ONYXKEYS';
 
 import type {OnyxMultiSetInput} from 'react-native-onyx';
@@ -67,9 +65,6 @@ describe('OnyxDerived shared collection delta', () => {
     beforeAll(async () => {
         Onyx.init({keys: ONYXKEYS});
         initOnyxDerivedValues();
-        // reportAttributes also depends on the locale, which only reports once translations have loaded.
-        await IntlStore.load(CONST.LOCALES.EN);
-        await Onyx.set(ONYXKEYS.RAM_ONLY_ARE_TRANSLATIONS_LOADING, false);
         await waitForBatchedUpdates();
     });
 
@@ -91,7 +86,7 @@ describe('OnyxDerived shared collection delta', () => {
     });
 
     it('scans the transactions collection once per write, however many derived values depend on it', async () => {
-        // Given reportAttributes, reportTransactionsAndViolations and spendDataSignature all depend on transactions
+        // Given reportTransactionsAndViolations and spendDataSignature both depend on transactions
         const signatureBefore = await getOnyxValue(ONYXKEYS.DERIVED.SPEND_DATA_SIGNATURE);
 
         // When one expense is edited

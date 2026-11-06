@@ -1,4 +1,4 @@
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 
 import Parser from '@libs/Parser';
 import {getReportNameFromNames} from '@libs/ReportAttributesUtils';
@@ -17,7 +17,7 @@ import type {OnyxEntry} from 'react-native-onyx';
  */
 function useReportDetailsReportName(report: OnyxEntry<Report>, parentReport: OnyxEntry<Report>, parentReportAction: OnyxEntry<ReportAction>) {
     const reportForHeader = getReportForHeader(report, parentReport);
-    const derivedReportNames = useDerivedReportNamesByReportIDs([report?.parentReportID, reportForHeader?.reportID]);
+    const derivedReportNames = useReportNames([report?.parentReportID, reportForHeader?.reportID]);
     const derivedParentReportName = getReportNameFromNames(derivedReportNames, report?.parentReportID);
     const derivedHeaderReportName = getReportNameFromNames(derivedReportNames, reportForHeader?.reportID);
 

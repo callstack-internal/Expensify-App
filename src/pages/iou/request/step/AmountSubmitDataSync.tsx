@@ -5,6 +5,7 @@ import useOnyx from '@hooks/useOnyx';
 import usePermissions from '@hooks/usePermissions';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
 import usePersonalPolicy from '@hooks/usePersonalPolicy';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useSelfDMReport from '@hooks/useSelfDMReport';
 
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
@@ -41,7 +42,7 @@ type AmountSubmitData = Pick<
     | 'userBillingGracePeriodEnds'
     | 'duplicateTransactions'
     | 'duplicateTransactionViolations'
-    | 'reportAttributesDerivedValue'
+    | 'reportAttributes'
     | 'isASAPSubmitBetaEnabled'
     | 'quickAction'
     | 'onboarding'
@@ -93,7 +94,7 @@ function AmountSubmitDataSync({report, transaction, transactionID, policyID, isE
     const [storedTransaction] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION}${getNonEmptyStringOnyxID(existingTransactionID)}`);
     const reportIDToCheck = isMoneyRequestReport(report) ? report?.chatReportID : report?.reportID;
     const [isDraftChatReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT}${reportIDToCheck}`, {selector: isDraftReportSelector});
-    const [reportAttributesDerivedValue] = useOnyx(ONYXKEYS.DERIVED.REPORT_ATTRIBUTES);
+    const reportAttributes = useAllReportAttributes();
     const {isBetaEnabled} = usePermissions();
     const [quickAction] = useOnyx(ONYXKEYS.NVP_QUICK_ACTION_GLOBAL_CREATE);
     const [onboarding] = useOnyx(ONYXKEYS.NVP_ONBOARDING);
@@ -130,7 +131,7 @@ function AmountSubmitDataSync({report, transaction, transactionID, policyID, isE
             userBillingGracePeriodEnds,
             duplicateTransactions,
             duplicateTransactionViolations,
-            reportAttributesDerivedValue,
+            reportAttributes,
             isASAPSubmitBetaEnabled: isBetaEnabled(CONST.BETAS.ASAP_SUBMIT),
             quickAction,
             onboarding,
@@ -161,7 +162,7 @@ function AmountSubmitDataSync({report, transaction, transactionID, policyID, isE
         userBillingGracePeriodEnds,
         duplicateTransactions,
         duplicateTransactionViolations,
-        reportAttributesDerivedValue,
+        reportAttributes,
         isBetaEnabled,
         quickAction,
         onboarding,

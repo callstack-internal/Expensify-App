@@ -22,7 +22,7 @@ import useNetwork from './useNetwork';
 import useOnyx from './useOnyx';
 import usePermissions from './usePermissions';
 import usePrevious from './usePrevious';
-import useReportAttributes from './useReportAttributes';
+import {useAllReportAttributes} from './useReportAttributes';
 import useResponsiveLayout from './useResponsiveLayout';
 import useStableArrayReference from './useStableArrayReference';
 
@@ -121,7 +121,7 @@ function SidebarOrderedReportsContextProvider({
     const [guideAccountIDs] = useOnyx(ONYXKEYS.DERIVED.GUIDE_ACCOUNT_IDS);
     const prevGuideAccountIDs = usePrevious(guideAccountIDs);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
-    const reportAttributes = useReportAttributes();
+    const reportAttributes = useAllReportAttributes();
     const prevReportAttributes = usePrevious(reportAttributes);
     const reportAttributesUpdates = useMemo(() => getReportAttributesUpdates(reportAttributes, prevReportAttributes), [reportAttributes, prevReportAttributes]);
     const [currentReportsToDisplay, setCurrentReportsToDisplay] = useState<ReportsToDisplayInLHN>({});

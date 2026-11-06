@@ -3,7 +3,7 @@ import MenuItemFieldHTML from '@components/MenuItem/presets/MenuItemFieldHTML';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import useOutstandingReports from '@hooks/useOutstandingReports';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
 import Navigation from '@libs/Navigation/Navigation';
@@ -100,7 +100,7 @@ function ReportField({selectedParticipants, iouType, reportID, reportActionID, a
         return [reportIDToUse, reportToUse ?? undefined] as const;
     })();
 
-    const derivedReportName = useDerivedReportNameByReportID(selectedReportID);
+    const derivedReportName = useReportName(selectedReportID);
 
     const reportName = (() => {
         const name = getReportName(selectedReport, derivedReportName);

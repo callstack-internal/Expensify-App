@@ -285,6 +285,9 @@ const ONYXKEYS = {
     /** Whether the app is currently loading a translation */
     RAM_ONLY_ARE_TRANSLATIONS_LOADING: 'areTranslationsLoading',
 
+    /** The report attributes saved on idle, so the next app start doesn't have to compute them all before showing the LHN */
+    REPORT_ATTRIBUTES_SNAPSHOT: 'reportAttributesSnapshot',
+
     /** Whether the user has tried focus mode yet */
     NVP_TRY_FOCUS_MODE: 'nvp_tryFocusMode',
 
@@ -665,6 +668,9 @@ const ONYXKEYS = {
 
     /** @deprecated Use ACTIVE_SERVER. */
     SHOULD_USE_STAGING_SERVER: 'shouldUseStagingServer',
+
+    /** @deprecated The report attributes are computed through useOnyxState now. Only read by the RemoveReportAttributesDerivedValue migration. */
+    LEGACY_REPORT_ATTRIBUTES: 'reportAttributes',
 
     /** Which server environment the app talks to */
     ACTIVE_SERVER: 'activeServer',
@@ -1479,7 +1485,6 @@ const ONYXKEYS = {
         BUSINESS_CENTRAL_CREDENTIALS_FORM_DRAFT: 'businessCentralCredentialsFormDraft',
     },
     DERIVED: {
-        REPORT_ATTRIBUTES: 'reportAttributes',
         REPORT_TRANSACTIONS_AND_VIOLATIONS: 'reportTransactionsAndViolations',
         OUTSTANDING_REPORTS_BY_POLICY_ID: 'outstandingReportsByPolicyID',
         VISIBLE_REPORT_ACTIONS: 'visibleReportActions',
@@ -1853,6 +1858,7 @@ type OnyxValuesMapping = {
     [ONYXKEYS.ONFIDO_APPLICANT_ID]: string;
     [ONYXKEYS.NVP_PREFERRED_LOCALE]: OnyxTypes.Locale;
     [ONYXKEYS.RAM_ONLY_ARE_TRANSLATIONS_LOADING]: boolean;
+    [ONYXKEYS.REPORT_ATTRIBUTES_SNAPSHOT]: OnyxTypes.ReportAttributesSnapshot;
     [ONYXKEYS.NVP_ACTIVE_POLICY_ID]: string;
     [ONYXKEYS.NVP_LAST_DISMISSED_MARKETING_WINDOW]: string;
     [ONYXKEYS.NVP_DISMISSED_REFERRAL_BANNERS]: OnyxTypes.DismissedReferralBanners;
@@ -1963,6 +1969,8 @@ type OnyxValuesMapping = {
     [ONYXKEYS.SHOULD_MASK_ONYX_STATE]: boolean;
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- the key stays typed while it is still read
     [ONYXKEYS.SHOULD_USE_STAGING_SERVER]: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- the key stays typed until the migration has removed it everywhere
+    [ONYXKEYS.LEGACY_REPORT_ATTRIBUTES]: OnyxTypes.ReportAttributesDerivedValue;
     [ONYXKEYS.ACTIVE_SERVER]: ValueOf<typeof CONST.SERVER>;
     [ONYXKEYS.CLOUDFLARE_SESSION]: OnyxTypes.CloudflareSession;
     [ONYXKEYS.IS_DEBUG_MODE_ENABLED]: boolean;
@@ -2080,7 +2088,6 @@ type OnyxValuesMapping = {
 };
 
 type OnyxDerivedValuesMapping = {
-    [ONYXKEYS.DERIVED.REPORT_ATTRIBUTES]: OnyxTypes.ReportAttributesDerivedValue;
     [ONYXKEYS.DERIVED.REPORT_TRANSACTIONS_AND_VIOLATIONS]: OnyxTypes.ReportTransactionsAndViolationsDerivedValue;
     [ONYXKEYS.DERIVED.OUTSTANDING_REPORTS_BY_POLICY_ID]: OnyxTypes.OutstandingReportsByPolicyIDDerivedValue;
     [ONYXKEYS.DERIVED.VISIBLE_REPORT_ACTIONS]: OnyxTypes.VisibleReportActionsDerivedValue;

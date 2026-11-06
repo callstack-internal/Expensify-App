@@ -15,7 +15,7 @@ import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import usePolicy from '@hooks/usePolicy';
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -117,7 +117,7 @@ function ShareCodePage({report, policy, backTo, shouldShowQRCodeOnly = false}: S
     const [parentReport] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${report?.parentReportID}`);
     const invoiceReceiverPolicy = usePolicy(getInvoiceReceiverPolicyID(parentReport));
     const reportForTitle = getReportForHeader(report, parentReport);
-    const derivedReportNames = useDerivedReportNamesByReportIDs([report?.parentReportID, reportForTitle?.reportID]);
+    const derivedReportNames = useReportNames([report?.parentReportID, reportForTitle?.reportID]);
     const derivedParentReportName = getReportNameFromNames(derivedReportNames, report?.parentReportID);
     const derivedTitleReportName = getReportNameFromNames(derivedReportNames, reportForTitle?.reportID);
     const isParentReportArchived = useReportIsArchived(report?.parentReportID);

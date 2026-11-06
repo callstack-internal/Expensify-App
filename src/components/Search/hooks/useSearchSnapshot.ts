@@ -11,7 +11,7 @@ import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
 import usePolicyForMovingExpenses from '@hooks/usePolicyForMovingExpenses';
-import useReportAttributes from '@hooks/useReportAttributes';
+import {useAllReportAttributes} from '@hooks/useReportAttributes';
 import useShouldReturnTripRooms from '@hooks/useShouldReturnTripRooms';
 
 import {getSections, getSortedSections, getSortedTransactionData, getValidGroupBy, isSearchDataLoaded, isTransactionGroupListItemType} from '@libs/SearchUIUtils';
@@ -161,7 +161,7 @@ function useSearchSnapshot({queryJSON, searchResults, transactions, reportAction
     const {currentSearchKey} = useSearchQueryContext();
     const {shouldUseLiveData} = useSearchResultsContext();
     const isActionLoadingSet = useActionLoadingReportIDs();
-    const reportAttributesDerivedValue = useReportAttributes();
+    const reportAttributesDerivedValue = useAllReportAttributes();
     const {policyForMovingExpensesID, policyForMovingExpenses} = usePolicyForMovingExpenses();
     const isAttendeesEnabledForMovingPolicy = shouldShowAttendees(CONST.IOU.TYPE.SUBMIT, policyForMovingExpenses);
 

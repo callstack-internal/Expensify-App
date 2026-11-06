@@ -27,7 +27,7 @@ import useIsAnonymousUser from './useIsAnonymousUser';
 import useIsHiddenWideTabPreMount from './useIsHiddenWideTabPreMount';
 import useIsReportActionsLoaded from './useIsReportActionsLoaded';
 import useIsReportOutOfSight from './useIsReportOutOfSight';
-import {useDerivedIsEmptyReport} from './useReportAttributes';
+import {useIsEmptyReport} from './useReportAttributes';
 import useReportIsArchived from './useReportIsArchived';
 
 // useRef gets reset when the reportID changes (the list reuses the same instance per report),
@@ -121,7 +121,7 @@ function useMarkAsRead({
     const route = useRoute<PlatformStackRouteProp<ReportsSplitNavigatorParamList, typeof SCREENS.REPORT>>();
     const isFocused = useIsFocused();
     const isReportArchived = useReportIsArchived(reportID);
-    const derivedIsEmptyReport = useDerivedIsEmptyReport(reportID);
+    const derivedIsEmptyReport = useIsEmptyReport(reportID);
     const isReportActionsLoaded = useIsReportActionsLoaded(reportID);
     // A preloaded tab or a hidden wide submit pre-mount mounts this screen before the user sees it. Marking read assumes the
     // user is looking, so hold every readNewestAction until the tab is focused or the pre-mount is revealed.

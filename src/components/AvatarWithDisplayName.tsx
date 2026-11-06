@@ -5,7 +5,7 @@ import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
 import {useAllPersonalDetails} from '@hooks/usePersonalDetails';
 import usePolicy from '@hooks/usePolicy';
-import {useDerivedReportNamesByReportIDs} from '@hooks/useReportAttributes';
+import {useReportNames} from '@hooks/useReportAttributes';
 import useReportIsArchived from '@hooks/useReportIsArchived';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useTheme from '@hooks/useTheme';
@@ -226,7 +226,7 @@ function AvatarWithDisplayName({
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
 
-    const derivedReportNames = useDerivedReportNamesByReportIDs([report?.reportID, report?.parentReportID]);
+    const derivedReportNames = useReportNames([report?.reportID, report?.parentReportID]);
     const isReportArchived = useReportIsArchived(report?.reportID);
     const isParentReportArchived = useReportIsArchived(report?.parentReportID);
     const icons = useMemoizedLazyExpensifyIcons(['Pencil']);

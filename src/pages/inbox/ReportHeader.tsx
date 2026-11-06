@@ -5,7 +5,7 @@ import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import useDocumentTitle from '@hooks/useDocumentTitle';
 import useIsInSidePanel from '@hooks/useIsInSidePanel';
 import useOnyx from '@hooks/useOnyx';
-import {useDerivedReportNameByReportID} from '@hooks/useReportAttributes';
+import {useReportName} from '@hooks/useReportAttributes';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSidePanelActions from '@hooks/useSidePanelActions';
 
@@ -40,7 +40,7 @@ function ReportHeader() {
     const [report] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT}${reportIDFromRoute}`);
     const reportID = report?.reportID;
 
-    const derivedReportName = useDerivedReportNameByReportID(reportID);
+    const derivedReportName = useReportName(reportID);
     useDocumentTitle(getReportName(report, derivedReportName));
 
     const isTransactionThreadView = isReportTransactionThread(report);

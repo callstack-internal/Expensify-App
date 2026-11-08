@@ -24,6 +24,8 @@ type AccordionProps = {
     isToggleTriggered: SharedValue<boolean>;
 };
 
+// test commit
+
 function Accordion({isExpanded, children, duration = 300, isToggleTriggered, style}: AccordionProps) {
     const height = useSharedValue(0);
     const styles = useThemeStyles();

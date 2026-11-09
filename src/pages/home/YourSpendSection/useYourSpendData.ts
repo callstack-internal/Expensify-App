@@ -439,7 +439,7 @@ function useYourSpendData(): UseYourSpendDataReturn {
     const pendingSpendBuckets = getYourSpendPendingBuckets(reportsSignature ?? EMPTY_SPEND_REPORTS_SIGNATURE, [...(queuedSpendRequests ?? []), ...(ongoingSpendRequests ?? [])]);
 
     // Destructure here so downstream memos depend only on the sub-records, not on
-    // the parent value that's rebuilt on every CARD_FEED_ERRORS tick.
+    // the parent value that's rebuilt whenever a card input changes.
     const {cardsWithBrokenFeedConnection, personalCardsWithBrokenConnection} = useCardFeedErrors();
 
     // Memo anchor: the compiler does not auto-cache these calls, so downstream

@@ -62,7 +62,6 @@ import type CustomStatusDraft from './CustomStatusDraft';
 import type DatabaseSizeMeasurement from './DatabaseSizeMeasurement';
 import type DeferredAttachmentEdits from './DeferredAttachmentEdits';
 import type {
-    CardFeedErrorsDerivedValue,
     GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,
     LoginToAccountIDMapDerivedValue,
@@ -535,7 +534,6 @@ export type {
     SortedReportActionsDerivedValue,
     NonPersonalAndWorkspaceCardListDerivedValue,
     PersonalAndWorkspaceCardListDerivedValue,
-    CardFeedErrorsDerivedValue,
     LoginToAccountIDMapDerivedValue,
     GuideAccountIDsDerivedValue,
     SpendDataSignatureDerivedValue,

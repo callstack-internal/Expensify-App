@@ -188,6 +188,7 @@ function AddressStep({isEditing, onNext, personalDetailsValues}: CustomSubPagePr
                         inputID={INPUT_IDS.COUNTRY}
                         value={currentCountry}
                         onValueChange={handleAddressChange}
+                        forwardedFSClass={CONST.FULLSTORY.CLASS.MASK}
                     />
                 </View>
                 {isUSAForm ? (
@@ -197,6 +198,7 @@ function AddressStep({isEditing, onNext, personalDetailsValues}: CustomSubPagePr
                             inputID={INPUT_IDS.STATE}
                             value={state as State}
                             onValueChange={handleAddressChange}
+                            forwardedFSClass={CONST.FULLSTORY.CLASS.MASK}
                         />
                     </View>
                 ) : (
@@ -210,6 +212,7 @@ function AddressStep({isEditing, onNext, personalDetailsValues}: CustomSubPagePr
                         spellCheck={false}
                         onValueChange={handleAddressChange}
                         containerStyles={styles.mt2}
+                        forwardedFSClass={CONST.FULLSTORY.CLASS.MASK}
                     />
                 )}
                 <InputWrapper
@@ -222,6 +225,7 @@ function AddressStep({isEditing, onNext, personalDetailsValues}: CustomSubPagePr
                     spellCheck={false}
                     onValueChange={handleAddressChange}
                     containerStyles={isUSAForm ? styles.mt2 : styles.mt5}
+                    forwardedFSClass={CONST.FULLSTORY.CLASS.MASK}
                 />
                 <InputWrapper
                     InputComponent={TextInput}

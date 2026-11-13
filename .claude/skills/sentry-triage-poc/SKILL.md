@@ -260,9 +260,9 @@ Performance and Noise verdicts can also be **medium** when the evidence is not s
 
 "Agree" means they point the same way on whether users were affected. Blocked and Workaround agree (users were affected; the verdict is Degraded, or Blocking if most samples are Blocked). Blocked or Workaround next to No visible effect do not agree. Unknown events don't count either way.
 
-**The verdict line.** In the issue's Problem section, the verdict goes after the explanation of what users did and experienced. It is the label and its confidence, followed by two to four plain sentences that sum up what is known: what the sampled users experienced, what the backend showed, and what the code says. No percentages, counts, or breakdowns in these sentences; they belong in Impact, Evidence, or Next step. A reader who only reads this line should know what the issue is and why it got that verdict. For example:
+**The verdict line.** In the issue's Problem section, the verdict goes after the explanation of what users did and experienced. It is the label and its confidence, followed by one plain sentence saying what the rating rests on. The explanation above it already tells the story, and the evidence and code have their own sections, so don't repeat them here. No percentages, counts, or breakdowns; they belong in Impact, Evidence, or Next step. For example:
 
-> **Verdict:** Noise, confidence medium. The detector reports any foreground tab whose heartbeat stops without a clean exit. Two of the three sampled sessions were automation reloading the page every few seconds, and the third user's page reloaded once and they kept working. Memory was low in all three, so these are not the crashes the detector was built for.
+> **Verdict:** Noise, confidence medium. Most sampled sessions were automated reloads, not real tab crashes, and the users kept working.
 
 Every verified issue becomes an issue to create, unless it's dropped:
 
@@ -312,7 +312,7 @@ The file is the issue body only, passed as is to `gh issue create --body-file`. 
 
 ## Problem
 
-<What users were doing and what they experienced, in general terms.>
+<What users were doing and what they experienced, in general terms. Start with the screen or flow where it happens and what the user saw, then who is affected and under what condition. This paragraph must stand on its own: a reader who skips the Verdict still learns where and how the problem shows up.>
 
 **Verdict:** <the verdict line, in the shape given in Step 5>
 
@@ -345,6 +345,7 @@ The file is the issue body only, passed as is to `gh issue create --body-file`. 
 <What the Step 5 table asks for this verdict: the missing evidence, what to check, how often it fires, or how to stop it being reported.>
 ````
 
+- **Title and Problem match:** every concrete claim in the suggested title (the screen, feature, platform, or condition it names) must also appear in the Problem explanation, in general terms. The title must not say more than the body. The Verdict sums up the explanation and does not introduce facts the explanation lacks.
 - **Root cause frames:** only in-app frames, without `node_modules` or vendor code, at most about 8. Write the function name and `file:line`, never variable values or the exception message, which can carry user data. They go after the explanation. When there is no in-app frame (for example an idle main-thread app hang), say so instead of the code block.
 - **Evidence:** one row per sampled event. When no session was found, write "none" and the classification Unknown. Keep each cell to one sentence; the Coverage line tells a reviewer when the verdict rests on thin evidence.
 - Anything unverified is labelled `HYPOTHESIS - not yet verified`, in any section.

@@ -260,7 +260,7 @@ Performance and Noise verdicts can also be **medium** when the evidence is not s
 
 "Agree" means they point the same way on whether users were affected. Blocked and Workaround agree (users were affected; the verdict is Degraded, or Blocking if most samples are Blocked). Blocked or Workaround next to No visible effect do not agree. Unknown events don't count either way.
 
-**The verdict line.** In the issue's Problem section, the verdict is the label and its confidence, followed by two to four plain sentences that sum up what is known: what the sampled users experienced, what the backend showed, and what the code says. No percentages, counts, or breakdowns in these sentences; they belong in Impact, Evidence, or Next step. A reader who only reads this line should know what the issue is and why it got that verdict. For example:
+**The verdict line.** In the issue's Problem section, the verdict goes after the explanation of what users did and experienced. It is the label and its confidence, followed by two to four plain sentences that sum up what is known: what the sampled users experienced, what the backend showed, and what the code says. No percentages, counts, or breakdowns in these sentences; they belong in Impact, Evidence, or Next step. A reader who only reads this line should know what the issue is and why it got that verdict. For example:
 
 > **Verdict:** Noise, confidence medium. The detector reports any foreground tab whose heartbeat stops without a clean exit. Two of the three sampled sessions were automation reloading the page every few seconds, and the third user's page reloaded once and they kept working. Memory was low in all three, so these are not the crashes the detector was built for.
 
@@ -312,9 +312,9 @@ The file is the issue body only, passed as is to `gh issue create --body-file`. 
 
 ## Problem
 
-**Verdict:** <the verdict line, in the shape given in Step 5>
-
 <What users were doing and what they experienced, in general terms.>
+
+**Verdict:** <the verdict line, in the shape given in Step 5>
 
 ## Root cause
 

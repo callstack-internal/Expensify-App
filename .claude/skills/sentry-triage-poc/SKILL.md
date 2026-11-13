@@ -145,9 +145,9 @@ If a subagent errors out or returns something that is not the "Return format" bl
 The subagent returns one block with these parts, in this order:
 
 1. **Samples:** for each sampled event, the Sentry event link, timestamp, release, platform, OS, device model, and whether it has `user.email`. When no event has an email, say so.
-2. **Code (4a):** the root-cause `file:line` and what the surrounding code does, or the nearest in-app caller when the frame is in vendor code. When the current code already guards against the error: the fixing PR and the first release that has it.
-3. **Per event (4b and 4c):** the FullStory link and classification (Blocked, Workaround, No visible effect, Unknown), what kind of thing was on screen in general terms, snapshots taken, and a short summary of what VictoriaLogs showed.
-4. **Coverage:** the line described in Step 6, under `issues/<SHORT-ID>.md`.
+2. **Code (4a):** the top in-app stack frames, deepest first, as function name and `file:line` only (no variable values or message text), then the root-cause `file:line` and what the surrounding code does, or the nearest in-app caller when the frame is in vendor code. When the current code already guards against the error: the fixing PR and the first release that has it.
+3. **Per event (4b and 4c):** the FullStory link and classification (Blocked, Workaround, No visible effect, Unknown), one sentence on what kind of thing was on screen in general terms, snapshots taken, and one sentence on what VictoriaLogs showed.
+4. **Coverage:** the Coverage line of the Evidence section described in Step 6, under `issues/<SHORT-ID>.md`.
 5. **Drop signs:** anything the samples showed that Step 2 could not see: internal test accounts (write "internal test account", never the address), OldDot culprits, or `Expensify Adhoc` builds. "None" otherwise.
 6. **Proposed verdict:** a verdict from the Step 5 table with a one-line reason, and, for every verdict except Needs human, a proposed confidence with the count of events that have evidence and whether they agree. The orchestrator checks it against Step 5 and can change it.
 
@@ -260,7 +260,7 @@ Performance and Noise verdicts can also be **medium** when the evidence is not s
 
 "Agree" means they point the same way on whether users were affected. Blocked and Workaround agree (users were affected; the verdict is Degraded, or Blocking if most samples are Blocked). Blocked or Workaround next to No visible effect do not agree. Unknown events don't count either way.
 
-**The verdict line.** In the report, the verdict is the label and its confidence, followed by two to four plain sentences that sum up what is known: what the sampled users experienced, what the backend showed, and what the code says. No percentages, counts, or breakdowns in these sentences; they belong in the evidence per event or the next step. A reader who only reads this line should know what the issue is and why it got that verdict. For example:
+**The verdict line.** In the issue's Problem section, the verdict is the label and its confidence, followed by two to four plain sentences that sum up what is known: what the sampled users experienced, what the backend showed, and what the code says. No percentages, counts, or breakdowns in these sentences; they belong in Impact, Evidence, or Next step. A reader who only reads this line should know what the issue is and why it got that verdict. For example:
 
 > **Verdict:** Noise, confidence medium. The detector reports any foreground tab whose heartbeat stops without a clean exit. Two of the three sampled sessions were automation reloading the page every few seconds, and the third user's page reloaded once and they kept working. Memory was low in all three, so these are not the crashes the detector was built for.
 
@@ -294,17 +294,60 @@ Write everything to `sentry-triage-output/<YYYY-MM-DD>/`:
 
 ### `issues/<SHORT-ID>.md`
 
-The file is the issue body only, passed as is to `gh issue create --body-file`. The title and labels live in the report table, not in the file. Write it for someone who hasn't seen the report, in this order:
+The file is the issue body only, passed as is to `gh issue create --body-file`. The title and labels live in the report table, not in the file. Every issue is `External`, so the reader is a contributor who can't open Sentry, FullStory, or VictoriaLogs: the body must make sense without following any link. Use these sections, in this order:
 
-- **Sentry:** link to every issue ID (all of them for a group).
-- **Why picked**, affected users and events (24h and 7d; for a group, per issue and the lower bound from Step 2), first seen, release with the most events, and platforms.
-- **What users were doing:** in general terms.
-- **Verdict:** the verdict line, in the shape given in Step 5.
-- **Evidence per event:** Sentry event link, FullStory link and classification, what the user saw on screen in general terms, and a short summary of what VictoriaLogs showed.
-- **Coverage:** events sampled, events with a FullStory session read, events with VictoriaLogs read, snapshots taken, and the reason for anything skipped. A reviewer uses this line to see when a verdict rests on thin evidence.
-- **Root cause:** the `file:line`.
-- **Related GitHub issues:** overlaps, and closed issues that didn't fix it.
-- **Next step:** what the Step 5 table asks for this verdict (the missing evidence, what to check, how often it fires, or how to stop it being reported).
+````
+## Sentry
+
+<link to every issue ID, all of them for a group>
+
+## Impact
+
+- Why picked: <new, escalating, growing, most reported 24h, or most reported 7d>
+- Last 24 hours: <events>, <users>. Last 7 days: <events>, <users>.
+  (For a group: one line per issue, then the largest single issue's users as the lower bound.)
+- First seen: <date, or "older than 90 days">
+- Release with the most events: <release>
+- Platforms: <platforms and OS, with shares when mixed>
+
+## Problem
+
+**Verdict:** <the verdict line, in the shape given in Step 5>
+
+<What users were doing and what they experienced, in general terms.>
+
+## Root cause
+
+<The root-cause `file:line` and what the code there does, or the nearest in-app caller when the frame is in vendor code.>
+
+```
+<top in-app frames, deepest first: function name and file:line only>
+```
+
+## Evidence
+
+<details><summary>Sampled events and coverage</summary>
+
+| Event | Release, platform | FullStory | What the user saw | VictoriaLogs |
+| --- | --- | --- | --- | --- |
+| <Sentry event link> | <release>, <platform> | <session link>, <classification> | <one sentence> | <one sentence> |
+
+**Coverage:** <events sampled, events with a FullStory session read, events with VictoriaLogs read, snapshots taken, and the reason for anything skipped>
+
+</details>
+
+## Related GitHub issues
+
+<Overlaps, and closed issues that didn't fix it. "None found." when there are none.>
+
+## Next step
+
+<What the Step 5 table asks for this verdict: the missing evidence, what to check, how often it fires, or how to stop it being reported.>
+````
+
+- **Root cause frames:** only in-app frames, without `node_modules` or vendor code, at most about 8. Write the function name and `file:line`, never variable values or the exception message, which can carry user data. They go after the explanation. When there is no in-app frame (for example an idle main-thread app hang), say so instead of the code block.
+- **Evidence:** one row per sampled event. When no session was found, write "none" and the classification Unknown. Keep each cell to one sentence; the Coverage line tells a reviewer when the verdict rests on thin evidence.
+- Anything unverified is labelled `HYPOTHESIS - not yet verified`, in any section.
 
 Don't include a suggested fix or the log queries.
 

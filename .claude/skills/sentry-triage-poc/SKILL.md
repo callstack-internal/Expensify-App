@@ -1,6 +1,6 @@
 ---
 name: sentry-triage-poc
-description: Daily triage of production Sentry issues that are new, growing, or among the most reported. Verifies real user impact by checking sampled events against FullStory sessions and VictoriaLogs, assigns a verdict (Blocking, Degraded, Noise, Needs human) with evidence, and writes a report plus one ready-to-file GitHub issue body per recommended issue. By default it only writes local files; with `--create-issues` it also creates those GitHub issues in Expensify/App. It never writes to Sentry. Use when asked to run the daily Sentry triage, or invoked as /sentry-triage-poc [--create-issues].
+description: Daily triage of production Sentry issues that are new, growing, or among the most reported. Verifies real user impact by checking sampled events against FullStory sessions and VictoriaLogs, assigns a verdict (Blocking, Degraded, Noise, Needs human) with evidence, and writes a report plus one ready-to-file GitHub issue body per recommended issue. By default it only writes local files; with `--create-issues` it also creates those GitHub issues in Expensify/App and links them to their Sentry issues. Use when asked to run the daily Sentry triage, or invoked as /sentry-triage-poc [--create-issues].
 ---
 
 # Sentry triage
@@ -15,7 +15,7 @@ The run is unattended. Do not stop to ask questions. When something is unclear, 
 
 ## Flags
 
-- `--create-issues`: after writing the output, create the recommended issues in `Expensify/App` (Step 7). Without it, the run only writes local files.
+- `--create-issues`: after writing the output, create the recommended issues in `Expensify/App` and link each one to its Sentry issues (Step 7). Without it, the run only writes local files.
 
 ## Rules
 
@@ -28,7 +28,7 @@ The run is unattended. Do not stop to ask questions. When something is unclear, 
   - **Error messages:** Sentry titles and exception messages can contain user data. Paraphrase them when they hold anything from the "Never write" list.
   - Emails and account IDs are used only as lookup keys.
 - **No evidence means no verdict.** Every verdict cites the links or log findings it rests on. Anything unverified is labelled `HYPOTHESIS - not yet verified`.
-- **Never create resources.** No GitHub issues or comments (`gh issue create`, `gh issue comment`, `gh api` writes), with one exception: when invoked with `--create-issues`, the orchestrator creates the issues from Step 6 as described in Step 7, and nothing else. Subagents never create issues. No FullStory segments, metrics, or funnels (`build_*`, `update_*`), with one exception: the session lookup in Step 4b may call `mcp__fullstory__build_segment` to run a search for one user's sessions. That search segment is saved like a search in the FullStory UI and doesn't appear in the segments list. Don't pass `name` or `description`, and never call `update_segment`. No Sentry writes at all: no `link_issue`, `update_issue`, notes, or alert rules. Do not use `mcp__sentry__analyze_issue_with_seer`.
+- **Never create resources.** No GitHub issues or comments (`gh issue create`, `gh issue comment`, `gh api` writes), with one exception: when invoked with `--create-issues`, the orchestrator creates the issues from Step 6 as described in Step 7, and nothing else. Subagents never create issues. No FullStory segments, metrics, or funnels (`build_*`, `update_*`), with one exception: the session lookup in Step 4b may call `mcp__fullstory__build_segment` to run a search for one user's sessions. That search segment is saved like a search in the FullStory UI and doesn't appear in the segments list. Don't pass `name` or `description`, and never call `update_segment`. No Sentry writes, with one exception: with `--create-issues`, Step 7 calls `mcp__sentry__link_issue` to link each created GitHub issue to its Sentry issues. Never `update_issue`, `unlink_issue`, notes, or alert rules. Do not use `mcp__sentry__analyze_issue_with_seer`.
 - **Stay in budget.** At most 20 issues, 3 events per issue, one FullStory search (`build_segment`) and one FullStory session per event, and up to three VictoriaLogs queries per event (Step 4c).
 - **Budget caps are limits, not goals, and context is not a reason to skip Step 4.** Steps 3 and 4 run in a fresh subagent per candidate, so the orchestrator's context never fills up with events, sessions, and logs. Every verified issue gets the full Step 4 for each sampled event that has an email, or its issue file says why a step was skipped (see the Coverage line in Step 6).
 
@@ -334,7 +334,9 @@ gh issue create --repo Expensify/App --title "<suggested title>" --label "<label
 
 Use the title and labels from the table exactly. Write the returned issue URL in the "GitHub issue" column. On failure (for example a missing label or no permission), don't retry with changed labels or content. Write `failed: <short reason>` in the column and go on to the next row.
 
-Create nothing else: no comments, no edits or label changes on existing issues, no assignees, no Sentry links. Then add a line to the Summary with how many issues were created and how many failed, each with its Sentry short IDs.
+When the issue was created, link it to every Sentry ID of the row (all of them for a group) with `mcp__sentry__link_issue`: `organizationSlug` `expensify`, `issueId` the short ID, and `externalIssueUrl` the created issue URL. `already_linked` counts as linked. If a link fails, don't retry; add `Sentry link failed for <SHORT-ID>: <short reason>` next to the URL, so a human can link it by hand.
+
+Create nothing else: no comments, no edits or label changes on existing issues, no assignees, and no Sentry writes other than these links. Then add a line to the Summary with how many issues were created and how many failed, each with its Sentry short IDs, and any Sentry IDs whose link failed.
 
 ## Tools
 
@@ -355,3 +357,4 @@ Create nothing else: no comments, no edits or label changes on existing issues, 
 | `mcp__victorialogs__query` | Backend logs for one user and time window |
 | `gh search issues` | Check for an existing GitHub issue in Expensify/App |
 | `gh issue create` | Step 7 only, with `--create-issues`: create the issues from the report |
+| `mcp__sentry__link_issue` | Step 7 only, with `--create-issues`: link each created GitHub issue to its Sentry issues |

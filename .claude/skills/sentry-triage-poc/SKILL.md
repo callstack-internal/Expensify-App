@@ -1,17 +1,21 @@
 ---
 name: sentry-triage-poc
-description: Daily triage of production Sentry issues that are new, growing, or among the most reported. Verifies real user impact by checking sampled events against FullStory sessions and VictoriaLogs, assigns a verdict (Blocking, Degraded, Noise, Needs human) with evidence, and writes a report that recommends which GitHub issues to create. It only writes a local report and never creates anything in GitHub or Sentry. Use when asked to run the daily Sentry triage, or invoked as /sentry-triage-poc.
+description: Daily triage of production Sentry issues that are new, growing, or among the most reported. Verifies real user impact by checking sampled events against FullStory sessions and VictoriaLogs, assigns a verdict (Blocking, Degraded, Noise, Needs human) with evidence, and writes a report plus one ready-to-file GitHub issue body per recommended issue. By default it only writes local files; with `--create-issues` it also creates those GitHub issues in Expensify/App. It never writes to Sentry. Use when asked to run the daily Sentry triage, or invoked as /sentry-triage-poc [--create-issues].
 ---
 
 # Sentry triage
 
 Find Sentry issues that are new, growing, or among the most reported in the last 24 hours, check whether real users were blocked, and recommend GitHub issues for the ones with real impact.
 
-The output is one local report. A human reviews it and files any issues.
+The output is a local report and one GitHub issue file per issue to create. By default, a human reviews them and files the issues. See "Flags" for creating them automatically.
 
-The run has two levels. The main agent (the orchestrator) runs Steps 1, 2, 5, and 6. Steps 3 and 4 run in one subagent per candidate, as described in "Verify in subagents". The orchestrator never samples events or reads sessions and logs itself, except when a subagent fails twice.
+The run has two levels. The main agent (the orchestrator) runs Steps 1, 2, 5, 6, and 7. Steps 3 and 4 run in one subagent per candidate, as described in "Verify in subagents". The orchestrator never samples events or reads sessions and logs itself, except when a subagent fails twice.
 
 The run is unattended. Do not stop to ask questions. When something is unclear, use the **Needs human** verdict and move on. **Needs human** is for evidence that can't be obtained (no session, no logs, no user on the events), not for evidence that wasn't fetched: try every sampled event and every Step 4 source before using it.
+
+## Flags
+
+- `--create-issues`: after writing the output, create the recommended issues in `Expensify/App` (Step 7). Without it, the run only writes local files.
 
 ## Rules
 
@@ -24,9 +28,9 @@ The run is unattended. Do not stop to ask questions. When something is unclear, 
   - **Error messages:** Sentry titles and exception messages can contain user data. Paraphrase them when they hold anything from the "Never write" list.
   - Emails and account IDs are used only as lookup keys.
 - **No evidence means no verdict.** Every verdict cites the links or log findings it rests on. Anything unverified is labelled `HYPOTHESIS - not yet verified`.
-- **Never create resources.** No GitHub issues or comments (`gh issue create`, `gh issue comment`, `gh api` writes). No FullStory segments, metrics, or funnels (`build_*`, `update_*`), with one exception: the session lookup in Step 4b may call `mcp__fullstory__build_segment` to run a search for one user's sessions. That search segment is saved like a search in the FullStory UI and doesn't appear in the segments list. Don't pass `name` or `description`, and never call `update_segment`. No Sentry writes at all: no `link_issue`, `update_issue`, notes, or alert rules. Do not use `mcp__sentry__analyze_issue_with_seer`.
+- **Never create resources.** No GitHub issues or comments (`gh issue create`, `gh issue comment`, `gh api` writes), with one exception: when invoked with `--create-issues`, the orchestrator creates the issues from Step 6 as described in Step 7, and nothing else. Subagents never create issues. No FullStory segments, metrics, or funnels (`build_*`, `update_*`), with one exception: the session lookup in Step 4b may call `mcp__fullstory__build_segment` to run a search for one user's sessions. That search segment is saved like a search in the FullStory UI and doesn't appear in the segments list. Don't pass `name` or `description`, and never call `update_segment`. No Sentry writes at all: no `link_issue`, `update_issue`, notes, or alert rules. Do not use `mcp__sentry__analyze_issue_with_seer`.
 - **Stay in budget.** At most 20 issues, 3 events per issue, one FullStory search (`build_segment`) and one FullStory session per event, and up to three VictoriaLogs queries per event (Step 4c).
-- **Budget caps are limits, not goals, and context is not a reason to skip Step 4.** Steps 3 and 4 run in a fresh subagent per candidate, so the orchestrator's context never fills up with events, sessions, and logs. Every verified issue gets the full Step 4 for each sampled event that has an email, or the report says why a step was skipped (see the Coverage line in Step 6).
+- **Budget caps are limits, not goals, and context is not a reason to skip Step 4.** Steps 3 and 4 run in a fresh subagent per candidate, so the orchestrator's context never fills up with events, sessions, and logs. Every verified issue gets the full Step 4 for each sampled event that has an email, or its issue file says why a step was skipped (see the Coverage line in Step 6).
 
 Sentry org `expensify`, project `app`, environment `production`.
 
@@ -143,7 +147,7 @@ The subagent returns one block with these parts, in this order:
 1. **Samples:** for each sampled event, the Sentry event link, timestamp, release, platform, OS, device model, and whether it has `user.email`. When no event has an email, say so.
 2. **Code (4a):** the root-cause `file:line` and what the surrounding code does, or the nearest in-app caller when the frame is in vendor code. When the current code already guards against the error: the fixing PR and the first release that has it.
 3. **Per event (4b and 4c):** the FullStory link and classification (Blocked, Workaround, No visible effect, Unknown), what kind of thing was on screen in general terms, snapshots taken, and a short summary of what VictoriaLogs showed.
-4. **Coverage:** the line described in Step 6, item 3.
+4. **Coverage:** the line described in Step 6, under `issues/<SHORT-ID>.md`.
 5. **Drop signs:** anything the samples showed that Step 2 could not see: internal test accounts (write "internal test account", never the address), OldDot culprits, or `Expensify Adhoc` builds. "None" otherwise.
 6. **Proposed verdict:** a verdict from the Step 5 table with a one-line reason, and, for every verdict except Needs human, a proposed confidence with the count of events that have evidence and whether they agree. The orchestrator checks it against Step 5 and can change it.
 
@@ -252,7 +256,7 @@ Confidence applies to Blocking, Degraded, Noise, and Performance only. **Needs h
 
 Set confidence to **high** only when at least 2 events have FullStory or log evidence and they agree. Otherwise it is **low**.
 
-Performance and Noise verdicts can also be **medium** when the evidence is not session-based but consistent: an aggregate breakdown of the issue's events (for example by release, platform, or session length) that points one way, events per user, or code that clearly shows the error has no effect on the user. Blocking and Degraded verdicts stay **high** or **low** only, because `External` depends on high confidence.
+Performance and Noise verdicts can also be **medium** when the evidence is not session-based but consistent: an aggregate breakdown of the issue's events (for example by release, platform, or session length) that points one way, events per user, or code that clearly shows the error has no effect on the user. Blocking and Degraded verdicts stay **high** or **low** only, because high confidence decides whether the issue skips `Needs Reproduction`.
 
 "Agree" means they point the same way on whether users were affected. Blocked and Workaround agree (users were affected; the verdict is Degraded, or Blocking if most samples are Blocked). Blocked or Workaround next to No visible effect do not agree. Unknown events don't count either way.
 
@@ -266,48 +270,71 @@ Every verified issue becomes an issue to create, unless it's dropped:
 | --- | --- | --- |
 | Blocking, high confidence | `Bug`, `External`, `Daily` | Fix it. |
 | Degraded, high confidence | `Bug`, `External`, `Weekly` | Fix it. |
-| Blocking or Degraded, low confidence | `Bug`, `Needs Reproduction`, `Internal` | Reproduce it first; say what evidence is missing. |
-| Needs human | `Bug`, `Needs Reproduction`, `Internal` | A human checks it; say what's unclear and what to check. |
-| Performance | `Bug`, `Needs Reproduction`, `Internal` | Measure the cost: how often it fires (events per user in 24h) and any detail the event carries (for example `recomputeCount`, `dependencyCounts`, or the hang duration). |
-| Noise | `Internal`, `Weekly` | Stop it being reported: say why it's noise, and whether to mute it in Sentry, filter it, change its fingerprint, or tighten the detector. |
+| Blocking or Degraded, low confidence | `Bug`, `Needs Reproduction`, `External` | Reproduce it first; say what evidence is missing. |
+| Needs human | `Bug`, `Needs Reproduction`, `External` | A human checks it; say what's unclear and what to check. |
+| Performance | `Bug`, `Needs Reproduction`, `External` | Measure the cost: how often it fires (events per user in 24h) and any detail the event carries (for example `recomputeCount`, `dependencyCounts`, or the hang duration). |
+| Noise | `External`, `Weekly` | Stop it being reported: say why it's noise, and whether to mute it in Sentry, filter it, change its fingerprint, or tighten the detector. |
 
 Whatever the verdict, drop the issue when the code shows it's already fixed on `main` (the crashing release predates the fix). The "Dropped" reason names the fixing PR and the first release that has it.
 
-`External` sends an issue to C+ through BugZero, so it is used only when the evidence is strong. An engineer adds `External` to a `Needs Reproduction` issue once it reproduces.
+Every issue gets `External`, which sends it to C+ through BugZero. When the evidence is not strong, `Needs Reproduction` tells C+ to reproduce it before working on a fix.
 
 ## Step 6: Output
 
-Write the report to `sentry-triage-output/<YYYY-MM-DD>/report.md`.
+Write everything to `sentry-triage-output/<YYYY-MM-DD>/`:
+
+- `report.md`: the overview, described below.
+- `issues/<SHORT-ID>.md`: one file per issue to create, holding the GitHub issue body. For a group candidate, use the short ID of the group's largest issue (the one in the title).
 
 ### `report.md`
 
 1. **Summary:** how many issues were found by source (new, escalating, growing, most reported 24h, most reported 7d), how many were dropped, and how many issues to create by verdict. Next to each count, list the Sentry short IDs it covers (for example "Growing: 3 (APP-1AB, APP-2CD, APP-3EF)"). An issue picked by several sources is listed under each of them. List every issue ID of a group candidate. Before finishing, check that these counts match the "Issues to create" table and the "Dropped" table (rows per verdict, rows dropped), and fix whichever is wrong.
-2. **Issues to create:** a table only, with one row per issue: Sentry ID, suggested title, verdict with confidence, and labels. Write the title as `[Sentry <SHORT-ID>] <short description of the problem>`, in your own words; don't copy the Sentry error message. The Sentry ID in the title is what the next run's duplicate check finds. A human files each one.
-3. **One block per issue to create**, in the same order as the table:
-   - Sentry link (every issue ID for a group), why it was picked, number of affected users, events, first seen, release, platforms, and what users were doing in general terms.
-   - The verdict line, in the shape given in Step 5.
-   - The evidence per event: FullStory link and classification, what the user saw on screen in general terms, and a short summary of what VictoriaLogs showed.
-   - **Coverage:** events sampled, events with a FullStory session read, events with VictoriaLogs read, snapshots taken, and the reason for anything skipped. A reviewer uses this line to see when a verdict rests on thin evidence.
-   - The root-cause `file:line`.
-   - Related GitHub issues: overlaps, and closed issues that didn't fix it.
-   - **Next step:** what the Step 5 table asks for this verdict (the missing evidence, what to check, how often it fires, or how to stop it being reported).
+2. **Issues to create:** a table only, with one row per issue: Sentry ID, suggested title, verdict with confidence, labels, and a relative link to its issue file (`issues/<SHORT-ID>.md`). Write the title as `[Sentry <SHORT-ID>] <short description of the problem>`, in your own words; don't copy the Sentry error message. The Sentry ID in the title is what the next run's duplicate check finds. With `--create-issues`, add a "GitHub issue" column, filled in Step 7.
+3. **Dropped:** one row per dropped issue: Sentry link, 24h users, and a one-line reason. This includes verified issues that don't lead to an issue, such as ones already fixed on `main`. No issue files for dropped issues.
 
-   Don't include a suggested fix or the log queries.
-4. **Dropped:** one row per dropped issue: Sentry link, 24h users, and a one-line reason. This includes verified issues that don't lead to an issue, such as ones already fixed on `main`. No blocks for dropped issues.
+### `issues/<SHORT-ID>.md`
 
-`report.md` stays local, but the PII rule applies to it in full.
+The file is the issue body only, passed as is to `gh issue create --body-file`. The title and labels live in the report table, not in the file. Write it for someone who hasn't seen the report, in this order:
 
-If the environment does not allow writing `report.md` (for example when the whole skill itself runs as a subagent), return its full content as the final message instead. The per-issue verification subagents never write the report; they return their block as described in "Verify in subagents".
+- **Sentry:** link to every issue ID (all of them for a group).
+- **Why picked**, affected users and events (24h and 7d; for a group, per issue and the lower bound from Step 2), first seen, release with the most events, and platforms.
+- **What users were doing:** in general terms.
+- **Verdict:** the verdict line, in the shape given in Step 5.
+- **Evidence per event:** Sentry event link, FullStory link and classification, what the user saw on screen in general terms, and a short summary of what VictoriaLogs showed.
+- **Coverage:** events sampled, events with a FullStory session read, events with VictoriaLogs read, snapshots taken, and the reason for anything skipped. A reviewer uses this line to see when a verdict rests on thin evidence.
+- **Root cause:** the `file:line`.
+- **Related GitHub issues:** overlaps, and closed issues that didn't fix it.
+- **Next step:** what the Step 5 table asks for this verdict (the missing evidence, what to check, how often it fires, or how to stop it being reported).
+
+Don't include a suggested fix or the log queries.
+
+The output stays local unless Step 7 runs, but treat every file as public: the PII rule applies to all of them in full, and issue files are posted to the public `Expensify/App` repo as is.
+
+If the environment does not allow writing files (for example when the whole skill itself runs as a subagent), return the content of `report.md` and every issue file, each under its file name, as the final message instead, and skip Step 7 (say so at the top). The per-issue verification subagents never write output; they return their block as described in "Verify in subagents".
 
 ### Final PII check
 
-Before finishing, scan the report (or the content you return) for:
+Before finishing, scan `report.md` and every issue file (or the content you return) for:
 - `@`, outside code identifiers and `<user.email>` placeholders
 - phone numbers
 - numbers of 6 or more digits outside allowed links, release numbers, Sentry IDs, and `file:line`
 - URLs other than the allowed links
 
 Replace each hit with a general description or remove it.
+
+## Step 7: Create issues (only with `--create-issues`)
+
+Skip this step unless the skill was invoked with `--create-issues`. Run it only after the final PII check has passed for every issue file.
+
+For each row of the "Issues to create" table, in order, run:
+
+```
+gh issue create --repo Expensify/App --title "<suggested title>" --label "<label 1>" --label "<label 2>" ... --body-file sentry-triage-output/<YYYY-MM-DD>/issues/<SHORT-ID>.md
+```
+
+Use the title and labels from the table exactly. Write the returned issue URL in the "GitHub issue" column. On failure (for example a missing label or no permission), don't retry with changed labels or content. Write `failed: <short reason>` in the column and go on to the next row.
+
+Create nothing else: no comments, no edits or label changes on existing issues, no assignees, no Sentry links. Then add a line to the Summary with how many issues were created and how many failed, each with its Sentry short IDs.
 
 ## Tools
 
@@ -327,3 +354,4 @@ Replace each hit with a general description or remove it.
 | `mcp__fullstory__review-snapshot` | Screen right after the error: what the user saw |
 | `mcp__victorialogs__query` | Backend logs for one user and time window |
 | `gh search issues` | Check for an existing GitHub issue in Expensify/App |
+| `gh issue create` | Step 7 only, with `--create-issues`: create the issues from the report |

@@ -141,6 +141,7 @@
     "date-fns-tz": "^3.2.0",
     "dom-serializer": "^0.2.2",
     "domhandler": "^5.0.3",
+    "dotlottie-react-latest": "npm:@lottiefiles/dotlottie-react@0.21.1",
     "expensify-common": "2.0.224",
     "expo": "57.0.8",
     "expo-asset": "57.0.7",

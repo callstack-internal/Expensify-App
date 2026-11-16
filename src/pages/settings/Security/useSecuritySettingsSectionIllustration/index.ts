@@ -1,16 +1,13 @@
-import {useMemoizedLazyIllustrations} from '@hooks/useLazyAsset';
+import LottieAnimations from '@components/LottieAnimations';
+
+import useSectionIllustrationWithMotion from '@hooks/useSectionIllustrationWithMotion';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import type UseSecuritySettingsSectionIllustration from './types';
 
 const useSecuritySettingsSectionIllustration: UseSecuritySettingsSectionIllustration = () => {
-    const illustrations = useMemoizedLazyIllustrations(['Safe']);
     const styles = useThemeStyles();
-
-    return {
-        illustration: illustrations.Safe,
-        illustrationStyle: styles.securitySettingsStaticIllustration,
-    };
+    return useSectionIllustrationWithMotion(LottieAnimations.Safe, 'Safe', styles.securitySettingsStaticIllustration);
 };
 
 export default useSecuritySettingsSectionIllustration;

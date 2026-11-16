@@ -13,12 +13,15 @@ import CONST from '@src/CONST';
 import {useSplashScreenState} from '@src/SplashScreenStateContext';
 
 import type {AnimationObject, LottieViewProps} from 'lottie-react-native';
+import type LottieView from 'lottie-react-native';
 import type {ForwardedRef} from 'react';
 
 import {NavigationContainerRefContext, NavigationContext} from '@react-navigation/native';
-import LottieView from 'lottie-react-native';
 import React, {useContext, useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
+
+// BENCHMARK ONLY (https://github.com/Expensify/App/issues/105079): on web this switches dotLottie variants through localStorage.
+import BenchLottieView from './BenchLottieView';
 
 type Props = {
     ref?: ForwardedRef<LottieView | null>;
@@ -122,7 +125,7 @@ function Lottie({ref, source, webStyle, shouldLoadAfterInteractions, ...props}: 
     }
 
     return (
-        <LottieView
+        <BenchLottieView
             {...props}
             source={animationFile}
             key={`${hasNavigatedAway}`}

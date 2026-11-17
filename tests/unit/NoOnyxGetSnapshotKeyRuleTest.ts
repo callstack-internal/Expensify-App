@@ -471,3 +471,86 @@ describe('no-onyx-get-snapshot-key next to no-unsafe-onyx-read', () => {
         expect(messages.map((message) => message.messageId)).toEqual(['noOnyxReadInRender']);
     });
 });
+
+const USE_ONYX_STATE_IMPORT = "import {useOnyxState} from 'react-native-onyx';";
+
+const RESTRICTED_STATE_ERRORS = [{messageId: 'noRestrictedOnyxStateKey'}];
+
+const UNRESOLVABLE_STATE_ERRORS = [{messageId: 'noUnresolvableOnyxStateKey'}];
+
+describe('no-onyx-get-snapshot-key useOnyxState dependencies', () => {
+    ruleTester.run(ruleModule.name, ruleModule, {
+        valid: [
+            // Keys outside the Search snapshot collections always read live data, which is what useOnyxState returns
+            `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state[ONYXKEYS.CARD_LIST], {dependencies: [ONYXKEYS.CARD_LIST, ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST]}); }`,
+            `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state, {dependencies: []}); }`,
+
+            // A same-named function that is not the Onyx export is not tracked
+            'function useOnyxState() {} function useReports() { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }',
+            "import {useOnyxState} from './myHooks'; function useReports() { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }",
+        ],
+        invalid: [
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState((state) => state[ONYXKEYS.COLLECTION.REPORT], {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReport(reportID) { return useOnyxState((state) => state, {dependencies: [\`\${ONYXKEYS.COLLECTION.REPORT}\${reportID}\`]}); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            // Each snapshot key in a mixed list is reported, and live keys next to them are not
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useAncestors() { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT, ONYXKEYS.COLLECTION.REPORT_DRAFT, ONYXKEYS.COLLECTION.REPORT_ACTIONS]}); }`,
+                errors: [{messageId: 'noRestrictedOnyxStateKey'}, {messageId: 'noRestrictedOnyxStateKey'}],
+            },
+
+            // The hook is tracked under a renamed import, a namespace import and a const alias
+            {
+                code: "import {useOnyxState as useDerived} from 'react-native-onyx'; function useNames() { return useDerived((state) => state, {dependencies: [ONYXKEYS.PERSONAL_DETAILS_LIST]}); }",
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: "import * as OnyxModule from 'react-native-onyx'; function useNames() { return OnyxModule.useOnyxState((state) => state, {dependencies: [ONYXKEYS.PERSONAL_DETAILS_LIST]}); }",
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} const useDerived = useOnyxState; function useNames() { return useDerived((state) => state, {dependencies: [ONYXKEYS.PERSONAL_DETAILS_LIST]}); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+
+            // Options or a dependency list the rule cannot read could carry any key
+            {
+                code: `${USE_ONYX_STATE_IMPORT} const DEPENDENCIES = [ONYXKEYS.CARD_LIST]; function useCards() { return useOnyxState((state) => state, {dependencies: DEPENDENCIES}); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards(options) { return useOnyxState((state) => state, options); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(extra) { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.CARD_LIST], ...extra}); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(name) { return useOnyxState((state) => state, {[name]: [ONYXKEYS.CARD_LIST]}); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(keys) { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.CARD_LIST, ...keys]}); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(key) { return useOnyxState((state) => state, {dependencies: [key]}); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+        ],
+    });
+
+    tsRuleTester.run(ruleModule.name, ruleModule, {
+        valid: [`${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.CARD_LIST] as const}); }`],
+        invalid: [
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT] as const} satisfies Options); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+        ],
+    });
+});

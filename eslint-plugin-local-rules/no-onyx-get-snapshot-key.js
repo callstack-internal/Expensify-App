@@ -34,6 +34,10 @@ const USE_ONYX_EXPORT_NAME = 'useOnyx';
 
 const SELECTOR_OPTION_NAME = 'selector';
 
+const USE_ONYX_STATE_EXPORT_NAME = 'useOnyxState';
+
+const DEPENDENCIES_OPTION_NAME = 'dependencies';
+
 if (!REPO_ROOT) {
     throw new Error(
         `${name} could not find ${SNAPSHOT_KEYS_SOURCE} two directories above eslint-plugin-local-rules/utils/. Without it the rule cannot tell which keys are Search snapshot keys, so it stops instead of letting them through.`,
@@ -44,7 +48,7 @@ const requireFromRepo = createRequire(path.join(REPO_ROOT, 'package.json'));
 
 let snapshotKeyResolver = null;
 
-/** Loads the key check shared with useOnyx on first use. SnapshotUtils.ts, ONYXKEYS.ts and runtimeDefaults.ts take tens of ms to load, so a lint worker pays it only once it meets an Onyx.get or Onyx.multiGet. */
+/** Loads the key check shared with useOnyx on first use. SnapshotUtils.ts, ONYXKEYS.ts and runtimeDefaults.ts take tens of ms to load, so a lint worker pays it only once it meets an Onyx.get, an Onyx.multiGet or a useOnyxState. */
 function getSnapshotKeyResolver() {
     if (snapshotKeyResolver) {
         return snapshotKeyResolver;
@@ -77,10 +81,14 @@ const DISABLE_GUIDANCE =
     'Live data is correct only when the read replaces a subscription that never went through the useOnyx() redirection, such as a module-level Onyx.connect() used only by handlers. ' +
     'In that case disable this rule on the line with a reason after `--`, for example: `// eslint-disable-next-line rulesdir/no-onyx-get-snapshot-key -- replaces a module-level Onyx.connect used only by handlers, never read a snapshot`.';
 
+const USE_ONYX_STATE_DISABLE_GUIDANCE =
+    'Live data is correct only when no SearchScopeProvider subtree ever renders this hook. ' +
+    'In that case disable this rule on the line with a reason after `--`, for example: `// eslint-disable-next-line rulesdir/no-onyx-get-snapshot-key -- only the report screen renders this hook, never a Search scope`.';
+
 const meta = {
     type: 'problem',
     docs: {
-        description: 'Disallow Onyx.get and Onyx.multiGet on Search snapshot keys and on keys the rule cannot resolve. Disable it only with a reason after `--`.',
+        description: 'Disallow Onyx.get, Onyx.multiGet and useOnyxState dependencies on Search snapshot keys and on keys the rule cannot resolve. Disable it only with a reason after `--`.',
         recommended: 'error',
     },
     schema: [],
@@ -94,6 +102,16 @@ const meta = {
             'Do not read Onyx with `{{keyText}}`, a key this rule cannot resolve. The rule cannot check a key built at runtime, so a Search snapshot key could reach this read without any error.',
             'Write the key as an ONYXKEYS access, such as ONYXKEYS.SESSION, or as a template literal that starts with an ONYXKEYS collection prefix. For Onyx.multiGet(), pass an array literal, or a const bound to one, with every element written that way. If the key cannot be static, keep the useOnyx subscription or take the value as a parameter.',
             DISABLE_GUIDANCE,
+        ].join('\n\n'),
+        noRestrictedOnyxStateKey: [
+            'Do not list {{keyPath}} in the useOnyxState() dependencies. Inside a SearchScopeProvider subtree, src/hooks/useOnyx.ts redirects this key to snapshot_<hash>, but useOnyxState() always reads the live key, so the component shows live data where it showed the snapshot.',
+            'Keep the useOnyx subscription for this key, or take the value as a parameter from the component, which knows whether it is inside a Search scope.',
+            USE_ONYX_STATE_DISABLE_GUIDANCE,
+        ].join('\n\n'),
+        noUnresolvableOnyxStateKey: [
+            'Do not pass `{{keyText}}` to useOnyxState(). The rule cannot resolve it to Onyx keys, so a Search snapshot key could reach the dependencies without any error.',
+            'Pass an object literal as the options, with `dependencies` written inline as an array literal. Write every element as an ONYXKEYS access, such as ONYXKEYS.SESSION, or as a template literal that starts with an ONYXKEYS collection prefix.',
+            USE_ONYX_STATE_DISABLE_GUIDANCE,
         ].join('\n\n'),
     },
 };
@@ -277,6 +295,19 @@ function create(context) {
         return {keyPath};
     }
 
+    /** Every finding is reported on the call, so one directive above a multi-line call covers all of its keys. */
+    function findRestrictedElements(call, elements) {
+        return elements.flatMap((element) => {
+            if (!element || element.type === 'SpreadElement') {
+                return [{node: call, keyPath: null, keyNode: element}];
+            }
+
+            const finding = findRestrictedKey(element);
+
+            return finding ? [{node: call, ...finding}] : [];
+        });
+    }
+
     function findRestrictedKeys(readMethod, call) {
         const keyArgument = call.arguments.at(0);
 
@@ -292,32 +323,90 @@ function create(context) {
             return [{node: call, keyPath: null, keyNode: keyArgument}];
         }
 
-        // Every finding is reported on the call, so one directive above a multi-line call covers all of its keys
-        return elements.flatMap((element) => {
-            if (!element || element.type === 'SpreadElement') {
-                return [{node: call, keyPath: null, keyNode: element}];
-            }
+        return findRestrictedElements(call, elements);
+    }
 
-            const finding = findRestrictedKey(element);
+    /** True for `useOnyxState` imported from react-native-onyx, under any local name, through a namespace import or through a const alias. */
+    function isUseOnyxStateCallee(callee, seen = new Set()) {
+        const current = unwrapTypeOnlyExpressions(callee);
 
-            return finding ? [{node: call, ...finding}] : [];
-        });
+        if (current?.type === 'MemberExpression') {
+            const namespace = unwrapTypeOnlyExpressions(current.object);
+
+            return (
+                getStaticName(current.property, current.computed) === USE_ONYX_STATE_EXPORT_NAME &&
+                namespace?.type === 'Identifier' &&
+                getImportSpecifier(namespace, (source) => source === ONYX_MODULE)?.type === 'ImportNamespaceSpecifier'
+            );
+        }
+
+        if (current?.type !== 'Identifier' || seen.has(current)) {
+            return false;
+        }
+
+        seen.add(current);
+        const specifier = getImportSpecifier(current, (source) => source === ONYX_MODULE);
+
+        if (specifier) {
+            return specifier.type === 'ImportSpecifier' && getStaticName(specifier.imported, false) === USE_ONYX_STATE_EXPORT_NAME;
+        }
+
+        const initializer = getConstInitializer(current, sourceCode);
+
+        return !!initializer && isUseOnyxStateCallee(initializer, seen);
+    }
+
+    /** The elements of the inline `dependencies` array literal, or null. A spread or a computed key in the options could replace the list at runtime. */
+    function getDependencyElements(options) {
+        const current = unwrapTypeOnlyExpressions(options);
+
+        if (current?.type !== 'ObjectExpression' || current.properties.some((property) => property.type !== 'Property' || getStaticName(property.key, property.computed) === null)) {
+            return null;
+        }
+
+        const dependencies = current.properties.filter((property) => getStaticName(property.key, property.computed) === DEPENDENCIES_OPTION_NAME);
+
+        if (dependencies.length !== 1) {
+            return null;
+        }
+
+        const list = unwrapTypeOnlyExpressions(dependencies.at(0).value);
+
+        return list?.type === 'ArrayExpression' ? list.elements : null;
+    }
+
+    function findRestrictedDependencies(call) {
+        const options = call.arguments.at(1);
+        const elements = options?.type === 'SpreadElement' ? null : getDependencyElements(options);
+
+        if (!elements) {
+            return [{node: call, keyPath: null, keyNode: options}];
+        }
+
+        return findRestrictedElements(call, elements);
+    }
+
+    function reportFindings(findings, restrictedMessageId, unresolvableMessageId) {
+        for (const finding of findings) {
+            context.report(
+                finding.keyPath
+                    ? {node: finding.node, messageId: restrictedMessageId, data: {keyPath: `${ONYXKEYS_ROOT}.${finding.keyPath}`}}
+                    : {node: finding.node, messageId: unresolvableMessageId, data: {keyText: finding.keyNode ? sourceCode.getText(finding.keyNode) : 'no key'}},
+            );
+        }
     }
 
     return {
         CallExpression(node) {
             const readMethod = getCalledReadMethod(node.callee);
 
-            if (!readMethod) {
+            if (readMethod) {
+                reportFindings(findRestrictedKeys(readMethod, node), 'noRestrictedOnyxKey', 'noUnresolvableOnyxKey');
                 return;
             }
 
-            for (const finding of findRestrictedKeys(readMethod, node)) {
-                context.report(
-                    finding.keyPath
-                        ? {node: finding.node, messageId: 'noRestrictedOnyxKey', data: {keyPath: `${ONYXKEYS_ROOT}.${finding.keyPath}`}}
-                        : {node: finding.node, messageId: 'noUnresolvableOnyxKey', data: {keyText: finding.keyNode ? sourceCode.getText(finding.keyNode) : 'no key'}},
-                );
+            if (isUseOnyxStateCallee(node.callee)) {
+                reportFindings(findRestrictedDependencies(node), 'noRestrictedOnyxStateKey', 'noUnresolvableOnyxStateKey');
             }
         },
     };

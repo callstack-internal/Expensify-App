@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {describe, test} from 'node:test';
 
-import {API_PROXY_PATHS, isAPIRequest} from '../src/developmentAPIProxy.ts';
+import {API_PROXY_PATHS, DEFAULT_API_PROXY_PORT, getAPIProxyPort, isAPIRequest} from '../src/developmentAPIProxy.ts';
 
 describe('live development API passthrough', () => {
     test('passes through every path Rsbuild proxies to the API', () => {
@@ -23,5 +23,14 @@ describe('live development API passthrough', () => {
             assert.equal(isAPIRequest(`${prefix}x`), false, prefix);
         }
         assert.equal(isAPIRequest('/settings'), false);
+    });
+
+    test('uses API_PROXY_PORT when set, so a session can run its own proxy', () => {
+        // Given one session that sets its own proxy port and one that sets nothing or garbage
+        // When each resolves the proxy port
+        // Then the override wins, and anything else falls back to the shared default
+        assert.equal(getAPIProxyPort({API_PROXY_PORT: '9001'}), 9001);
+        assert.equal(getAPIProxyPort({}), DEFAULT_API_PROXY_PORT);
+        assert.equal(getAPIProxyPort({API_PROXY_PORT: 'not-a-port'}), DEFAULT_API_PROXY_PORT);
     });
 });

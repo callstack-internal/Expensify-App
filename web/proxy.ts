@@ -7,7 +7,7 @@ import https from 'https';
 import proxyConfig from '../config/proxyConfig';
 // The Worker is a separately installed package that the App does not depend on, so it can only be reached by path.
 // eslint-disable-next-line import/no-relative-packages
-import {API_PROXY_PORT} from './cloudflare-worker/src/developmentAPIProxy';
+import {getAPIProxyPort} from './cloudflare-worker/src/developmentAPIProxy';
 
 dotenv.config();
 
@@ -15,15 +15,17 @@ if (process.env.USE_WEB_PROXY === 'false') {
     process.stdout.write('Skipping proxy as USE_WEB_PROXY was set to false.\n');
     process.exit();
 }
-const host = 'www.expensify.com';
+// Follow EXPENSIFY_URL like the app does, so the default API root reaches the backend .env picked instead of always production
+const host = new URL(process.env.EXPENSIFY_URL ?? 'https://www.expensify.com/').hostname;
+const apiProxyPort = getAPIProxyPort(process.env);
 const stagingHost = 'staging.expensify.com';
 const stagingSecureHost = 'staging-secure.expensify.com';
 
 // eslint-disable-next-line no-console
-console.log(`Creating proxy with host: ${host} for production API and ${stagingHost} for staging API`);
+console.log(`Creating proxy with host: ${host} for the default API and ${stagingHost} for staging API`);
 
 /**
- * Local proxy server that hits the production endpoint
+ * Local proxy server that hits the EXPENSIFY_URL backend (production by default)
  * to get around CORS issues. We use this so that it's
  * possible to work on the app within a limited development
  * environment that has no local API.
@@ -90,7 +92,7 @@ const server = http.createServer((request: IncomingMessage, response: ServerResp
     });
 });
 
-server.listen(API_PROXY_PORT, () => {
+server.listen(apiProxyPort, () => {
     /* eslint-disable-next-line no-console */
-    console.log(`Proxy server listening at http://localhost:${API_PROXY_PORT}`);
+    console.log(`Proxy server listening at http://localhost:${apiProxyPort}`);
 });

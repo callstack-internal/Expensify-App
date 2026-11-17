@@ -4,7 +4,7 @@ import concurrently from 'concurrently';
 
 // The Worker is a separately installed package that the App does not depend on, so it can only be reached by path.
 // eslint-disable-next-line import/no-relative-packages
-import {API_PROXY_PORT} from '../web/cloudflare-worker/src/developmentAPIProxy';
+import {getAPIProxyPort} from '../web/cloudflare-worker/src/developmentAPIProxy';
 import checkWebServer from './utils/checkWebServer';
 import getWebCommands from './utils/getWebCommands';
 import {findWebDevPorts, getDevelopmentConnectOrigins, getWebDevFlags, isWebPortAvailable} from './utils/webDevConfig';
@@ -18,9 +18,12 @@ async function startWeb() {
         console.warn('Cloudflare Worker tooling is not installed, so serving Rsbuild directly without the Worker. Run npm install (it skips the Worker when CI is set).');
     }
     const {publicPort, internalPort} = findWebDevPorts(Bun.env, isWorkerEnabled, isWebPortAvailable);
-    const shouldStartProxy = isProxyEnabled && isWebPortAvailable(API_PROXY_PORT, '::');
+    const apiProxyPort = getAPIProxyPort(Bun.env);
+    const shouldStartProxy = isProxyEnabled && isWebPortAvailable(apiProxyPort, '::');
     if (isProxyEnabled && !shouldStartProxy) {
-        console.log(`Reusing the API proxy already on port ${API_PROXY_PORT}, e.g. from another worktree's session. API requests stop working if that session stops.`);
+        console.log(
+            `Reusing the API proxy already on port ${apiProxyPort}, e.g. from another worktree's session. API requests stop working if that session stops. Set API_PROXY_PORT to run this session's own proxy.`,
+        );
     }
     for (const file of ['key.pem', 'certificate.pem']) {
         if (!(await Bun.file(`config/rsbuild/${file}`).exists())) {

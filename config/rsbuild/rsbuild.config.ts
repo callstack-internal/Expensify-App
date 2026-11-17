@@ -12,7 +12,7 @@ import type Environment from './types.ts';
 // The Worker is a separately installed package that the App does not depend on, so it can only be reached by path.
 // @ts-expect-error -- Can't use .ts extensions without allowImportingTsExtensions in tsconfig
 // eslint-disable-next-line import/no-relative-packages
-import {API_PROXY_PATHS, API_PROXY_PORT} from '../../web/cloudflare-worker/src/developmentAPIProxy.ts';
+import {API_PROXY_PATHS, getAPIProxyPort} from '../../web/cloudflare-worker/src/developmentAPIProxy.ts';
 // @ts-expect-error -- Can't use .ts extensions without allowImportingTsExtensions in tsconfig
 // eslint-disable-next-line import/no-relative-packages
 import NONCE_PLACEHOLDER from '../../web/cloudflare-worker/src/noncePlaceholder.ts';
@@ -59,7 +59,7 @@ export default defineConfig(async ({command}) => {
 
     const {isWorkerEnabled, publicPort, port, strictPort, open} = await getDevServerSettings(process.env, () => portfinder.getPortPromise({port: BASE_PORT}));
     // Check if the USE_WEB_PROXY variable has been provided and rewrite any requests to the local proxy server
-    const proxy = process.env.USE_WEB_PROXY === 'false' ? undefined : [{pathFilter: API_PROXY_PATHS, target: `http://[::1]:${API_PROXY_PORT}`}];
+    const proxy = process.env.USE_WEB_PROXY === 'false' ? undefined : [{pathFilter: API_PROXY_PATHS, target: `http://[::1]:${getAPIProxyPort(process.env)}`}];
 
     const commonRspackTool = common.tools?.rspack;
 

@@ -6,6 +6,7 @@ import path from 'path';
 import {
     createOnyxReadTracker,
     getConstInitializer,
+    getDeclaredVariable,
     getKeyListElements,
     getOnyxKeyPath,
     getSingleVariableDefinition,
@@ -17,6 +18,7 @@ import {
     REPO_ROOT,
     resolveVariable,
     SNAPSHOT_KEYS_SOURCE,
+    TYPE_ONLY_EXPRESSIONS,
     unwrapTypeOnlyExpressions,
 } from './utils/onyxReadUtils.js';
 /* eslint-enable import/extensions */
@@ -109,9 +111,13 @@ const meta = {
             USE_ONYX_STATE_DISABLE_GUIDANCE,
         ].join('\n\n'),
         noUnresolvableOnyxStateKey: [
-            'Do not pass `{{keyText}}` to useOnyxState(). The rule cannot resolve it to Onyx keys, so a Search snapshot key could reach the dependencies without any error.',
-            'Pass an object literal as the options, with `dependencies` written inline as an array literal. Write every element as an ONYXKEYS access, such as ONYXKEYS.SESSION, or as a template literal that starts with an ONYXKEYS collection prefix.',
+            'This useOnyxState() call gets {{keyText}}, which this rule cannot resolve to Onyx keys. A Search snapshot key could reach the dependencies without any error.',
+            'Pass an object literal as the options, with `dependencies` written inline as an array literal. Write every element as an ONYXKEYS access, such as ONYXKEYS.SESSION, or as a template literal that starts with an ONYXKEYS collection prefix. Do not wrap useOnyxState() in a hook that forwards its options: the callers of such a wrapper are never checked.',
             USE_ONYX_STATE_DISABLE_GUIDANCE,
+        ].join('\n\n'),
+        noIndirectUseOnyxState: [
+            'Call useOnyxState() directly, or through a const alias. A re-export, a `let` alias, destructuring, `.call()` or passing the hook as a value hides its calls from this rule, so their dependencies are never checked for Search snapshot keys.',
+            'Import useOnyxState from react-native-onyx in the file that calls it.',
         ].join('\n\n'),
     },
 };
@@ -356,8 +362,8 @@ function create(context) {
         return !!initializer && isUseOnyxStateCallee(initializer, seen);
     }
 
-    /** The elements of the inline `dependencies` array literal, or null. A spread or a computed key in the options could replace the list at runtime. */
-    function getDependencyElements(options) {
+    /** The value of the single static `dependencies` property, or null. A spread or a computed key in the options could replace the list at runtime. */
+    function getDependencies(options) {
         const current = unwrapTypeOnlyExpressions(options);
 
         if (current?.type !== 'ObjectExpression' || current.properties.some((property) => property.type !== 'Property' || getStaticName(property.key, property.computed) === null)) {
@@ -366,24 +372,111 @@ function create(context) {
 
         const dependencies = current.properties.filter((property) => getStaticName(property.key, property.computed) === DEPENDENCIES_OPTION_NAME);
 
-        if (dependencies.length !== 1) {
-            return null;
-        }
-
-        const list = unwrapTypeOnlyExpressions(dependencies.at(0).value);
-
-        return list?.type === 'ArrayExpression' ? list.elements : null;
+        return dependencies.length === 1 ? dependencies.at(0).value : null;
     }
 
     function findRestrictedDependencies(call) {
         const options = call.arguments.at(1);
-        const elements = options?.type === 'SpreadElement' ? null : getDependencyElements(options);
 
-        if (!elements) {
-            return [{node: call, keyPath: null, keyNode: options}];
+        if (!options) {
+            return [{node: call, keyPath: null, keyText: 'no options'}];
         }
 
-        return findRestrictedElements(call, elements);
+        const dependencies = options.type === 'SpreadElement' ? null : getDependencies(options);
+
+        if (!dependencies) {
+            return [{node: call, keyPath: null, keyText: 'options it cannot read'}];
+        }
+
+        const list = unwrapTypeOnlyExpressions(dependencies);
+
+        if (list?.type !== 'ArrayExpression') {
+            return [{node: call, keyPath: null, keyText: `\`${sourceCode.getText(dependencies)}\` as its dependencies`}];
+        }
+
+        return findRestrictedElements(call, list.elements).map((finding) =>
+            finding.keyPath ? finding : {...finding, keyText: finding.keyNode ? `\`${sourceCode.getText(finding.keyNode)}\` in its dependencies` : 'an empty slot in its dependencies'},
+        );
+    }
+
+    /** `node` itself, or the outermost TS cast wrapped around it, which is what its parent sees. */
+    function getOuterExpression(node) {
+        let current = node;
+
+        while (current.parent && TYPE_ONLY_EXPRESSIONS.has(current.parent.type)) {
+            current = current.parent;
+        }
+
+        return current;
+    }
+
+    /** The identifiers that read `variable` at runtime. The initializing write and type positions such as `typeof useOnyxState` do not. */
+    function getValueReferences(variable) {
+        // An export specifier is both a type and a value reference under the TypeScript parser, so only a reference that is not a value is skipped
+        return (variable?.references ?? [])
+            .filter((reference) => !reference.init && reference.isValueReference !== false && reference.identifier.parent?.type !== 'TSTypeQuery')
+            .map((reference) => reference.identifier);
+    }
+
+    /** Reports a use of the hook `node` holds, unless it is a direct call or a const alias, whose own uses are then checked the same way. */
+    function checkUseOnyxStateValue(node, seen = new Set()) {
+        const outer = getOuterExpression(node);
+        const parent = outer.parent;
+
+        if (parent?.type === 'CallExpression' && parent.callee === outer) {
+            return;
+        }
+
+        const isConstAlias = parent?.type === 'VariableDeclarator' && parent.init === outer && parent.id.type === 'Identifier' && parent.parent?.kind === 'const';
+
+        if (!isConstAlias) {
+            context.report({node: outer, messageId: 'noIndirectUseOnyxState'});
+            return;
+        }
+
+        const alias = getDeclaredVariable(parent, parent.id.name, sourceCode);
+
+        if (!alias || seen.has(alias)) {
+            return;
+        }
+
+        seen.add(alias);
+
+        for (const identifier of getValueReferences(alias)) {
+            checkUseOnyxStateValue(identifier, seen);
+        }
+    }
+
+    /** Checks `OnyxModule.useOnyxState` reads and `const {useOnyxState} = OnyxModule` on a namespace import. Other uses of the namespace belong to no-unsafe-onyx-read. */
+    function checkNamespaceReferences(variable) {
+        for (const reference of variable?.references ?? []) {
+            const outer = getOuterExpression(reference.identifier);
+            const parent = outer.parent;
+
+            if (parent?.type === 'MemberExpression' && parent.object === outer && getStaticName(parent.property, parent.computed) === USE_ONYX_STATE_EXPORT_NAME) {
+                checkUseOnyxStateValue(parent);
+                continue;
+            }
+
+            const isHookDestructured =
+                parent?.type === 'VariableDeclarator' &&
+                parent.init === outer &&
+                parent.id.type === 'ObjectPattern' &&
+                parent.id.properties.some((property) => {
+                    if (property.type !== 'Property') {
+                        return true;
+                    }
+
+                    // A computed key could name the hook at runtime
+                    const keyName = getStaticName(property.key, property.computed);
+
+                    return keyName === null || keyName === USE_ONYX_STATE_EXPORT_NAME;
+                });
+
+            if (isHookDestructured) {
+                context.report({node: parent, messageId: 'noIndirectUseOnyxState'});
+            }
+        }
     }
 
     function reportFindings(findings, restrictedMessageId, unresolvableMessageId) {
@@ -391,12 +484,43 @@ function create(context) {
             context.report(
                 finding.keyPath
                     ? {node: finding.node, messageId: restrictedMessageId, data: {keyPath: `${ONYXKEYS_ROOT}.${finding.keyPath}`}}
-                    : {node: finding.node, messageId: unresolvableMessageId, data: {keyText: finding.keyNode ? sourceCode.getText(finding.keyNode) : 'no key'}},
+                    : {node: finding.node, messageId: unresolvableMessageId, data: {keyText: finding.keyText ?? (finding.keyNode ? sourceCode.getText(finding.keyNode) : 'no key')}},
             );
         }
     }
 
     return {
+        ImportDeclaration(node) {
+            if (node.source.value !== ONYX_MODULE) {
+                return;
+            }
+
+            for (const specifier of node.specifiers) {
+                const variable = getDeclaredVariable(specifier, specifier.local.name, sourceCode);
+
+                if (specifier.type === 'ImportNamespaceSpecifier') {
+                    checkNamespaceReferences(variable);
+                } else if (specifier.type === 'ImportSpecifier' && getStaticName(specifier.imported, false) === USE_ONYX_STATE_EXPORT_NAME) {
+                    for (const identifier of getValueReferences(variable)) {
+                        checkUseOnyxStateValue(identifier);
+                    }
+                }
+            }
+        },
+        ExportNamedDeclaration(node) {
+            if (node.source?.value !== ONYX_MODULE || !node.specifiers.some((specifier) => getStaticName(specifier.local, false) === USE_ONYX_STATE_EXPORT_NAME)) {
+                return;
+            }
+
+            context.report({node, messageId: 'noIndirectUseOnyxState'});
+        },
+        ExportAllDeclaration(node) {
+            if (node.source.value !== ONYX_MODULE) {
+                return;
+            }
+
+            context.report({node, messageId: 'noIndirectUseOnyxState'});
+        },
         CallExpression(node) {
             const readMethod = getCalledReadMethod(node.callee);
 

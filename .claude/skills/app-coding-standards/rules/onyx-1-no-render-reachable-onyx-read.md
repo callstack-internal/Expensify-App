@@ -168,7 +168,7 @@ return <Text>Current theme: {theme}</Text>;
 
 #### E. Reason
 
-- E1. The diff adds or edits an `eslint-disable` of `no-onyx-get-snapshot-key`. The text after `--` must say why that key never went through the `useOnyx` snapshot redirection: it replaces a module-level `Onyx.connect()` used only by handlers, or the value is never read inside a Search scope. On a `useOnyxState` call, the reason must say that no Search scope ever renders the hook. Flag a reason that restates the rule, says live data is wanted without saying why the snapshot was never involved, or names a different key than the one read. Comment on the directive.
+- E1. The diff adds or edits an `eslint-disable` of `no-onyx-get-snapshot-key`. The text after `--` must say why that key never went through the `useOnyx` snapshot redirection: it replaces a module-level `Onyx.connect()` used only by handlers, or the value is never read inside a Search scope. On a `useOnyxState` call, the reason must say that no Search scope ever renders the hook. Flag a disable that covers options or dependencies coming from a parameter, since that makes a wrapper whose callers are never checked. Flag a reason that restates the rule, says live data is wanted without saying why the snapshot was never involved, or names a different key than the one read. Comment on the directive.
 
 **DO NOT flag if:**
 

@@ -554,3 +554,112 @@ describe('no-onyx-get-snapshot-key useOnyxState dependencies', () => {
         ],
     });
 });
+
+const INDIRECT_STATE_ERRORS = [{messageId: 'noIndirectUseOnyxState'}];
+
+const ONYX_NAMESPACE_IMPORT = "import * as OnyxModule from 'react-native-onyx';";
+
+describe('no-onyx-get-snapshot-key useOnyxState options and indirect uses', () => {
+    ruleTester.run(ruleModule.name, ruleModule, {
+        valid: [
+            // The Concierge chat always wants the live report, so its key needs no disable here either
+            `${USE_ONYX_IMPORT} ${USE_ONYX_STATE_IMPORT} function useConcierge() { const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID); return useOnyxState((state) => state, {dependencies: [\`\${ONYXKEYS.COLLECTION.REPORT}\${conciergeReportID}\`]}); }`,
+
+            // Other static options next to the dependencies do not change them
+            `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.CARD_LIST], selectorEquality: (a, b) => a === b}); }`,
+
+            // Destructuring another export off the namespace import leaves the hook out
+            `${ONYX_NAMESPACE_IMPORT} const {useOnyx: useOnyxValue} = OnyxModule; function useCards() { return useOnyxValue(ONYXKEYS.CARD_LIST); }`,
+        ],
+        invalid: [
+            // The message names what the rule could not read instead of dumping the options
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: 'no options'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(options) { return useOnyxState((state) => state, options); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: 'options it cannot read'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} const DEPENDENCIES = [ONYXKEYS.CARD_LIST]; function useCards() { return useOnyxState((state) => state, {dependencies: DEPENDENCIES}); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: '`DEPENDENCIES` as its dependencies'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(key) { return useOnyxState((state) => state, {dependencies: [ONYXKEYS.CARD_LIST, key]}); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: '`key` in its dependencies'}}],
+            },
+
+            // Each of these hides the call, or the calls of a re-export, from the dependency check
+            {
+                code: `${USE_ONYX_STATE_IMPORT} let useDerived = useOnyxState; function useReports() { return useDerived((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState.call(null, (state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return (0, useOnyxState)((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${ONYX_NAMESPACE_IMPORT} const {useOnyxState: useDerived} = OnyxModule; function useReports() { return useDerived((state) => state, {dependencies: [ONYXKEYS.COLLECTION.REPORT]}); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${ONYX_NAMESPACE_IMPORT} export default OnyxModule.useOnyxState;`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {code: `${USE_ONYX_STATE_IMPORT} export {useOnyxState};`, errors: INDIRECT_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} export default useOnyxState;`, errors: INDIRECT_STATE_ERRORS},
+            {code: "export {useOnyxState} from 'react-native-onyx';", errors: INDIRECT_STATE_ERRORS},
+            {code: "export * from 'react-native-onyx';", errors: INDIRECT_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} const hooks = [useOnyxState];`, errors: INDIRECT_STATE_ERRORS},
+        ],
+    });
+
+    tsRuleTester.run(ruleModule.name, ruleModule, {
+        // A type query does not use the hook at runtime
+        valid: [`${USE_ONYX_STATE_IMPORT} type Hook = typeof useOnyxState;`],
+        invalid: [
+            {code: `${USE_ONYX_STATE_IMPORT} const useDerived = useOnyxState as unknown as Hook; export {useDerived};`, errors: INDIRECT_STATE_ERRORS},
+            // An export specifier is both a type and a value reference under this parser
+            {code: `${USE_ONYX_STATE_IMPORT} export {useOnyxState};`, errors: INDIRECT_STATE_ERRORS},
+        ],
+    });
+});
+
+describe('no-onyx-get-snapshot-key on a multi-line useOnyxState', () => {
+    const multiLineCall = [
+        USE_ONYX_STATE_IMPORT,
+        'function useAncestors() {',
+        '    return useOnyxState((state) => state, {',
+        '        dependencies: [',
+        '            ONYXKEYS.COLLECTION.REPORT,',
+        '            ONYXKEYS.COLLECTION.REPORT_ACTIONS,',
+        '        ],',
+        '    });',
+        '}',
+    ];
+
+    it('should be covered by one reasoned directive above the call', () => {
+        // Given a multi-line call with two snapshot dependencies and one reasoned disable above it
+        const code = [
+            ...multiLineCall.slice(0, 2),
+            '    // eslint-disable-next-line localRules/no-onyx-get-snapshot-key -- only the report screen renders this hook, never a Search scope',
+            ...multiLineCall.slice(2),
+        ].join('\n');
+
+        // When the key rule lints it with unused directives reported
+        const messages = new Linter().verify(code, {
+            plugins: {localRules: {rules: {[ruleModule.name]: ruleModule}}},
+            languageOptions: {ecmaVersion: 2022, sourceType: 'module'},
+            linterOptions: {reportUnusedDisableDirectives: 'error'},
+            rules: {[`localRules/${ruleModule.name}`]: 'error'},
+        });
+
+        // Then nothing is reported, because both findings sit on the call line that the one directive covers
+        expect(messages).toEqual([]);
+    });
+});

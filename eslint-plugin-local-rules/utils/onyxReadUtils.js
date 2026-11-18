@@ -58,6 +58,17 @@ function unwrapTypeOnlyExpressions(node) {
     return current;
 }
 
+/** `node` itself, or the outermost TS cast wrapped around it, which is what its parent sees. */
+function getOuterExpression(node) {
+    let current = node;
+
+    while (current.parent && TYPE_ONLY_EXPRESSIONS.has(current.parent.type)) {
+        current = current.parent;
+    }
+
+    return current;
+}
+
 /** The key expression with casts removed. A template literal that starts with an expression, such as `${ONYXKEYS.COLLECTION.REPORT}${reportID}`, resolves to that leading expression, the collection prefix. */
 function unwrapKeyExpression(node) {
     const current = unwrapTypeOnlyExpressions(node);
@@ -215,12 +226,7 @@ function isOnlyPassedTo(identifier, sourceCode, isAllowedCall) {
             return true;
         }
 
-        let argument = reference.identifier;
-
-        while (argument.parent && TYPE_ONLY_EXPRESSIONS.has(argument.parent.type)) {
-            argument = argument.parent;
-        }
-
+        const argument = getOuterExpression(reference.identifier);
         const call = argument.parent;
 
         return call?.type === 'CallExpression' && call.arguments.includes(argument) && isAllowedCall(call);
@@ -392,6 +398,7 @@ export {
     TYPE_ONLY_EXPRESSIONS,
     getStaticName,
     unwrapTypeOnlyExpressions,
+    getOuterExpression,
     resolveVariable,
     getDeclaredVariable,
     getSingleVariableDefinition,

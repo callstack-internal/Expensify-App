@@ -471,3 +471,244 @@ describe('no-onyx-get-snapshot-key next to no-unsafe-onyx-read', () => {
         expect(messages.map((message) => message.messageId)).toEqual(['noOnyxReadInRender']);
     });
 });
+
+const USE_ONYX_STATE_IMPORT = "import {useOnyxState} from 'react-native-onyx';";
+
+const RESTRICTED_STATE_ERRORS = [{messageId: 'noRestrictedOnyxStateKey'}];
+
+const UNRESOLVABLE_STATE_ERRORS = [{messageId: 'noUnresolvableOnyxStateKey'}];
+
+describe('no-onyx-get-snapshot-key useOnyxState selector reads', () => {
+    ruleTester.run(ruleModule.name, ruleModule, {
+        valid: [
+            // Keys outside the Search snapshot collections always read live data, which is what useOnyxState returns
+            `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => [state[ONYXKEYS.CARD_LIST], state[ONYXKEYS.COLLECTION.WORKSPACE_CARDS_LIST]]); }`,
+            `${USE_ONYX_STATE_IMPORT} function useCategories(policyID) { return useOnyxState((state) => state[\`\${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}\${policyID}\`]); }`,
+
+            // A selector that takes no state view reads no key
+            `${USE_ONYX_STATE_IMPORT} function useNothing() { return useOnyxState(() => 1); }`,
+
+            // A selector written as a const or a function declaration in the same file is followed
+            `${USE_ONYX_STATE_IMPORT} const selectCards = (state) => state[ONYXKEYS.CARD_LIST]; function useCards() { return useOnyxState(selectCards); }`,
+            `${USE_ONYX_STATE_IMPORT} function selectCards(state) { return state[ONYXKEYS.CARD_LIST]; } function useCards() { return useOnyxState(selectCards); }`,
+
+            // A nested callback may read the state view too
+            `${USE_ONYX_STATE_IMPORT} function useCategories(policyIDs) { return useOnyxState((state) => policyIDs.map((policyID) => state[\`\${ONYXKEYS.COLLECTION.POLICY_CATEGORIES}\${policyID}\`])); }`,
+
+            // previousState holds only keys the selector already read from the state view
+            `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state, previousState) => compare(state[ONYXKEYS.CARD_LIST], previousState)); }`,
+
+            // The options carry no keys
+            `${USE_ONYX_STATE_IMPORT} function useCards(options) { return useOnyxState((state) => state[ONYXKEYS.CARD_LIST], options); }`,
+
+            // A same-named function that is not the Onyx export is not tracked
+            'function useOnyxState() {} function useReports() { return useOnyxState((state) => state[ONYXKEYS.COLLECTION.REPORT]); }',
+            "import {useOnyxState} from './myHooks'; function useReports() { return useOnyxState((state) => state[ONYXKEYS.COLLECTION.REPORT]); }",
+
+            // The Concierge chat always wants the live report, so its key needs no disable here either
+            `${USE_ONYX_IMPORT} ${USE_ONYX_STATE_IMPORT} function useConcierge() { const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID); return useOnyxState((state) => state[\`\${ONYXKEYS.COLLECTION.REPORT}\${conciergeReportID}\`]); }`,
+        ],
+        invalid: [
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState((state) => state[ONYXKEYS.COLLECTION.REPORT]); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReport(reportID) { return useOnyxState((state) => state[\`\${ONYXKEYS.COLLECTION.REPORT}\${reportID}\`]); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            // Each snapshot key read is reported, and live keys next to them are not
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useAncestors() { return useOnyxState((state) => [state[ONYXKEYS.COLLECTION.REPORT], state[ONYXKEYS.COLLECTION.REPORT_DRAFT], state[ONYXKEYS.COLLECTION.REPORT_ACTIONS]]); }`,
+                errors: [{messageId: 'noRestrictedOnyxStateKey'}, {messageId: 'noRestrictedOnyxStateKey'}],
+            },
+            // A lookup chain is checked at every step
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useParent(reportID) { return useOnyxState((state) => { const report = state[\`\${ONYXKEYS.COLLECTION.REPORT}\${reportID}\`]; return state[\`\${ONYXKEYS.COLLECTION.REPORT_ACTIONS}\${report?.parentReportID}\`]; }); }`,
+                errors: [{messageId: 'noRestrictedOnyxStateKey'}, {messageId: 'noRestrictedOnyxStateKey'}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports(reportIDs) { return useOnyxState((state) => reportIDs.map((reportID) => state[\`\${ONYXKEYS.COLLECTION.REPORT}\${reportID}\`])); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} const selectNames = (state) => state[ONYXKEYS.PERSONAL_DETAILS_LIST]; function useNames() { return useOnyxState(selectNames); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+
+            // The hook is tracked under a renamed import, a namespace import and a const alias
+            {
+                code: "import {useOnyxState as useDerived} from 'react-native-onyx'; function useNames() { return useDerived((state) => state[ONYXKEYS.PERSONAL_DETAILS_LIST]); }",
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: "import * as OnyxModule from 'react-native-onyx'; function useNames() { return OnyxModule.useOnyxState((state) => state[ONYXKEYS.PERSONAL_DETAILS_LIST]); }",
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} const useDerived = useOnyxState; function useNames() { return useDerived((state) => state[ONYXKEYS.PERSONAL_DETAILS_LIST]); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+
+            // The message names what the rule could not follow
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState(); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: 'no selector'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(selector) { return useOnyxState(selector); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: '`selector` as its selector, which is not a function written in this file'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards(key) { return useOnyxState((state) => state[key]); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: '`state[key]` in its selector, a read of a key this rule cannot resolve'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => getCards(state)); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: 'a selector that uses `state` for something other than `state[key]`'}}],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState(({[ONYXKEYS.CARD_LIST]: cardList}) => cardList); }`,
+                errors: [
+                    {messageId: 'noUnresolvableOnyxStateKey', data: {keyText: '`{[ONYXKEYS.CARD_LIST]: cardList}` as the state parameter of its selector, which is not a plain identifier'}},
+                ],
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState(function () { return arguments[0][ONYXKEYS.CARD_LIST]; }); }`,
+                errors: [{messageId: 'noUnresolvableOnyxStateKey', data: {keyText: 'a selector that uses `arguments`'}}],
+            },
+
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState(function selectCards() { return arguments[0][ONYXKEYS.CARD_LIST]; }); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+
+            // A function expression named like its state parameter still has its reads checked
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState(function state(state) { return state[ONYXKEYS.COLLECTION.REPORT]; }); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+
+            // Any use of the state view other than a key read could reach any key
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => { const view = state; return view[ONYXKEYS.COLLECTION.REPORT]; }); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => ONYXKEYS.CARD_LIST in state); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state) => state.cardList); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((...views) => views[0][ONYXKEYS.CARD_LIST]); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} function useCards(...hookArguments) { return useOnyxState(...hookArguments); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+
+            // A selector the rule cannot pin to one function could be any function
+            {code: `import selectCards from './selectCards'; ${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState(selectCards); }`, errors: UNRESOLVABLE_STATE_ERRORS},
+            {
+                code: `${USE_ONYX_STATE_IMPORT} let selectCards = (state) => state[ONYXKEYS.CARD_LIST]; function useCards() { return useOnyxState(selectCards); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function selectCards(state) { return state[ONYXKEYS.CARD_LIST]; } selectCards = other; function useCards() { return useOnyxState(selectCards); }`,
+                errors: UNRESOLVABLE_STATE_ERRORS,
+            },
+        ],
+    });
+
+    tsRuleTester.run(ruleModule.name, ruleModule, {
+        valid: [`${USE_ONYX_STATE_IMPORT} function useCards() { return useOnyxState((state: OnyxStateView) => (state as View)[ONYXKEYS.CARD_LIST] as CardList); }`],
+        invalid: [
+            // A \`this\` parameter is a type annotation, so the state view is the parameter after it
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState(function (this: void, state: OnyxStateView) { return state[ONYXKEYS.COLLECTION.REPORT]; }); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState(((state: OnyxStateView) => (state as View)[ONYXKEYS.COLLECTION.REPORT]) satisfies Selector); }`,
+                errors: RESTRICTED_STATE_ERRORS,
+            },
+        ],
+    });
+});
+
+const INDIRECT_STATE_ERRORS = [{messageId: 'noIndirectUseOnyxState'}];
+
+const ONYX_NAMESPACE_IMPORT = "import * as OnyxModule from 'react-native-onyx';";
+
+describe('no-onyx-get-snapshot-key indirect useOnyxState uses', () => {
+    ruleTester.run(ruleModule.name, ruleModule, {
+        valid: [
+            // Destructuring another export off the namespace import leaves the hook out
+            `${ONYX_NAMESPACE_IMPORT} const {useOnyx: useOnyxValue} = OnyxModule; function useCards() { return useOnyxValue(ONYXKEYS.CARD_LIST); }`,
+        ],
+        invalid: [
+            // Each of these hides the call, or the calls of a re-export, from the selector check
+            {
+                code: `${USE_ONYX_STATE_IMPORT} let useDerived = useOnyxState; function useReports() { return useDerived((state) => state[ONYXKEYS.COLLECTION.REPORT]); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return useOnyxState.call(null, (state) => state[ONYXKEYS.COLLECTION.REPORT]); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${USE_ONYX_STATE_IMPORT} function useReports() { return (0, useOnyxState)((state) => state[ONYXKEYS.COLLECTION.REPORT]); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${ONYX_NAMESPACE_IMPORT} const {useOnyxState: useDerived} = OnyxModule; function useReports() { return useDerived((state) => state[ONYXKEYS.COLLECTION.REPORT]); }`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {
+                code: `${ONYX_NAMESPACE_IMPORT} export default OnyxModule.useOnyxState;`,
+                errors: INDIRECT_STATE_ERRORS,
+            },
+            {code: `${USE_ONYX_STATE_IMPORT} export {useOnyxState};`, errors: INDIRECT_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} export default useOnyxState;`, errors: INDIRECT_STATE_ERRORS},
+            {code: "export {useOnyxState} from 'react-native-onyx';", errors: INDIRECT_STATE_ERRORS},
+            {code: "export * from 'react-native-onyx';", errors: INDIRECT_STATE_ERRORS},
+            {code: `${USE_ONYX_STATE_IMPORT} const hooks = [useOnyxState];`, errors: INDIRECT_STATE_ERRORS},
+        ],
+    });
+
+    tsRuleTester.run(ruleModule.name, ruleModule, {
+        // A type query does not use the hook at runtime
+        valid: [`${USE_ONYX_STATE_IMPORT} type Hook = typeof useOnyxState;`],
+        invalid: [
+            {code: `${USE_ONYX_STATE_IMPORT} const useDerived = useOnyxState as unknown as Hook; export {useDerived};`, errors: INDIRECT_STATE_ERRORS},
+            // An export specifier is both a type and a value reference under this parser
+            {code: `${USE_ONYX_STATE_IMPORT} export {useOnyxState};`, errors: INDIRECT_STATE_ERRORS},
+        ],
+    });
+});
+
+describe('no-onyx-get-snapshot-key on a multi-line useOnyxState', () => {
+    const multiLineCall = [
+        USE_ONYX_STATE_IMPORT,
+        'function useAncestors() {',
+        '    return useOnyxState((state) => {',
+        '        const reports = state[ONYXKEYS.COLLECTION.REPORT];',
+        '        const reportActions = state[ONYXKEYS.COLLECTION.REPORT_ACTIONS];',
+        '        return [reports, reportActions];',
+        '    });',
+        '}',
+    ];
+
+    it('should be covered by one reasoned directive above the call', () => {
+        // Given a multi-line call whose selector reads two snapshot keys, with one reasoned disable above it
+        const code = [
+            ...multiLineCall.slice(0, 2),
+            '    // eslint-disable-next-line localRules/no-onyx-get-snapshot-key -- only the report screen renders this hook, never a Search scope',
+            ...multiLineCall.slice(2),
+        ].join('\n');
+
+        // When the key rule lints it with unused directives reported
+        const messages = new Linter().verify(code, {
+            plugins: {localRules: {rules: {[ruleModule.name]: ruleModule}}},
+            languageOptions: {ecmaVersion: 2022, sourceType: 'module'},
+            linterOptions: {reportUnusedDisableDirectives: 'error'},
+            rules: {[`localRules/${ruleModule.name}`]: 'error'},
+        });
+
+        // Then nothing is reported, because both findings sit on the call line that the one directive covers
+        expect(messages).toEqual([]);
+    });
+});

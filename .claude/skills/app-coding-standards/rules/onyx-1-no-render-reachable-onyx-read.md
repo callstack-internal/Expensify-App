@@ -19,7 +19,7 @@ Do not re-check these:
 | A read in a module-level function, object or class in `src/components`, `src/pages` or `src/hooks`, outside a component or hook body | `no-unsafe-onyx-read` |
 | A reference to `Onyx.get` or `Onyx.multiGet` that is not a direct call (`.call`, `.bind`, `keys.map(Onyx.get)`, `const read = Onyx.get`, `const {get} = Onyx`) | `no-unsafe-onyx-read` |
 | The `Onyx` object used as a value instead of through a member, such as `{...Onyx}` or `const api = Onyx` | `no-unsafe-onyx-read` |
-| A Search snapshot key, or a key lint can't resolve, including any `multiGet` element | `no-onyx-get-snapshot-key` |
+| A Search snapshot key, or a key lint can't resolve, including any `multiGet` element and any `useOnyxState` selector read | `no-onyx-get-snapshot-key` |
 | A runtime import of `react-native-onyx/dist/OnyxUtils` | `no-restricted-imports` |
 | An inline `eslint-disable` that covers `no-unsafe-onyx-read`, named or blanket, or one over a runtime OnyxUtils import, in any linted file outside `tests/` | `scripts/checkOnyxLintBypass.ts` |
 | An `eslint-disable` of `no-onyx-get-snapshot-key` with a reason under 12 letters or digits after `--` or in block form, in any linted file outside `tests/` | `scripts/checkOnyxLintDisableReason.ts` |
@@ -168,7 +168,7 @@ return <Text>Current theme: {theme}</Text>;
 
 #### E. Reason
 
-- E1. The diff adds or edits an `eslint-disable` of `no-onyx-get-snapshot-key`. The text after `--` must say why that key never went through the `useOnyx` snapshot redirection: it replaces a module-level `Onyx.connect()` used only by handlers, or the value is never read inside a Search scope. Flag a reason that restates the rule, says live data is wanted without saying why the snapshot was never involved, or names a different key than the one read. Comment on the directive.
+- E1. The diff adds or edits an `eslint-disable` of `no-onyx-get-snapshot-key`. The text after `--` must say why that key never went through the `useOnyx` snapshot redirection: it replaces a module-level `Onyx.connect()` used only by handlers, or the value is never read inside a Search scope. On a `useOnyxState` call, the reason must say that no Search scope ever renders the hook. Flag a disable that covers a selector coming from a parameter, since that makes a wrapper whose callers are never checked. Flag a reason that restates the rule, says live data is wanted without saying why the snapshot was never involved, or names a different key than the one read. Comment on the directive.
 
 **DO NOT flag if:**
 

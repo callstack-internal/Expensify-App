@@ -43,6 +43,11 @@ const restrictedImportPaths = [
             'OnyxUtils is not a sanctioned way to read Onyx data. Use useOnyx() from @hooks/useOnyx in render paths, or a short-lived Onyx connection without a view for non-render logic. Type-only imports are still allowed.',
         allowTypeImports: true,
     },
+    {
+        name: 'react-native-onyx/dist/useOnyxState',
+        message: "Import useOnyxState from 'react-native-onyx'. no-onyx-get-snapshot-key checks the selectors of calls through that import only. Type-only imports are still allowed.",
+        allowTypeImports: true,
+    },
     {name: 'awesome-phonenumber', importNames: ['parsePhoneNumber'], message: "Please use '@libs/PhoneNumber' instead."},
     {
         name: 'react-native-safe-area-context',

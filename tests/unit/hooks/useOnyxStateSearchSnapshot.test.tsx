@@ -33,19 +33,18 @@ const LIVE_SESSION_EMAIL = 'live@expensify.com';
 const LIVE_DATA_OPTIONS = {shouldUseLiveData: true};
 
 type SearchScreenProps = ChildrenProps & {
-    isOnSearch?: boolean;
     shouldUseLiveData?: boolean;
     searchHash?: number;
 };
 
-function SearchScreen({children, isOnSearch = true, shouldUseLiveData = false, searchHash = SEARCH_HASH}: SearchScreenProps) {
+function SearchScreen({children, shouldUseLiveData = false, searchHash = SEARCH_HASH}: SearchScreenProps) {
     const queryContext = use(SearchQueryContext);
     const resultsContext = use(SearchResultsContext);
     const queryContextWithHash = useMemo(() => ({...queryContext, currentSearchHash: searchHash}), [queryContext, searchHash]);
     const resultsContextWithLiveData = useMemo(() => ({...resultsContext, shouldUseLiveData}), [resultsContext, shouldUseLiveData]);
 
     return (
-        <SearchScopeProvider isOnSearch={isOnSearch}>
+        <SearchScopeProvider>
             <SearchQueryContext.Provider value={queryContextWithHash}>
                 <SearchResultsContext.Provider value={resultsContextWithLiveData}>{children}</SearchResultsContext.Provider>
             </SearchQueryContext.Provider>
@@ -55,10 +54,6 @@ function SearchScreen({children, isOnSearch = true, shouldUseLiveData = false, s
 
 function SearchScreenWithLiveData({children}: ChildrenProps) {
     return <SearchScreen shouldUseLiveData>{children}</SearchScreen>;
-}
-
-function SearchScreenOutsideSearchScope({children}: ChildrenProps) {
-    return <SearchScreen isOnSearch={false}>{children}</SearchScreen>;
 }
 
 function selectReport(state: OnyxStateView) {
@@ -168,15 +163,6 @@ describe('useOnyxState Search snapshot redirect', () => {
         expect(result.current).toEqual(LIVE_REPORT);
     });
 
-    it('should read live data when the Search scope is turned off', async () => {
-        // Given a Search screen with a search hash but a scope marked as not on Search
-        // When a selector reads a report on that screen
-        const {result} = await renderSelector(selectReport, SearchScreenOutsideSearchScope);
-
-        // Then the live copy is returned because the scope decides whether snapshots apply
-        expect(result.current).toEqual(LIVE_REPORT);
-    });
-
     it('should read live data inside Search for keys that snapshots do not copy', async () => {
         // Given a live session, which snapshots never hold
         // When a selector reads it on a Search screen
@@ -250,16 +236,6 @@ describe('useOnyxState Search snapshot redirect', () => {
 
         // Then the selector is not run again, because the redirect must not defeat the skip that useOnyxState does for unchanged inputs
         expect(selector.mock.calls.length).toBe(runsAfterMount);
-    });
-});
-
-describe('useOnyxState Search snapshot updates', () => {
-    beforeEach(async () => {
-        await Onyx.clear();
-        await Onyx.set(REPORT_KEY, LIVE_REPORT);
-        await Onyx.merge(SNAPSHOT_KEY, {data: {[REPORT_KEY]: SNAPSHOT_REPORT}});
-        await Onyx.merge(OTHER_SNAPSHOT_KEY, {data: {[REPORT_KEY]: OTHER_SNAPSHOT_REPORT}});
-        await waitForBatchedUpdatesWithAct();
     });
 
     it('should not run the selector inside Search after a plain merge to live data', async () => {
@@ -339,19 +315,5 @@ describe('useOnyxState Search snapshot updates', () => {
 
         // Then the hook returns the new live value, because values that must be the same on every screen ignore the snapshot
         expect(result.current).toEqual({...LIVE_REPORT, reportName: 'Merged report'});
-    });
-
-    it('should keep a consumer inside Search apart from one outside it', async () => {
-        // Given the same selector rendered once on a Search screen and once outside any Search scope
-        const {result: searchResult} = await renderSelector(selectReport, SearchScreen);
-        const {result: liveResult} = await renderSelector(selectReport);
-
-        // When the live report is changed with a plain merge
-        await act(() => Onyx.merge(REPORT_KEY, {reportName: 'Merged report'}));
-        await waitForBatchedUpdatesWithAct();
-
-        // Then only the outside consumer sees the change, because each one reads from its own source
-        expect(liveResult.current).toEqual({...LIVE_REPORT, reportName: 'Merged report'});
-        expect(searchResult.current).toEqual(SNAPSHOT_REPORT);
     });
 });

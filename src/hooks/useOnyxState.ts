@@ -1,7 +1,3 @@
-/**
- * `useOnyxState` with Search snapshot support. Inside a Search scope the selector reads the keys in
- * `CONST.SEARCH.SNAPSHOT_ONYX_KEYS` from the current Search snapshot, the same way `@hooks/useOnyx` does.
- */
 import {SearchQueryContext, SearchResultsContext} from '@components/Search/SearchContext';
 import {useIsOnSearch} from '@components/Search/SearchScopeProvider';
 
@@ -23,10 +19,6 @@ type SnapshotKey = `${typeof ONYXKEYS.COLLECTION.SNAPSHOT}${string}`;
 
 const collectionsBySnapshotData = new WeakMap<NonNullable<SearchResults['data']>, Map<OnyxKey, unknown>>();
 
-/**
- * Reads a key out of a Search snapshot. A collection root returns the same object for as long as the snapshot's `data` stays
- * the same, because selectors compare their inputs by reference and a collection rebuilt on every read would always look changed.
- */
 function getSnapshotKeyData(snapshot: SearchResults | undefined, key: OnyxKey): unknown {
     const data = snapshot?.data;
     if (!snapshot || !data) {
@@ -47,10 +39,6 @@ function getSnapshotKeyData(snapshot: SearchResults | undefined, key: OnyxKey): 
     return collections.get(key);
 }
 
-/**
- * Wraps a state view so that snapshot keys are answered from the Search snapshot. The read of the snapshot goes through
- * `state`, so `useOnyxState` subscribes to the snapshot instead of the live key.
- */
 function createSnapshotStateView(state: OnyxStateView, snapshotKey: SnapshotKey): OnyxStateView {
     const read = (key: string | symbol): unknown => {
         if (typeof key !== 'string') {
@@ -91,10 +79,6 @@ function useSearchSnapshotKey(shouldUseLiveData: boolean): SnapshotKey | undefin
 }
 
 type UseOnyxStateWithSnapshotsOptions<T> = UseOnyxStateOptions<T> & {
-    /**
-     * Reads every key live, also inside Search. For values that must be the same on every screen, such as the ones that
-     * used to be Onyx derived values, which were always computed from live data.
-     */
     shouldUseLiveData?: boolean;
 };
 
@@ -110,4 +94,3 @@ function useOnyxState<T>(selector: UseOnyxStateSelector<T>, options?: UseOnyxSta
 }
 
 export default useOnyxState;
-export type {UseOnyxStateWithSnapshotsOptions};

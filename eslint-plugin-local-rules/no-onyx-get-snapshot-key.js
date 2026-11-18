@@ -9,6 +9,7 @@ import {
     getDeclaredVariable,
     getKeyListElements,
     getOnyxKeyPath,
+    getOuterExpression,
     getSingleVariableDefinition,
     getStaticName,
     MULTI_READ_METHOD,
@@ -18,7 +19,6 @@ import {
     REPO_ROOT,
     resolveVariable,
     SNAPSHOT_KEYS_SOURCE,
-    TYPE_ONLY_EXPRESSIONS,
     unwrapTypeOnlyExpressions,
 } from './utils/onyxReadUtils.js';
 /* eslint-enable import/extensions */
@@ -327,47 +327,6 @@ function create(context) {
         });
     }
 
-    /** True for `useOnyxState` imported from react-native-onyx, under any local name, through a namespace import or through a const alias. */
-    function isUseOnyxStateCallee(callee, seen = new Set()) {
-        const current = unwrapTypeOnlyExpressions(callee);
-
-        if (current?.type === 'MemberExpression') {
-            const namespace = unwrapTypeOnlyExpressions(current.object);
-
-            return (
-                getStaticName(current.property, current.computed) === USE_ONYX_STATE_EXPORT_NAME &&
-                namespace?.type === 'Identifier' &&
-                getImportSpecifier(namespace, (source) => source === ONYX_MODULE)?.type === 'ImportNamespaceSpecifier'
-            );
-        }
-
-        if (current?.type !== 'Identifier' || seen.has(current)) {
-            return false;
-        }
-
-        seen.add(current);
-        const specifier = getImportSpecifier(current, (source) => source === ONYX_MODULE);
-
-        if (specifier) {
-            return specifier.type === 'ImportSpecifier' && getStaticName(specifier.imported, false) === USE_ONYX_STATE_EXPORT_NAME;
-        }
-
-        const initializer = getConstInitializer(current, sourceCode);
-
-        return !!initializer && isUseOnyxStateCallee(initializer, seen);
-    }
-
-    /** `node` itself, or the outermost TS cast wrapped around it, which is what its parent sees. */
-    function getOuterExpression(node) {
-        let current = node;
-
-        while (current.parent && TYPE_ONLY_EXPRESSIONS.has(current.parent.type)) {
-            current = current.parent;
-        }
-
-        return current;
-    }
-
     /** The function `node` is, written inline or through a const or a function declaration in this file, or null. */
     function getSelectorFunction(node, seen = new Set()) {
         const current = unwrapTypeOnlyExpressions(node);
@@ -395,23 +354,24 @@ function create(context) {
 
     /** One finding per use of the state view that is a snapshot key read or that the rule cannot resolve. `previousState` holds only keys the selector already read from the state view, so it is not checked. */
     function findRestrictedStateReads(call) {
+        const unresolvable = (keyText) => [{node: call, keyPath: null, keyText}];
         const selectorArgument = call.arguments.at(0);
 
         if (!selectorArgument) {
-            return [{node: call, keyPath: null, keyText: 'no selector'}];
+            return unresolvable('no selector');
         }
 
         const selector = selectorArgument.type === 'SpreadElement' ? null : getSelectorFunction(selectorArgument);
 
         if (!selector) {
-            return [{node: call, keyPath: null, keyText: `\`${sourceCode.getText(selectorArgument)}\` as its selector, which is not a function written in this file`}];
+            return unresolvable(`\`${sourceCode.getText(selectorArgument)}\` as its selector, which is not a function written in this file`);
         }
 
         // The innermost scope is the one that holds the parameters. A named function expression has a second scope around it that holds only its name
         const selectorScope = sourceCode.scopeManager.acquire(selector, true);
 
-        if (selector.type !== 'ArrowFunctionExpression' && selectorScope?.set.get('arguments')?.references.length) {
-            return [{node: call, keyPath: null, keyText: 'a selector that uses `arguments`'}];
+        if (selector.type !== 'ArrowFunctionExpression' && selectorScope.set.get('arguments')?.references.length) {
+            return unresolvable('a selector that uses `arguments`');
         }
 
         // A TypeScript `this` parameter is a type annotation, so the state view is the parameter after it
@@ -422,22 +382,17 @@ function create(context) {
         }
 
         if (stateParameter.type !== 'Identifier') {
-            return [{node: call, keyPath: null, keyText: `\`${sourceCode.getText(stateParameter)}\` as the state parameter of its selector, which is not a plain identifier`}];
+            return unresolvable(`\`${sourceCode.getText(stateParameter)}\` as the state parameter of its selector, which is not a plain identifier`);
         }
 
         const stateName = stateParameter.name;
-        const stateVariable = selectorScope?.set.get(stateName);
 
-        if (!stateVariable) {
-            return [{node: call, keyPath: null, keyText: `a selector whose \`${stateName}\` parameter this rule cannot follow`}];
-        }
-
-        return stateVariable.references.flatMap((reference) => {
+        return selectorScope.set.get(stateName).references.flatMap((reference) => {
             const outer = getOuterExpression(reference.identifier);
             const read = outer.parent;
 
             if (read?.type !== 'MemberExpression' || read.object !== outer || !read.computed) {
-                return [{node: call, keyPath: null, keyText: `a selector that uses \`${stateName}\` for something other than \`${stateName}[key]\``}];
+                return unresolvable(`a selector that uses \`${stateName}\` for something other than \`${stateName}[key]\``);
             }
 
             const finding = findRestrictedKey(read.property);
@@ -446,12 +401,18 @@ function create(context) {
                 return [];
             }
 
-            return [
-                finding.keyPath
-                    ? {node: call, ...finding}
-                    : {node: call, keyPath: null, keyText: `\`${sourceCode.getText(read)}\` in its selector, a read of a key this rule cannot resolve`},
-            ];
+            return finding.keyPath ? [{node: call, ...finding}] : unresolvable(`\`${sourceCode.getText(read)}\` in its selector, a read of a key this rule cannot resolve`);
         });
+    }
+
+    function reportFindings(findings, restrictedMessageId, unresolvableMessageId) {
+        for (const finding of findings) {
+            context.report(
+                finding.keyPath
+                    ? {node: finding.node, messageId: restrictedMessageId, data: {keyPath: `${ONYXKEYS_ROOT}.${finding.keyPath}`}}
+                    : {node: finding.node, messageId: unresolvableMessageId, data: {keyText: finding.keyText ?? (finding.keyNode ? sourceCode.getText(finding.keyNode) : 'no key')}},
+            );
+        }
     }
 
     /** The identifiers that read `variable` at runtime. The initializing write and type positions such as `typeof useOnyxState` do not. */
@@ -462,12 +423,13 @@ function create(context) {
             .map((reference) => reference.identifier);
     }
 
-    /** Reports a use of the hook `node` holds, unless it is a direct call or a const alias, whose own uses are then checked the same way. */
+    /** Checks a use of the hook `node` holds. A direct call has its selector checked, a const alias has its own uses checked the same way, and anything else is reported. */
     function checkUseOnyxStateValue(node, seen = new Set()) {
         const outer = getOuterExpression(node);
         const parent = outer.parent;
 
         if (parent?.type === 'CallExpression' && parent.callee === outer) {
+            reportFindings(findRestrictedStateReads(parent), 'noRestrictedOnyxStateKey', 'noUnresolvableOnyxStateKey');
             return;
         }
 
@@ -523,16 +485,6 @@ function create(context) {
         }
     }
 
-    function reportFindings(findings, restrictedMessageId, unresolvableMessageId) {
-        for (const finding of findings) {
-            context.report(
-                finding.keyPath
-                    ? {node: finding.node, messageId: restrictedMessageId, data: {keyPath: `${ONYXKEYS_ROOT}.${finding.keyPath}`}}
-                    : {node: finding.node, messageId: unresolvableMessageId, data: {keyText: finding.keyText ?? (finding.keyNode ? sourceCode.getText(finding.keyNode) : 'no key')}},
-            );
-        }
-    }
-
     return {
         ImportDeclaration(node) {
             if (node.source.value !== ONYX_MODULE) {
@@ -570,11 +522,6 @@ function create(context) {
 
             if (readMethod) {
                 reportFindings(findRestrictedKeys(readMethod, node), 'noRestrictedOnyxKey', 'noUnresolvableOnyxKey');
-                return;
-            }
-
-            if (isUseOnyxStateCallee(node.callee)) {
-                reportFindings(findRestrictedStateReads(node), 'noRestrictedOnyxStateKey', 'noUnresolvableOnyxStateKey');
             }
         },
     };

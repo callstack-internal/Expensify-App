@@ -3,7 +3,7 @@ import type {Report} from '@src/types/onyx';
 
 import type {OnyxCollection} from 'react-native-onyx';
 
-import useOnyx from './useOnyx';
+import useOnyxState from './useOnyxState';
 
 /** Mapping from reportID to report name. */
 type ReportIDToNameMap = Record<string, string>;
@@ -72,10 +72,59 @@ function buildReportIDToNameMap(reports: OnyxCollection<Report> | undefined, rep
     return map;
 }
 
-/** Returns a map of reportID to report name built from COLLECTION.REPORT. */
+/** True when a report was added or removed, or a report name differs between the two collections. */
+function hasReportNameChanged(previousReports: NonNullable<OnyxCollection<Report>>, reports: NonNullable<OnyxCollection<Report>>): boolean {
+    for (const [key, report] of Object.entries(reports)) {
+        const previousReport = previousReports[key];
+        if (report === previousReport) {
+            continue;
+        }
+        if (!report !== !previousReport || report?.reportName !== previousReport?.reportName) {
+            return true;
+        }
+    }
+    for (const [key, previousReport] of Object.entries(previousReports)) {
+        if (previousReport && !reports[key]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const EMPTY_REPORT_ID_TO_NAME_MAP: ReportIDToNameMap = {};
+
+// Keyed by the collection, not held as one last value, because the same selector runs with live reports in most places and
+// with the reports of a Search snapshot inside Search. A single slot would be evicted on every switch between the two.
+const reportIDToNameMapByReports = new WeakMap<NonNullable<OnyxCollection<Report>>, ReportIDToNameMap>();
+
+/**
+ * Returns the map for a report collection, shared by every consumer that reads the same collection. Most report writes
+ * (a new message, a read marker) change no name, so the map of the previous collection is reused and consumers do not re-render.
+ */
+function selectReportIDToNameMap(reports: OnyxCollection<Report> | undefined, previousReports: OnyxCollection<Report> | undefined): ReportIDToNameMap {
+    if (!reports) {
+        return EMPTY_REPORT_ID_TO_NAME_MAP;
+    }
+    const cachedMap = reportIDToNameMapByReports.get(reports);
+    if (cachedMap) {
+        return cachedMap;
+    }
+
+    const previousMap = previousReports && reportIDToNameMapByReports.get(previousReports);
+    const map = previousReports && previousMap && !hasReportNameChanged(previousReports, reports) ? previousMap : buildReportIDToNameMap(reports);
+    reportIDToNameMapByReports.set(reports, map);
+    return map;
+}
+
+function isSameReportIDToNameMap(map: ReportIDToNameMap, otherMap: ReportIDToNameMap): boolean {
+    return map === otherMap;
+}
+
+/** Returns a map of reportID to report name built from COLLECTION.REPORT. The map keeps its reference until a report is added or removed, or a name changes. */
 function useReportIDToNameMap(): ReportIDToNameMap {
-    const [reports] = useOnyx(ONYXKEYS.COLLECTION.REPORT);
-    return buildReportIDToNameMap(reports);
+    return useOnyxState((state, previousState) => selectReportIDToNameMap(state[ONYXKEYS.COLLECTION.REPORT], previousState?.[ONYXKEYS.COLLECTION.REPORT]), {
+        selectorEquality: isSameReportIDToNameMap,
+    });
 }
 
 export default useReportIDToNameMap;

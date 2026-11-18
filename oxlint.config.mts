@@ -45,7 +45,7 @@ const restrictedImportPaths = [
     },
     {
         name: 'react-native-onyx/dist/useOnyxState',
-        message: "Import useOnyxState from 'react-native-onyx'. no-onyx-get-snapshot-key checks the dependencies of that import only. Type-only imports are still allowed.",
+        message: "Import useOnyxState from 'react-native-onyx'. no-onyx-get-snapshot-key checks the selectors of calls through that import only. Type-only imports are still allowed.",
         allowTypeImports: true,
     },
     {name: 'awesome-phonenumber', importNames: ['parsePhoneNumber'], message: "Please use '@libs/PhoneNumber' instead."},

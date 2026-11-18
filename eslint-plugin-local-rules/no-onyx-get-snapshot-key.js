@@ -38,8 +38,6 @@ const SELECTOR_OPTION_NAME = 'selector';
 
 const USE_ONYX_STATE_EXPORT_NAME = 'useOnyxState';
 
-const DEPENDENCIES_OPTION_NAME = 'dependencies';
-
 if (!REPO_ROOT) {
     throw new Error(
         `${name} could not find ${SNAPSHOT_KEYS_SOURCE} two directories above eslint-plugin-local-rules/utils/. Without it the rule cannot tell which keys are Search snapshot keys, so it stops instead of letting them through.`,
@@ -90,7 +88,8 @@ const USE_ONYX_STATE_DISABLE_GUIDANCE =
 const meta = {
     type: 'problem',
     docs: {
-        description: 'Disallow Onyx.get, Onyx.multiGet and useOnyxState dependencies on Search snapshot keys and on keys the rule cannot resolve. Disable it only with a reason after `--`.',
+        description:
+            'Disallow Onyx.get, Onyx.multiGet and useOnyxState selector reads on Search snapshot keys and on keys the rule cannot resolve. Disable it only with a reason after `--`.',
         recommended: 'error',
     },
     schema: [],
@@ -106,17 +105,17 @@ const meta = {
             DISABLE_GUIDANCE,
         ].join('\n\n'),
         noRestrictedOnyxStateKey: [
-            'Do not list {{keyPath}} in the useOnyxState() dependencies. Inside a SearchScopeProvider subtree, src/hooks/useOnyx.ts redirects this key to snapshot_<hash>, but useOnyxState() always reads the live key, so the component shows live data where it showed the snapshot.',
+            'Do not read {{keyPath}} in a useOnyxState() selector. Inside a SearchScopeProvider subtree, src/hooks/useOnyx.ts redirects this key to snapshot_<hash>, but useOnyxState() always reads the live key, so the component shows live data where it showed the snapshot.',
             'Keep the useOnyx subscription for this key, or take the value as a parameter from the component, which knows whether it is inside a Search scope.',
             USE_ONYX_STATE_DISABLE_GUIDANCE,
         ].join('\n\n'),
         noUnresolvableOnyxStateKey: [
-            'This useOnyxState() call gets {{keyText}}, which this rule cannot resolve to Onyx keys. A Search snapshot key could reach the dependencies without any error.',
-            'Pass an object literal as the options, with `dependencies` written inline as an array literal. Write every element as an ONYXKEYS access, such as ONYXKEYS.SESSION, or as a template literal that starts with an ONYXKEYS collection prefix. Do not wrap useOnyxState() in a hook that forwards its options: the callers of such a wrapper are never checked.',
+            'This useOnyxState() call has {{keyText}}, so this rule cannot tell which Onyx keys the selector reads. useOnyxState() subscribes to every key the selector reads, so a Search snapshot key could be read without any error.',
+            'Write the selector inline, or as a const or a function declaration in this file, with the state view as a plain first parameter. Use that parameter only to read keys, as `state[key]`. Write every key as an ONYXKEYS access, such as ONYXKEYS.SESSION, or as a template literal that starts with an ONYXKEYS collection prefix. Do not pass the state view to another function, and do not wrap useOnyxState() in a hook that forwards its selector: the rule cannot follow either.',
             USE_ONYX_STATE_DISABLE_GUIDANCE,
         ].join('\n\n'),
         noIndirectUseOnyxState: [
-            'Call useOnyxState() directly, or through a const alias. A re-export, a `let` alias, destructuring, `.call()` or passing the hook as a value hides its calls from this rule, so their dependencies are never checked for Search snapshot keys.',
+            'Call useOnyxState() directly, or through a const alias. A re-export, a `let` alias, destructuring, `.call()` or passing the hook as a value hides its calls from this rule, so their selectors are never checked for Search snapshot keys.',
             'Import useOnyxState from react-native-onyx in the file that calls it.',
         ].join('\n\n'),
     },
@@ -301,19 +300,6 @@ function create(context) {
         return {keyPath};
     }
 
-    /** Every finding is reported on the call, so one directive above a multi-line call covers all of its keys. */
-    function findRestrictedElements(call, elements) {
-        return elements.flatMap((element) => {
-            if (!element || element.type === 'SpreadElement') {
-                return [{node: call, keyPath: null, keyNode: element}];
-            }
-
-            const finding = findRestrictedKey(element);
-
-            return finding ? [{node: call, ...finding}] : [];
-        });
-    }
-
     function findRestrictedKeys(readMethod, call) {
         const keyArgument = call.arguments.at(0);
 
@@ -329,7 +315,16 @@ function create(context) {
             return [{node: call, keyPath: null, keyNode: keyArgument}];
         }
 
-        return findRestrictedElements(call, elements);
+        // Every finding is reported on the call, so one directive above a multi-line call covers all of its keys
+        return elements.flatMap((element) => {
+            if (!element || element.type === 'SpreadElement') {
+                return [{node: call, keyPath: null, keyNode: element}];
+            }
+
+            const finding = findRestrictedKey(element);
+
+            return finding ? [{node: call, ...finding}] : [];
+        });
     }
 
     /** True for `useOnyxState` imported from react-native-onyx, under any local name, through a namespace import or through a const alias. */
@@ -362,43 +357,6 @@ function create(context) {
         return !!initializer && isUseOnyxStateCallee(initializer, seen);
     }
 
-    /** The value of the single static `dependencies` property, or null. A spread or a computed key in the options could replace the list at runtime. */
-    function getDependencies(options) {
-        const current = unwrapTypeOnlyExpressions(options);
-
-        if (current?.type !== 'ObjectExpression' || current.properties.some((property) => property.type !== 'Property' || getStaticName(property.key, property.computed) === null)) {
-            return null;
-        }
-
-        const dependencies = current.properties.filter((property) => getStaticName(property.key, property.computed) === DEPENDENCIES_OPTION_NAME);
-
-        return dependencies.length === 1 ? dependencies.at(0).value : null;
-    }
-
-    function findRestrictedDependencies(call) {
-        const options = call.arguments.at(1);
-
-        if (!options) {
-            return [{node: call, keyPath: null, keyText: 'no options'}];
-        }
-
-        const dependencies = options.type === 'SpreadElement' ? null : getDependencies(options);
-
-        if (!dependencies) {
-            return [{node: call, keyPath: null, keyText: 'options it cannot read'}];
-        }
-
-        const list = unwrapTypeOnlyExpressions(dependencies);
-
-        if (list?.type !== 'ArrayExpression') {
-            return [{node: call, keyPath: null, keyText: `\`${sourceCode.getText(dependencies)}\` as its dependencies`}];
-        }
-
-        return findRestrictedElements(call, list.elements).map((finding) =>
-            finding.keyPath ? finding : {...finding, keyText: finding.keyNode ? `\`${sourceCode.getText(finding.keyNode)}\` in its dependencies` : 'an empty slot in its dependencies'},
-        );
-    }
-
     /** `node` itself, or the outermost TS cast wrapped around it, which is what its parent sees. */
     function getOuterExpression(node) {
         let current = node;
@@ -408,6 +366,92 @@ function create(context) {
         }
 
         return current;
+    }
+
+    /** The function `node` is, written inline or through a const or a function declaration in this file, or null. */
+    function getSelectorFunction(node, seen = new Set()) {
+        const current = unwrapTypeOnlyExpressions(node);
+
+        if (current?.type === 'ArrowFunctionExpression' || current?.type === 'FunctionExpression') {
+            return current;
+        }
+
+        if (current?.type !== 'Identifier' || seen.has(current)) {
+            return null;
+        }
+
+        seen.add(current);
+        const variable = resolveVariable(current, sourceCode);
+        const definition = variable?.defs.length === 1 ? variable.defs.at(0) : null;
+
+        if (definition?.type === 'FunctionName') {
+            return variable.references.some((reference) => reference.isWrite()) ? null : definition.node;
+        }
+
+        const initializer = getConstInitializer(current, sourceCode);
+
+        return initializer ? getSelectorFunction(initializer, seen) : null;
+    }
+
+    /** One finding per use of the state view that is a snapshot key read or that the rule cannot resolve. `previousState` holds only keys the selector already read from the state view, so it is not checked. */
+    function findRestrictedStateReads(call) {
+        const selectorArgument = call.arguments.at(0);
+
+        if (!selectorArgument) {
+            return [{node: call, keyPath: null, keyText: 'no selector'}];
+        }
+
+        const selector = selectorArgument.type === 'SpreadElement' ? null : getSelectorFunction(selectorArgument);
+
+        if (!selector) {
+            return [{node: call, keyPath: null, keyText: `\`${sourceCode.getText(selectorArgument)}\` as its selector, which is not a function written in this file`}];
+        }
+
+        // The innermost scope is the one that holds the parameters. A named function expression has a second scope around it that holds only its name
+        const selectorScope = sourceCode.scopeManager.acquire(selector, true);
+
+        if (selector.type !== 'ArrowFunctionExpression' && selectorScope?.set.get('arguments')?.references.length) {
+            return [{node: call, keyPath: null, keyText: 'a selector that uses `arguments`'}];
+        }
+
+        // A TypeScript `this` parameter is a type annotation, so the state view is the parameter after it
+        const stateParameter = selector.params.find((parameter) => parameter.type !== 'Identifier' || parameter.name !== 'this');
+
+        if (!stateParameter) {
+            return [];
+        }
+
+        if (stateParameter.type !== 'Identifier') {
+            return [{node: call, keyPath: null, keyText: `\`${sourceCode.getText(stateParameter)}\` as the state parameter of its selector, which is not a plain identifier`}];
+        }
+
+        const stateName = stateParameter.name;
+        const stateVariable = selectorScope?.set.get(stateName);
+
+        if (!stateVariable) {
+            return [{node: call, keyPath: null, keyText: `a selector whose \`${stateName}\` parameter this rule cannot follow`}];
+        }
+
+        return stateVariable.references.flatMap((reference) => {
+            const outer = getOuterExpression(reference.identifier);
+            const read = outer.parent;
+
+            if (read?.type !== 'MemberExpression' || read.object !== outer || !read.computed) {
+                return [{node: call, keyPath: null, keyText: `a selector that uses \`${stateName}\` for something other than \`${stateName}[key]\``}];
+            }
+
+            const finding = findRestrictedKey(read.property);
+
+            if (!finding) {
+                return [];
+            }
+
+            return [
+                finding.keyPath
+                    ? {node: call, ...finding}
+                    : {node: call, keyPath: null, keyText: `\`${sourceCode.getText(read)}\` in its selector, a read of a key this rule cannot resolve`},
+            ];
+        });
     }
 
     /** The identifiers that read `variable` at runtime. The initializing write and type positions such as `typeof useOnyxState` do not. */
@@ -530,7 +574,7 @@ function create(context) {
             }
 
             if (isUseOnyxStateCallee(node.callee)) {
-                reportFindings(findRestrictedDependencies(node), 'noRestrictedOnyxStateKey', 'noUnresolvableOnyxStateKey');
+                reportFindings(findRestrictedStateReads(node), 'noRestrictedOnyxStateKey', 'noUnresolvableOnyxStateKey');
             }
         },
     };

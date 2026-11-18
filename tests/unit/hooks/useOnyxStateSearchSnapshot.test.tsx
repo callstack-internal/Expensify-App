@@ -30,6 +30,8 @@ const OTHER_SNAPSHOT_REPORT: Report = {reportID: '1', reportName: 'Other snapsho
 const REPORT_MISSING_FROM_SNAPSHOT: Report = {reportID: '2', reportName: 'Live only report'};
 const LIVE_SESSION_EMAIL = 'live@expensify.com';
 
+const LIVE_DATA_OPTIONS = {shouldUseLiveData: true};
+
 type SearchScreenProps = ChildrenProps & {
     isOnSearch?: boolean;
     shouldUseLiveData?: boolean;
@@ -323,6 +325,20 @@ describe('useOnyxState Search snapshot updates', () => {
 
         // Then the report comes from the second snapshot, and previousState has nothing for it because the last run read the first snapshot
         expect(values.at(-1)).toEqual({reportName: OTHER_SNAPSHOT_REPORT.reportName, previousReportName: undefined});
+    });
+
+    it('should read live data inside Search when the hook asks for live data', async () => {
+        // Given a report whose live and snapshot copies differ, read on a Search screen by a hook that asks for live data
+        const {result} = renderHook(() => useOnyxState(selectReport, LIVE_DATA_OPTIONS), {wrapper: SearchScreen});
+        await waitForBatchedUpdatesWithAct();
+        expect(result.current).toEqual(LIVE_REPORT);
+
+        // When the live report is changed with a plain merge, which does not touch the snapshot
+        await act(() => Onyx.merge(REPORT_KEY, {reportName: 'Merged report'}));
+        await waitForBatchedUpdatesWithAct();
+
+        // Then the hook returns the new live value, because values that must be the same on every screen ignore the snapshot
+        expect(result.current).toEqual({...LIVE_REPORT, reportName: 'Merged report'});
     });
 
     it('should keep a consumer inside Search apart from one outside it', async () => {

@@ -76,28 +76,38 @@ function createSnapshotStateView(state: OnyxStateView, snapshotKey: SnapshotKey)
     ) as OnyxStateView;
 }
 
-function useSearchSnapshotKey(): SnapshotKey | undefined {
+function useSearchSnapshotKey(shouldUseLiveData: boolean): SnapshotKey | undefined {
     const isOnSearch = useIsOnSearch();
-    if (!isOnSearch) {
+    if (!isOnSearch || shouldUseLiveData) {
         return undefined;
     }
 
     const {currentSearchHash} = use(SearchQueryContext);
-    const {shouldUseLiveData} = use(SearchResultsContext);
-    if (!currentSearchHash || shouldUseLiveData) {
+    const {shouldUseLiveData: shouldScreenUseLiveData} = use(SearchResultsContext);
+    if (!currentSearchHash || shouldScreenUseLiveData) {
         return undefined;
     }
     return `${ONYXKEYS.COLLECTION.SNAPSHOT}${currentSearchHash}`;
 }
 
-function useOnyxState<T>(selector: UseOnyxStateSelector<T>, options?: UseOnyxStateOptions<T>): T {
-    const snapshotKey = useSearchSnapshotKey();
+type UseOnyxStateWithSnapshotsOptions<T> = UseOnyxStateOptions<T> & {
+    /**
+     * Reads every key live, also inside Search. For values that must be the same on every screen, such as the ones that
+     * used to be Onyx derived values, which were always computed from live data.
+     */
+    shouldUseLiveData?: boolean;
+};
+
+function useOnyxState<T>(selector: UseOnyxStateSelector<T>, options?: UseOnyxStateWithSnapshotsOptions<T>): T {
+    const {shouldUseLiveData = false, ...onyxOptions} = options ?? {};
+    const snapshotKey = useSearchSnapshotKey(shouldUseLiveData);
 
     const snapshotAwareSelector: UseOnyxStateSelector<T> = snapshotKey
         ? (state, previousState) => selector(createSnapshotStateView(state, snapshotKey), previousState && createSnapshotStateView(previousState, snapshotKey))
         : selector;
 
-    return useOnyxStateWithoutSnapshots(snapshotAwareSelector, options);
+    return useOnyxStateWithoutSnapshots(snapshotAwareSelector, onyxOptions);
 }
 
 export default useOnyxState;
+export type {UseOnyxStateWithSnapshotsOptions};

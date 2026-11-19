@@ -1,12 +1,17 @@
 import {act, renderHook} from '@testing-library/react-native';
 
+import {SearchQueryContext} from '@components/Search/SearchContextDefinitions';
+import {SearchScopeProvider} from '@components/Search/SearchScopeProvider';
+
 import useReportIDToNameMap, {buildMentionedRoomPlaceholderMap, buildReportIDToNameMap, getMentionedReportIDs, getReportIDToNameMapForRoomsInMarkdown} from '@hooks/useReportIDToNameMap';
 
 import ONYXKEYS from '@src/ONYXKEYS';
 import type {Report} from '@src/types/onyx';
+import type ChildrenProps from '@src/types/utils/ChildrenProps';
 
 import type {OnyxCollection} from 'react-native-onyx';
 
+import React, {use, useMemo} from 'react';
 import Onyx from 'react-native-onyx';
 
 import waitForBatchedUpdates from '../utils/waitForBatchedUpdates';
@@ -19,8 +24,24 @@ function createReport(reportID: string, overrides: Partial<Report> = {}): Report
     } as Report;
 }
 
-const renderReportIDToNameMap = async () => {
-    const hook = renderHook(() => useReportIDToNameMap());
+const REPORT_ID = '1';
+const REPORT_KEY = `${ONYXKEYS.COLLECTION.REPORT}${REPORT_ID}` as const;
+const SEARCH_HASH = 42;
+const SNAPSHOT_KEY = `${ONYXKEYS.COLLECTION.SNAPSHOT}${SEARCH_HASH}` as const;
+
+function SearchScreen({children}: ChildrenProps) {
+    const queryContext = use(SearchQueryContext);
+    const queryContextWithHash = useMemo(() => ({...queryContext, currentSearchHash: SEARCH_HASH}), [queryContext]);
+
+    return (
+        <SearchScopeProvider isOnSearch>
+            <SearchQueryContext.Provider value={queryContextWithHash}>{children}</SearchQueryContext.Provider>
+        </SearchScopeProvider>
+    );
+}
+
+const renderReportIDToNameMap = async (wrapper?: React.ComponentType<ChildrenProps>) => {
+    const hook = renderHook(() => useReportIDToNameMap(), {wrapper});
     await act(async () => {
         await waitForBatchedUpdates();
     });
@@ -90,6 +111,97 @@ describe('useReportIDToNameMap', () => {
         });
 
         expect(result.current).toBe(firstResult);
+    });
+
+    it('should keep the same map when a report write does not change any name', async () => {
+        // Given a mounted map over two reports
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'First'}));
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, createReport('2', {reportName: 'Second'}));
+        const {result} = await renderReportIDToNameMap();
+        const firstResult = result.current;
+
+        // When a report gets a new message, which touches the report but not its name
+        await act(async () => {
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}1`, {lastMessageText: 'hello'});
+            await waitForBatchedUpdates();
+        });
+
+        // Then consumers keep the same map, so sending a message does not re-render the composer through it
+        expect(result.current).toBe(firstResult);
+    });
+
+    it('should drop a report from the map when it is removed', async () => {
+        // Given a mounted map over two reports
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'First'}));
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, createReport('2', {reportName: 'Second'}));
+        const {result} = await renderReportIDToNameMap();
+
+        // When one report is removed, which changes no remaining name
+        await act(async () => {
+            await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, null);
+            await waitForBatchedUpdates();
+        });
+
+        // Then the removed report leaves the map, because removals count as a change
+        expect(result.current).toEqual({[REPORT_ID]: 'First'});
+    });
+
+    it('should give two consumers of the same reports the same map, before and after a name change', async () => {
+        // Given two mounted consumers of the live reports
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'Old Name'}));
+        const {result: firstConsumer} = await renderReportIDToNameMap();
+        const {result: secondConsumer} = await renderReportIDToNameMap();
+        const mapBeforeRename = firstConsumer.current;
+
+        // When a report is renamed
+        await act(async () => {
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}1`, {reportName: 'New Name'});
+            await waitForBatchedUpdates();
+        });
+
+        // Then both consumers share one map each time, because the map is built once per collection and not once per consumer
+        expect(secondConsumer.current).toBe(firstConsumer.current);
+        expect(firstConsumer.current).toEqual({[REPORT_ID]: 'New Name'});
+        expect(mapBeforeRename).toEqual({[REPORT_ID]: 'Old Name'});
+    });
+
+    it('should build the map from the snapshot reports inside Search', async () => {
+        // Given two live reports and a Search snapshot that holds one of them under another name
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'Live name'}));
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}2`, createReport('2', {reportName: 'Live only'}));
+        await Onyx.merge(SNAPSHOT_KEY, {data: {[REPORT_KEY]: createReport('1', {reportName: 'Snapshot name'})}});
+
+        // When the map is read on a Search screen
+        const {result} = await renderReportIDToNameMap(SearchScreen);
+
+        // Then it holds the snapshot report only, the same reports useOnyx returns on Search
+        expect(result.current).toEqual({[REPORT_ID]: 'Snapshot name'});
+    });
+
+    it('should keep the live map and the Search map apart when either source changes', async () => {
+        // Given one consumer on a Search screen and one outside it, each with its own map
+        await Onyx.set(`${ONYXKEYS.COLLECTION.REPORT}1`, createReport('1', {reportName: 'Live name'}));
+        await Onyx.merge(SNAPSHOT_KEY, {data: {[REPORT_KEY]: createReport('1', {reportName: 'Snapshot name'})}});
+        const {result: searchConsumer} = await renderReportIDToNameMap(SearchScreen);
+        const {result: liveConsumer} = await renderReportIDToNameMap();
+        const searchMap = searchConsumer.current;
+        const liveMap = liveConsumer.current;
+
+        // When the live report and then the snapshot report each get a write that changes no name
+        await act(async () => {
+            await Onyx.merge(`${ONYXKEYS.COLLECTION.REPORT}1`, {lastMessageText: 'hello'});
+            await waitForBatchedUpdates();
+        });
+        await act(async () => {
+            await Onyx.merge(SNAPSHOT_KEY, {data: {[REPORT_KEY]: {lastMessageText: 'hello'}}});
+            await waitForBatchedUpdates();
+        });
+
+        // Then both consumers keep the map they had, because each source compares against its own previous reports and not the other's
+        expect(liveConsumer.current).toBe(liveMap);
+        expect(searchConsumer.current).toBe(searchMap);
+        expect(liveMap).toEqual({[REPORT_ID]: 'Live name'});
+        expect(searchMap).toEqual({[REPORT_ID]: 'Snapshot name'});
     });
 });
 

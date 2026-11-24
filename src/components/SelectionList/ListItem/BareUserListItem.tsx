@@ -1,6 +1,8 @@
 import ListItemComposed from '@components/SelectionList/ListItemComposed';
 import shouldShowRBRIndicator from '@components/SelectionList/utils/shouldShowRBRIndicator';
 
+import CONST from '@src/CONST';
+
 import React from 'react';
 
 import type {BareUserListItemProps, ListItem} from './types';
@@ -50,6 +52,8 @@ function BareUserListItem<TItem extends ListItem>({
             accessible={shouldDisableAccessibleGrouping ? false : undefined}
             shouldDisableHoverStyle={shouldDisableHoverStyle}
             shouldHighlightSelectedItem={shouldHighlightSelectedItem}
+            // A masked row's subtitle can be a chat preview, which mustn't end up in the row's label
+            accessibilityLabel={forwardedFSClass === CONST.FULLSTORY.CLASS.MASK ? item.text : undefined}
         >
             <ListItemComposed.Row style={[wrapperStyle, item.itemStyle]}>
                 <UserListItemContent

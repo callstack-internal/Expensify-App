@@ -26,6 +26,8 @@ function RadioButton({
     containerBorderRadius,
     caretSize,
     accessibilityLabel,
+    accessibilityLabelledBy,
+    forwardedFSClass,
     shouldStopMouseDownPropagation,
     shouldSelectOnPressEnter = true,
     wrapperStyle,
@@ -49,6 +51,8 @@ function RadioButton({
             containerBorderRadius={containerBorderRadius}
             caretSize={caretSize}
             accessibilityLabel={accessibilityLabel}
+            accessibilityLabelledBy={accessibilityLabelledBy}
+            forwardedFSClass={forwardedFSClass}
             shouldStopMouseDownPropagation={shouldStopMouseDownPropagation}
             shouldSelectOnPressEnter={shouldSelectOnPressEnter}
             wrapperStyle={wrapperStyle}

@@ -5,9 +5,13 @@ import {useState} from 'react';
 
 import useAccessibilityAnnouncement from './useAccessibilityAnnouncement';
 import useLocalize from './useLocalize';
+import {useIsFSMasked} from './useRecordableAccessibilityLabel';
 
 function useTaskCheckboxAccessibility(isCompletedFromOnyx: boolean, taskTitlePlainText: string) {
     const {translate} = useLocalize();
+    // In a masked chat the title stays out of the labels, which FullStory would record
+    const isTitleMasked = useIsFSMasked();
+    const recordableTitle = isTitleMasked ? '' : taskTitlePlainText;
     const isScreenReaderActive = Accessibility.useScreenReaderStatus();
     const shouldBreakGrouping = shouldBreakAccessibilityGrouping();
     const shouldSplitTaskAccessibilityTargets = shouldBreakGrouping && isScreenReaderActive;
@@ -28,9 +32,9 @@ function useTaskCheckboxAccessibility(isCompletedFromOnyx: boolean, taskTitlePla
 
     useAccessibilityAnnouncement(taskCheckboxAnnouncement?.message ?? '', shouldAnnounceTaskCheckboxState, {announcementKey: taskCheckboxAnnouncement?.key});
 
-    const taskAccessibilityLabel = taskTitlePlainText ? `${translate('task.task')}: ${taskTitlePlainText}` : translate('task.task');
+    const taskAccessibilityLabel = recordableTitle ? `${translate('task.task')}: ${recordableTitle}` : translate('task.task');
     const taskCheckboxAccessibilityLabel = shouldSplitTaskAccessibilityTargets ? translate('task.task') : taskAccessibilityLabel;
-    const taskCheckboxAccessibilityHint = shouldSplitTaskAccessibilityTargets && taskTitlePlainText ? taskTitlePlainText : undefined;
+    const taskCheckboxAccessibilityHint = shouldSplitTaskAccessibilityTargets && recordableTitle ? recordableTitle : undefined;
     // NativeGenericPressable falls back to accessibilityLabel when hint is undefined. Use an empty string to avoid
     // duplicating the full task title as a hint on the title pressable, since its label already includes the title.
     const titlePressableAccessibilityHint = shouldSplitTaskAccessibilityTargets ? '' : undefined;

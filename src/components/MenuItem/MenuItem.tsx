@@ -25,6 +25,7 @@ import useCopyableTextRowPress from '@hooks/useCopyableTextRowPress';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useOnyx from '@hooks/useOnyx';
+import useRecordableAccessibilityLabel from '@hooks/useRecordableAccessibilityLabel';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
@@ -569,6 +570,11 @@ function MenuItem({
         accessibilityLabel: combinedAccessibilityLabel,
         contextMenuHint,
     });
+    // The label is built from the title and description, so a masked row is named from its content instead
+    const recordableAccessibilityLabel = useRecordableAccessibilityLabel(
+        accessibilityLabelWithContextMenuHint,
+        forwardedFSClass === CONST.FULLSTORY.CLASS.MASK ? forwardedFSClass : undefined,
+    );
     const shouldDimIconRight = iconRight === icons.ArrowRight || !iconRight;
 
     const hasIcon = (!!icon || iconType === CONST.ICON_TYPE_WORKSPACE) && !Array.isArray(icon);
@@ -784,7 +790,7 @@ function MenuItem({
                                 disabled={disabled}
                                 ref={mergeRefs(ref, popoverAnchor, pressableRef)}
                                 role={interactive ? role : undefined}
-                                accessibilityLabel={accessibilityLabelWithContextMenuHint}
+                                accessibilityLabel={recordableAccessibilityLabel}
                                 accessibilityHint={accessibilityHint}
                                 // The label repeats the title, so a masked title also masks the row that carries the label
                                 forwardedFSClass={forwardedFSClass === CONST.FULLSTORY.CLASS.MASK ? forwardedFSClass : undefined}

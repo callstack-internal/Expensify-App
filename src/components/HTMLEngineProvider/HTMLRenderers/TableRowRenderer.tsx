@@ -7,6 +7,7 @@ import useEnvironment from '@hooks/useEnvironment';
 import useHover from '@hooks/useHover';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
+import {useIsFSMasked} from '@hooks/useRecordableAccessibilityLabel';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -45,6 +46,8 @@ function getRowCellsText(rowTnode: TNode): string {
 }
 
 function TableRowRenderer({tnode}: CustomRendererProps<TBlock>) {
+    // The row's cells are message content, so in a masked chat the label falls back to the generic one
+    const isRowMasked = useIsFSMasked();
     const styles = useThemeStyles();
     const theme = useTheme();
     const {translate} = useLocalize();
@@ -88,6 +91,8 @@ function TableRowRenderer({tnode}: CustomRendererProps<TBlock>) {
         );
     }
 
+    const rowAccessibilityLabel = (isRowMasked ? '' : getRowCellsText(tnode)) || translate('iou.viewDetails');
+
     return (
         <PressableWithoutFeedback
             style={rowStyle}
@@ -95,7 +100,7 @@ function TableRowRenderer({tnode}: CustomRendererProps<TBlock>) {
             onPress={() => openLink(rowLinkURL, environmentURL, false, session)}
             onLongPress={(event) => onShowContextMenu(() => showContextMenuForReport(event, anchor, report?.reportID, action, checkIfContextMenuActive, originalReportID))}
             role={CONST.ROLE.BUTTON}
-            accessibilityLabel={getRowCellsText(tnode) || translate('iou.viewDetails')}
+            accessibilityLabel={rowAccessibilityLabel}
             accessibilityHint={translate('iou.viewDetails')}
             sentryLabel={CONST.SENTRY_LABEL.HTML_RENDERER.TABLE_ROW}
             shouldUseHapticsOnLongPress

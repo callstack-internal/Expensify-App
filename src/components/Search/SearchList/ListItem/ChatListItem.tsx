@@ -1,3 +1,4 @@
+import FSClassView from '@components/FSClassView';
 import useIsSearchRowFocused from '@components/Search/hooks/useIsSearchRowFocused';
 import {useRowSelection} from '@components/Search/SearchSelectionProvider';
 import ListItemComposed from '@components/SelectionList/ListItemComposed';
@@ -18,7 +19,6 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import {getStableReportSelector} from '@src/selectors/Report';
 
 import React from 'react';
-import {View} from 'react-native';
 
 import type {ChatListItemProps, ReportActionListItemType} from './types';
 
@@ -78,9 +78,9 @@ function ChatListItem<TItem extends ListItem>({
             pressableWrapperStyle={[pageGutterMargin, StyleUtils.getSearchRowBackgroundStyle(isSelected), styles.br2]}
             hoverStyle={isSelected && styles.activeComponentBG}
         >
-            <View
+            <FSClassView
                 style={[styles.flex1, styles.justifyContentBetween, styles.userSelectNone]}
-                fsClass={fsClass}
+                forwardedFSClass={fsClass}
             >
                 <ReportActionItem
                     action={reportActionItem}
@@ -96,7 +96,7 @@ function ChatListItem<TItem extends ListItem>({
                     shouldShowBorder
                     reportsParentHierarchy={reportsParentHierarchy}
                 />
-            </View>
+            </FSClassView>
         </ListItemComposed>
     );
 }

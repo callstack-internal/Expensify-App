@@ -3,6 +3,7 @@ import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeed
 import Text from '@components/Text';
 
 import useLocalize from '@hooks/useLocalize';
+import {useIsFSMasked} from '@hooks/useRecordableAccessibilityLabel';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -74,6 +75,8 @@ function CalendarPicker({
     containerStyle,
     shouldEnableMonthYearBackdropInNarrowPane = false,
 }: CalendarPickerProps) {
+    // A masked calendar shows a date of birth, so its day, month and year stay out of the labels FullStory records
+    const isCalendarMasked = useIsFSMasked();
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {isSmallScreenWidth} = useResponsiveLayout();
     const styles = useThemeStyles();
@@ -214,7 +217,7 @@ function CalendarPicker({
                         disabled={isDisabled}
                         onPress={handleOnPress}
                         style={themeStyles.calendarDayRoot}
-                        accessibilityLabel={accessibilityDateLabel}
+                        accessibilityLabel={isCalendarMasked ? '' : accessibilityDateLabel}
                         accessibilityHint=""
                         accessibilityState={getAccessibilityState(isSelected)}
                         aria-selected={isSelected}
@@ -277,7 +280,7 @@ function CalendarPicker({
                             hoverDimmingValue={1}
                             disabled={maxMonth <= minMonth}
                             testID="currentMonthButton"
-                            accessibilityLabel={`${monthNames.at(currentMonthView)}, ${translate('common.currentMonth')}`}
+                            accessibilityLabel={isCalendarMasked ? translate('common.currentMonth') : `${monthNames.at(currentMonthView)}, ${translate('common.currentMonth')}`}
                             role={CONST.ROLE.BUTTON}
                             sentryLabel={CONST.SENTRY_LABEL.CALENDAR_PICKER.MONTH_PICKER}
                         >
@@ -331,7 +334,7 @@ function CalendarPicker({
                             hoverDimmingValue={1}
                             disabled={maxYear <= minYear}
                             testID="currentYearButton"
-                            accessibilityLabel={`${currentYearView}, ${translate('common.currentYear')}`}
+                            accessibilityLabel={isCalendarMasked ? translate('common.currentYear') : `${currentYearView}, ${translate('common.currentYear')}`}
                             role={CONST.ROLE.BUTTON}
                             sentryLabel={CONST.SENTRY_LABEL.CALENDAR_PICKER.YEAR_PICKER}
                         >

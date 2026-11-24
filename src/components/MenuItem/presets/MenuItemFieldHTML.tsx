@@ -37,7 +37,7 @@ type MenuItemFieldHTMLProps = DistributedOmit<MenuItemRootProps, 'accessibilityL
  * Field preset with its value given as HTML: a field name plus its rendered value. With no `value` the name takes over the row.
  * `children` land in the trailing cell, next to the chevron.
  */
-function MenuItemFieldHTML({name, value, characterLimit, children, onPress, isDisabled = false, sentryLabel, testID}: MenuItemFieldHTMLProps) {
+function MenuItemFieldHTML({name, value, characterLimit, children, onPress, isDisabled = false, sentryLabel, testID, forwardedFSClass}: MenuItemFieldHTMLProps) {
     const [session] = useOnyx(ONYXKEYS.SESSION, {selector: authTokenTypeSelector});
     // Built in one object so TypeScript keeps sentryLabel tied to onPress, which MenuItemRoot requires together.
     const pressProps = onPress ? {onPress: callIfAuthenticated(onPress, session), sentryLabel} : {sentryLabel};
@@ -48,7 +48,16 @@ function MenuItemFieldHTML({name, value, characterLimit, children, onPress, isDi
             testID={testID}
         >
             <MenuItemRow>
-                <MenuItemField.Content name={name}>{!!value && <MenuItemFieldValueHTML characterLimit={characterLimit}>{value}</MenuItemFieldValueHTML>}</MenuItemField.Content>
+                <MenuItemField.Content name={name}>
+                    {!!value && (
+                        <MenuItemFieldValueHTML
+                            characterLimit={characterLimit}
+                            forwardedFSClass={forwardedFSClass}
+                        >
+                            {value}
+                        </MenuItemFieldValueHTML>
+                    )}
+                </MenuItemField.Content>
                 {(hasRenderableChildren(children) || !!onPress) && (
                     <MenuItemTrailing>
                         {children}

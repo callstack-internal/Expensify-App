@@ -9,6 +9,7 @@ import MenuItemTitle from '@components/MenuItem/leaves/content/MenuItemTitle';
 import MenuItemChevron from '@components/MenuItem/leaves/trailing/icons/MenuItemChevron';
 
 import useOnyx from '@hooks/useOnyx';
+import useRecordableAccessibilityLabel from '@hooks/useRecordableAccessibilityLabel';
 
 import type {ForwardedFSClassProps} from '@libs/Fullstory/types';
 import type {AvatarSource} from '@libs/UserAvatarUtils';
@@ -52,13 +53,16 @@ type MenuItemAvatarNavigationProps = WithRequiredSentryLabel &
  */
 function MenuItemAvatarNavigation({title, description, accountID, avatarSource, onPress, isDisabled = false, sentryLabel, testID, forwardedFSClass}: MenuItemAvatarNavigationProps) {
     const [session] = useOnyx(ONYXKEYS.SESSION, {selector: authTokenTypeSelector});
+    // The label is the person's name and email, so inside a masked container the row is named from its content instead
+    const accessibilityLabel = useRecordableAccessibilityLabel([title, description].join(', '));
+
     return (
         <MenuItemRoot
             onPress={callIfAuthenticated(onPress, session)}
             isDisabled={isDisabled}
             sentryLabel={sentryLabel}
             testID={testID}
-            accessibilityLabel={[title, description].join(', ')}
+            accessibilityLabel={accessibilityLabel}
             forwardedFSClass={forwardedFSClass}
         >
             <MenuItemRow>

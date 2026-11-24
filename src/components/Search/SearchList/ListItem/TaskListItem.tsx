@@ -1,3 +1,4 @@
+import FSClassView from '@components/FSClassView';
 import useIsSearchRowFocused from '@components/Search/hooks/useIsSearchRowFocused';
 import {useRowSelection} from '@components/Search/SearchSelectionProvider';
 import ListItemComposed from '@components/SelectionList/ListItemComposed';
@@ -19,7 +20,6 @@ import type {ReportAttributesDerivedValue} from '@src/types/onyx';
 import type {OnyxEntry} from 'react-native-onyx';
 
 import React from 'react';
-import {View} from 'react-native';
 
 import type {TaskListItemProps, TaskListItemType} from './types';
 
@@ -98,15 +98,15 @@ function TaskListItem<TItem extends ListItem>({
                 isLargeScreenWidth && isLastItem && [styles.tableBottomRadius, styles.overflowHidden],
             ]}
         >
-            <View
+            <FSClassView
                 style={listItemWrapperStyle}
-                fsClass={fsClass}
+                forwardedFSClass={fsClass}
             >
                 <TaskListItemRow
                     item={liveTaskItem}
                     showTooltip={showTooltip}
                 />
-            </View>
+            </FSClassView>
         </ListItemComposed>
     );
 }

@@ -2,6 +2,7 @@ import Button from '@components/Button';
 import ButtonDisabledWhenOffline from '@components/Button/composed/ButtonDisabledWhenOffline';
 import DotIndicatorMessage from '@components/DotIndicatorMessage';
 import FormAlertWrapper from '@components/FormAlertWrapper';
+import FSClassView from '@components/FSClassView';
 import MenuItem from '@components/MenuItem';
 import MenuItemAvatarNavigation from '@components/MenuItem/presets/MenuItemAvatarNavigation';
 import MenuItemField from '@components/MenuItem/presets/MenuItemField';
@@ -229,11 +230,11 @@ function ConfirmationStep({
             );
         }
         if ('kind' in row) {
-            // MenuItemAvatarNavigation takes no FullStory class, so the mask goes on a View around it
+            // MenuItemAvatarNavigation takes no FullStory class, so the mask goes on an FSClassView around it, which also keeps the row's name and email out of its label
             return (
-                <View
+                <FSClassView
                     key={row.id}
-                    fsClass={forwardedFSClass}
+                    forwardedFSClass={forwardedFSClass}
                 >
                     <MenuItemAvatarNavigation
                         sentryLabel={CONST.SENTRY_LABEL.CONFIRMATION_STEP.EDIT}
@@ -244,7 +245,7 @@ function ConfirmationStep({
                         avatarSource={row.avatarSource}
                         onPress={row.onPress}
                     />
-                </View>
+                </FSClassView>
             );
         }
         const {id, description, title, shouldShowRightIcon, onPress, interactive, disabled, brickRoadIndicator, errorText, testID, accessibilityLabel} = row;

@@ -8,7 +8,7 @@ import CONST from '@src/CONST';
 import type {ReactNode} from 'react';
 import type {StyleProp, ViewStyle} from 'react-native';
 
-import React from 'react';
+import React, {useId} from 'react';
 import {View} from 'react-native';
 
 import FormHelpMessage from './FormHelpMessage';
@@ -67,6 +67,9 @@ function RadioButtonWithLabel({
 }: RadioButtonWithLabelProps) {
     const styles = useThemeStyles();
     const defaultStyles = [styles.flexRow, styles.alignItemsCenter];
+    const labelID = useId();
+    // A masked option's text mustn't end up in the radio's label, so screen readers read it from the label text instead
+    const isMasked = forwardedFSClass === CONST.FULLSTORY.CLASS.MASK;
 
     if (!label && !labelElement) {
         throw new Error('Must provide at least label or labelComponent prop');
@@ -77,7 +80,9 @@ function RadioButtonWithLabel({
                 <RadioButton
                     isChecked={isChecked}
                     onPress={onPress}
-                    accessibilityLabel={getGroupItemAccessibilityLabel(accessibilityLabel ?? label, groupAccessibilityLabel)}
+                    accessibilityLabel={isMasked ? (groupAccessibilityLabel ?? '') : getGroupItemAccessibilityLabel(accessibilityLabel ?? label, groupAccessibilityLabel)}
+                    accessibilityLabelledBy={isMasked && !!label ? labelID : undefined}
+                    forwardedFSClass={forwardedFSClass}
                     hasError={hasError}
                 />
                 <PressableWithFeedback
@@ -94,6 +99,7 @@ function RadioButtonWithLabel({
                 >
                     {!!label && (
                         <Text
+                            nativeID={labelID}
                             style={[styles.mlHalf]}
                             fsClass={forwardedFSClass}
                         >

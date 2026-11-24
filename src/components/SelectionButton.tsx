@@ -3,6 +3,8 @@ import useStyleUtils from '@hooks/useStyleUtils';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 
+import type {FSClass} from '@libs/Fullstory/types';
+
 import variables from '@styles/variables';
 
 import CONST from '@src/CONST';
@@ -52,6 +54,12 @@ type BaseSelectionButtonProps = Partial<ChildrenProps> &
 
         accessibilityLabel: string;
         accessibilityHint?: string;
+
+        /** ID of the element that names the button, used instead of the label when the button is masked in FullStory */
+        accessibilityLabelledBy?: string;
+
+        /** FullStory class of the button */
+        forwardedFSClass?: FSClass;
 
         /** stop propagation of the mouse down event */
         shouldStopMouseDownPropagation?: boolean;
@@ -117,6 +125,8 @@ function SelectionButton({
     onPress,
     accessibilityLabel,
     accessibilityHint,
+    accessibilityLabelledBy,
+    forwardedFSClass,
     shouldStopMouseDownPropagation,
     shouldSelectOnPressEnter,
     wrapperStyle,
@@ -193,6 +203,8 @@ function SelectionButton({
             aria-checked={isIndeterminate ? 'mixed' : isChecked}
             accessibilityLabel={accessibilityLabel}
             accessibilityHint={accessibilityHint}
+            accessibilityLabelledBy={accessibilityLabelledBy}
+            forwardedFSClass={forwardedFSClass}
             accessible={accessible}
             pressDimmingValue={1}
             wrapperStyle={wrapperStyle}

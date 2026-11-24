@@ -2,6 +2,7 @@ import ImageView from '@components/ImageView';
 import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeedback';
 
 import useLocalize from '@hooks/useLocalize';
+import {useIsFSMasked} from '@hooks/useRecordableAccessibilityLabel';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import CONST from '@src/CONST';
@@ -20,6 +21,8 @@ type AttachmentViewImageProps = Pick<AttachmentViewProps, 'attachmentID' | 'isAu
 };
 
 function AttachmentViewImage({attachmentID, url, file, isAuthTokenRequired, loadComplete, onPress, onError, isImage}: AttachmentViewImageProps) {
+    // File names from a masked chat stay out of the label, which FullStory would record
+    const isFileNameMasked = useIsFSMasked();
     const {translate} = useLocalize();
     const styles = useThemeStyles();
     const children = (
@@ -38,7 +41,7 @@ function AttachmentViewImage({attachmentID, url, file, isAuthTokenRequired, load
             disabled={loadComplete}
             style={[styles.flex1, styles.flexRow, styles.alignSelfStretch]}
             accessibilityRole={CONST.ROLE.BUTTON}
-            accessibilityLabel={file?.name || translate('attachmentView.unknownFilename')}
+            accessibilityLabel={isFileNameMasked ? translate('common.attachment') : file?.name || translate('attachmentView.unknownFilename')}
             sentryLabel={CONST.SENTRY_LABEL.ATTACHMENT_CAROUSEL.ITEM}
         >
             {children}

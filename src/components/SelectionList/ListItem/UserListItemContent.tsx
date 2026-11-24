@@ -80,7 +80,8 @@ function UserListItemContent<TItem extends ListItem>({item, forwardedFSClass, ti
         );
     }
 
-    const baseAccessibilityLabel = getAccessibilityLabel(item);
+    // A masked subtitle can be a chat preview, which mustn't end up in the label
+    const baseAccessibilityLabel = forwardedFSClass === CONST.FULLSTORY.CLASS.MASK ? (item.text ?? '') : getAccessibilityLabel(item);
     const accessibilityLabel =
         shouldDisableAccessibleGrouping && item.isSelected !== undefined
             ? `${translate(item.isSelected ? 'common.deselect' : 'common.select')}, ${baseAccessibilityLabel}`

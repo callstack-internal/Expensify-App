@@ -12,6 +12,7 @@ import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import DomUtils from '@libs/DomUtils';
+import FS from '@libs/Fullstory';
 import ReportActionComposeFocusManager from '@libs/ReportActionComposeFocusManager';
 import type {OptionData} from '@libs/ReportUtils';
 import {startSpan} from '@libs/telemetry/activeSpans';
@@ -80,10 +81,12 @@ function Pressable({optionItem, isOptionFocused, selectedStyle, hoveredStyle, on
         accessibilityLabelForBadge = translate('common.pinned');
     }
 
+    // The preview is masked in FullStory for masked chats, but the row's label isn't, so the preview stays out of it there
+    const isPreviewMasked = FS.getChatFSClass(optionItem) === CONST.FULLSTORY.CLASS.MASK;
     const accessibilityLabel = [
         `${translate('accessibilityHints.navigatesToChat')} ${optionItem.text}`,
         optionItem.isUnread ? translate('common.unread') : '',
-        optionItem.alternateText ?? '',
+        isPreviewMasked ? '' : (optionItem.alternateText ?? ''),
         accessibilityLabelForBadge,
     ]
         .filter(Boolean)

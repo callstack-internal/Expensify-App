@@ -20,6 +20,7 @@ import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import useOriginalReportID from '@hooks/useOriginalReportID';
 import {usePersonalDetail} from '@hooks/usePersonalDetails';
+import {useIsFSMasked} from '@hooks/useRecordableAccessibilityLabel';
 import useReportTransactions from '@hooks/useReportTransactions';
 import useReportTransactionsCollection from '@hooks/useReportTransactionsCollection';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -255,6 +256,8 @@ function ReportActionItem({
     const shouldEditInComposer = useShouldEditInComposer();
     const theme = useTheme();
     const styles = useThemeStyles();
+    // The message label holds the whole message, so in a masked chat the message is named from its content instead
+    const isMessageMasked = useIsFSMasked();
     const StyleUtils = useStyleUtils();
     const [isContextMenuActive, setIsContextMenuActive] = useReportActionItemState(() => isActiveReportAction(action.reportActionID));
     const [isEmojiPickerActive, setIsEmojiPickerActive] = useReportActionItemState<boolean | undefined>(undefined);
@@ -554,7 +557,7 @@ function ReportActionItem({
     const plainMessage = isActionOfType(action, CONST.REPORT.ACTIONS.TYPE.AGENT_PROMPT_UPDATED)
         ? getAgentPromptUpdatedMessage(translate, action)
         : getPaymentMessageWithExpectedDate(translate, dateFnsLocale, getReportActionText(action), paymentExpectedDate);
-    const accessibilityLabel = `${actorDisplayName ?? ''}, ${formattedTimestamp}, ${plainMessage}`;
+    const accessibilityLabel = isMessageMasked ? '' : `${actorDisplayName ?? ''}, ${formattedTimestamp}, ${plainMessage}`;
 
     return (
         <ShowContextMenuStateContext.Provider value={contextMenuStateValue}>

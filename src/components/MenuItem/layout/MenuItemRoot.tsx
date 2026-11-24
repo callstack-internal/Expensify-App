@@ -8,6 +8,7 @@ import PressableWithSecondaryInteraction from '@components/PressableWithSecondar
 import type Text from '@components/Text';
 
 import useCopyableTextRowPress from '@hooks/useCopyableTextRowPress';
+import useRecordableAccessibilityLabel from '@hooks/useRecordableAccessibilityLabel';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -104,6 +105,9 @@ function MenuItemRoot({
     } = useCopyableTextRowPress({shouldTrackTouchStart: true});
 
     const {accessibilityLabel: rowAccessibilityLabel, accessibilityHint, fsClass: rowFSClass, registries: accessibilityRegistries} = useMenuItemAccessibility(accessibilityLabel);
+    const pressableFSClass = forwardedFSClass === CONST.FULLSTORY.CLASS.MASK ? forwardedFSClass : rowFSClass;
+    // The row label is built from its values, so a masked row is named from its content instead
+    const recordableAccessibilityLabel = useRecordableAccessibilityLabel(rowAccessibilityLabel, pressableFSClass);
     const {interaction: secondaryInteraction, register: registerSecondaryInteraction} = useMenuItemSecondaryInteractionRegistry();
     const registeredSecondaryInteraction = secondaryInteraction?.handler;
 
@@ -191,11 +195,11 @@ function MenuItemRoot({
                         disabled={isDisabled}
                         ref={mergeRefs<HTMLDivElement | ComponentRef<typeof View> | ComponentRef<typeof Text> | undefined>(pressableRef, ref)}
                         role={isInteractive ? CONST.ROLE.BUTTON : undefined}
-                        accessibilityLabel={rowAccessibilityLabel}
+                        accessibilityLabel={recordableAccessibilityLabel}
                         accessibilityHint={accessibilityHint}
                         accessibilityState={accessibilityState}
                         // Masked leaves report themselves after the first render, so a preset that names the row up front passes its mask here
-                        forwardedFSClass={forwardedFSClass === CONST.FULLSTORY.CLASS.MASK ? forwardedFSClass : rowFSClass}
+                        forwardedFSClass={pressableFSClass}
                         accessible={shouldBeAccessible}
                         tabIndex={isInteractive ? 0 : -1}
                         testID={testID}

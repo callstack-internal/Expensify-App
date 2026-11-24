@@ -10,6 +10,7 @@ import PressableWithoutFeedback from '@components/Pressable/PressableWithoutFeed
 import useClickZoomPan from '@hooks/useClickZoomPan';
 import useImageLoadStall from '@hooks/useImageLoadStall';
 import useNetwork from '@hooks/useNetwork';
+import {useIsFSMasked} from '@hooks/useRecordableAccessibilityLabel';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -38,6 +39,8 @@ function calculateZoomScale(containerSize: Dimensions, imageSize: Dimensions) {
 const LOADING_CONTEXT = {context: 'ImageView'};
 
 function ImageView({isAuthTokenRequired = false, url, fileName, onError}: ImageViewProps) {
+    // File names from a masked chat stay out of the label, which FullStory would record
+    const isFileNameMasked = useIsFSMasked();
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
     const {isOffline} = useNetwork();
@@ -153,7 +156,7 @@ function ImageView({isAuthTokenRequired = false, url, fileName, onError}: ImageV
                 onPressIn={onContainerPressIn}
                 onPress={onContainerPress}
                 role={CONST.ROLE.IMG}
-                accessibilityLabel={fileName}
+                accessibilityLabel={isFileNameMasked ? '' : fileName}
                 sentryLabel={CONST.SENTRY_LABEL.ATTACHMENT_MODAL.IMAGE_ZOOM}
             >
                 {/* eslint-disable-next-line react-native-a11y/has-valid-accessibility-ignores-invert-colors -- Custom Image wrapper does not support this prop. */}

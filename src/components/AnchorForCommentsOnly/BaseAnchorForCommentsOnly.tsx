@@ -2,6 +2,7 @@ import PressableWithSecondaryInteraction from '@components/PressableWithSecondar
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
 
+import {useIsFSMasked} from '@hooks/useRecordableAccessibilityLabel';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
@@ -66,6 +67,8 @@ function BaseAnchorForCommentsOnly({
     const isEmail = Str.isValidEmail(href.replaceAll(/mailto:/gi, ''));
     const linkHref = !linkHasImage ? href : undefined;
     const isFocused = useIsFocused();
+    // In a masked chat the URL stays out of the label and the tooltip, which renders outside the chat's mask
+    const isLinkMasked = useIsFSMasked();
 
     return (
         <PressableWithSecondaryInteraction
@@ -93,11 +96,11 @@ function BaseAnchorForCommentsOnly({
             onPressOut={onPressOut}
             role={linkProps.onPress || !isChildOfTaskTitle ? CONST.ROLE.LINK : undefined}
             tabIndex={-1}
-            accessibilityLabel={href}
+            accessibilityLabel={isLinkMasked ? '' : href}
             wrapperStyle={wrapperStyle}
         >
             <Tooltip
-                text={linkHref}
+                text={isLinkMasked ? undefined : linkHref}
                 isFocused={isFocused}
             >
                 <Text

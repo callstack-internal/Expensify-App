@@ -1,6 +1,6 @@
 import type Transaction from '@src/types/onyx/Transaction';
 
-import type {OnyxCollection} from 'react-native-onyx';
+import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 
 const validTransactionDraftsSelector = (drafts: OnyxCollection<Transaction>): Record<string, Transaction> =>
     Object.values(drafts ?? {}).reduce<Record<string, Transaction>>((acc, draft) => {
@@ -18,4 +18,10 @@ const validTransactionDraftIDsSelector = (drafts: OnyxCollection<Transaction>): 
         return acc;
     }, []);
 
-export {validTransactionDraftsSelector, validTransactionDraftIDsSelector};
+/** Picks the receipt of one draft expense. */
+const transactionDraftReceiptSelector = (draft: OnyxEntry<Transaction>) => draft?.receipt;
+
+/** Counts the draft expenses that carry a receipt, e.g. the photos of a rapid fire session. */
+const transactionDraftReceiptCountSelector = (drafts: OnyxCollection<Transaction>): number => Object.values(drafts ?? {}).filter((draft) => !!draft?.receipt?.source).length;
+
+export {validTransactionDraftsSelector, validTransactionDraftIDsSelector, transactionDraftReceiptCountSelector, transactionDraftReceiptSelector};

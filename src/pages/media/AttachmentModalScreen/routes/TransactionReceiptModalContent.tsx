@@ -4,6 +4,7 @@ import {ModalActions} from '@components/Modal/Global/ModalContext';
 import ReceiptCropView from '@components/ReceiptCropView';
 import type {CropRect} from '@components/ReceiptCropView';
 import ReceiptScanningLine from '@components/ReceiptScanningLine';
+import ReceiptPageNavigator from '@components/ReportActionItem/ReceiptPageNavigator';
 import ScrollView from '@components/ScrollView';
 import Text from '@components/Text';
 import TranslatedReceiptCard from '@components/TranslatedReceiptCard';
@@ -23,6 +24,7 @@ import useRestartOnOdometerImagesFailure from '@hooks/useRestartOnOdometerImages
 import useThemeStyles from '@hooks/useThemeStyles';
 
 import {detachReceipt, navigateToStartStepIfScanFileCannotBeRead, replaceReceipt, setMoneyRequestReceipt} from '@libs/actions/IOU/Receipt';
+import {deleteDraftReceiptPage, replaceDraftReceiptPage} from '@libs/actions/IOU/ReceiptPages';
 import {removeMoneyRequestOdometerImage, setMoneyRequestOdometerImage} from '@libs/actions/OdometerTransactionUtils';
 import {showOriginalReceipt} from '@libs/actions/ReceiptTranslation';
 import {openReport} from '@libs/actions/Report';
@@ -34,7 +36,7 @@ import getPlatform from '@libs/getPlatform';
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
 import Navigation from '@libs/Navigation/Navigation';
 import ReceiptStorage from '@libs/ReceiptStorage';
-import {getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
+import {getReceiptPages, getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
 import {resolveTransactionThreadReport, isTrackExpenseAction} from '@libs/ReportActionsUtils';
 import {canEditFieldOfMoneyRequest, isMoneyRequestReport, isTrackExpenseReport} from '@libs/ReportUtils';
 import {logReceiptAdoptFailed} from '@libs/telemetry/ReceiptObservability';
@@ -190,8 +192,15 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
         };
     }, [isOdometerImage, odometerImage]);
 
+    // A draft receipt taken over several photos is shown one page at a time, and Rotate and Crop edit that page
+    const receiptPages = isDraftTransaction && !isOdometerImage ? getReceiptPages(transactionDraft?.receipt) : [];
+    const isMultiPageDraftReceipt = receiptPages.length > 1;
+    const [selectedPageIndex, setSelectedPageIndex] = useState(0);
+    const pageIndex = Math.min(selectedPageIndex, Math.max(receiptPages.length - 1, 0));
+    const currentPage = isMultiPageDraftReceipt ? receiptPages.at(pageIndex) : undefined;
+
     // Use odometer image if imageType is provided (it's present only when we display odometer image) otherwise use receipt
-    const receiptSource = isDraftTransaction ? ReceiptStorage.resolve(transactionDraft?.receipt?.source) : tryResolveUrlFromApiRoot(receiptURIs.image ?? '');
+    const receiptSource = isDraftTransaction ? ReceiptStorage.resolve(currentPage?.source ?? transactionDraft?.receipt?.source) : tryResolveUrlFromApiRoot(receiptURIs.image ?? '');
     const source = isOdometerImage ? odometerImageSource : receiptSource;
     const [sourceUri, setSourceUri] = useState<ReceiptSource>('');
     const [loadedScanningImageUri, setLoadedScanningImageUri] = useState<string>();
@@ -218,10 +227,11 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
     const shouldShowDeleteReceiptButton = canDeleteReceipt && !readonly && !isDraftTransaction && !transaction?.receipt?.isTestDriveReceipt;
 
     const isEReceipt = transaction && !hasReceiptSource(transaction) && hasEReceipt(transaction);
-    const fileName = (isOdometerImage ? odometerFilename : receiptFilename) ?? '';
+    const displayedReceiptFilename = currentPage?.filename ?? receiptFilename;
+    const fileName = (isOdometerImage ? odometerFilename : displayedReceiptFilename) ?? '';
     const isImage = !!fileName && Str.isImage(fileName);
     const isPDF = !!fileName && Str.isPDF(fileName);
-    const fileType = isOdometerImage ? odometerFileType : (transaction?.receipt?.type ?? CONST.IMAGE_FILE_FORMAT.JPEG);
+    const fileType = isOdometerImage ? odometerFileType : (currentPage?.type ?? transaction?.receipt?.type ?? CONST.IMAGE_FILE_FORMAT.JPEG);
     const isTrackExpenseActionValue = isTrackExpenseAction(parentReportAction);
     const iouType = iouTypeParam ?? (isTrackExpenseActionValue ? CONST.IOU.TYPE.TRACK : CONST.IOU.TYPE.SUBMIT);
 
@@ -322,7 +332,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
     const shouldShowNotFoundPage =
         isTrackExpenseReportValue || isDraftTransaction || transaction?.reportID === CONST.REPORT.SPLIT_REPORT_ID || readonly ? !transaction : moneyRequestReportID !== transaction?.reportID;
 
-    let originalFileName = isDraftTransaction ? transaction?.receipt?.filename : receiptURIs?.filename;
+    let originalFileName = isDraftTransaction ? displayedReceiptFilename : receiptURIs?.filename;
     if (isOdometerImage) {
         originalFileName = odometerFile?.name;
     }
@@ -393,6 +403,8 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
                         : {...file, uri: durableUri, source: durableUri};
                 if (isOdometerImage) {
                     setMoneyRequestOdometerImage(transaction, imageType, durableFile, isDraftTransaction, !isEditingConfirmation);
+                } else if (isMultiPageDraftReceipt) {
+                    replaceDraftReceiptPage(transaction.transactionID, receiptPages, pageIndex, {source: durableUri, filename, type: fileType});
                 } else if (isDraftTransaction) {
                     setMoneyRequestReceipt(transaction.transactionID, durableUri, filename, isDraftTransaction, fileType);
                 } else {
@@ -439,7 +451,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
                 }
 
                 const file = rotatedImage;
-                const rotatedFilename = file.name ?? receiptFilename;
+                const rotatedFilename = file.name ?? displayedReceiptFilename;
 
                 return applyDurableReceipt(imageUriResult, rotatedFilename, file, true).then(() => {
                     setIsRotating(false);
@@ -510,7 +522,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
                 }
 
                 const file = croppedImage;
-                const croppedFilename = file.name ?? receiptFilename;
+                const croppedFilename = file.name ?? displayedReceiptFilename;
 
                 return applyDurableReceipt(imageUriResult, croppedFilename, file, true).then(() => {
                     setIsCropSaving(false);
@@ -530,6 +542,28 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
                 text: translate('common.download'),
                 onSelected: () => onDownloadAttachment({source: innerSource, file}),
                 sentryLabel: CONST.SENTRY_LABEL.RECEIPT_MODAL.DOWNLOAD_RECEIPT,
+            });
+        }
+
+        if (isMultiPageDraftReceipt) {
+            menuItems.push({
+                icon: expensifyIcons.Trashcan,
+                text: translate('receipt.deletePage'),
+                onSelected: async () => {
+                    const result = await showConfirmModal({
+                        title: translate('receipt.deletePage'),
+                        prompt: translate('receipt.deletePageConfirmation'),
+                        confirmText: translate('common.delete'),
+                        cancelText: translate('common.cancel'),
+                        buttonVariant: CONST.BUTTON_VARIANT.DANGER,
+                    });
+                    if (result.action !== ModalActions.CONFIRM || !transaction?.transactionID) {
+                        return;
+                    }
+                    deleteDraftReceiptPage(transaction.transactionID, receiptPages, pageIndex);
+                },
+                shouldCallAfterModalHide: true,
+                sentryLabel: CONST.SENTRY_LABEL.RECEIPT_MODAL.DELETE_PAGE,
             });
         }
 
@@ -626,84 +660,96 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
         footerActionButtons = null;
     } else {
         footerActionButtons = (
-            <ScrollView
-                style={styles.flexGrow0}
-                contentContainerStyle={[styles.flexGrow1, styles.flexRow, styles.gap2, styles.ph5, styles.pb5, styles.justifyContentCenter]}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-            >
-                {!!shouldShowRotateAndCropReceiptButton && (
-                    <Button
-                        sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.ROTATE}
-                        onPress={rotateReceipt}
-                        isLoading={isRotating}
-                        isDisabled={isRotating}
-                        style={styles.transactionReceiptButton}
-                    >
-                        <Button.Icon src={expensifyIcons.Rotate} />
-                        <Button.Text>{translate('common.rotate')}</Button.Text>
-                    </Button>
+            <>
+                {isMultiPageDraftReceipt && (
+                    <View style={styles.receiptPageNavigatorFooter}>
+                        <ReceiptPageNavigator
+                            page={pageIndex + 1}
+                            pageCount={receiptPages.length}
+                            isLoading={false}
+                            onChangePage={(page) => setSelectedPageIndex(page - 1)}
+                        />
+                    </View>
                 )}
-                {!!shouldShowRotateAndCropReceiptButton && (
-                    <Button
-                        sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.CROP}
-                        onPress={enterCropMode}
-                        style={styles.transactionReceiptButton}
-                    >
-                        <Button.Icon src={expensifyIcons.Crop} />
-                        <Button.Text>{translate('receipt.crop')}</Button.Text>
-                    </Button>
-                )}
-                {isPDF && !isNative && (
-                    <Button
-                        sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.ROTATE_PDF}
-                        onPress={() => setPdfRotation(getNextPdfRotation)}
-                        style={styles.transactionReceiptButton}
-                    >
-                        <Button.Icon src={expensifyIcons.Rotate} />
-                        <Button.Text>{translate('common.rotate')}</Button.Text>
-                    </Button>
-                )}
-                {shouldShowTranslateButton && (
-                    <Button
-                        onPress={startTranslation}
-                        isDisabled={isTranslateDisabled}
-                        style={styles.transactionReceiptButton}
-                        sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.TRANSLATE_RECEIPT}
-                    >
-                        <Button.Icon src={expensifyIcons.Translate} />
-                        <Button.Text>{translate('receipt.translate')}</Button.Text>
-                    </Button>
-                )}
-                {(shouldShowReplaceReceiptButton || isOdometerImage) && (
-                    <Button
-                        sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.REPLACE}
-                        onPress={() => {
-                            const getDestinationRoute = () => {
-                                return isOdometerImage
-                                    ? ROUTES.ODOMETER_IMAGE.getRoute(action ?? CONST.IOU.ACTION.CREATE, iouType, transactionID, reportID, imageType, isEditingConfirmation, backToReport)
-                                    : // `getDestinationRoute` runs after the modal is dismissed, so the base is the screen underneath it.
-                                      createDynamicRoute(
-                                          DYNAMIC_ROUTES.MONEY_REQUEST_STEP_SCAN.getRoute(
-                                              action ?? CONST.IOU.ACTION.EDIT,
-                                              iouType,
-                                              draftTransactionID ?? transaction?.transactionID,
-                                              report?.reportID,
-                                          ),
-                                      );
-                            };
-                            Navigation.dismissModal({
-                                afterTransition: () => Navigation.navigate(getDestinationRoute()),
-                            });
-                        }}
-                        style={styles.transactionReceiptButton}
-                    >
-                        <Button.Icon src={expensifyIcons.Camera} />
-                        <Button.Text>{translate('common.replace')}</Button.Text>
-                    </Button>
-                )}
-            </ScrollView>
+                <ScrollView
+                    style={styles.flexGrow0}
+                    contentContainerStyle={[styles.flexGrow1, styles.flexRow, styles.gap2, styles.ph5, styles.pb5, styles.justifyContentCenter]}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {!!shouldShowRotateAndCropReceiptButton && (
+                        <Button
+                            sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.ROTATE}
+                            onPress={rotateReceipt}
+                            isLoading={isRotating}
+                            isDisabled={isRotating}
+                            style={styles.transactionReceiptButton}
+                        >
+                            <Button.Icon src={expensifyIcons.Rotate} />
+                            <Button.Text>{translate('common.rotate')}</Button.Text>
+                        </Button>
+                    )}
+                    {!!shouldShowRotateAndCropReceiptButton && (
+                        <Button
+                            sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.CROP}
+                            onPress={enterCropMode}
+                            style={styles.transactionReceiptButton}
+                        >
+                            <Button.Icon src={expensifyIcons.Crop} />
+                            <Button.Text>{translate('receipt.crop')}</Button.Text>
+                        </Button>
+                    )}
+                    {isPDF && !isNative && (
+                        <Button
+                            sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.ROTATE_PDF}
+                            onPress={() => setPdfRotation(getNextPdfRotation)}
+                            style={styles.transactionReceiptButton}
+                        >
+                            <Button.Icon src={expensifyIcons.Rotate} />
+                            <Button.Text>{translate('common.rotate')}</Button.Text>
+                        </Button>
+                    )}
+                    {shouldShowTranslateButton && (
+                        <Button
+                            onPress={startTranslation}
+                            isDisabled={isTranslateDisabled}
+                            style={styles.transactionReceiptButton}
+                            sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.TRANSLATE_RECEIPT}
+                        >
+                            <Button.Icon src={expensifyIcons.Translate} />
+                            <Button.Text>{translate('receipt.translate')}</Button.Text>
+                        </Button>
+                    )}
+                    {(shouldShowReplaceReceiptButton || isOdometerImage) && (
+                        <Button
+                            sentryLabel={CONST.SENTRY_LABEL.RECEIPT_MODAL.REPLACE}
+                            onPress={() => {
+                                const getDestinationRoute = () => {
+                                    return isOdometerImage
+                                        ? ROUTES.ODOMETER_IMAGE.getRoute(action ?? CONST.IOU.ACTION.CREATE, iouType, transactionID, reportID, imageType, isEditingConfirmation, backToReport)
+                                        : // `getDestinationRoute` runs after the modal is dismissed, so the base is the screen underneath it.
+                                          createDynamicRoute(
+                                              DYNAMIC_ROUTES.MONEY_REQUEST_STEP_SCAN.getRoute(
+                                                  action ?? CONST.IOU.ACTION.EDIT,
+                                                  iouType,
+                                                  draftTransactionID ?? transaction?.transactionID,
+                                                  report?.reportID,
+                                              ),
+                                          );
+                                };
+                                Navigation.dismissModal({
+                                    afterTransition: () => Navigation.navigate(getDestinationRoute()),
+                                });
+                            }}
+                            style={styles.transactionReceiptButton}
+                        >
+                            <Button.Icon src={expensifyIcons.Camera} />
+                            <Button.Text>{translate('common.replace')}</Button.Text>
+                        </Button>
+                    )}
+                </ScrollView>
+            </>
         );
     }
 

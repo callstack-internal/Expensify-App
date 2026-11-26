@@ -459,6 +459,10 @@ type MoneyRequestNavigatorParamList = {
     [SCREENS.MONEY_REQUEST.DYNAMIC_RECEIPT_VIEW]: {
         transactionID: string;
     };
+    [SCREENS.MONEY_REQUEST.DYNAMIC_ADD_RECEIPT_PAGE]: {
+        /** ID of the draft transaction whose receipt gets more pages */
+        transactionID: string;
+    };
     [SCREENS.MONEY_REQUEST.DYNAMIC_HOLD_REASON]: {
         /** ID of the transaction the page was opened for */
         transactionID: string;

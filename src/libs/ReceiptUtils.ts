@@ -2,7 +2,7 @@ import CONFIG from '@src/CONFIG';
 import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
 import type {ShareTempFile, Transaction} from '@src/types/onyx';
-import type {ReceiptError, ReceiptSource} from '@src/types/onyx/Transaction';
+import type {Receipt, ReceiptError, ReceiptPage, ReceiptSource} from '@src/types/onyx/Transaction';
 
 import type {OnyxEntry} from 'react-native-onyx';
 
@@ -102,5 +102,33 @@ const shouldValidateFile = (file: ShareTempFile | undefined) => {
     return file?.mimeType === CONST.SHARE_FILE_MIMETYPE.HEIC || file?.mimeType === CONST.SHARE_FILE_MIMETYPE.HEIF || file?.mimeType === CONST.SHARE_FILE_MIMETYPE.IMG;
 };
 
-export {getThumbnailAndImageURIs, shouldValidateFile, constructReceiptSourceFromFilename};
+/**
+ * Returns the photos of a receipt in page order. A one-photo receipt is its only page, and a receipt without a local
+ * or remote path has none.
+ */
+function getReceiptPages(receipt: OnyxEntry<Receipt>): ReceiptPage[] {
+    if (receipt?.pages?.length) {
+        return receipt.pages;
+    }
+    if (typeof receipt?.source !== 'string' || !receipt.source) {
+        return [];
+    }
+    return [
+        {
+            source: receipt.source,
+            filename: receipt.filename ?? '',
+            type: receipt.type ?? '',
+        },
+    ];
+}
+
+/**
+ * Whether the confirmation page can offer to add another page to a draft receipt. Only a photo from the in-app camera
+ * can grow, and only when it is the one receipt in the flow, since rapid fire turns every photo into its own expense.
+ */
+function canAddReceiptPage(receipt: OnyxEntry<Receipt>, draftReceiptCount: number): boolean {
+    return !!receipt?.cameraMode && draftReceiptCount <= 1 && getReceiptPages(receipt).length < CONST.RECEIPT.MAX_PAGES;
+}
+
+export {getThumbnailAndImageURIs, shouldValidateFile, constructReceiptSourceFromFilename, getReceiptPages, canAddReceiptPage};
 export type {ThumbnailAndImageURI};

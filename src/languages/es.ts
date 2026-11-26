@@ -1499,6 +1499,10 @@ const translations: TranslationDeepObject<typeof en> = {
         scanFailed: 'El recibo no pudo ser escaneado, ya que falta el comerciante, la fecha o el importe.',
         crop: 'Recortar',
         pageCount: ({page, pageCount}: {page: number; pageCount: number}) => `Página ${page} de ${pageCount}`,
+        addPage: 'Añadir página',
+        addPageHint: 'Empieza donde terminó la última foto, solapando un poco.',
+        deletePage: 'Eliminar página',
+        deletePageConfirmation: '¿Estás seguro de que quieres borrar esta página?',
         addAReceipt: {
             phrase1: 'Añade un recibo',
             phrase2: 'o arrastra y suelta uno aquí',

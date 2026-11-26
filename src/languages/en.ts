@@ -1660,6 +1660,10 @@ const translations = {
             generic: "We couldn't translate this receipt. Please try again.",
         },
         pageCount: ({page, pageCount}: {page: number; pageCount: number}) => `Page ${page} of ${pageCount}`,
+        addPage: 'Add page',
+        addPageHint: 'Start where the last photo ended, with a little overlap.',
+        deletePage: 'Delete page',
+        deletePageConfirmation: 'Are you sure you want to delete this page?',
         addAReceipt: {
             phrase1: 'Add a receipt',
             phrase2: 'or drag and drop one here',

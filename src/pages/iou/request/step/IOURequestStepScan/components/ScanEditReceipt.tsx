@@ -19,6 +19,7 @@ import getFileSource from '@pages/iou/request/step/IOURequestStepScan/utils/getF
 import StepScreenDragAndDropWrapper from '@pages/iou/request/step/StepScreenDragAndDropWrapper';
 
 import {replaceReceipt, setMoneyRequestReceipt} from '@userActions/IOU/Receipt';
+import {setDraftReceiptCameraMode} from '@userActions/IOU/ReceiptPages';
 
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
@@ -26,6 +27,7 @@ import ONYXKEYS from '@src/ONYXKEYS';
 import type {Route} from '@src/ROUTES';
 import ROUTES from '@src/ROUTES';
 import type {Report} from '@src/types/onyx';
+import type {ReceiptCameraMode} from '@src/types/onyx/Transaction';
 import type {FileObject} from '@src/types/utils/Attachment';
 
 import type {OnyxEntry} from 'react-native-onyx';
@@ -80,7 +82,7 @@ function ScanEditReceipt({report, transactionID, backTo, isEditing}: ScanEditRec
         }
     };
 
-    const handleCapture = (file: FileObject, source: string) => {
+    const handleCapture = (file: FileObject, source: string, cameraMode?: ReceiptCameraMode) => {
         cancelSpan(CONST.TELEMETRY.SPAN_RECEIPT_PREPARE);
         if (isEditing) {
             setMoneyRequestReceipt(transactionID, source, file.name ?? '', false, file.type);
@@ -100,6 +102,9 @@ function ScanEditReceipt({report, transactionID, backTo, isEditing}: ScanEditRec
             });
         } else {
             setMoneyRequestReceipt(transactionID, source, file.name ?? '', true, file.type);
+            if (cameraMode) {
+                setDraftReceiptCameraMode(transactionID, cameraMode);
+            }
         }
         navigateBack();
     };

@@ -56,6 +56,9 @@ type ScannerControlsBarProps = {
     /** Triggers photo capture from the camera */
     capturePhoto: () => void;
 
+    /** Whether the shutter is off, e.g. because the receipt can't take another page */
+    isShutterDisabled?: boolean;
+
     /** Toggles multi-scan mode on or off */
     toggleMultiScan?: () => void;
 
@@ -84,6 +87,7 @@ function ScannerControlsBar({
     onAttachmentPickerStatusChange,
     onPicked,
     capturePhoto,
+    isShutterDisabled = false,
     toggleMultiScan,
     isReceiptEnhancementEnabled = false,
     toggleReceiptEnhancement,
@@ -137,6 +141,10 @@ function ScannerControlsBar({
                         accessibilityLabel={translate('receipt.gallery')}
                         sentryLabel={gallerySentryLabel ?? (shouldAcceptMultipleFiles ? CONST.SENTRY_LABEL.REQUEST_STEP.SCAN.CHOOSE_FILES : CONST.SENTRY_LABEL.REQUEST_STEP.SCAN.CHOOSE_FILE)}
                         style={[styles.alignItemsStart, isMultiScanEnabled && styles.opacity0]}
+                        // Hidden in multi-scan, so it must not open the picker either
+                        disabled={isMultiScanEnabled}
+                        accessible={!isMultiScanEnabled}
+                        aria-hidden={isMultiScanEnabled}
                         onPress={() =>
                             openPicker({
                                 onPicked,
@@ -162,7 +170,8 @@ function ScannerControlsBar({
                 role={CONST.ROLE.BUTTON}
                 accessibilityLabel={translate('receipt.shutter')}
                 sentryLabel={shutterSentryLabel}
-                style={[styles.alignItemsCenter]}
+                style={[styles.alignItemsCenter, isShutterDisabled && styles.opacitySemiTransparent]}
+                disabled={isShutterDisabled}
                 onPress={capturePhoto}
             >
                 <ImageSVG

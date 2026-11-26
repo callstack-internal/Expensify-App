@@ -25,6 +25,16 @@ jest.mock('@components/PDFThumbnail', () => {
     };
 });
 
+// Capture the image's load callback so the test can simulate a photo receipt finishing its load.
+let latestReceiptImageOnLoad: (() => void) | undefined;
+jest.mock('@components/ReceiptImage', () => {
+    const RN = jest.requireActual<Record<string, React.ComponentType<{testID?: string}>>>('react-native');
+    return ({onLoad}: {onLoad?: () => void}) => {
+        latestReceiptImageOnLoad = onLoad;
+        return <RN.View testID="receipt-image" />;
+    };
+});
+
 jest.mock('@components/Badge', () => {
     const RN = jest.requireActual<Record<string, React.ComponentType<{testID?: string; children?: React.ReactNode}>>>('react-native');
     return ({text}: {text: string}) => <RN.Text testID="receipt-page-count-badge">{text}</RN.Text>;
@@ -86,6 +96,41 @@ function loadPDF(pageCount?: number) {
 describe('ConfirmationReceiptThumbnail', () => {
     beforeEach(() => {
         latestPDFThumbnailProps = undefined;
+        latestReceiptImageOnLoad = undefined;
+    });
+
+    it('shows the page count badge for a receipt taken over several photos', () => {
+        // Given a photo receipt that has 3 pages, which has no PDF to read a count from
+        renderThumbnail({
+            fileExtension: 'jpg',
+            receiptFilename: 'receipt.jpg',
+            resolvedReceiptImage: 'file:///receipt.jpg',
+            effectiveReceiptSource: 'file:///receipt.jpg',
+            receiptPhotoPageCount: 3,
+        });
+
+        // When page 1 finishes loading
+        act(() => latestReceiptImageOnLoad?.());
+
+        // Then the badge counts the photos, like it does for a multi-page PDF
+        expect(screen.getByTestId('receipt-page-count-badge')).toHaveTextContent('receipt.pageCount:3');
+    });
+
+    it('shows no page count badge for a one-photo receipt', () => {
+        // Given a photo receipt with a single page
+        renderThumbnail({
+            fileExtension: 'jpg',
+            receiptFilename: 'receipt.jpg',
+            resolvedReceiptImage: 'file:///receipt.jpg',
+            effectiveReceiptSource: 'file:///receipt.jpg',
+            receiptPhotoPageCount: 0,
+        });
+
+        // When it finishes loading
+        act(() => latestReceiptImageOnLoad?.());
+
+        // Then there are no other pages to point at
+        expect(screen.queryByTestId('receipt-page-count-badge')).toBeNull();
     });
 
     it('shows the page count badge for a local multi-page PDF that has no server page count yet', () => {

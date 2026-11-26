@@ -460,6 +460,7 @@ const SENTRY_LABEL = {
     RECEIPT_MODAL: {
         DOWNLOAD_RECEIPT: 'ReceiptModal-DownloadReceipt',
         DELETE_RECEIPT: 'ReceiptModal-DeleteReceipt',
+        DELETE_PAGE: 'ReceiptModal-DeletePage',
         TRANSLATE_RECEIPT: 'ReceiptModal-TranslateReceipt',
         VIEW_ORIGINAL_RECEIPT: 'ReceiptModal-ViewOriginalReceipt',
         CROP: 'ReceiptModal-Crop',
@@ -1292,6 +1293,7 @@ const SENTRY_LABEL = {
         RESET_SPLIT_SHARES: 'RequestConfirmationList-ResetSplitShares',
         RECEIPT_THUMBNAIL: 'RequestConfirmationList-ReceiptThumbnail',
         PDF_RECEIPT_THUMBNAIL: 'RequestConfirmationList-PDFReceiptThumbnail',
+        ADD_RECEIPT_PAGE: 'RequestConfirmationList-AddReceiptPage',
         AMOUNT_FIELD: 'RequestConfirmationList-AmountField',
         DESCRIPTION_FIELD: 'RequestConfirmationList-DescriptionField',
         DISTANCE_FIELD: 'RequestConfirmationList-DistanceField',
@@ -1722,6 +1724,7 @@ const SENTRY_LABEL = {
         RECEIPT_DELETE_BUTTON: 'IOURequestStep-ReceiptDeleteButton',
         RECEIPT_PREVIEW_ITEM: 'IOURequestStep-ReceiptPreviewItem',
         RECEIPT_PREVIEW_SUBMIT_BUTTON: 'IOURequestStep-ReceiptPreviewSubmitButton',
+        RECEIPT_PAGES_SUBMIT_BUTTON: 'IOURequestStep-ReceiptPagesSubmitButton',
         EDIT_REPORT_CREATE_REPORT: 'IOURequestStep-EditReportCreateReport',
         EDIT_REPORT_AUTO_REPORT: 'IOURequestStep-EditReportAutoReport',
         EDIT_REPORT_REMOVE_FROM_REPORT: 'IOURequestStep-EditReportRemoveFromReport',

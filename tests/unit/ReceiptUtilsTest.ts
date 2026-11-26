@@ -1,4 +1,4 @@
-import {constructReceiptSourceFromFilename, getThumbnailAndImageURIs, shouldValidateFile} from '@libs/ReceiptUtils';
+import {canAddReceiptPage, constructReceiptSourceFromFilename, getReceiptPages, getThumbnailAndImageURIs, shouldValidateFile} from '@libs/ReceiptUtils';
 
 import CONST from '@src/CONST';
 import type {Transaction} from '@src/types/onyx';
@@ -75,5 +75,65 @@ describe('ReceiptUtils', () => {
             // Then it is not validated, so the JPEG is used as is
             expect(result).toBe(false);
         });
+    });
+});
+
+describe('getReceiptPages', () => {
+    it('treats a one-photo receipt as its only page', () => {
+        // Given a receipt with a single photo and no page list
+        const receipt: Receipt = {source: 'file:///receipts/a.jpg', filename: 'a.jpg', type: 'image/jpeg'};
+
+        // When its pages are read
+        const pages = getReceiptPages(receipt);
+
+        // Then the photo is page 1, so the viewer and badge can treat every receipt the same way
+        expect(pages).toEqual([{source: 'file:///receipts/a.jpg', filename: 'a.jpg', type: 'image/jpeg'}]);
+    });
+
+    it('returns no pages for a receipt without a path', () => {
+        // Given a receipt that has no file yet
+        const receipt: Receipt = {};
+
+        // When its pages are read
+        const pages = getReceiptPages(receipt);
+
+        // Then there is nothing to page through
+        expect(pages).toEqual([]);
+    });
+});
+
+describe('canAddReceiptPage', () => {
+    const cameraReceipt: Receipt = {source: 'file:///receipts/a.jpg', filename: 'a.jpg', cameraMode: CONST.RECEIPT.CAMERA_MODE.MANUAL};
+
+    it('allows more pages for a single in-app camera photo', () => {
+        // Given the only receipt in the flow, taken in the in-app camera
+        // When the confirmation page asks whether it can get another page
+        // Then it can
+        expect(canAddReceiptPage(cameraReceipt, 1)).toBe(true);
+    });
+
+    it('does not allow more pages for a file picked from the gallery', () => {
+        // Given a receipt picked from files, which has no camera mode
+        const pickedReceipt: Receipt = {source: 'file:///receipts/a.jpg', filename: 'a.jpg'};
+
+        // When the confirmation page asks whether it can get another page
+        // Then it can't, because pages come from the camera only
+        expect(canAddReceiptPage(pickedReceipt, 1)).toBe(false);
+    });
+
+    it('does not allow more pages after a rapid fire session with several receipts', () => {
+        // Given two receipts taken in rapid fire, where each photo is its own expense
+        // When the confirmation page asks whether one of them can get another page
+        // Then it can't, so photos keep becoming separate expenses
+        expect(canAddReceiptPage(cameraReceipt, 2)).toBe(false);
+    });
+
+    it('stops at the page limit', () => {
+        // Given a receipt that already has the most pages a receipt can have
+        const pages = Array.from({length: CONST.RECEIPT.MAX_PAGES}, (_, index) => ({source: `file:///receipts/${index}.jpg`, filename: `${index}.jpg`, type: 'image/jpeg'}));
+
+        // When the confirmation page asks whether it can get another page
+        // Then it can't, so the Add page button is hidden
+        expect(canAddReceiptPage({...cameraReceipt, pages}, 1)).toBe(false);
     });
 });

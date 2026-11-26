@@ -24,6 +24,7 @@ import captureReceipt, {shouldTakePhoto} from '@pages/iou/request/step/IOUReques
 import CameraPermissionPrompt from '@pages/iou/request/step/IOURequestStepScan/components/CameraPermissionPrompt';
 import CameraViewport from '@pages/iou/request/step/IOURequestStepScan/components/CameraViewport';
 import {useMultiScanActions, useMultiScanState} from '@pages/iou/request/step/IOURequestStepScan/components/MultiScanContext';
+import {useReceiptPageCapture} from '@pages/iou/request/step/IOURequestStepScan/components/ReceiptPageCaptureContext';
 import ReceiptPreviews from '@pages/iou/request/step/IOURequestStepScan/components/ReceiptPreviews';
 import ScannerControlsBar from '@pages/iou/request/step/IOURequestStepScan/components/ScannerControlsBar';
 import DocumentDetection from '@pages/iou/request/step/IOURequestStepScan/documentDetection/DocumentDetection';
@@ -63,6 +64,9 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
     const isInLandscapeMode = useIsInLandscapeMode();
     const {isMultiScanEnabled, canUseMultiScan} = useMultiScanState();
     const {toggleMultiScan} = useMultiScanActions();
+    const pageCapture = useReceiptPageCapture();
+    // Adding pages to a receipt keeps the shutter armed between photos like rapid fire, and hides the same controls.
+    const isContinuousCapture = isMultiScanEnabled || !!pageCapture;
     const navigation = useNavigation();
     const {isBetaEnabled} = usePermissions();
 
@@ -99,7 +103,8 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
     const canUseReceiptEnhancement = isDocumentDetectionSupported() && isBetaEnabled(CONST.BETAS.RECEIPT_ENHANCEMENT);
     const [isReceiptEnhancementEnabled = false] = useOnyx(ONYXKEYS.IS_RECEIPT_ENHANCEMENT_ENABLED);
     const [isReceiptEnhancementToastVisible, setIsReceiptEnhancementToastVisible] = useState(false);
-    const shouldDetectDocument = canUseReceiptEnhancement && isReceiptEnhancementEnabled && !isMultiScanEnabled;
+    const isEnhancementModeOn = pageCapture ? pageCapture.cameraMode === CONST.RECEIPT.CAMERA_MODE.ENHANCEMENT : isReceiptEnhancementEnabled && !isMultiScanEnabled;
+    const shouldDetectDocument = canUseReceiptEnhancement && isEnhancementModeOn;
 
     const toggleReceiptEnhancement = () => {
         setIsReceiptEnhancementEnabled(!isReceiptEnhancementEnabled);
@@ -186,7 +191,7 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
     const {hasPendingPhotoCapture, startPhotoCapture, upgradeReceiptWithPhoto, discardPendingPhoto} = usePhotoUpgrade();
 
     const maybeCancelShutterSpan = () => {
-        if (isMultiScanEnabled) {
+        if (isContinuousCapture) {
             return;
         }
 
@@ -207,7 +212,7 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
             [CONST.TELEMETRY.ATTRIBUTE_FLASH_USED]: flash && hasFlash,
         };
 
-        if (!isMultiScanEnabled) {
+        if (!isContinuousCapture) {
             const msSinceNativeAppStart = getMsSinceNativeAppStart();
             const msSinceJsStartup = getMsSinceJsStartup();
             startSpan(CONST.TELEMETRY.SPAN_SHUTTER_TO_CONFIRMATION, {
@@ -238,7 +243,7 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
             return;
         }
 
-        if (isCapturingPhoto.current) {
+        if (isCapturingPhoto.current || pageCapture?.isFull) {
             maybeCancelShutterSpan();
             return;
         }
@@ -264,7 +269,7 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
             showBlink();
         }
 
-        const shouldUpgradeToPhoto = canUpgradeReceiptQuality && !isMultiScanEnabled && !isPhotoCapture;
+        const shouldUpgradeToPhoto = canUpgradeReceiptQuality && !isContinuousCapture && !isPhotoCapture;
 
         // The snapshot goes first so its request reaches the native queue ahead of the still.
         captureReceipt(camera.current, photoOutput, {flash, hasFlash, isPlatformMuted, isInLandscapeMode, isTorchOn, path: getReceiptsUploadFolderPath(), onWillCapturePhoto: showBlink})
@@ -275,13 +280,13 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
                     [CONST.TELEMETRY.ATTRIBUTE_CAPTURE_DURATION_MS]: photo.captureDurationMs,
                     [CONST.TELEMETRY.ATTRIBUTE_SAVE_DURATION_MS]: photo.saveDurationMs,
                 });
-                if (!isMultiScanEnabled) {
+                if (!isContinuousCapture) {
                     startReceiptPrepareSpan(CONST.TELEMETRY.SPAN_PLATFORM.NATIVE);
                 }
                 return ReceiptStorage.adopt(photo.path);
             })
             .then((durableName) => {
-                if (isMultiScanEnabled) {
+                if (isContinuousCapture) {
                     isCapturingPhoto.current = false;
                 } else {
                     setDidCapturePhoto(true);
@@ -298,7 +303,7 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
                     upgradeReceiptWithPhoto(durableName);
                 }
 
-                onCapture(cameraFile, source);
+                onCapture(cameraFile, source, shouldDetectDocument ? CONST.RECEIPT.CAMERA_MODE.ENHANCEMENT : CONST.RECEIPT.CAMERA_MODE.MANUAL);
             })
             .catch((error: unknown) => {
                 isCapturingPhoto.current = false;
@@ -368,7 +373,7 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
                                 onStarted={relightTorchAfterRestart}
                                 onSessionConfigSelected={handleSessionConfigSelected}
                                 // With receipt enhancement, the controls bar shows flash next to the shutter, so the viewport doesn't show it too.
-                                shouldShowFlashButton={canUseMultiScan && !canUseReceiptEnhancement}
+                                shouldShowFlashButton={!!pageCapture || (canUseMultiScan && !canUseReceiptEnhancement)}
                                 cameraPermissionStatus={cameraPermissionStatus}
                                 flash={flash}
                                 hasFlash={hasFlash}
@@ -391,25 +396,28 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
 
                     <ScannerControlsBar
                         isInLandscapeMode={isInLandscapeMode}
-                        isMultiScanEnabled={isMultiScanEnabled}
+                        isMultiScanEnabled={isContinuousCapture}
                         canUseMultiScan={canUseMultiScan}
                         shouldAcceptMultipleFiles={shouldAcceptMultipleFiles}
                         cameraPermissionStatus={cameraPermissionStatus}
                         flash={flash}
                         hasFlash={hasFlash}
-                        setFlash={setFlash}
+                        // Page capture keeps flash on the viewport, so the shutter is the only control under it.
+                        setFlash={pageCapture ? undefined : setFlash}
+                        isShutterDisabled={!!pageCapture?.isFull}
                         setIsAttachmentPickerActive={setIsAttachmentPickerActiveAndHideToast}
                         onAttachmentPickerStatusChange={onAttachmentPickerStatusChange}
                         onPicked={onPicked}
                         capturePhoto={capturePhoto}
                         toggleMultiScan={toggleMultiScanAndHideToast}
                         isReceiptEnhancementEnabled={isReceiptEnhancementEnabled}
-                        toggleReceiptEnhancement={canUseReceiptEnhancement ? toggleReceiptEnhancement : undefined}
+                        // A receipt's later pages keep the mode its first page was taken in.
+                        toggleReceiptEnhancement={canUseReceiptEnhancement && !pageCapture ? toggleReceiptEnhancement : undefined}
                     />
 
-                    {canUseMultiScan && !!onMultiScanSubmit && isInLandscapeMode && (
+                    {(canUseMultiScan || !!pageCapture) && !!onMultiScanSubmit && isInLandscapeMode && (
                         <ReceiptPreviews
-                            isMultiScanEnabled={isMultiScanEnabled}
+                            isMultiScanEnabled={isContinuousCapture}
                             submit={onMultiScanSubmit}
                             isCapturingPhoto={didCapturePhoto}
                             isInLandscapeMode
@@ -417,9 +425,9 @@ function Camera({onCapture, onPicked, shouldAcceptMultipleFiles = false, onLayou
                     )}
                 </View>
 
-                {canUseMultiScan && !!onMultiScanSubmit && !isInLandscapeMode && (
+                {(canUseMultiScan || !!pageCapture) && !!onMultiScanSubmit && !isInLandscapeMode && (
                     <ReceiptPreviews
-                        isMultiScanEnabled={isMultiScanEnabled}
+                        isMultiScanEnabled={isContinuousCapture}
                         submit={onMultiScanSubmit}
                         isCapturingPhoto={didCapturePhoto}
                     />

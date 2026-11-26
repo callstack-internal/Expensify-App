@@ -913,6 +913,8 @@ function validateReportActionDraftProperty(key: keyof ReportAction, value: strin
                 hotelReservationStartDate: 'string',
                 hotelReservationEndDate: 'string',
                 pageCount: 'number',
+                pages: 'array',
+                cameraMode: CONST.RECEIPT.CAMERA_MODE,
             });
         case 'childRecentReceiptTransactionIDs':
             return validateObject<ObjectElement<ReportAction, 'childRecentReceiptTransactionIDs'>>(value, {}, 'string');
@@ -1299,6 +1301,8 @@ function validateTransactionDraftProperty(key: keyof Transaction, value: string)
                 hotelReservationStartDate: 'string',
                 hotelReservationEndDate: 'string',
                 pageCount: 'number',
+                pages: 'array',
+                cameraMode: CONST.RECEIPT.CAMERA_MODE,
             });
         case 'taxRate':
             return validateObject<ObjectElement<Transaction, 'taxRate'>>(value, {

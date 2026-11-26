@@ -249,6 +249,7 @@ const MoneyRequestModalStackNavigator = createModalStackNavigator<MoneyRequestNa
     [SCREENS.MONEY_REQUEST.DYNAMIC_STEP_TIME_EDIT]: () => require<ReactComponentModule>('../../../../pages/iou/request/step/DynamicIOURequestStepTime').default,
     [SCREENS.MONEY_REQUEST.DYNAMIC_STEP_SUBRATE_EDIT]: () => require<ReactComponentModule>('../../../../pages/iou/request/step/DynamicIOURequestStepSubrate').default,
     [SCREENS.MONEY_REQUEST.DYNAMIC_RECEIPT_VIEW]: () => require<ReactComponentModule>('../../../../pages/iou/request/step/IOURequestStepScan/DynamicReceiptView').default,
+    [SCREENS.MONEY_REQUEST.DYNAMIC_ADD_RECEIPT_PAGE]: () => require<ReactComponentModule>('../../../../pages/iou/request/step/IOURequestStepScan/AddReceiptPage').default,
     [SCREENS.MONEY_REQUEST.DYNAMIC_SPLIT_EXPENSE]: () => require<ReactComponentModule>('../../../../pages/iou/DynamicSplitExpensePage').default,
     [SCREENS.MONEY_REQUEST.DYNAMIC_SPLIT_EXPENSE_SEARCH]: () => require<ReactComponentModule>('../../../../pages/iou/DynamicSplitExpensePage').default,
     [SCREENS.MONEY_REQUEST.DYNAMIC_SPLIT_EXPENSE_CREATE_DATE_RANGE]: () => require<ReactComponentModule>('../../../../pages/iou/DynamicSplitExpenseCreateDateRangePage').default,

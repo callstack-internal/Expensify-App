@@ -4359,6 +4359,19 @@ const staticStyles = (theme: ThemeColors) =>
             marginLeft: 0,
         },
 
+        // Holds the absolutely placed page navigator in its own row above the receipt viewer's buttons.
+        receiptPageNavigatorFooter: {
+            height: variables.componentSizeSmall + RECEIPT_PAGE_BADGE_POSITION.bottom,
+            marginHorizontal: 8,
+        },
+
+        // Sits in the opposite corner from the page badge, at the same inset.
+        receiptAddPageButton: {
+            position: 'absolute',
+            bottom: RECEIPT_PAGE_BADGE_POSITION.bottom,
+            right: RECEIPT_PAGE_BADGE_POSITION.left,
+        },
+
         // The pill grows with its label, so longer translations are never clipped and the buttons' focus outlines stay visible.
         receiptPageNavigator: {
             ...RECEIPT_PAGE_BADGE_POSITION,

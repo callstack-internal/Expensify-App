@@ -381,6 +381,7 @@ const SCREENS = {
         DYNAMIC_STEP_TAX_RATE: 'Dynamic_Money_Request_Step_Tax_Rate',
         STEP_VENDOR: 'Money_Request_Step_Vendor',
         DYNAMIC_RECEIPT_VIEW: 'Dynamic_Money_Request_Receipt_View',
+        DYNAMIC_ADD_RECEIPT_PAGE: 'Dynamic_Money_Request_Add_Receipt_Page',
         DYNAMIC_STEP_SEND_FROM: 'Dynamic_Money_Request_Step_Send_From',
         DYNAMIC_STEP_COMPANY_INFO: 'Dynamic_Money_Request_Step_Company_Info',
         CURRENCY: 'Money_Request_Currency',

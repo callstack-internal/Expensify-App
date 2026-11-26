@@ -1631,6 +1631,7 @@ const CONST = {
         RECEIPT_TRANSLATION: 'receiptTranslation',
         RECEIPT_ENHANCEMENT: 'receiptEnhancement',
         SCAN_FLASH_TORCH: 'scanFlashTorch',
+        MULTI_PAGE_RECEIPTS: 'multiPageReceipts',
         NEW_DOT_BILL_PAY: 'newDotBillPay',
         HYBRID_WEB: 'hybridWeb',
         MILEAGE_UI: 'mileageUI',
@@ -2111,6 +2112,15 @@ const CONST = {
 
         // PDF page numbers are 1-indexed. This is the page a receipt opens on, and the page the static badge always shows.
         FIRST_PDF_PAGE: 1,
+
+        // A receipt built from camera photos is sent as one PDF, so it stops taking pages here.
+        MAX_PAGES: 10,
+
+        // The in-app camera mode a receipt was taken in. A receipt picked from files has none, so it can't get more pages.
+        CAMERA_MODE: {
+            MANUAL: 'manual',
+            ENHANCEMENT: 'enhancement',
+        },
 
         // Elements with this data attribute pause the hover zoom while the pointer is over them
         HOVER_ZOOM_EXCLUDED_ELEMENT: 'receipt-hover-zoom-excluded',

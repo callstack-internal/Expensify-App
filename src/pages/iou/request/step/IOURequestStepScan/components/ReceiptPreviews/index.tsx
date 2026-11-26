@@ -15,6 +15,7 @@ import {isLocalFile} from '@libs/fileDownload/FileUtils';
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
 import Navigation from '@libs/Navigation/Navigation';
 
+import {useReceiptPageCapture} from '@pages/iou/request/step/IOURequestStepScan/components/ReceiptPageCaptureContext';
 import useReceiptPreviewsSizes from '@pages/iou/request/step/IOURequestStepScan/hooks/useReceiptPreviewsSizes';
 
 import CONST from '@src/CONST';
@@ -30,7 +31,10 @@ import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-nati
 
 import SubmitButtonShadow from './SubmitButtonShadow';
 
-type ReceiptWithTransactionID = Receipt & {transactionID: string};
+/** A draft receipt in rapid fire, which opens its own expense, or a page of the receipt that is getting more pages */
+type PreviewReceipt = Pick<Receipt, 'source' | 'filename'> & {
+    transactionID?: string;
+};
 
 /** How many previews mount per render batch while scrolling. */
 const MAX_PREVIEWS_TO_RENDER_PER_BATCH = 2;
@@ -39,8 +43,8 @@ const MAX_PREVIEWS_TO_RENDER_PER_BATCH = 2;
 const PREVIEWS_WINDOW_SIZE = 3;
 
 type ReceiptPreviewItemProps = {
-    /** The draft receipt to preview, or undefined for a placeholder slot */
-    item: ReceiptWithTransactionID | undefined;
+    /** The draft receipt or page to preview, or undefined for a placeholder slot */
+    item: PreviewReceipt | undefined;
 
     /** Whether the scan screen is currently in landscape mode */
     isInLandscapeMode: boolean;
@@ -64,6 +68,7 @@ function ReceiptPreviewItem({item, isInLandscapeMode}: ReceiptPreviewItemProps) 
     const {translate} = useLocalize();
     const placeholderStyle = isInLandscapeMode ? styles.receiptPlaceholderLandscape : styles.receiptPlaceholder;
     const sourceUri = typeof item?.source === 'string' ? item.source : undefined;
+    const transactionID = item?.transactionID;
     const isLocalReceipt = isLocalFile(sourceUri) && Str.isImage(item?.filename ?? '');
     const {thumbnailUri} = useLocalReceiptThumbnail(isLocalReceipt ? sourceUri : undefined, isLocalReceipt);
 
@@ -72,22 +77,30 @@ function ReceiptPreviewItem({item, isInLandscapeMode}: ReceiptPreviewItemProps) 
     }
 
     const imageSource = isLocalReceipt ? thumbnailUri : item.source;
+    const image = (
+        // eslint-disable-next-line react-native-a11y/has-valid-accessibility-ignores-invert-colors -- Custom Image wrapper does not support this prop.
+        <Image
+            source={typeof imageSource === 'string' ? {uri: imageSource} : imageSource}
+            style={[placeholderStyle, styles.overflowHidden]}
+            loadingIconSize="small"
+            loadingIndicatorStyles={styles.bgTransparent}
+        />
+    );
+
+    // A page has no expense of its own to open, so it is only shown
+    if (!transactionID) {
+        return image;
+    }
 
     return (
         <PressableWithFeedback
             accessible
             accessibilityLabel={translate('common.receipt')}
             accessibilityRole={CONST.ROLE.BUTTON}
-            onPress={() => Navigation.navigate(createDynamicRoute(DYNAMIC_ROUTES.MONEY_REQUEST_RECEIPT_VIEW.getRoute(item.transactionID)))}
+            onPress={() => Navigation.navigate(createDynamicRoute(DYNAMIC_ROUTES.MONEY_REQUEST_RECEIPT_VIEW.getRoute(transactionID)))}
             sentryLabel={CONST.SENTRY_LABEL.IOU_REQUEST_STEP.RECEIPT_PREVIEW_ITEM}
         >
-            {/* eslint-disable-next-line react-native-a11y/has-valid-accessibility-ignores-invert-colors -- Custom Image wrapper does not support this prop. */}
-            <Image
-                source={typeof imageSource === 'string' ? {uri: imageSource} : imageSource}
-                style={[placeholderStyle, styles.overflowHidden]}
-                loadingIconSize="small"
-                loadingIndicatorStyles={styles.bgTransparent}
-            />
+            {image}
         </PressableWithFeedback>
     );
 }
@@ -99,19 +112,21 @@ function ReceiptPreviews({submit, isMultiScanEnabled, isCapturingPhoto = false, 
     const isPreviewsVisible = useSharedValue(false);
     const {previewsSize, previewItemSize, initialReceiptsAmount} = useReceiptPreviewsSizes(isInLandscapeMode);
 
-    const optimisticTransactionsReceipts = useTransactionDraftReceipts();
+    const pageCapture = useReceiptPageCapture();
+    const draftReceipts = useTransactionDraftReceipts();
+    const optimisticTransactionsReceipts: PreviewReceipt[] = pageCapture?.pages ?? draftReceipts;
     const receipts = (() => {
         if (optimisticTransactionsReceipts.length >= initialReceiptsAmount) {
             return optimisticTransactionsReceipts;
         }
-        const receiptsWithPlaceholders: Array<ReceiptWithTransactionID | undefined> = [...optimisticTransactionsReceipts];
+        const receiptsWithPlaceholders: Array<PreviewReceipt | undefined> = [...optimisticTransactionsReceipts];
         while (receiptsWithPlaceholders.length < initialReceiptsAmount) {
             receiptsWithPlaceholders.push(undefined);
         }
         return receiptsWithPlaceholders;
     })();
     const isScrollEnabled = optimisticTransactionsReceipts.length >= receipts.length;
-    const flatListRef = useRef<FlatListType<ReceiptWithTransactionID | undefined>>(null);
+    const flatListRef = useRef<FlatListType<PreviewReceipt | undefined>>(null);
     const receiptsPhotosLength = optimisticTransactionsReceipts.length;
     const previousReceiptsPhotosLength = usePrevious(receiptsPhotosLength);
 
@@ -139,7 +154,7 @@ function ReceiptPreviews({submit, isMultiScanEnabled, isCapturingPhoto = false, 
         flatListRef.current?.scrollToIndex({index: receiptsPhotosLength - 1});
     }, [receiptsPhotosLength, previousReceiptsPhotosLength, initialReceiptsAmount]);
 
-    const renderItem = ({item}: {item: ReceiptWithTransactionID | undefined}) => (
+    const renderItem = ({item}: {item: PreviewReceipt | undefined}) => (
         <ReceiptPreviewItem
             item={item}
             isInLandscapeMode={isInLandscapeMode}
@@ -184,7 +199,7 @@ function ReceiptPreviews({submit, isMultiScanEnabled, isCapturingPhoto = false, 
                         isDisabled={!optimisticTransactionsReceipts.length || isCapturingPhoto}
                         innerStyles={[styles.singleAvatarXLarge, styles.bgGreenSuccess]}
                         onPress={submit}
-                        sentryLabel={CONST.SENTRY_LABEL.IOU_REQUEST_STEP.RECEIPT_PREVIEW_SUBMIT_BUTTON}
+                        sentryLabel={pageCapture ? CONST.SENTRY_LABEL.IOU_REQUEST_STEP.RECEIPT_PAGES_SUBMIT_BUTTON : CONST.SENTRY_LABEL.IOU_REQUEST_STEP.RECEIPT_PREVIEW_SUBMIT_BUTTON}
                     >
                         <Button.Icon
                             src={icons.ArrowRight}

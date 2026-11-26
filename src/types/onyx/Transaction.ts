@@ -259,6 +259,21 @@ type Geometry = {
 /** Accepted receipt paths */
 type ReceiptSource = string | number;
 
+/** The in-app camera mode a receipt photo was taken in */
+type ReceiptCameraMode = ValueOf<typeof CONST.RECEIPT.CAMERA_MODE>;
+
+/** One photo of a receipt taken over several pages */
+type ReceiptPage = {
+    /** Local path of the photo */
+    source: string;
+
+    /** File name the camera gave the photo, used for the viewer title and file type checks */
+    filename: string;
+
+    /** MIME type of the photo */
+    type: string;
+};
+
 /** Model of receipt */
 type Receipt = {
     /** Name of receipt file */
@@ -298,6 +313,12 @@ type Receipt = {
 
     /** Correlation id created at capture, used to follow this receipt from capture to upload in the logs. */
     receiptTraceId?: string;
+
+    /** Every photo of a draft receipt taken over several pages, in capture order. The first one is also `source`. Null or absent for a one-photo receipt. */
+    pages?: ReceiptPage[] | null;
+
+    /** The in-app camera mode a draft receipt was taken in, so more pages are taken the same way. Null when the receipt came from files. */
+    cameraMode?: ReceiptCameraMode | null;
 
     /** Check-in date of a SmartScanned multi-day reservation, in YYYY-MM-DD. Null while a replacement receipt is pending. */
     hotelReservationStartDate?: string | null;
@@ -789,6 +810,8 @@ export type {
     WaypointCollection,
     Comment,
     Receipt,
+    ReceiptCameraMode,
+    ReceiptPage,
     Waypoint,
     Routes,
     ReceiptError,

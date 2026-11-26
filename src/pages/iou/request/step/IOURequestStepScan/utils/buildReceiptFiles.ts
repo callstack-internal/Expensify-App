@@ -5,9 +5,11 @@ import {shouldReuseInitialTransaction} from '@libs/TransactionUtils';
 import type {ReceiptFile} from '@pages/iou/request/step/IOURequestStepScan/types';
 
 import {setMoneyRequestReceipt} from '@userActions/IOU/Receipt';
+import {setDraftReceiptCameraMode} from '@userActions/IOU/ReceiptPages';
 import {buildOptimisticTransactionAndCreateDraft, removeDraftTransactionsByIDs} from '@userActions/TransactionEdit';
 
 import type Transaction from '@src/types/onyx/Transaction';
+import type {ReceiptCameraMode} from '@src/types/onyx/Transaction';
 import type {FileObject} from '@src/types/utils/Attachment';
 
 import type {OnyxEntry} from 'react-native-onyx';
@@ -29,6 +31,9 @@ type BuildReceiptFilesParams = {
 
     /** How the receipt entered the app, recorded on the capture log. */
     captureSource?: ReceiptCaptureSource;
+
+    /** The in-app camera mode the photo was taken in. Only a photo with one can get more pages later. */
+    cameraMode?: ReceiptCameraMode;
 };
 
 /**
@@ -47,6 +52,7 @@ function buildReceiptFiles({
     transactions,
     draftTransactionIDsToCleanUp,
     captureSource = 'file',
+    cameraMode,
 }: BuildReceiptFilesParams): ReceiptFile[] {
     if (files.length === 0) {
         return [];
@@ -72,6 +78,9 @@ function buildReceiptFiles({
         logReceiptCaptured({file, captureSource, receiptTraceId});
         receiptFiles.push({file, source, transactionID});
         setMoneyRequestReceipt(transactionID, source, file.name ?? '', true, file.type, false, false, undefined, receiptTraceId);
+        if (cameraMode) {
+            setDraftReceiptCameraMode(transactionID, cameraMode);
+        }
     }
 
     return receiptFiles;

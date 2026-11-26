@@ -19,6 +19,7 @@ import type {IOUType} from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import {validTransactionDraftIDsSelector} from '@src/selectors/TransactionDraft';
 import type Transaction from '@src/types/onyx/Transaction';
+import type {ReceiptCameraMode} from '@src/types/onyx/Transaction';
 import type {FileObject} from '@src/types/utils/Attachment';
 
 import type {OnyxEntry} from 'react-native-onyx';
@@ -70,7 +71,7 @@ function ScanGlobalCreateInner({reportID, transactionID, transaction}: ScanGloba
 
     useScanFileReadabilityCheck(transactions, draftTransactionIDs ?? [], disableMultiScan);
 
-    const processReceipts = (files: FileObject[], captureSource: ReceiptCaptureSource) => {
+    const processReceipts = (files: FileObject[], captureSource: ReceiptCaptureSource, cameraMode?: ReceiptCameraMode) => {
         const receiptFiles = buildReceiptFiles({
             files,
             getFileSource,
@@ -82,6 +83,7 @@ function ScanGlobalCreateInner({reportID, transactionID, transaction}: ScanGloba
             transactions,
             draftTransactionIDsToCleanUp: draftTransactionIDs,
             captureSource,
+            cameraMode,
         });
 
         if (receiptFiles.length === 0) {
@@ -114,15 +116,15 @@ function ScanGlobalCreateInner({reportID, transactionID, transaction}: ScanGloba
         <>
             {PDFValidationComponent}
             <Camera
-                onCapture={(file, source) => {
+                onCapture={(file, source, cameraMode) => {
                     if (isMultiScanEnabled) {
-                        processReceipts([file], 'camera');
+                        processReceipts([file], 'camera', cameraMode);
                         return;
                     }
                     // Seed the receipt-image cache before navigating so the confirm page can resolve
                     // the receipt synchronously instead of generating a thumbnail asynchronously.
                     precacheReceiptImage(source);
-                    processReceipts([file], 'camera');
+                    processReceipts([file], 'camera', cameraMode);
                 }}
                 onPicked={validateFiles}
                 onAttachmentPickerStatusChange={setIsLoaderVisible}

@@ -1,8 +1,12 @@
+import type {ReceiptCameraMode} from '@src/types/onyx/Transaction';
 import type {FileObject} from '@src/types/utils/Attachment';
 
 type CameraProps = {
-    /** Called when a file is captured or selected, with the file object and its source URI */
-    onCapture: (file: FileObject, source: string) => void;
+    /**
+     * Called when a file is captured or selected, with the file object and its source URI. The native camera also
+     * passes the mode the photo was taken in, which lets the receipt get more pages later.
+     */
+    onCapture: (file: FileObject, source: string, cameraMode?: ReceiptCameraMode) => void;
 
     /** Whether the gallery/file picker should accept multiple files at once */
     shouldAcceptMultipleFiles?: boolean;
@@ -23,7 +27,7 @@ type CameraProps = {
     /** Called when the attachment picker opens or closes (useful for showing/hiding a full-screen loader) */
     onAttachmentPickerStatusChange?: (isOpen: boolean) => void;
 
-    /** Called when the user taps the multi-scan submit button on the preview ribbon. Used by native and mobile web. */
+    /** Called when the user taps the submit button on the preview ribbon, in multi-scan or while adding receipt pages. Used by native and mobile web. */
     onMultiScanSubmit?: () => void;
 
     /** Whether the shutter may take a full-resolution photo to upgrade the fast snapshot. Defaults to true; off for replace-receipt and multi-scan. */

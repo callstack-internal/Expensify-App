@@ -510,6 +510,12 @@ const DYNAMIC_ROUTES = {
         getRoute: (transactionID: string, holdReportID: string | undefined) => getUrlWithParams('hold-reason', {transactionID, holdReportID}),
         queryParams: ['transactionID', 'holdReportID'],
     },
+    MONEY_REQUEST_ADD_RECEIPT_PAGE: {
+        path: 'add-receipt-page',
+        entryScreens: [SCREENS.MONEY_REQUEST.STEP_CONFIRMATION, SCREENS.MONEY_REQUEST.CREATE],
+        getRoute: (transactionID: string) => getUrlWithParams('add-receipt-page', {transactionID}),
+        queryParams: ['transactionID'],
+    },
     MONEY_REQUEST_RECEIPT_VIEW: {
         path: 'receipt-view',
         entryScreens: [SCREENS.MONEY_REQUEST.CREATE, SCREENS.MONEY_REQUEST.DYNAMIC_STEP_SCAN],

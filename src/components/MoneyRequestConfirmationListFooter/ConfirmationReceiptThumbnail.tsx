@@ -69,6 +69,9 @@ type ConfirmationReceiptThumbnailProps = {
     /** Page count of the receipt, used to show a "Page 1 of N" badge on multi-page PDFs */
     receiptPageCount: number;
 
+    /** How many photos a receipt taken over several pages has, used for the same badge */
+    receiptPhotoPageCount?: number;
+
     /** Whether the active transaction is an odometer-driven distance request */
     isOdometerDistanceRequest: boolean;
 
@@ -94,6 +97,9 @@ type ConfirmationReceiptThumbnailProps = {
 
     /** Image-load callback that captures aspect ratio and ends the receipt-load span */
     onReceiptLoad: (event?: {nativeEvent: {width: number; height: number}}) => void;
+
+    /** Controls drawn over the receipt, e.g. the Add page button */
+    children?: React.ReactNode;
 };
 
 function ConfirmationReceiptThumbnail({
@@ -113,6 +119,7 @@ function ConfirmationReceiptThumbnail({
     resolvedReceiptImage,
     effectiveReceiptSource,
     receiptPageCount,
+    receiptPhotoPageCount = 0,
     isOdometerDistanceRequest,
     isDistanceRequest,
     isMapDistanceRequest,
@@ -122,6 +129,7 @@ function ConfirmationReceiptThumbnail({
     onPDFLoadSuccess,
     onCompactReceiptContainerLayout,
     onReceiptLoad,
+    children,
 }: ConfirmationReceiptThumbnailProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
@@ -143,8 +151,10 @@ function ConfirmationReceiptThumbnail({
     const receiptContainerStyle = isCompactMode && compactReceiptContainerStyle ? compactReceiptContainerStyle : styles.expenseViewImageSmall;
     const receiptThumbnailStyle = [styles.h100, styles.flex1];
     const isPDF = isLocalFile && Str.isPDF(receiptFilename);
-    const effectiveReceiptPageCount = receiptPageCount || (detectedPDF.source === resolvedReceiptImage ? detectedPDF.pageCount : 0);
-    const shouldShowReceiptPageCount = effectiveReceiptPageCount > 1 && Str.isPDF(receiptFilename) && !isLoadingReceipt && isReceiptLoaded && !isMapDistanceRequest;
+    const isPhotoPageReceipt = receiptPhotoPageCount > 1;
+    const pdfPageCount = receiptPageCount || (detectedPDF.source === resolvedReceiptImage ? detectedPDF.pageCount : 0);
+    const effectiveReceiptPageCount = isPhotoPageReceipt ? receiptPhotoPageCount : pdfPageCount;
+    const shouldShowReceiptPageCount = effectiveReceiptPageCount > 1 && (isPhotoPageReceipt || Str.isPDF(receiptFilename)) && !isLoadingReceipt && isReceiptLoaded && !isMapDistanceRequest;
 
     const resetDetectedPDF = () => {
         setIsReceiptLoaded(false);
@@ -230,6 +240,7 @@ function ConfirmationReceiptThumbnail({
                     badgeStyles={[styles.receiptPageCountBadge, styles.pointerEventsNone]}
                 />
             )}
+            {!isLoadingReceipt && children}
         </View>
     );
 }

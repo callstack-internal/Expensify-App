@@ -1,6 +1,7 @@
 import {useConfirmationFields} from '@components/MoneyRequestConfirmationFields/context';
 import {receiptSliceSelector} from '@components/MoneyRequestConfirmationList/sections/selectors';
 import useTransactionSelector from '@components/MoneyRequestConfirmationList/sections/useTransactionSelector';
+import AddReceiptPageButton from '@components/MoneyRequestConfirmationListFooter/AddReceiptPageButton';
 import ConfirmationReceiptThumbnail from '@components/MoneyRequestConfirmationListFooter/ConfirmationReceiptThumbnail';
 import useCompactReceiptDimensions from '@components/MoneyRequestConfirmationListFooter/hooks/useCompactReceiptDimensions';
 import useReceiptThumbnailSource from '@components/MoneyRequestConfirmationListFooter/hooks/useReceiptThumbnailSource';
@@ -115,6 +116,7 @@ function ReceiptSection({
                 resolvedReceiptImage={receiptSource.resolvedReceiptImage as string | undefined}
                 effectiveReceiptSource={receiptSource.effectiveReceiptSource}
                 receiptPageCount={transaction?.receipt?.pageCount ?? 0}
+                receiptPhotoPageCount={transaction?.receipt?.pages?.length ?? 0}
                 isOdometerDistanceRequest={isOdometerDistanceRequest}
                 isDistanceRequest={isDistanceRequest}
                 isMapDistanceRequest={isMapBasedDistanceRequest(transaction)}
@@ -124,7 +126,9 @@ function ReceiptSection({
                 onPDFLoadSuccess={compact.endReceiptLoadSpan}
                 onCompactReceiptContainerLayout={compact.handleCompactReceiptContainerLayout}
                 onReceiptLoad={compact.handleReceiptLoad}
-            />
+            >
+                {isReceiptEditable && <AddReceiptPageButton />}
+            </ConfirmationReceiptThumbnail>
         );
     }
 

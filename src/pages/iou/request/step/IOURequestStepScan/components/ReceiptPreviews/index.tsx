@@ -48,6 +48,9 @@ type ReceiptPreviewItemProps = {
 
     /** Whether the scan screen is currently in landscape mode */
     isInLandscapeMode: boolean;
+
+    /** Read out for a page of the receipt that is getting more pages, e.g. "Page 2 of 3" */
+    pageLabel?: string;
 };
 
 type ReceiptPreviewsProps = {
@@ -63,7 +66,7 @@ type ReceiptPreviewsProps = {
     isInLandscapeMode?: boolean;
 };
 
-function ReceiptPreviewItem({item, isInLandscapeMode}: ReceiptPreviewItemProps) {
+function ReceiptPreviewItem({item, isInLandscapeMode, pageLabel}: ReceiptPreviewItemProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const placeholderStyle = isInLandscapeMode ? styles.receiptPlaceholderLandscape : styles.receiptPlaceholder;
@@ -73,7 +76,14 @@ function ReceiptPreviewItem({item, isInLandscapeMode}: ReceiptPreviewItemProps) 
     const {thumbnailUri} = useLocalReceiptThumbnail(isLocalReceipt ? sourceUri : undefined, isLocalReceipt);
 
     if (!item || (isLocalReceipt && !thumbnailUri)) {
-        return <View style={placeholderStyle} />;
+        return (
+            <View
+                style={placeholderStyle}
+                accessible={!!pageLabel}
+                accessibilityLabel={pageLabel}
+                role={pageLabel ? CONST.ROLE.IMG : undefined}
+            />
+        );
     }
 
     const imageSource = isLocalReceipt ? thumbnailUri : item.source;
@@ -87,9 +97,17 @@ function ReceiptPreviewItem({item, isInLandscapeMode}: ReceiptPreviewItemProps) 
         />
     );
 
-    // A page has no expense of its own to open, so it is only shown
+    // A page has no expense of its own to open, so it is only shown and read out by its place in the receipt
     if (!transactionID) {
-        return image;
+        return (
+            <View
+                accessible={!!pageLabel}
+                accessibilityLabel={pageLabel}
+                role={pageLabel ? CONST.ROLE.IMG : undefined}
+            >
+                {image}
+            </View>
+        );
     }
 
     return (
@@ -106,6 +124,7 @@ function ReceiptPreviewItem({item, isInLandscapeMode}: ReceiptPreviewItemProps) 
 }
 
 function ReceiptPreviews({submit, isMultiScanEnabled, isCapturingPhoto = false, isInLandscapeMode = false}: ReceiptPreviewsProps) {
+    const {translate} = useLocalize();
     const icons = useMemoizedLazyExpensifyIcons(['ArrowRight']);
     const styles = useThemeStyles();
     const theme = useTheme();
@@ -154,10 +173,11 @@ function ReceiptPreviews({submit, isMultiScanEnabled, isCapturingPhoto = false, 
         flatListRef.current?.scrollToIndex({index: receiptsPhotosLength - 1});
     }, [receiptsPhotosLength, previousReceiptsPhotosLength, initialReceiptsAmount]);
 
-    const renderItem = ({item}: {item: PreviewReceipt | undefined}) => (
+    const renderItem = ({item, index}: {item: PreviewReceipt | undefined; index: number}) => (
         <ReceiptPreviewItem
             item={item}
             isInLandscapeMode={isInLandscapeMode}
+            pageLabel={pageCapture && item ? translate('receipt.pageCount', {page: index + 1, pageCount: receiptsPhotosLength}) : undefined}
         />
     );
 

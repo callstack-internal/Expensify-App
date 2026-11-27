@@ -19,15 +19,15 @@ function setDraftReceiptCameraMode(transactionID: string, cameraMode: ReceiptCam
 }
 
 /** Saves the photos of a draft receipt in page order. A single page is stored as a plain one-photo receipt. */
-function setDraftReceiptPages(transactionID: string, pages: ReceiptPage[]) {
+function setDraftReceiptPages(transactionID: string, pages: ReceiptPage[]): Promise<void> {
     const firstPage = pages.at(0);
     if (!firstPage) {
-        return;
+        return Promise.resolve();
     }
     for (const page of pages) {
         ReceiptStorage.retain(page.source);
     }
-    Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION_DRAFT}${transactionID}`, {
+    return Onyx.merge(`${ONYXKEYS.COLLECTION.TRANSACTION_DRAFT}${transactionID}`, {
         receipt: {
             source: firstPage.source,
             filename: firstPage.filename,
@@ -64,13 +64,24 @@ function deleteDraftReceiptPage(transactionID: string, pages: ReceiptPage[], pag
 
 /** Swaps one page of a draft receipt for an edited photo, e.g. after it was rotated or cropped. */
 function replaceDraftReceiptPage(transactionID: string, pages: ReceiptPage[], pageIndex: number, page: ReceiptPage) {
-    if (!pages.at(pageIndex)) {
+    const replacedPage = pages.at(pageIndex);
+    if (!replacedPage) {
         return;
     }
     setDraftReceiptPages(
         transactionID,
         pages.map((existingPage, index) => (index === pageIndex ? page : existingPage)),
-    );
+    )
+        .then(() => {
+            // Delete the old photo only once the draft points at the new one, so the viewer never shows a missing file
+            if (replacedPage.source === page.source) {
+                return;
+            }
+            discardReceiptPageFile(replacedPage);
+        })
+        .catch((error: unknown) => {
+            Log.info('[ReceiptPages] could not save an edited receipt page', false, {error: getErrorMessage(error)});
+        });
 }
 
 export {deleteDraftReceiptPage, discardReceiptPageFile, replaceDraftReceiptPage, setDraftReceiptCameraMode, setDraftReceiptPages};

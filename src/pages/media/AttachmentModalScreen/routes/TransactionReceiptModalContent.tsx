@@ -36,7 +36,7 @@ import getPlatform from '@libs/getPlatform';
 import createDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/createDynamicRoute';
 import Navigation from '@libs/Navigation/Navigation';
 import ReceiptStorage from '@libs/ReceiptStorage';
-import {getReceiptPages, getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
+import {getLocalReceiptPages, getReceiptPages, getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
 import {resolveTransactionThreadReport, isTrackExpenseAction} from '@libs/ReportActionsUtils';
 import {canEditFieldOfMoneyRequest, isMoneyRequestReport, isTrackExpenseReport} from '@libs/ReportUtils';
 import {logReceiptAdoptFailed} from '@libs/telemetry/ReceiptObservability';
@@ -192,15 +192,19 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
         };
     }, [isOdometerImage, odometerImage]);
 
-    // A draft receipt taken over several photos is shown one page at a time, and Rotate and Crop edit that page
-    const receiptPages = isDraftTransaction && !isOdometerImage ? getReceiptPages(transactionDraft?.receipt) : [];
-    const isMultiPageDraftReceipt = receiptPages.length > 1;
+    // A receipt taken over several photos is shown one page at a time. A created expense shows its photos until the
+    // server's copy of the receipt replaces them, and only a draft can edit a single page.
+    const draftReceiptPages = isDraftTransaction && !isOdometerImage ? getReceiptPages(transactionDraft?.receipt) : [];
+    const receiptPages = isDraftTransaction || isOdometerImage ? draftReceiptPages : getLocalReceiptPages(transaction?.receipt);
+    const isMultiPageReceipt = receiptPages.length > 1;
+    const isMultiPageDraftReceipt = isDraftTransaction && isMultiPageReceipt;
     const [selectedPageIndex, setSelectedPageIndex] = useState(0);
     const pageIndex = Math.min(selectedPageIndex, Math.max(receiptPages.length - 1, 0));
-    const currentPage = isMultiPageDraftReceipt ? receiptPages.at(pageIndex) : undefined;
+    const currentPage = isMultiPageReceipt ? receiptPages.at(pageIndex) : undefined;
 
     // Use odometer image if imageType is provided (it's present only when we display odometer image) otherwise use receipt
-    const receiptSource = isDraftTransaction ? ReceiptStorage.resolve(currentPage?.source ?? transactionDraft?.receipt?.source) : tryResolveUrlFromApiRoot(receiptURIs.image ?? '');
+    const createdReceiptSource = currentPage ? ReceiptStorage.resolve(currentPage.source) : tryResolveUrlFromApiRoot(receiptURIs.image ?? '');
+    const receiptSource = isDraftTransaction ? ReceiptStorage.resolve(currentPage?.source ?? transactionDraft?.receipt?.source) : createdReceiptSource;
     const source = isOdometerImage ? odometerImageSource : receiptSource;
     const [sourceUri, setSourceUri] = useState<ReceiptSource>('');
     const [loadedScanningImageUri, setLoadedScanningImageUri] = useState<string>();
@@ -332,7 +336,7 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
     const shouldShowNotFoundPage =
         isTrackExpenseReportValue || isDraftTransaction || transaction?.reportID === CONST.REPORT.SPLIT_REPORT_ID || readonly ? !transaction : moneyRequestReportID !== transaction?.reportID;
 
-    let originalFileName = isDraftTransaction ? displayedReceiptFilename : receiptURIs?.filename;
+    let originalFileName = isDraftTransaction || currentPage ? displayedReceiptFilename : receiptURIs?.filename;
     if (isOdometerImage) {
         originalFileName = odometerFile?.name;
     }
@@ -468,6 +472,8 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
         (hasReceiptSource(transaction) || (isOdometerImage && hasOdometerImageSource(transaction, imageType))) &&
         !isEReceipt &&
         !transaction?.receipt?.isTestDriveReceipt &&
+        // Editing one page of a created expense would replace the whole receipt with that page
+        (isDraftTransaction || !isMultiPageReceipt) &&
         isImage;
 
     const enterCropMode = () => {
@@ -656,12 +662,13 @@ function TransactionReceiptModalContent({navigation, route}: AttachmentModalScre
                 </Button>
             </View>
         );
-    } else if (!shouldShowRotateAndCropReceiptButton && !shouldShowReplaceReceiptButton && !isOdometerImage && !shouldShowTranslateButton) {
+    } else if (!shouldShowRotateAndCropReceiptButton && !shouldShowReplaceReceiptButton && !isOdometerImage && !shouldShowTranslateButton && !isMultiPageReceipt) {
+        // A receipt with several pages keeps the footer for its page arrows, even when no button shows
         footerActionButtons = null;
     } else {
         footerActionButtons = (
             <>
-                {isMultiPageDraftReceipt && (
+                {isMultiPageReceipt && (
                     <View style={styles.receiptPageNavigatorFooter}>
                         <ReceiptPageNavigator
                             page={pageIndex + 1}

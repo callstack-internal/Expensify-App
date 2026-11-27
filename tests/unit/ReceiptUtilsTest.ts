@@ -1,4 +1,4 @@
-import {canAddReceiptPage, constructReceiptSourceFromFilename, getReceiptPages, getThumbnailAndImageURIs, shouldValidateFile} from '@libs/ReceiptUtils';
+import {canAddReceiptPage, constructReceiptSourceFromFilename, getLocalReceiptPages, getReceiptPages, getThumbnailAndImageURIs, shouldValidateFile} from '@libs/ReceiptUtils';
 
 import CONST from '@src/CONST';
 import type {Transaction} from '@src/types/onyx';
@@ -99,6 +99,28 @@ describe('getReceiptPages', () => {
 
         // Then there is nothing to page through
         expect(pages).toEqual([]);
+    });
+});
+
+describe('getLocalReceiptPages', () => {
+    const pages = ['a', 'b'].map((name) => ({source: `file:///receipts/${name}.jpg`, filename: `${name}.jpg`, type: 'image/jpeg'}));
+
+    it('returns the photos while the receipt is still on this device', () => {
+        // Given a created expense whose receipt was taken as two pages and hasn't reached the server yet
+        const receipt: Receipt = {source: 'file:///receipts/a.jpg', filename: 'a.jpg', pages};
+
+        // When its local pages are read
+        // Then both photos are there, so the expense can show and page through them
+        expect(getLocalReceiptPages(receipt)).toEqual(pages);
+    });
+
+    it('drops the photos once the server has the receipt', () => {
+        // Given the same receipt after the server replaced its source with the server's file
+        const receipt: Receipt = {source: 'https://www.expensify.com/receipts/w_abc.pdf', filename: 'w_abc.pdf', pages};
+
+        // When its local pages are read
+        // Then there are none, because the server's file is now the whole receipt
+        expect(getLocalReceiptPages(receipt)).toEqual([]);
     });
 });
 

@@ -229,6 +229,7 @@ function buildOptimisticTransaction(params: BuildOptimisticTransactionParams): T
                   state: receiptState ?? receipt.state ?? CONST.IOU.RECEIPT_STATE.SCAN_READY,
                   isTestDriveReceipt: receipt.isTestDriveReceipt,
                   pageCount: receipt.pageCount,
+                  pages: receipt.pages,
                   receiptTraceId: receipt.receiptTraceId,
               }
             : undefined,

@@ -51,7 +51,7 @@ import {isGroupPolicyByType} from '@libs/PolicyUtils';
 import ReceiptStorage from '@libs/ReceiptStorage';
 import retryReceiptUpload, {canRetryReceiptUpload} from '@libs/ReceiptUploadRetryHandler';
 import type {ReceiptRetryContext} from '@libs/ReceiptUploadRetryHandler/types';
-import {getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
+import {getLocalReceiptPages, getThumbnailAndImageURIs} from '@libs/ReceiptUtils';
 import {getOriginalMessage, resolveTransactionThreadReport, isMoneyRequestAction, wasActionTakenByCurrentUser} from '@libs/ReportActionsUtils';
 import {isMarkAsCashActionForTransaction} from '@libs/ReportPrimaryActionUtils';
 import {
@@ -630,13 +630,16 @@ function MoneyRequestReceiptView({
     // Expanding only opens the receipt to look at, so it asks for none of the permission above
     const canExpandReceipt = hasReceipt && !isLoading && !mergeTransactionID && !readonly && canInteractWithReport;
 
-    // Show the count badge only after a multi-page PDF receipt loads. Map distance receipts render as an e-receipt card, so their stored PDF page count is never shown.
-    const shouldShowReceiptPageCount = receiptPageCount > 1 && isReceiptPDF && !isLoading && !isMapDistanceRequest;
+    // Photos taken as pages of one receipt get the same badge as a PDF until the server's copy of the receipt replaces them
+    const badgeReceiptPageCount = isReceiptPDF ? receiptPageCount : getLocalReceiptPages(displayedTransaction?.receipt).length;
+
+    // Show the count badge only after a multi-page receipt loads. Map distance receipts render as an e-receipt card, so their stored PDF page count is never shown.
+    const shouldShowReceiptPageCount = badgeReceiptPageCount > 1 && !isLoading && !isMapDistanceRequest;
 
     // Pages can only be flipped where ReportActionItemImage renders the real PDF over the thumbnail (hover-capable
     // devices, using the same eligibility check ReportActionItemImage applies to its own overlay). Elsewhere only a
     // page 1 thumbnail exists, so the static count badge stays.
-    const canFlipReceiptPages = shouldShowReceiptPageCount && canZoomReceipt && deviceHasHoverSupport && canOverlayReceiptPDF(displayedTransaction);
+    const canFlipReceiptPages = shouldShowReceiptPageCount && isReceiptPDF && canZoomReceipt && deviceHasHoverSupport && canOverlayReceiptPDF(displayedTransaction);
 
     const isCurrentReceiptPDFPagesState = receiptPDFPagesState.source === displayedReceiptSource;
     const receiptPage = isCurrentReceiptPDFPagesState ? Math.min(receiptPDFPagesState.page, receiptPageCount || CONST.RECEIPT.FIRST_PDF_PAGE) : CONST.RECEIPT.FIRST_PDF_PAGE;
@@ -829,7 +832,7 @@ function MoneyRequestReceiptView({
                             )}
                             {shouldShowReceiptPageCount && !shouldShowReceiptPageNavigator && (
                                 <Badge
-                                    text={translate('receipt.pageCount', {page: CONST.RECEIPT.FIRST_PDF_PAGE, pageCount: receiptPageCount})}
+                                    text={translate('receipt.pageCount', {page: CONST.RECEIPT.FIRST_PDF_PAGE, pageCount: badgeReceiptPageCount})}
                                     badgeStyles={[styles.receiptPageCountBadge, styles.pointerEventsNone]}
                                 />
                             )}

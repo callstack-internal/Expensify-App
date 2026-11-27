@@ -85,15 +85,34 @@ describe('actions/IOU/ReceiptPages', () => {
         setDraftReceiptPages(TRANSACTION_ID, [FIRST_PAGE, SECOND_PAGE, THIRD_PAGE]);
         await waitForBatchedUpdates();
         const rotatedPage = makePage('second-rotated');
+        jest.spyOn(ReceiptStorage, 'resolve').mockImplementation((source) => (typeof source === 'string' ? source : undefined));
+        const discardSpy = jest.spyOn(ReceiptStorage, 'discard').mockResolvedValue();
 
         // When the second page is replaced by its rotated photo
         replaceDraftReceiptPage(TRANSACTION_ID, [FIRST_PAGE, SECOND_PAGE, THIRD_PAGE], 1, rotatedPage);
         await waitForBatchedUpdates();
 
-        // Then the other pages keep their place and the receipt source stays on page 1
+        // Then the other pages keep their place, the receipt source stays on page 1, and only the old photo of page 2 is deleted
         const draft = await getOnyxValue(DRAFT_KEY);
         expect(draft?.receipt?.pages).toEqual([FIRST_PAGE, rotatedPage, THIRD_PAGE]);
         expect(draft?.receipt?.source).toBe(FIRST_PAGE.source);
+        expect(discardSpy).toHaveBeenCalledTimes(1);
+        expect(discardSpy).toHaveBeenCalledWith(SECOND_PAGE.source);
+    });
+
+    it('keeps the photo when a page is replaced by the same file', async () => {
+        // Given a draft receipt with two pages
+        await Onyx.set(DRAFT_KEY, {transactionID: TRANSACTION_ID});
+        setDraftReceiptPages(TRANSACTION_ID, [FIRST_PAGE, SECOND_PAGE]);
+        await waitForBatchedUpdates();
+        const discardSpy = jest.spyOn(ReceiptStorage, 'discard').mockResolvedValue();
+
+        // When the first page is replaced by an entry that points at the same file
+        replaceDraftReceiptPage(TRANSACTION_ID, [FIRST_PAGE, SECOND_PAGE], 0, {...FIRST_PAGE});
+        await waitForBatchedUpdates();
+
+        // Then the file stays on disk, because the receipt still uses it
+        expect(discardSpy).not.toHaveBeenCalled();
     });
 
     it('drops the pages and camera mode when the receipt is replaced', async () => {

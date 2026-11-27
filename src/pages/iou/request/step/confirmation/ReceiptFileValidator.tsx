@@ -113,6 +113,8 @@ function ReceiptFileValidator({
                     // Rebuilding the receipt from disk makes a fresh file object without the trace id from capture, so copy it
                     // back from the saved draft. This keeps the capture, submit, and enqueue logs tied to one receipt.
                     receipt.receiptTraceId = item.receipt?.receiptTraceId;
+                    // The file read back is page 1 only, so the other pages come from the draft too
+                    receipt.pages = item.receipt?.pages;
                     if (item?.receipt?.isTestReceipt) {
                         receipt.isTestReceipt = true;
                         receipt.state = CONST.IOU.RECEIPT_STATE.SCAN_COMPLETE;

@@ -6780,6 +6780,19 @@ describe('buildOptimisticTransaction receipt state', () => {
         expect(transaction.receipt?.state).toBe(CONST.IOU.RECEIPT_STATE.OPEN);
         expect(TransactionUtils.isReceiptBeingScanned(transaction)).toBe(false);
     });
+
+    it('keeps every page of a receipt taken over several photos', () => {
+        // Given a receipt whose draft was taken as three pages
+        const pages = ['a', 'b', 'c'].map((name) => ({source: `file:///receipts/${name}.jpg`, filename: `${name}.jpg`, type: 'image/jpeg'}));
+
+        // When the expense is created from it
+        const transaction = TransactionUtils.buildOptimisticTransaction({
+            transactionParams: {amount: 100, currency: 'USD', reportID: '1', comment: '', created: '2023-10-01', receipt: {...receipt, pages}},
+        });
+
+        // Then the new expense still lists all three, so its receipt can show them before the server has its copy
+        expect(transaction.receipt?.pages).toEqual(pages);
+    });
 });
 
 describe('isTransactionSubmittable', () => {

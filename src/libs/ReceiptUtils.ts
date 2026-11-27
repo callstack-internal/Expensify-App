@@ -123,6 +123,17 @@ function getReceiptPages(receipt: OnyxEntry<Receipt>): ReceiptPage[] {
 }
 
 /**
+ * Returns the photos of a created expense's receipt while they are still only on this device. Once the server has the
+ * receipt, its source is the server's file and that file is the whole receipt, so the local photos no longer count.
+ */
+function getLocalReceiptPages(receipt: OnyxEntry<Receipt>): ReceiptPage[] {
+    if (!receipt?.pages || receipt.pages.length < 2 || !isLocalFileUtils(receipt.source)) {
+        return [];
+    }
+    return receipt.pages;
+}
+
+/**
  * Whether the confirmation page can offer to add another page to a draft receipt. Only a photo from the in-app camera
  * can grow, and only when it is the one receipt in the flow, since rapid fire turns every photo into its own expense.
  */
@@ -130,5 +141,5 @@ function canAddReceiptPage(receipt: OnyxEntry<Receipt>, draftReceiptCount: numbe
     return !!receipt?.cameraMode && draftReceiptCount <= 1 && getReceiptPages(receipt).length < CONST.RECEIPT.MAX_PAGES;
 }
 
-export {getThumbnailAndImageURIs, shouldValidateFile, constructReceiptSourceFromFilename, getReceiptPages, canAddReceiptPage};
+export {getThumbnailAndImageURIs, shouldValidateFile, constructReceiptSourceFromFilename, getReceiptPages, getLocalReceiptPages, canAddReceiptPage};
 export type {ThumbnailAndImageURI};
